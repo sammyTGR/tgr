@@ -3,7 +3,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Home() {
   return (
-    <body>
+    <div>
     <header>
         <ModeToggle />
       </header>
@@ -114,6 +114,6 @@ export default function Home() {
         </a>
       </div>
     </main>
-    </body>
+    </div>
   );
 }
