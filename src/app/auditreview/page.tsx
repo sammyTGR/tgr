@@ -4,6 +4,9 @@ import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { ModeToggle } from "@/components/mode-toggle";
 import React from "react";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+
+const words = 'Audits'
 
 async function fetchAuditData(): Promise<AuditData[]> {
   const { data, error } = await supabase.from("Auditsinput").select("*");
@@ -29,21 +32,15 @@ export default function AuditReview() {
 
     loadData();
   }, []);
+
   return (
     <div>
-      <header >
-        <div className="flex items-center justify-between mb-4">
-          <span className="hidden font-bold sm:inline-block">
-            TGR Audit Review
-          </span>
-          <ModeToggle />
-        </div>
-      </header>
+      
       <section>
         <div className="hidden h-full flex flex-col space-y-8 p-8 md:flex ">
           <div className="flex items-center justify-between space-y-2">
             <div>
-              <h2 className="text-2xl font-bold">Audits</h2>
+              <h2 className="text-2xl font-bold"><TextGenerateEffect words={words} /></h2>
             </div>
           </div>
           <div className="flex items-center justify-between space-y-2">

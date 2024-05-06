@@ -3,6 +3,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
+import { ClerkProvider, SignInButton, SignOutButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import './globals.css';
+import { Button } from '@/components/ui/button'
+import { dark } from '@clerk/themes';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,20 +21,35 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
+    <ClerkProvider
+    appearance={{ baseTheme: dark }}>
     <html lang="en" suppressHydrationWarning>
-      <header />
-      <body className={inter.className}>
-      <ThemeProvider
+    <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
+      <body className={inter.className}>
+      <header className="flex items-center justify-between p-4">
+            <SignedOut>
+              <SignInButton>
+              <Button>Sign In</Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <SignOutButton>
+              <Button>Sign Out</Button>
+              </SignOutButton>
+            </SignedIn>
+            <ModeToggle />
+          </header>
+          <main>
         {children}
-        </ThemeProvider>
+        </main>      
       </body>
+      </ThemeProvider>
     </html>
-    </>
+    </ClerkProvider>
   );
 }
