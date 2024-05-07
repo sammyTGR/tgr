@@ -7,6 +7,8 @@ import { ClerkProvider, SignInButton, SignOutButton, SignedIn, SignedOut, UserBu
 import './globals.css';
 import { Button } from '@/components/ui/button'
 import { dark } from '@clerk/themes';
+import { Link } from "lucide-react";
+import ToolTip from "./tooltip";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,8 +40,9 @@ export default function RootLayout({
               </SignInButton>
             </SignedOut>
             <SignedIn>
+              <UserButton />
               <SignOutButton>
-              <Button>Sign Out</Button>
+              <Button className="mr-auto ml-4">Sign Out</Button>
               </SignOutButton>
             </SignedIn>
             <ModeToggle />

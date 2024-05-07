@@ -1,7 +1,7 @@
 //reserve officer card used in navmenu
 
 import * as React from "react"
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
   import {
     Card,
     CardContent,

@@ -1,4 +1,5 @@
 // components/ui/supportmenutest.tsx
+"use client";
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import dynamic from 'next/dynamic';
 import React, { useEffect, useRef, useState } from "react";
@@ -197,9 +198,9 @@ const SupportMenu = () => {
         }
       };
     
-      if (typeof window !== 'undefined') {
+      
         fetchMenuItems();
-      }
+      
     }, []);
 
     // Close active dialog
