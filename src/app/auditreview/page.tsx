@@ -5,6 +5,11 @@ import { DataTable } from "@/components/ui/data-table";
 import { ModeToggle } from "@/components/mode-toggle";
 import React from "react";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { useUser } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 const words = 'Audits'
 
@@ -17,6 +22,7 @@ async function fetchAuditData(): Promise<AuditData[]> {
 export default function AuditReview() {
   const [data, setData] = React.useState<AuditData[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const { isLoaded, isSignedIn, user } = useUser();
 
   React.useEffect(() => {
     async function loadData() {
@@ -31,8 +37,12 @@ export default function AuditReview() {
     }
 
     loadData();
+
   }, []);
 
+  if (!isLoaded || !isSignedIn) {
+    return null;
+  }
   return (
     <div>
       
@@ -54,6 +64,7 @@ export default function AuditReview() {
           </div>
         </div>
       </section>
+      <Link className="fixed bottom-4 left-8" href="/">Home</Link>
     </div>
   );
 }

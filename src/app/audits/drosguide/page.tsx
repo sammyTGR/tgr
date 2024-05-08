@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -94,7 +94,7 @@ const getOptionsForSelect = (index: number) => {
           filteredData = filteredData.filter(item => item[keys[i]] === selections[i]);
       }
   }
-  return [...new Set(filteredData.map(item => item[keys[index]]))].filter(Boolean);
+  return Array.from(new Set(filteredData.map(item => item[keys[index]]))).filter(Boolean);
 };
 
 

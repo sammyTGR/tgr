@@ -3,8 +3,10 @@ import Link from "next/link"
 import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card"
 import { JSX, SVGProps } from "react"
 import { TextGenerateEffect } from "./ui/text-generate-effect"
+import { ActivityLogIcon, LightningBoltIcon } from "@radix-ui/react-icons"
 
 const words = 'Let\'s Get Started'
+const subwords = 'Welcome To The New TGR Admin Dashboard'
 export default function LandingPage() {
   return (
     <>
@@ -13,52 +15,52 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl"><TextGenerateEffect words={words} /></h1>
             <p className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
-              Streamline your tasks and boost productivity with our intuitive platform.
+            <TextGenerateEffect words={subwords} />
             </p>
-            <Link
+            {/* <Link
               className="inline-flex h-10 items-center justify-center rounded-md bg-gray-900 px-8 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
               href="#"
             >
               Get Started
-            </Link>
+            </Link> */}
           </div>
         </div>
       </section>
       <section className="w-full py-12 md:py-24">
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-3">
-            <Link className="group" href="#">
+            <Link className="group" href="/auditreview">
               <Card>
                 <CardHeader className="flex items-center gap-2">
-                  <ActivityIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-                  <CardTitle>Task Management</CardTitle>
+                  <ActivityLogIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                  <CardTitle>Review Your Audits</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500 dark:text-gray-400">Organize and prioritize your tasks with ease.</p>
+                  <p className="text-gray-500 dark:text-gray-400">Verify All Submitted Audits By The Team</p>
                 </CardContent>
               </Card>
             </Link>
-            <Link className="group" href="#">
+            <Link className="group" href="/audits/drosguide">
               <Card>
                 <CardHeader className="flex items-center gap-2">
-                  <CalendarIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-                  <CardTitle>Calendar</CardTitle>
+                  <LightningBoltIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                  <CardTitle>DROS Guidance</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500 dark:text-gray-400">
-                    Stay on top of your schedule with a comprehensive calendar.
+                    Stay In The Know With DROS Requirements
                   </p>
                 </CardContent>
               </Card>
             </Link>
-            <Link className="group" href="#">
+            <Link className="group" href="/audits/supaaudits">
               <Card>
                 <CardHeader className="flex items-center gap-2">
                   <TextIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-                  <CardTitle>Team Collaboration</CardTitle>
+                  <CardTitle>Enter Audits</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-500 dark:text-gray-400">Collaborate seamlessly with your team members.</p>
+                  <p className="text-gray-500 dark:text-gray-400">Utilize The Helper Floating Menu Bar During Your Audits</p>
                 </CardContent>
               </Card>
             </Link>

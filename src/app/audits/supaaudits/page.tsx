@@ -95,11 +95,19 @@ const NewAudits = () => {
             const errorDetailsSet = new Set<OptionType>();
 
             data.forEach(row => {
-                salesRepSet.add({ value: row.salesreps, label: row.salesreps });
-                auditTypeSet.add({ value: row.audit_type, label: row.audit_type });
-                errorLocationSet.add({ value: row.error_location, label: row.error_location });
-                errorDetailsSet.add({ value: row.error_details, label: row.error_details });
-            });
+              if (typeof row.salesreps === 'string') {
+                  salesRepSet.add({ value: row.salesreps.trim(), label: row.salesreps.trim() });
+              }
+              if (typeof row.audit_type === 'string') {
+                  auditTypeSet.add({ value: row.audit_type.trim(), label: row.audit_type.trim() });
+              }
+              if (typeof row.error_location === 'string') {
+                  errorLocationSet.add({ value: row.error_location.trim(), label: row.error_location.trim() });
+              }
+              if (typeof row.error_details === 'string') {
+                  errorDetailsSet.add({ value: row.error_details.trim(), label: row.error_details.trim() });
+              }
+          });
 
             setSalesRepOptions(Array.from(salesRepSet));
             setAuditTypeOptions(Array.from(auditTypeSet));

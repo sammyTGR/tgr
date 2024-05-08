@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ClerkProvider, SignInButton, SignOutButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
-import './globals.css';
+
 import { Button } from '@/components/ui/button'
 import { dark } from '@clerk/themes';
 import { Link } from "lucide-react";

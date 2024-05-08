@@ -1,4 +1,4 @@
-"use client"
+
 import * as React from "react"
 import { CheckIcon, PlusCircledIcon } from "@radix-ui/react-icons"
 import { Column } from "@tanstack/react-table"
@@ -87,7 +87,7 @@ export function DataTableFacetedFilter<TData, TValue>({
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             {options
-              .filter((option) => option.value.trim() !== "") // Exclude options with empty values
+              .filter((option) => typeof option.value === 'string' && option.value.trim() !== "") // Ensure option.value is a string and not empty
               .map((option) => {
                 const isSelected = selectedValues.includes(option.value);
                 return (
