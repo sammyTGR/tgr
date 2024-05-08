@@ -4,11 +4,10 @@ import "./globals.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ClerkProvider, SignInButton, SignOutButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
-
 import { Button } from '@/components/ui/button'
 import { dark } from '@clerk/themes';
-import { Link } from "lucide-react";
-import ToolTip from "./tooltip";
+import Link from "next/link";
+import Header from "../app/header";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -41,11 +40,8 @@ export default function RootLayout({
             </SignedOut>
             <SignedIn>
               <UserButton />
-              <SignOutButton>
-              <Button className="mr-auto ml-4">Sign Out</Button>
-              </SignOutButton>
             </SignedIn>
-            <ModeToggle />
+            <Header />
           </header>
           <main>
         {children}
