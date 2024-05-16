@@ -16,9 +16,6 @@ const Header = () => {
           <Link className="text-muted-foreground transition-colors hover:text-foreground" href="/audits/supaaudits">
             Submit Audits
           </Link>
-          <Link className="text-foreground transition-colors hover:text-foreground" href="#">
-            Settings
-          </Link>
           <Link className="flex items-center gap-2 text-lg font-semibold md:text-base" href="/">
             <Button variant="outline" size="icon">
             <HomeIcon  />

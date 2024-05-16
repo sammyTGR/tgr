@@ -2,23 +2,17 @@
 import supabase from "../../../supabase/lib/supabaseClient";
 import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
-import { ModeToggle } from "@/components/mode-toggle";
-import React, { useRef } from "react";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useUser } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { useAuth } from '@clerk/nextjs';
+import React, { useEffect, useState } from 'react';
 
-const words = 'Audits'
+const words = 'Audits';
 
 async function fetchAuditData(): Promise<AuditData[]> {
   const { data, error } = await supabase
     .from("Auditsinput")
     .select("*")
-    .order('audit_date', { ascending: true }); // Ensure sorting is as intended
+    .order('audit_date', { ascending: true }); // This ensures sorting is handled by Supabase
 
   if (error) {
     console.error('Error fetching initial data:', error.message);
@@ -32,7 +26,7 @@ export default function AuditReview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    let fetchData = async () => {
       setLoading(true);
       try {
         const fetchedData = await fetchAuditData();
@@ -50,7 +44,7 @@ export default function AuditReview() {
       .channel('custom-all-audits-channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditsinput' }, payload => {
         console.log('Real-time change received:', payload);
-        fetchData(); // Refetch data every time a change is detected
+        fetchData(); // Refetch data every time a change is detected to maintain order and accuracy
       })
       .subscribe();
 
