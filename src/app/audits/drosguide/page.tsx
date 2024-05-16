@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import IDsCard from '../Cards/IDsCard';
 import dynamic from 'next/dynamic';
-import createClerkSupabaseClient from '../../../../supabase/lib/supabaseClient';
+import {createClerkSupabaseClient} from '../../../../supabase/lib/supabaseClient';
 import FedsCard from '../Cards/FedsCard';
 
 // Example type definition, adjust based on your actual data structure

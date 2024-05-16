@@ -50,7 +50,7 @@ interface DataRow {
 }
 const SupportMenu = dynamic(() => import('@/components/ui/SupportMenu'), { ssr: false });
 
-const supaaudits = () => {
+const SupaAudits = () => {
   const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);
   const [auditTypeOptions, setAuditTypeOptions] = useState<OptionType[]>([]);
   const [errorLocationOptions, setErrorLocationOptions] = useState<OptionType[]>([]);
@@ -416,4 +416,4 @@ useEffect(() => {
   );
 };
 
-export default supaaudits;
+export default SupaAudits;

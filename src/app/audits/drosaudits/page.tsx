@@ -18,7 +18,7 @@ import { DataTableFacetedFilter } from "@/components/ui/faceted-filter";
 import { cn } from "@/lib/cn";
 import { CustomCalendar } from "@/components/ui/calendar";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import createClerkSupabaseClient from '../../../../supabase/lib/supabaseClient';
+import {createClerkSupabaseClient} from '../../../../supabase/lib/supabaseClient';
 
 const formSchema = z.object({
   drosNumber: z.string(),
