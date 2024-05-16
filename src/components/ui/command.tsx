@@ -111,20 +111,28 @@ const CommandSeparator = React.forwardRef<
 CommandSeparator.displayName = CommandPrimitive.Separator.displayName
 
 const CommandItem = React.forwardRef<
-  React.ElementRef<typeof CommandPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.Item
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { onSelect?: () => void }
+>(({ className, onSelect, children, ...props }, ref) => (
+  <div
     ref={ref}
+    onClick={() => {
+      // console.log("CommandItem clicked");
+      onSelect?.();
+    }}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground",
       className
     )}
     {...props}
-  />
-))
+  >
+    {children}
+  </div>
+));
 
-CommandItem.displayName = CommandPrimitive.Item.displayName
+CommandItem.displayName = "CommandItem";
+
+
 
 const CommandShortcut = ({
   className,

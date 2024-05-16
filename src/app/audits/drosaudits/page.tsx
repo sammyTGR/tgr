@@ -18,7 +18,7 @@ import { DataTableFacetedFilter } from "@/components/ui/faceted-filter";
 import { cn } from "@/lib/cn";
 import { CustomCalendar } from "@/components/ui/calendar";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createClient } from '@supabase/supabase-js';
+import createClerkSupabaseClient from '../../../../supabase/lib/supabaseClient';
 
 const formSchema = z.object({
   drosNumber: z.string(),
@@ -46,10 +46,7 @@ type DataRow = string[]; // or more specific type reflecting your data structure
 type SheetRow = string[];
 const SupportMenu = dynamic(() => import('@/components/ui/SupportMenu'), { ssr: false });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = createClerkSupabaseClient();
 
 const DROSAudits = () => {
   const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);  // Use an empty array as initial state

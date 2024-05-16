@@ -1,8 +1,33 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+"use client";
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey: string = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Export the function itself
+export function createClerkSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        fetch: async (url, options = {}) => {
+          const clerkSession = window.Clerk.session;
+          const clerkToken = await clerkSession?.getToken({
+            template: "supabase"
+          });
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+          const headers = new Headers(options.headers);
+          if (clerkToken) {
+            headers.set("Authorization", `Bearer ${clerkToken}`);
+          }
 
-export default supabase;
+          // Use the native fetch to proceed with the modified headers
+          return fetch(url, {
+            ...options,
+            headers,
+          });
+        },
+      },
+    }
+  );
+}
+export const supabase = createClerkSupabaseClient()
+export default supabase

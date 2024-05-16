@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import IDsCard from '../Cards/IDsCard';
 import dynamic from 'next/dynamic';
-import { createClient } from '@supabase/supabase-js';
+import createClerkSupabaseClient from '../../../../supabase/lib/supabaseClient';
 import FedsCard from '../Cards/FedsCard';
 
 // Example type definition, adjust based on your actual data structure
@@ -19,10 +19,7 @@ type DataRow = string[]; // Represents a single row of data as an array of strin
 type Data = DataRow[]; // Represents the entire dataset as an array of DataRow
 const SupportMenu = dynamic(() => import('@/components/ui/SupportMenu'), { ssr: false });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = createClerkSupabaseClient();
 
 interface DropdownItem {
   product: string;
@@ -74,7 +71,7 @@ const DROSGuide = () => {
         }
 
         if (fetchedData) {
-            console.log("Fetched raw data:", fetchedData);
+            // console.log("Fetched raw data:", fetchedData);
             setData(fetchedData);
         } else {
             console.error('No data available');
@@ -147,7 +144,7 @@ const columnHText = canShowColumnH() ? data.find(row => {
      <div className="flex flow-row items-center justify-center max w-full mb-48">
          <SupportMenu />
          {/* Render dialog content */}
-      {activeDialogContentId && renderDialogContent()}
+      {activeDialogContentId}
          </div>
     <div className="flex flex-col justify-center px-4 space-y-6 mx-auto max-w-lg">
       {selections.map((selection, index) => (

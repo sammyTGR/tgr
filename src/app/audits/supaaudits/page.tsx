@@ -13,12 +13,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { CalendarIcon } from "@radix-ui/react-icons";
+import { CalendarIcon, CheckIcon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/ui/faceted-filter";
 import { cn } from "@/lib/cn";
 import { CustomCalendar } from "@/components/ui/calendar";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createClient } from '@supabase/supabase-js';
+import supabase, {createClerkSupabaseClient} from '../../../../supabase/lib/supabaseClient';
+import { Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut, CommandSeparator } from "@/components/ui/command";
+
+type OptionType = {
+  label: string;
+  value: string;
+};
 
 const formSchema = z.object({
   drosNumber: z.string(),
@@ -35,23 +41,16 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
-type OptionType = {
-  label: string;
-  value: string;
-};
-type SheetRowData = [string, string, string, string];
-type DataItem = string[]; // If `data` is an array of arrays of strings
-type Data = DataItem[];
-type DataRow = string[]; // or more specific type reflecting your data structure
-type SheetRow = string[];
+
+interface DataRow {
+  salesreps?: string;
+  audit_type?: string;
+  error_location?: string;
+  error_details?: string;
+}
 const SupportMenu = dynamic(() => import('@/components/ui/SupportMenu'), { ssr: false });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-const NewAudits = () => {
+const supaaudits = () => {
   const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);
   const [auditTypeOptions, setAuditTypeOptions] = useState<OptionType[]>([]);
   const [errorLocationOptions, setErrorLocationOptions] = useState<OptionType[]>([]);
@@ -77,68 +76,82 @@ const NewAudits = () => {
     name: "audits"
   });
 
+  const updateOptions = (data: DataRow[]) => {
+    const salesRepSet = new Set<OptionType>();
+    const auditTypeSet = new Set<OptionType>();
+    const errorLocationSet = new Set<OptionType>();
+    const errorDetailsSet = new Set<OptionType>();
+
+    data.forEach(row => {
+      if (row.salesreps) {
+        salesRepSet.add({ value: row.salesreps.trim(), label: row.salesreps.trim() });
+      }
+      if (row.audit_type) {
+        auditTypeSet.add({ value: row.audit_type.trim(), label: row.audit_type.trim() });
+      }
+      if (row.error_location) {
+        errorLocationSet.add({ value: row.error_location.trim(), label: row.error_location.trim() });
+      }
+      if (row.error_details) {
+        errorDetailsSet.add({ value: row.error_details.trim(), label: row.error_details.trim() });
+      }
+    });
+
+    setSalesRepOptions(Array.from(salesRepSet));
+    setAuditTypeOptions(Array.from(auditTypeSet));
+    setErrorLocationOptions(Array.from(errorLocationSet));
+    setErrorDetailsOptions(Array.from(errorDetailsSet));
+  };
   useEffect(() => {
     const fetchOptions = async () => {
-        const { data, error } = await supabase
-            .from('Auditlists')
-            .select('salesreps, audit_type, error_location, error_details');
-
-        if (error) {
-            console.error('Failed to fetch options:', error.message);
-            return;
-        }
-
-        if (data) {  // Adding a check to ensure data is not null
-            const salesRepSet = new Set<OptionType>();
-            const auditTypeSet = new Set<OptionType>();
-            const errorLocationSet = new Set<OptionType>();
-            const errorDetailsSet = new Set<OptionType>();
-
-            data.forEach(row => {
-              if (typeof row.salesreps === 'string') {
-                  salesRepSet.add({ value: row.salesreps.trim(), label: row.salesreps.trim() });
-              }
-              if (typeof row.audit_type === 'string') {
-                  auditTypeSet.add({ value: row.audit_type.trim(), label: row.audit_type.trim() });
-              }
-              if (typeof row.error_location === 'string') {
-                  errorLocationSet.add({ value: row.error_location.trim(), label: row.error_location.trim() });
-              }
-              if (typeof row.error_details === 'string') {
-                  errorDetailsSet.add({ value: row.error_details.trim(), label: row.error_details.trim() });
-              }
-          });
-
-            setSalesRepOptions(Array.from(salesRepSet));
-            setAuditTypeOptions(Array.from(auditTypeSet));
-            setErrorLocationOptions(Array.from(errorLocationSet));
-            setErrorDetailsOptions(Array.from(errorDetailsSet));
-        } else {
-            console.log("No data returned from Supabase.");
-        }
+      const { data, error } = await supabase.from('Auditlists').select('*');
+      if (error) {
+        console.error('Failed to fetch options:', error.message);
+      } else if (data) {
+        updateOptions(data);
+      }
     };
-
+  
     fetchOptions();
-}, []);
+  
+    const subscription = supabase
+      .channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditlists' }, payload => {
+        if (payload.new) {
+          updateOptions([payload.new]);
+        }
+      })
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []); 
+  
 
 
   const submitFormData = async (formData: FormData) => {
     // Construct records to insert into Supabase
     const records = formData.audits.flatMap((audit, index) => {
-        const notesLines = (audit.errorNotes || '').split('\n').map(note => ({
-          // omit 'audit_id', it will be auto-generated
-            dros_number: formData.drosNumber,
-            salesreps: formData.salesRep,
-            audit_type: audit.auditType.join(', '),
-            trans_date: format(formData.transDate, "yyyy-MM-dd"),
-            audit_date: formData.auditDate ? format(formData.auditDate, "yyyy-MM-dd") : null,
-            error_location: audit.errorLocation.join(', '),
-            error_details: audit.errorDetails.join(', '),
-            error_notes: note.trim(),
-            dros_cancel: index === 0 && formData.drosCancel ? "Yes" : null,
-        }));
-        return notesLines;
+      // Ensure all fields are arrays
+      const auditType = Array.isArray(audit.auditType) ? audit.auditType : [audit.auditType];
+      const errorLocation = Array.isArray(audit.errorLocation) ? audit.errorLocation : [audit.errorLocation];
+      const errorDetails = Array.isArray(audit.errorDetails) ? audit.errorDetails : [audit.errorDetails];
+  
+      const notesLines = (audit.errorNotes || '').split('\n').map(note => ({
+        dros_number: formData.drosNumber,
+        salesreps: formData.salesRep,
+        audit_type: auditType.join(', '), // Join elements into a string
+        trans_date: format(formData.transDate, "yyyy-MM-dd"),
+        audit_date: formData.auditDate ? format(formData.auditDate, "yyyy-MM-dd") : null,
+        error_location: errorLocation.join(', '), // Join elements into a string
+        error_details: errorDetails.join(', '), // Join elements into a string
+        error_notes: note.trim(),
+        dros_cancel: index === 0 && formData.drosCancel ? "Yes" : null, // Only add to the first record
+      }));
+      return notesLines;
     });
+    
 
     // console.log("Submitting to Supabase:", JSON.stringify(records, null, 2)); //shows the full submission
 
@@ -166,6 +179,62 @@ const NewAudits = () => {
     const formData = methods.getValues();  // Get the form data using react-hook-form
     await submitFormData(formData);  // Now call submitFormData with the form data
 };
+
+useEffect(() => {
+  const handleClick = (event: any) => {
+    // console.log("Direct DOM click detected");
+  };
+
+  const elements = document.querySelectorAll('[data-command-item]');
+  elements.forEach(element => element.addEventListener('click', handleClick));
+
+  return () => {
+    elements.forEach(element => element.removeEventListener('click', handleClick));
+  };
+}, []);
+
+  // Replace the existing implementation of dropdowns with the new combobox pattern
+  const renderDropdown = (field: any, options: OptionType[], placeholder: string) => {
+    const [searchText, setSearchText] = useState('');
+  
+    // Filter options based on search text
+    const filteredOptions = options.filter(option =>
+      option.label.toLowerCase().includes(searchText.toLowerCase())
+    );
+  
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full">
+            {field.value ? options.find(option => option.value === field.value)?.label || placeholder : placeholder}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0">
+          <Command>
+            <CommandInput 
+              placeholder={`Search ${placeholder}...`}
+              onInput={e => setSearchText(e.currentTarget.value)}
+            />
+            <CommandList>
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map(option => (
+                  <CommandItem key={option.value} onSelect={() => {
+                    field.onChange(option.value);
+                    setSearchText(''); // Clear search text after selection
+                  }}>
+                    {option.label}
+                    <CheckIcon className={cn("ml-2", field.value === option.value ? "opacity-100" : "opacity-0")} />
+                  </CommandItem>
+                ))
+              ) : (
+                <CommandEmpty>No results found.</CommandEmpty>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
   
   return (
     <FormProvider {...methods}>
@@ -208,37 +277,20 @@ const NewAudits = () => {
             <FormDescription>Enter DROS | Acquisition | Invoice #</FormDescription>
           </FormItem>
         )} />
+        {/* Dropdown For Sales Reps */}
         <FormField
-            control={control}
-            name="salesRep"
-            render={({ field: { onChange, value } }) => (
-              <FormItem className="flex flex-col mb-4 w-full">
-                <FormLabel>Sales Rep</FormLabel>
-                <Select 
-                key={resetKey} // resetKey changes to force re-render
-                onValueChange={onChange} 
-                defaultValue={value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select A Sales Rep" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {salesRepOptions.filter(option => option.value !== "").map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Who Dun Messed Up
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          control={control}
+          name="salesRep"
+          render={({ field }) => (
+            <FormItem className="flex flex-col mb-4 w-full">
+              <FormLabel>Sales Rep</FormLabel>
+              {renderDropdown(field, salesRepOptions, "Select A Sales Rep")}
+              <FormDescription>Who Dun Messed Up</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
           <FormField control={control} name="transDate" render={({ field }) => (
             <FormItem className="flex flex-col mb-4">
               <FormLabel>Transaction Date</FormLabel>
@@ -288,34 +340,44 @@ const NewAudits = () => {
           )} />
           </div>
 
-        {fields.map((field, index) => (
-          <div key={field.id}>
-            <div className="flex flex-row md:flex-row md:space-x-4 mb-4">
-            <Controller name={`audits.${index}.auditType`} control={control} render={({ field: { onChange, value } }) => (
-              <DataTableFacetedFilter
-              options={auditTypeOptions}
-              title="Audit Type"
-              selectedValues={Array.isArray(value) ? value : [...value]}
-              onSelectionChange={onChange}
+          {/* Dropdown For Audit Type, Error Location and Error Details */}
+          {fields.map((field, index) => (
+            <div key={field.id}>
+              <div className="flex flex-row md:flex-row md:space-x-4 mb-4">
+                <Controller
+                  name={`audits.${index}.auditType`}
+                  control={control}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col mb-4 w-full">
+                      <FormLabel>Error Location</FormLabel>
+                    {renderDropdown(field, auditTypeOptions, "Select Audit Type")}
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-            )} />
-            <Controller name={`audits.${index}.errorLocation`} control={control} render={({ field: { onChange, value } }) => (
-              <DataTableFacetedFilter
-              options={errorLocationOptions}
-              title="Error Location"
-              selectedValues={Array.isArray(value) ? value : [...value]}
-              onSelectionChange={onChange}
+                <Controller
+                  name={`audits.${index}.errorLocation`}
+                  control={control}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col mb-4 w-full">
+                      <FormLabel>Error Location</FormLabel>
+                      {renderDropdown(field, errorLocationOptions, "Select Error Location")}
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-            )} />
-            <Controller name={`audits.${index}.errorDetails`} control={control} render={({ field: { onChange, value } }) => (
-              <DataTableFacetedFilter
-              options={errorDetailsOptions}
-              title="Error Details"
-              selectedValues={Array.isArray(value) ? value : [...value]}
-              onSelectionChange={onChange} 
+                <Controller
+                  name={`audits.${index}.errorDetails`}
+                  control={control}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col mb-4 w-full">
+                      <FormLabel>Error Details</FormLabel>
+                      {renderDropdown(field, errorDetailsOptions, "Select Error Details")}
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-            )} />
-            </div>
+              </div>
             <FormField name={`audits.${index}.errorNotes`} control={control} render={({ field }) => {
                 // console.log(`Error Notes for audit ${index}:`, field.value); // Ensure this logs correct values
                 return (
@@ -354,4 +416,4 @@ const NewAudits = () => {
   );
 };
 
-export default NewAudits;
+export default supaaudits;
