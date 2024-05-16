@@ -128,32 +128,44 @@ const SupaAudits = () => {
     };
   }, []); 
   
-
+  interface AuditRecord {
+    dros_number: string;
+    salesreps: string;
+    audit_type: string;
+    trans_date: string;
+    audit_date: string | null;
+    error_location: string;
+    error_details: string;
+    error_notes: string;
+    dros_cancel: string | null; // Ensure this allows both string and null
+  }
 
   const submitFormData = async (formData: FormData) => {
-    // Construct records to insert into Supabase
+    let isFirstAudit = true; // Use this flag to check if we're processing the first record
+  
     const records = formData.audits.flatMap((audit, index) => {
-      // Ensure all fields are arrays
       const auditType = Array.isArray(audit.auditType) ? audit.auditType : [audit.auditType];
       const errorLocation = Array.isArray(audit.errorLocation) ? audit.errorLocation : [audit.errorLocation];
       const errorDetails = Array.isArray(audit.errorDetails) ? audit.errorDetails : [audit.errorDetails];
   
-      const notesLines = (audit.errorNotes || '').split('\n').map(note => ({
-        dros_number: formData.drosNumber,
-        salesreps: formData.salesRep,
-        audit_type: auditType.join(', '), // Join elements into a string
-        trans_date: format(formData.transDate, "yyyy-MM-dd"),
-        audit_date: formData.auditDate ? format(formData.auditDate, "yyyy-MM-dd") : null,
-        error_location: errorLocation.join(', '), // Join elements into a string
-        error_details: errorDetails.join(', '), // Join elements into a string
-        error_notes: note.trim(),
-        dros_cancel: index === 0 && formData.drosCancel ? "Yes" : null, // Only add to the first record
-      }));
-      return notesLines;
+      return (audit.errorNotes || '').split('\n').map(note => {
+        const record: AuditRecord = {
+          dros_number: formData.drosNumber,
+          salesreps: formData.salesRep,
+          audit_type: auditType.join(', '),
+          trans_date: format(formData.transDate, "yyyy-MM-dd"),
+          audit_date: formData.auditDate ? format(formData.auditDate, "yyyy-MM-dd") : null,
+          error_location: errorLocation.join(', '),
+          error_details: errorDetails.join(', '),
+          error_notes: note.trim(),
+          dros_cancel: isFirstAudit && formData.drosCancel ? "Yes" : null
+        };
+  
+        isFirstAudit = false; // After processing the first audit, set this to false
+        return record;
+      });
     });
-    
-
-    // console.log("Submitting to Supabase:", JSON.stringify(records, null, 2)); //shows the full submission
+  
 
     try {
         const { data, error } = await supabase
@@ -194,7 +206,13 @@ useEffect(() => {
 }, []);
 
   // Replace the existing implementation of dropdowns with the new combobox pattern
-  const renderDropdown = (field: any, options: OptionType[], placeholder: string) => {
+  type RenderDropdownProps = {
+    field: any;
+    options: OptionType[];
+    placeholder: string;
+  };
+  
+  const RenderDropdown: React.FC<RenderDropdownProps> = ({ field, options, placeholder }) => {
     const [searchText, setSearchText] = useState('');
   
     // Filter options based on search text
@@ -221,9 +239,15 @@ useEffect(() => {
                   <CommandItem key={option.value} onSelect={() => {
                     field.onChange(option.value);
                     setSearchText(''); // Clear search text after selection
-                  }}>
+                  }}
+                  className={cn(
+                    "flex items-center px-3 py-2 cursor-pointer",
+                    "hover:bg-gray-800", // Darker background on hover for dark mode
+                    field.value === option.value ? "font-semibold text-white" : "text-gray-400"
+                  )}
+                  >
                     {option.label}
-                    <CheckIcon className={cn("ml-2", field.value === option.value ? "opacity-100" : "opacity-0")} />
+                    <CheckIcon className={cn("mr-auto", field.value === option.value ? "opacity-100" : "opacity-0")} />
                   </CommandItem>
                 ))
               ) : (
@@ -279,17 +303,22 @@ useEffect(() => {
         )} />
         {/* Dropdown For Sales Reps */}
         <FormField
-          control={control}
-          name="salesRep"
-          render={({ field }) => (
-            <FormItem className="flex flex-col mb-4 w-full">
-              <FormLabel>Sales Rep</FormLabel>
-              {renderDropdown(field, salesRepOptions, "Select A Sales Rep")}
-              <FormDescription>Who Dun Messed Up</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            control={control}
+            name="salesRep"
+            render={({ field }) => (
+              <FormItem className="flex flex-col mb-4 w-full">
+                <FormLabel>Sales Rep</FormLabel>
+                <RenderDropdown 
+                  field={field} 
+                  options={salesRepOptions} 
+                  placeholder="Select A Sales Rep"
+                />
+                <FormDescription>Who Dun Messed Up</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
 
           <FormField control={control} name="transDate" render={({ field }) => (
             <FormItem className="flex flex-col mb-4">
@@ -349,8 +378,12 @@ useEffect(() => {
                   control={control}
                   render={({ field }) => (
                     <FormItem className="flex flex-col mb-4 w-full">
-                      <FormLabel>Error Location</FormLabel>
-                    {renderDropdown(field, auditTypeOptions, "Select Audit Type")}
+                      <FormLabel>Audit Type</FormLabel>
+                      <RenderDropdown 
+                          field={field} 
+                          options={auditTypeOptions} 
+                          placeholder="Select Audit Type"
+                        />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -361,7 +394,11 @@ useEffect(() => {
                   render={({ field }) => (
                     <FormItem className="flex flex-col mb-4 w-full">
                       <FormLabel>Error Location</FormLabel>
-                      {renderDropdown(field, errorLocationOptions, "Select Error Location")}
+                      <RenderDropdown 
+                          field={field} 
+                          options={errorLocationOptions} 
+                          placeholder="Where Was The Error"
+                        />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -372,7 +409,11 @@ useEffect(() => {
                   render={({ field }) => (
                     <FormItem className="flex flex-col mb-4 w-full">
                       <FormLabel>Error Details</FormLabel>
-                      {renderDropdown(field, errorDetailsOptions, "Select Error Details")}
+                      <RenderDropdown 
+                          field={field} 
+                          options={errorDetailsOptions} 
+                          placeholder="Select The Details"
+                        />
                       <FormMessage />
                     </FormItem>
                   )}
