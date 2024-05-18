@@ -3,7 +3,6 @@ import supabase from "../../../supabase/lib/supabaseClient";
 import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 
 const words = 'Audits';
@@ -11,8 +10,8 @@ const words = 'Audits';
 async function fetchAuditData(): Promise<AuditData[]> {
   const { data, error } = await supabase
     .from("Auditsinput")
-    .select("*")
-    .order('audit_date', { ascending: true }); // This ensures sorting is handled by Supabase
+    .select("*");
+    // .order('audit_date', { ascending: true }); // This ensures sorting is handled by Supabase
 
   if (error) {
     console.error('Error fetching initial data:', error.message);
@@ -26,10 +25,11 @@ export default function AuditReview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let fetchData = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
         const fetchedData = await fetchAuditData();
+        console.log("Fetched data:", fetchedData); // Verify the fetched data
         setData(fetchedData);
         setLoading(false);
       } catch (error) {
@@ -37,22 +37,29 @@ export default function AuditReview() {
         setLoading(false);
       }
     };
-
+  
     fetchData();
-
+  
     const subscription = supabase
-      .channel('custom-all-audits-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditsinput' }, payload => {
-        console.log('Real-time change received:', payload);
-        fetchData(); // Refetch data every time a change is detected to maintain order and accuracy
-      })
-      .subscribe();
-
+    .channel('custom-all-audits-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'Auditsinput' }, payload => {
+      console.log('Real-time change received:', payload);
+      if (payload.new) {
+        setData(currentData => [
+          ...currentData, 
+          payload.new as AuditData // Assert that payload.new is of type AuditData
+        ]);
+      } else {
+        fetchData(); // Refetch for other types of updates
+      }
+    })
+    .subscribe();
     // Cleanup function for the useEffect
     return () => {
       supabase.removeChannel(subscription);
     };
   }, []);
+  
 
   return (
     <div>
@@ -74,7 +81,6 @@ export default function AuditReview() {
           </div>
         </div>
       </section>
-      <Link className="fixed bottom-4 left-8" href="/">Home</Link>
     </div>
   );
 }

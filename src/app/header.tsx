@@ -2,11 +2,23 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from '@/components/ui/button'
 import Link from "next/link";
 import { HomeIcon } from "@radix-ui/react-icons";
+import { SignInButton, SignOutButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 
-const Header = () => {
+
+export default function Header() {
     return (
-        
+        <header className="py-4">
         <nav className="ml-auto mr-3 hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+          <div className="mr-auto ml-3 flex">
+        <SignedOut>
+              <SignInButton>
+              <Button>Sign In</Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+            </div>
           <Link className="text-muted-foreground transition-colors hover:text-foreground" href="/auditreview">
             Review Audits
           </Link>
@@ -23,7 +35,6 @@ const Header = () => {
             <ModeToggle />
           </Link>
         </nav>
-       
+        </header>
     )
 }
-export default Header

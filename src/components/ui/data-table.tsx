@@ -57,21 +57,22 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-    },
-  });
+    const table = useReactTable({
+      data,
+      columns,
+      state: {
+        sorting,
+        columnFilters,
+        columnVisibility,
+      },
+      onSortingChange: setSorting,
+      getCoreRowModel: getCoreRowModel(),
+      getSortedRowModel: getSortedRowModel(),
+      getFilteredRowModel: getFilteredRowModel(),
+      getPaginationRowModel: getPaginationRowModel(),
+      manualPagination: false, // Set based on your data handling strategy
+      manualSorting: false,  // Set based on your data handling strategy
+    });
 
   return (
     <div className="flex flex-col w-full mx-auto">
@@ -111,7 +112,7 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="rounded-md border w-full sm:w-full md:w-full lg:min-w-[2000px] lg:max-w-[3068px]">
+      <div className="rounded-md border w-full sm:w-full md:w-full lg:min-w-[1850px] lg:max-w-[3068px]">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
