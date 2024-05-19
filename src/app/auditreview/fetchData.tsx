@@ -2,17 +2,6 @@
 "use server";
 import supabase from "../../../supabase/lib/supabaseServer";
 import { AuditData } from './columns';
-// import { useState } from 'react';
-
-// const fetchData = async (): Promise<AuditData[]> => {
-//     const { data, error } = await supabase
-//         .from('Auditsinput')
-//         .select('*');
-//     if (error) throw new Error(error.message);
-//     return data as AuditData[];
-// }
-
-// export default fetchData
 
 const fetchData = async (): Promise<AuditData[]> => {
     const client = await supabase();

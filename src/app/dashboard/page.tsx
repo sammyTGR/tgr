@@ -2,8 +2,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import AuditDataTable from './components/AuditDataTable';
-import { AuditData, columns } from '../auditreview/columns'; // Ensure this is the correct path
-// import fetchAuditData from './utils/fetchAuditData'; // Adjust the path as necessary
+import { AuditData } from '../auditreview/columns'; // Ensure this is the correct path
 import fetchData from '../auditreview/fetchdata';
 
 const ReviewDashboard: React.FC = () => {
