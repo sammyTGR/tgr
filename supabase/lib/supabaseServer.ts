@@ -36,5 +36,5 @@ async function createClerkSupabaseClient() {
     }
   );
 }
-const supabase = createClerkSupabaseClient();
+export const supabase = createClerkSupabaseClient();
 export default createClerkSupabaseClient;

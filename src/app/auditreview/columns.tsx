@@ -15,8 +15,10 @@ import { DataTableColumnHeader } from "@/app/auditreview/data-table-column-heade
 import { labels, priorities, statuses } from "@/app/auditreview/data";
 import { Badge } from "@/components/ui/badge";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { UUID } from "crypto";
 
-type UUID = string; // Define it as a string if you do not have a specific UUID type.
+
+// type UUID = string; // Define it as a string if you do not have a specific UUID type.
 
 export type AuditData = {
     label: string;
@@ -25,7 +27,7 @@ export type AuditData = {
     salesreps: string;
     audit_type: string;
     trans_date: string;
-    audit_date?: string;
+    audit_date: string;
     error_location: string;
     error_details: string;
     error_notes?: string;
