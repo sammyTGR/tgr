@@ -1,7 +1,7 @@
 // components/AuditDataTable.tsx
 import React from 'react';
 import { Table, TableBody, TableRow, TableCell, TableHeader } from '@/components/ui/table';
-import { AuditData } from '../utils/types'; // adjust the path as needed
+import { AuditData } from '../../auditreview/columns'; // adjust the path as needed
 
 interface AuditDataTableProps {
     data: AuditData[];
