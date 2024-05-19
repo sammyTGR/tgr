@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import AuditDataTable from './components/AuditDataTable';
 import { AuditData } from '../auditreview/columns'; // Ensure this is the correct path
-import fetchData from '../auditreview/fetchdata';
+import fetchData from '../auditreview/fetchData';
 
 const ReviewDashboard: React.FC = () => {
     const [audits, setAudits] = useState<AuditData[]>([]);
