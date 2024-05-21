@@ -29,6 +29,11 @@ import { HoveredLink, Menu, MenuItem, ProductItem } from "@/components/ui/navbar
         <h2>Customer Must Have A Valid FSC Card OR Valid CA CCW Permit</h2>
         <h2>AND Any ONE Of The Following Docs Below Will Suffice For A Handgun Purchase:</h2>
           <ul className="list-disc pl-4">
+            <li>LEO Requirements:</li>
+            <ul className="list-none list-inside pl-4">
+                <li>- REAL ID With Current Physical Address</li>
+                <li>- Current (Non Expired) Department ID</li>
+            </ul>
             <li>Valid CA Registration With The Current Physical Address For Any Of The Following:</li>
               <ul className="list-none list-inside pl-4">
                 <li>- Vehicle Registration</li>
