@@ -4,6 +4,7 @@ import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import React, { useEffect, useState } from 'react';
+import AuditsByDayChart from './../../components/charts/AuditsByDayChart';
 
 const words = 'Audits';
 
@@ -62,6 +63,7 @@ export default function AuditReview() {
   
 
   return (
+    <>
     <div>
       <section>
         <div className="hidden h-full flex flex-col space-y-8 p-8 md:flex">
@@ -82,5 +84,9 @@ export default function AuditReview() {
         </div>
       </section>
     </div>
+    <div className="h-4">
+    <AuditsByDayChart />
+    </div>
+    </>
   );
 }
