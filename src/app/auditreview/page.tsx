@@ -4,6 +4,7 @@ import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import React, { useEffect, useState } from "react";
+import AuditsByDayChart from "./../../components/charts/AuditsByDayChart";
 
 const words = "Audits";
 
@@ -63,31 +64,36 @@ export default function AuditReview() {
   }, []);
 
   return (
-    <div>
-      <section>
-        <div className="hidden h-full flex flex-col space-y-8 p-8 md:flex">
-          <div className="flex items-center justify-between space-y-2">
-            <div>
-              <h2 className="text-2xl font-bold">
-                <TextGenerateEffect words={words} />
-              </h2>
+    <>
+      <div>
+        <section>
+          <div className="hidden h-full flex flex-col space-y-8 p-8 md:flex">
+            <div className="flex items-center justify-between space-y-2">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  <TextGenerateEffect words={words} />
+                </h2>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between space-y-2">
-            <div className="space-y-4">
-              <div className="rounded-md border">
-                <div className="relative w-full overflow-auto">
-                  {loading ? (
-                    <p>Loading...</p>
-                  ) : (
-                    <DataTable columns={columns} data={data} />
-                  )}
+            <div className="flex items-center justify-between space-y-2">
+              <div className="space-y-4">
+                <div className="rounded-md border">
+                  <div className="relative w-full overflow-auto">
+                    {loading ? (
+                      <p>Loading...</p>
+                    ) : (
+                      <DataTable columns={columns} data={data} />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+      <div className="h-4">
+        <AuditsByDayChart />
+      </div>
+    </>
   );
 }
