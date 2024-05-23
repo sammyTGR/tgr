@@ -3,9 +3,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { ClerkProvider, SignInButton, SignOutButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
-import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
 import { dark } from '@clerk/themes';
 import Header from "../app/header";
+import CreateEmployeeOnSignup from "@/components/CreateEmployeeOnSignup";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <ClerkProvider
     appearance={{ baseTheme: dark }}>
+      <CreateEmployeeOnSignup />
     <html lang="en" suppressHydrationWarning>
     
       <body className={inter.className}>
@@ -34,7 +36,8 @@ export default function RootLayout({
             <Header />
           <main>
         {children}
-        </main>    
+        </main>
+        <Toaster />    
         </ThemeProvider>  
       </body>
     </html>

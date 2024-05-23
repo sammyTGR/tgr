@@ -2,6 +2,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { createClient } from '@supabase/supabase-js';
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+
+const title = "TGR Crew Calendar";
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 interface CalendarEvent {
   day_of_week: string;
@@ -30,10 +35,35 @@ export default function Component() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [updateTrigger, setUpdateTrigger] = useState(false); // State to force re-render
 
   useEffect(() => {
     fetchCalendarData();
-  }, [currentDate]);
+  }, [currentDate, updateTrigger]); // Add updateTrigger as dependency
+
+  useEffect(() => {
+    const timeOffSubscription = supabase.channel('time_off_requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'time_off_requests' }, (payload) => {
+        console.log('Time off request change received:', payload);
+        fetchCalendarData(); // Fetch calendar data on time off request changes
+        setUpdateTrigger(prev => !prev); // Force re-render
+      })
+      .subscribe();
+
+    const schedulesSubscription = supabase.channel('schedules')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, (payload) => {
+        console.log('Schedule change received:', payload);
+        fetchCalendarData(); // Fetch calendar data on schedule changes
+        setUpdateTrigger(prev => !prev); // Force re-render
+      })
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      supabase.removeChannel(timeOffSubscription);
+      supabase.removeChannel(schedulesSubscription);
+    };
+  }, []);
 
   const fetchCalendarData = async () => {
     const startOfWeek = getStartOfWeek(currentDate);
@@ -55,6 +85,7 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
+      console.log("Fetched calendar data:", data); // Add logging
       setCalendarData(data);
 
       const dates = Array.from({ length: 7 }, (_, i) => {
@@ -116,9 +147,7 @@ export default function Component() {
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
-      eventsByDay[day] = employee.events.filter(
-        (event) => event.day_of_week === day
-      );
+      eventsByDay[day] = employee.events.filter((event) => event.day_of_week === day);
     });
 
     return (
@@ -135,10 +164,24 @@ export default function Component() {
             className="px-4 min-h-[68px] text-md flex items-center justify-center"
           >
             {eventsByDay[day].map((event, index) => {
+              console.log(`Rendering event for ${employee.name} on ${day}:`, event); // Log each event
               if (event.status === "time_off") {
+                console.log(`Time off detected for ${employee.name} on ${day}`);
+                return (
+                  <div key={index} className="text-purple-500 dark:text-purple-400">
+                    Approved Time Off
+                  </div>
+                );
+              } else if (event.status === "called_out") {
                 return (
                   <div key={index} className="text-red-500 dark:text-red-400">
-                    Approved Time Off
+                    Called Out
+                  </div>
+                );
+              } else if (event.status === "left_early") {
+                return (
+                  <div key={index} className="text-orange-500 dark:text-orange-400">
+                    Left Early
                   </div>
                 );
               }
@@ -169,7 +212,7 @@ export default function Component() {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12 bg-background text-foreground">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">TGR Team Calendar</h1>
+        <h1 className="text-2xl font-bold"><TextGenerateEffect words={title} /></h1>
         <div className="flex items-center space-x-4">
           <Button variant="outline" onClick={handlePreviousWeek}>
             <ChevronLeftIcon className="h-4 w-4" />

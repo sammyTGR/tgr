@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+
+const title = "Submit Time Off Requests";
 
 interface CalendarEvent {
   day_of_week: string;
@@ -16,6 +19,11 @@ interface CalendarEvent {
 interface EmployeeCalendar {
   name: string;
   events: CalendarEvent[];
+}
+
+interface TimeOffReason {
+  id: number;
+  reason: string;
 }
 
 const daysOfWeek = [
@@ -30,21 +38,20 @@ const daysOfWeek = [
 
 export default function Component() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
+  const [employeeNames, setEmployeeNames] = useState<string[]>([]);
+  const [timeOffReasons, setTimeOffReasons] = useState<TimeOffReason[]>([]);
   const [timeOffData, setTimeOffData] = useState({
     employee_name: "",
-    start_date: "",
-    end_date: "",
     reason: "",
+    other_reason: "",
   });
-  const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(
-    undefined
-  );
-  const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>(
-    undefined
-  );
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [showOtherTextarea, setShowOtherTextarea] = useState(false);
 
   useEffect(() => {
     fetchCalendarData();
+    fetchEmployeeNames();
+    fetchTimeOffReasons();
   }, []);
 
   const fetchCalendarData = async () => {
@@ -55,8 +62,8 @@ export default function Component() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          start_date: format(new Date(), "yyyy-MM-dd"), // Example payload
-          end_date: format(new Date(), "yyyy-MM-dd"), // Example payload
+          start_date: format(new Date(), "yyyy-MM-dd"),
+          end_date: format(new Date(), "yyyy-MM-dd"),
         }),
       });
       if (!response.ok) {
@@ -69,6 +76,37 @@ export default function Component() {
     }
   };
 
+  const fetchEmployeeNames = async () => {
+    try {
+      const response = await fetch("/api/employees");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setEmployeeNames(data.map((employee: { name: string }) => employee.name));
+    } catch (error: any) {
+      console.error("Failed to fetch employee names:", error.message);
+    }
+  };
+
+  const fetchTimeOffReasons = async () => {
+    try {
+      const response = await fetch("/api/time_off_reasons");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      // Ensure "Other" is added only once
+      const otherExists = data.some((reason: TimeOffReason) => reason.reason === "Other");
+      if (!otherExists) {
+        data.push({ id: data.length + 1, reason: "Other" });
+      }
+      setTimeOffReasons(data);
+    } catch (error: any) {
+      console.error("Failed to fetch time off reasons:", error.message);
+    }
+  };
+  
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(":");
     const date = new Date();
@@ -122,14 +160,27 @@ export default function Component() {
     );
   };
 
+  const handleReasonChange = (value: string) => {
+    setTimeOffData({ ...timeOffData, reason: value });
+    setShowOtherTextarea(value === "Other");
+  };
+
+  const handleSelectDates = (dates: Date[] | undefined) => {
+    setSelectedDates(dates || []);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedDates.length < 1) {
+      toast.error("Please select at least one date.");
+      return;
+    }
+    const start_date = format(new Date(Math.min(...selectedDates.map(date => date.getTime()))), "yyyy-MM-dd");
+    const end_date = format(new Date(Math.max(...selectedDates.map(date => date.getTime()))), "yyyy-MM-dd");
     const payload = {
       ...timeOffData,
-      start_date: selectedStartDate
-        ? format(selectedStartDate, "yyyy-MM-dd")
-        : "",
-      end_date: selectedEndDate ? format(selectedEndDate, "yyyy-MM-dd") : "",
+      start_date,
+      end_date,
     };
     console.log("Submitting time off request:", payload);
     try {
@@ -152,92 +203,86 @@ export default function Component() {
       // Reset form
       setTimeOffData({
         employee_name: "",
-        start_date: "",
-        end_date: "",
         reason: "",
+        other_reason: "",
       });
-      setSelectedStartDate(undefined);
-      setSelectedEndDate(undefined);
+      setSelectedDates([]);
+      setShowOtherTextarea(false);
+      // Show success toast
+      toast("Your Request Has Been Submitted", {
+        position: "bottom-right",
+        action: {
+          label: "Noice!",
+          onClick: () => {},
+        },
+      });
     } catch (error: any) {
       console.error("Failed to submit time off request:", error.message);
     }
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Team Calendar</h1>
-        <div className="flex items-center space-x-4">
-          <Button variant="outline">
-            <ChevronLeftIcon className="h-4 w-4" />
-            Previous Week
-          </Button>
-          <Button variant="outline">
-            Next Week
-            <ChevronRightIcon className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="bg-white dark:bg-gray-950 rounded-lg shadow-md overflow-hidden">
-        <div className="grid grid-cols-8 text-sm font-medium border-b border-gray-200 dark:border-gray-800">
-          <div className="py-3 px-4 bg-gray-100 dark:bg-gray-900 dark:text-gray-300">
-            Name
-          </div>
-          {daysOfWeek.map((day) => (
-            <div
-              key={day}
-              className="py-3 px-4 bg-gray-100 dark:bg-gray-900 dark:text-gray-300"
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-800">
-          {calendarData.map((employee) => renderEmployeeRow(employee))}
-        </div>
-      </div>
+    <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
+      <h1 className="text-2xl font-bold mb-4"><TextGenerateEffect words={title} /></h1>
+      <div className="w-full space-y-4">
       <form onSubmit={handleSubmit} className="mt-8">
-        <div className="flex flex-col space-y-4 max-w-sm">
-          <Input
-            type="text"
-            placeholder="Employee Name"
+        <div className="flex flex-col space-y-4 max-w-2xl">
+          <Select
             value={timeOffData.employee_name}
-            onChange={(e) =>
-              setTimeOffData({ ...timeOffData, employee_name: e.target.value })
+            onValueChange={(value) =>
+              setTimeOffData({ ...timeOffData, employee_name: value })
             }
-            className="input"
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Employee Name" />
+            </SelectTrigger>
+            <SelectContent>
+              {employeeNames.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex flex-col space-y-2 max-w-lg justify-center items-center">
+          <label className="text-lg font-medium flex justify-center text-center">Select Dates Below</label>
+          <Calendar
+            mode="multiple"
+            selected={selectedDates}
+            onSelect={handleSelectDates}
           />
-          <div className="flex flex-col md:flex-row md:space-x-4 mb-4">
-            <div className="flex flex-col mb-4 w-full">
-              <label>Start Date</label>
-              <Calendar
-                mode="single"
-                selected={selectedStartDate}
-                onSelect={setSelectedStartDate}
-              />
-            </div>
-            <div className="flex flex-col mb-4 w-full">
-              <label>End Date</label>
-              <Calendar
-                mode="single"
-                selected={selectedEndDate}
-                onSelect={setSelectedEndDate}
-              />
-            </div>
           </div>
-          <Textarea
-            placeholder="Reason"
+          <Select
             value={timeOffData.reason}
-            onChange={(e) =>
-              setTimeOffData({ ...timeOffData, reason: e.target.value })
-            }
-            className="textarea"
-          />
+            onValueChange={handleReasonChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Reason" />
+            </SelectTrigger>
+            <SelectContent>
+              {timeOffReasons.map((reason) => (
+                <SelectItem key={reason.id} value={reason.reason}>
+                  {reason.reason}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {showOtherTextarea && (
+            <Textarea
+              placeholder="Please specify your reason"
+              value={timeOffData.other_reason}
+              onChange={(e) =>
+                setTimeOffData({ ...timeOffData, other_reason: e.target.value })
+              }
+              className="textarea"
+            />
+          )}
           <Button type="submit" variant="outline">
             Submit Time Off Request
           </Button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

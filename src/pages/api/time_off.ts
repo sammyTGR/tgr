@@ -5,34 +5,30 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { employee_name, start_date, end_date, reason } = req.body;
+        const { employee_name, start_date, end_date, reason, other_reason } = req.body;
 
         try {
             // Fetch employee_id based on employee_name
             const { data: employeeData, error: employeeError } = await supabase
                 .from('employees') // Assuming you have an 'employees' table
-                .select('*')
+                .select('employee_id') // Select only the 'employee_id' field
                 .eq('name', employee_name)
                 .single();
 
-            if (employeeError) {
-                console.error("Error fetching employee:", employeeError.message);
-                return res.status(500).json({ error: 'Error fetching employee' });
-            }
-
-            if (!employeeData) {
-                console.error("Employee not found:", employee_name);
+            if (employeeError || !employeeData) {
+                console.error("Error fetching employee:", employeeError?.message);
                 return res.status(500).json({ error: 'Employee not found' });
             }
 
             console.log("Employee data found:", employeeData);
 
-            const employee_id = employeeData.id;
+            const employee_id = employeeData.employee_id;
 
             // Insert the time off request
             const { data, error } = await supabase
                 .from('time_off_requests')
-                .insert([{ employee_id, name: employee_name, start_date, end_date, reason, status: 'pending' }]);
+                .insert([{ employee_id, name: employee_name, start_date, end_date, reason, other_reason, status: 'pending' }])
+                .select(); // Select the inserted row to return it
 
             if (error) {
                 console.error("Error inserting time off request:", error.message);

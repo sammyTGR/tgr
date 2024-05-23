@@ -1,18 +1,23 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+
+const title = "Review Time Off Requests";
 
 interface TimeOffRequest {
-  request_id: number; // Update to request_id
+  request_id: number;
   employee_id: number;
   start_date: string;
   end_date: string;
   reason: string;
+  other_reason: string;
   status: string;
   name: string;
 }
 
 export default function ApproveRequestsPage() {
+
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
 
   useEffect(() => {
@@ -23,7 +28,6 @@ export default function ApproveRequestsPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Fetched requests:", data); // Log the fetched data
         setRequests(data);
       } catch (error: any) {
         console.error("Failed to fetch requests:", error.message);
@@ -34,18 +38,23 @@ export default function ApproveRequestsPage() {
   }, []);
 
   const handleApprove = async (request_id: number) => {
-    console.log("Approving request with ID:", request_id);
     await handleRequest(request_id, "approved");
   };
 
   const handleDeny = async (request_id: number) => {
-    console.log("Denying request with ID:", request_id);
     await handleRequest(request_id, "denied");
+  };
+
+  const handleCalledOut = async (request_id: number) => {
+    await handleRequest(request_id, "called_out");
+  };
+
+  const handleLeftEarly = async (request_id: number) => {
+    await handleRequest(request_id, "left_early");
   };
 
   const handleRequest = async (request_id: number, action: string) => {
     try {
-      console.log("Sending request:", { request_id, action });
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: {
@@ -59,7 +68,6 @@ export default function ApproveRequestsPage() {
       }
 
       const result = await response.json();
-      console.log("Response received:", result);
 
       // Refresh the requests list after approval/denial
       const updatedRequests = requests.filter(
@@ -73,7 +81,7 @@ export default function ApproveRequestsPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-2xl font-bold mb-6">Approve Time Off Requests</h1>
+      <h1 className="text-2xl font-bold mb-6"><TextGenerateEffect words={title} /></h1>
       <div className="space-y-4">
         {requests.map((request) => (
           <div
@@ -85,7 +93,7 @@ export default function ApproveRequestsPage() {
                 <p className="font-medium">Employee: {request.name}</p>
                 <p>Start Date: {request.start_date}</p>
                 <p>End Date: {request.end_date}</p>
-                <p>Reason: {request.reason}</p>
+                <p>Reason: {request.reason} {request.reason === "Other" && request.other_reason && `: ${request.other_reason}`}</p>
               </div>
               <div className="flex space-x-2">
                 <Button
@@ -99,6 +107,18 @@ export default function ApproveRequestsPage() {
                   onClick={() => handleDeny(request.request_id)}
                 >
                   Deny
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleCalledOut(request.request_id)}
+                >
+                  Called Out
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleLeftEarly(request.request_id)}
+                >
+                  Left Early
                 </Button>
               </div>
             </div>
