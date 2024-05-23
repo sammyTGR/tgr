@@ -5,6 +5,7 @@ import { HomeIcon } from "@radix-ui/react-icons";
 import {
   SignInButton,
   SignOutButton,
+  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton,
@@ -16,9 +17,9 @@ export default function Header() {
       <nav className="ml-auto mr-3 hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
         <div className="mr-auto ml-3 flex">
           <SignedOut>
-            <SignInButton>
-              <Button>Sign In</Button>
-            </SignInButton>
+            <SignUpButton>
+              <Button>Sign Up</Button>
+            </SignUpButton>
           </SignedOut>
           <SignedIn>
             <UserButton />

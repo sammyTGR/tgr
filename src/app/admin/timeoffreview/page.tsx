@@ -17,7 +17,6 @@ interface TimeOffRequest {
 }
 
 export default function ApproveRequestsPage() {
-
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
 
   useEffect(() => {
@@ -30,7 +29,7 @@ export default function ApproveRequestsPage() {
         const data = await response.json();
         setRequests(data);
       } catch (error: any) {
-        console.error("Failed to fetch requests:", error.message);
+        // console.error("Failed to fetch requests:", error.message);
       }
     };
 
@@ -75,13 +74,15 @@ export default function ApproveRequestsPage() {
       );
       setRequests(updatedRequests);
     } catch (error: any) {
-      console.error("Failed to handle request:", error.message);
+      // console.error("Failed to handle request:", error.message);
     }
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-2xl font-bold mb-6"><TextGenerateEffect words={title} /></h1>
+      <h1 className="text-2xl font-bold mb-6">
+        <TextGenerateEffect words={title} />
+      </h1>
       <div className="space-y-4">
         {requests.map((request) => (
           <div
@@ -93,7 +94,12 @@ export default function ApproveRequestsPage() {
                 <p className="font-medium">Employee: {request.name}</p>
                 <p>Start Date: {request.start_date}</p>
                 <p>End Date: {request.end_date}</p>
-                <p>Reason: {request.reason} {request.reason === "Other" && request.other_reason && `: ${request.other_reason}`}</p>
+                <p>
+                  Reason: {request.reason}{" "}
+                  {request.reason === "Other" &&
+                    request.other_reason &&
+                    `: ${request.other_reason}`}
+                </p>
               </div>
               <div className="flex space-x-2">
                 <Button

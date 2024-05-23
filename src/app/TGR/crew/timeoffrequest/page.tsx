@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 
@@ -72,7 +78,7 @@ export default function Component() {
       const data = await response.json();
       setCalendarData(data);
     } catch (error: any) {
-      console.error("Failed to fetch calendar data:", error.message);
+      // console.error("Failed to fetch calendar data:", error.message);
     }
   };
 
@@ -85,7 +91,7 @@ export default function Component() {
       const data = await response.json();
       setEmployeeNames(data.map((employee: { name: string }) => employee.name));
     } catch (error: any) {
-      console.error("Failed to fetch employee names:", error.message);
+      // console.error("Failed to fetch employee names:", error.message);
     }
   };
 
@@ -97,16 +103,18 @@ export default function Component() {
       }
       const data = await response.json();
       // Ensure "Other" is added only once
-      const otherExists = data.some((reason: TimeOffReason) => reason.reason === "Other");
+      const otherExists = data.some(
+        (reason: TimeOffReason) => reason.reason === "Other"
+      );
       if (!otherExists) {
         data.push({ id: data.length + 1, reason: "Other" });
       }
       setTimeOffReasons(data);
     } catch (error: any) {
-      console.error("Failed to fetch time off reasons:", error.message);
+      // console.error("Failed to fetch time off reasons:", error.message);
     }
   };
-  
+
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(":");
     const date = new Date();
@@ -175,14 +183,20 @@ export default function Component() {
       toast.error("Please select at least one date.");
       return;
     }
-    const start_date = format(new Date(Math.min(...selectedDates.map(date => date.getTime()))), "yyyy-MM-dd");
-    const end_date = format(new Date(Math.max(...selectedDates.map(date => date.getTime()))), "yyyy-MM-dd");
+    const start_date = format(
+      new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
+      "yyyy-MM-dd"
+    );
+    const end_date = format(
+      new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
+      "yyyy-MM-dd"
+    );
     const payload = {
       ...timeOffData,
       start_date,
       end_date,
     };
-    console.log("Submitting time off request:", payload);
+    // console.log("Submitting time off request:", payload);
     try {
       const response = await fetch("/api/time_off", {
         method: "POST",
@@ -193,11 +207,11 @@ export default function Component() {
       });
       if (!response.ok) {
         const errorText = await response.text(); // Fetch response text for better debugging
-        console.error("Server response:", errorText);
+        // console.error("Server response:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
-      console.log("Time off request submitted:", result);
+      // console.log("Time off request submitted:", result);
       // Refresh calendar data after submission
       fetchCalendarData();
       // Reset form
@@ -217,71 +231,78 @@ export default function Component() {
         },
       });
     } catch (error: any) {
-      console.error("Failed to submit time off request:", error.message);
+      // console.error("Failed to submit time off request:", error.message);
     }
   };
 
   return (
     <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-2xl font-bold mb-4"><TextGenerateEffect words={title} /></h1>
+      <h1 className="text-2xl font-bold mb-4">
+        <TextGenerateEffect words={title} />
+      </h1>
       <div className="w-full space-y-4">
-      <form onSubmit={handleSubmit} className="mt-8">
-        <div className="flex flex-col space-y-4 max-w-2xl">
-          <Select
-            value={timeOffData.employee_name}
-            onValueChange={(value) =>
-              setTimeOffData({ ...timeOffData, employee_name: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Employee Name" />
-            </SelectTrigger>
-            <SelectContent>
-              {employeeNames.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex flex-col space-y-2 max-w-lg justify-center items-center">
-          <label className="text-lg font-medium flex justify-center text-center">Select Dates Below</label>
-          <Calendar
-            mode="multiple"
-            selected={selectedDates}
-            onSelect={handleSelectDates}
-          />
-          </div>
-          <Select
-            value={timeOffData.reason}
-            onValueChange={handleReasonChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Reason" />
-            </SelectTrigger>
-            <SelectContent>
-              {timeOffReasons.map((reason) => (
-                <SelectItem key={reason.id} value={reason.reason}>
-                  {reason.reason}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {showOtherTextarea && (
-            <Textarea
-              placeholder="Please specify your reason"
-              value={timeOffData.other_reason}
-              onChange={(e) =>
-                setTimeOffData({ ...timeOffData, other_reason: e.target.value })
+        <form onSubmit={handleSubmit} className="mt-8">
+          <div className="flex flex-col space-y-4 max-w-2xl">
+            <Select
+              value={timeOffData.employee_name}
+              onValueChange={(value) =>
+                setTimeOffData({ ...timeOffData, employee_name: value })
               }
-              className="textarea"
-            />
-          )}
-          <Button type="submit" variant="outline">
-            Submit Time Off Request
-          </Button>
-        </div>
-      </form>
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Employee Name" />
+              </SelectTrigger>
+              <SelectContent>
+                {employeeNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-col space-y-2 max-w-lg justify-center items-center">
+              <label className="text-lg font-medium flex justify-center text-center">
+                Select Dates Below
+              </label>
+              <Calendar
+                mode="multiple"
+                selected={selectedDates}
+                onSelect={handleSelectDates}
+              />
+            </div>
+            <Select
+              value={timeOffData.reason}
+              onValueChange={handleReasonChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Reason" />
+              </SelectTrigger>
+              <SelectContent>
+                {timeOffReasons.map((reason) => (
+                  <SelectItem key={reason.id} value={reason.reason}>
+                    {reason.reason}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {showOtherTextarea && (
+              <Textarea
+                placeholder="Please specify your reason"
+                value={timeOffData.other_reason}
+                onChange={(e) =>
+                  setTimeOffData({
+                    ...timeOffData,
+                    other_reason: e.target.value,
+                  })
+                }
+                className="textarea"
+              />
+            )}
+            <Button type="submit" variant="outline">
+              Submit Time Off Request
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );
