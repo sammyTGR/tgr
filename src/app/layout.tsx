@@ -6,7 +6,6 @@ import { ClerkProvider, SignInButton, SignOutButton, SignedIn, SignedOut, UserBu
 import { Toaster } from '@/components/ui/sonner'
 import { dark } from '@clerk/themes';
 import Header from "../app/header";
-import CreateEmployeeOnSignup from "@/components/CreateEmployeeOnSignup";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,7 +22,6 @@ export default function RootLayout({
   return (
     <ClerkProvider
     appearance={{ baseTheme: dark }}>
-      <CreateEmployeeOnSignup />
     <html lang="en" suppressHydrationWarning>
     
       <body className={inter.className}>

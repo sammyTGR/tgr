@@ -20,6 +20,8 @@ import { CustomCalendar } from "@/components/ui/calendar";
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import supabase, {createClerkSupabaseClient} from '../../../../supabase/lib/supabaseClient';
 import { Command, CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandShortcut, CommandSeparator } from "@/components/ui/command";
+import WithRole from "@/components/withRole"; // Import the HOC
+import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
 type OptionType = {
   label: string;
@@ -457,4 +459,10 @@ useEffect(() => {
   );
 };
 
-export default SupaAudits;
+export default function ProtectedSupaAudits() {
+  return (
+    <WithRole allowedRoles={['admin', 'super admin']}>
+      <SupaAudits />
+    </WithRole>
+  );
+}

@@ -13,6 +13,8 @@ import IDsCard from '../Cards/IDsCard';
 import dynamic from 'next/dynamic';
 import {createClerkSupabaseClient} from '../../../../supabase/lib/supabaseClient';
 import FedsCard from '../Cards/FedsCard';
+import WithRole from "@/components/withRole"; // Import the HOC
+import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
 // Example type definition, adjust based on your actual data structure
 type DataRow = string[]; // Represents a single row of data as an array of strings
@@ -182,4 +184,10 @@ const columnHText = canShowColumnH() ? data.find(row => {
 
   );
 };
-export default DROSGuide;
+export default function ProtectedDROSGuide() {
+  return (
+    <WithRole allowedRoles={['user', 'admin', 'super admin']}>
+      <DROSGuide />
+    </WithRole>
+  );
+}

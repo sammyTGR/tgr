@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import { createClient } from "@supabase/supabase-js";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import supabase from "../../../../../supabase/lib/supabaseClient";
+import WithRole from "@/components/withRole"; // Import the HOC
 
 const title = "TGR Crew Calendar";
 
@@ -31,7 +31,7 @@ const daysOfWeek = [
   "Saturday",
 ];
 
-export default function Component() {
+function CalendarPage() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -48,7 +48,6 @@ export default function Component() {
         "postgres_changes",
         { event: "*", schema: "public", table: "time_off_requests" },
         (payload) => {
-          // console.log("Time off request change received:", payload);
           fetchCalendarData(); // Fetch calendar data on time off request changes
           setUpdateTrigger((prev) => !prev); // Force re-render
         }
@@ -61,7 +60,6 @@ export default function Component() {
         "postgres_changes",
         { event: "*", schema: "public", table: "schedules" },
         (payload) => {
-          // console.log("Schedule change received:", payload);
           fetchCalendarData(); // Fetch calendar data on schedule changes
           setUpdateTrigger((prev) => !prev); // Force re-render
         }
@@ -95,7 +93,6 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      // console.log("Fetched calendar data:", data); // Add logging
       setCalendarData(data);
 
       const dates = Array.from({ length: 7 }, (_, i) => {
@@ -114,7 +111,7 @@ export default function Component() {
 
       setWeekDates(datesMap);
     } catch (error: any) {
-      // console.error("Failed to fetch calendar data:", error.message);
+      console.error("Failed to fetch calendar data:", error.message);
     }
   };
 
@@ -176,12 +173,7 @@ export default function Component() {
             className="px-4 min-h-[68px] text-md flex items-center justify-center"
           >
             {eventsByDay[day].map((event, index) => {
-              // console.log(
-              //   `Rendering event for ${employee.name} on ${day}:`,
-              //   event
-              // ); // Log each event
               if (event.status === "time_off") {
-                // console.log(`Time off detected for ${employee.name} on ${day}`);
                 return (
                   <div
                     key={index}
@@ -275,5 +267,14 @@ export default function Component() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap the page with the WithRole HOC and specify allowed roles
+export default function ProtectedCalendarPage() {
+  return (
+    <WithRole allowedRoles={['user', 'admin', 'super admin']}>
+      <CalendarPage />
+    </WithRole>
   );
 }

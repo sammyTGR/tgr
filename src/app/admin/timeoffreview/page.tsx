@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { useUser } from '@clerk/clerk-react';
+import { useRouter } from "next/navigation";
+import WithRole from "@/components/withRole"; // Import the HOC
+import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
 const title = "Review Time Off Requests";
 
@@ -16,25 +20,59 @@ interface TimeOffRequest {
   name: string;
 }
 
-export default function ApproveRequestsPage() {
+function ApproveRequestsPage() {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
+  const [userRole, setUserRole] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const router = useRouter();
+  const { user } = useUser();
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const response = await fetch("/api/pending_requests");
+    async function fetchUserRole() {
+      if (user) {
+        const email = user.primaryEmailAddress?.emailAddress.toLowerCase() || user.emailAddresses[0]?.emailAddress.toLowerCase();
+        const response = await fetch(`/api/getUserRole?email=${encodeURIComponent(email)}`);
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          console.error('Failed to fetch user role:', await response.text());
+          router.push('/unauthorized');
+          setIsLoading(false);
+        } else {
+          const data = await response.json();
+          setUserRole(data.role);
+          setIsLoading(false);
         }
-        const data = await response.json();
-        setRequests(data);
-      } catch (error: any) {
-        // console.error("Failed to fetch requests:", error.message);
+      } else {
+        setIsLoading(false);
       }
-    };
+    }
 
+    fetchUserRole();
+  }, [user, router]);
+
+  useEffect(() => {
     fetchRequests();
   }, []);
+
+  const fetchRequests = async () => {
+    try {
+      const response = await fetch("/api/time_off_requests");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setRequests(data);
+    } catch (error: any) {
+      console.error("Failed to fetch time off requests:", error.message);
+    }
+  };
+
+  if (isLoading) {
+    return <p>Checking authorization...</p>;
+  }
+
+  if (!userRole || (userRole !== 'admin' && userRole !== 'super admin')) {
+    return <p>Unauthorized access</p>;
+  }
 
   const handleApprove = async (request_id: number) => {
     await handleRequest(request_id, "approved");
@@ -74,12 +112,13 @@ export default function ApproveRequestsPage() {
       );
       setRequests(updatedRequests);
     } catch (error: any) {
-      // console.error("Failed to handle request:", error.message);
+      console.error("Failed to handle request:", error.message);
     }
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
+      <UserSessionHandler /> {/* Include UserSessionHandler */}
       <h1 className="text-2xl font-bold mb-6">
         <TextGenerateEffect words={title} />
       </h1>
@@ -132,5 +171,14 @@ export default function ApproveRequestsPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+// Wrap the page with the WithRole HOC and specify allowed roles
+export default function ProtectedApproveRequestsPage() {
+  return (
+    <WithRole allowedRoles={['admin', 'super admin']}>
+      <ApproveRequestsPage />
+    </WithRole>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import WithRole from "@/components/withRole"; // Import the HOC
 
 const title = "Submit Time Off Requests";
 
@@ -42,7 +43,7 @@ const daysOfWeek = [
   "Saturday",
 ];
 
-export default function Component() {
+function TimeOffRequestPage() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [employeeNames, setEmployeeNames] = useState<string[]>([]);
   const [timeOffReasons, setTimeOffReasons] = useState<TimeOffReason[]>([]);
@@ -78,7 +79,7 @@ export default function Component() {
       const data = await response.json();
       setCalendarData(data);
     } catch (error: any) {
-      // console.error("Failed to fetch calendar data:", error.message);
+      console.error("Failed to fetch calendar data:", error.message);
     }
   };
 
@@ -91,7 +92,7 @@ export default function Component() {
       const data = await response.json();
       setEmployeeNames(data.map((employee: { name: string }) => employee.name));
     } catch (error: any) {
-      // console.error("Failed to fetch employee names:", error.message);
+      console.error("Failed to fetch employee names:", error.message);
     }
   };
 
@@ -111,7 +112,7 @@ export default function Component() {
       }
       setTimeOffReasons(data);
     } catch (error: any) {
-      // console.error("Failed to fetch time off reasons:", error.message);
+      console.error("Failed to fetch time off reasons:", error.message);
     }
   };
 
@@ -196,7 +197,6 @@ export default function Component() {
       start_date,
       end_date,
     };
-    // console.log("Submitting time off request:", payload);
     try {
       const response = await fetch("/api/time_off", {
         method: "POST",
@@ -207,11 +207,10 @@ export default function Component() {
       });
       if (!response.ok) {
         const errorText = await response.text(); // Fetch response text for better debugging
-        // console.error("Server response:", errorText);
+        console.error("Server response:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
-      // console.log("Time off request submitted:", result);
       // Refresh calendar data after submission
       fetchCalendarData();
       // Reset form
@@ -231,7 +230,7 @@ export default function Component() {
         },
       });
     } catch (error: any) {
-      // console.error("Failed to submit time off request:", error.message);
+      console.error("Failed to submit time off request:", error.message);
     }
   };
 
@@ -305,5 +304,14 @@ export default function Component() {
         </form>
       </div>
     </div>
+  );
+}
+
+// Wrap the page with the WithRole HOC and specify allowed roles
+export default function ProtectedTimeOffRequestPage() {
+  return (
+    <WithRole allowedRoles={['user', 'admin', 'super admin']}>
+      <TimeOffRequestPage />
+    </WithRole>
   );
 }

@@ -1,12 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
   darkMode: "class",
   content: [
     './pages/**/*.{ts,tsx}',

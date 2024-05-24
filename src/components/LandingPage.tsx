@@ -1,9 +1,39 @@
-
+"use client";
 import Link from "next/link"
 import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card"
 import { JSX, SVGProps } from "react"
 import { TextGenerateEffect } from "./ui/text-generate-effect"
 import { ActivityLogIcon, LightningBoltIcon } from "@radix-ui/react-icons"
+import { useUser } from '@clerk/clerk-react';
+import { useEffect } from 'react';
+
+const updateUserInDatabase = async (clerkUserId: string) => {
+  const response = await fetch('/api/updateEmployee', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ clerkUserId }),
+  });
+
+  if (!response.ok) {
+    const errorResponse = await response.text();  // Get detailed error response from the server
+    console.error('Failed to update database with Clerk user ID:', errorResponse);
+  }
+};
+
+function HandleUserSession() {
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user && user.id) {  // Check if user and user.id are valid
+      updateUserInDatabase(user.id);
+    }
+  }, [user]);
+  
+
+  return null;  // This component does not need to render anything
+}
 
 const words = 'Let\'s Get Started'
 const subwords = 'Welcome To The New TGR Admin Dashboard'

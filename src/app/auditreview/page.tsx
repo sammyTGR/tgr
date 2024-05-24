@@ -23,7 +23,7 @@ export default function AuditReview() {
         "postgres_changes",
         { event: "*", schema: "public", table: "Auditsinput" },
         (payload) => {
-          console.log("Real-time change received:", payload);
+          // console.log("Real-time change received:", payload);
           if (payload.new) {
             setData((currentData) => [
               payload.new as AuditData, // Insert the new data at the beginning
@@ -58,7 +58,7 @@ export default function AuditReview() {
     setLoading(true);
     try {
       const fetchedData = await fetchAuditData();
-      console.log("Fetched data:", fetchedData); // Verify the fetched data
+      // console.log("Fetched data:", fetchedData); // Verify the fetched data
       setData(fetchedData);
       setLoading(false);
     } catch (error) {

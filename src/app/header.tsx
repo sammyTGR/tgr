@@ -10,6 +10,7 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
+import UserSessionHandler from "../components/UserSessionHandler";
 
 export default function Header() {
   return (
@@ -24,6 +25,9 @@ export default function Header() {
           <SignedIn>
             <UserButton />
           </SignedIn>
+          <div className="mx-3 flex items-end">
+          <UserSessionHandler />
+          </div>
         </div>
         <Link
           className="text-muted-foreground transition-colors hover:text-foreground"
