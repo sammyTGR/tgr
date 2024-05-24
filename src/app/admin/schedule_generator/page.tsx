@@ -1,9 +1,10 @@
-// src/app/TGR/crew/schedule_generator/page.tsx
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import WithRole from "@/components/withRole"; // Import the HOC
+import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
-export default function ScheduleGeneratorPage() {
+const ScheduleGeneratorPage = () => {
   const [weeks, setWeeks] = useState(4);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -33,6 +34,7 @@ export default function ScheduleGeneratorPage() {
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
+      <UserSessionHandler /> {/* Include UserSessionHandler */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Generate Schedules</h1>
       </div>
@@ -61,5 +63,17 @@ export default function ScheduleGeneratorPage() {
       </Button>
       {message && <p className="mt-4 text-center text-lg">{message}</p>}
     </div>
+  );
+};
+
+// Wrap the page with the WithRole HOC and specify allowed roles and emails
+export default function ProtectedScheduleGeneratorPage() {
+  return (
+    <WithRole
+      allowedRoles={["super admin"]}
+      allowedEmails={["samlee@thegunrange.biz"]}
+    >
+      <ScheduleGeneratorPage />
+    </WithRole>
   );
 }

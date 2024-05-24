@@ -1,4 +1,4 @@
-// pages/api/getUserRole.ts
+// pages/api/getUserRole.ts for getting user role
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 

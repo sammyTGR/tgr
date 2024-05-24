@@ -1,68 +1,29 @@
-import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { HomeIcon } from "@radix-ui/react-icons";
-import {
-  SignInButton,
-  SignOutButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
-import UserSessionHandler from "../components/UserSessionHandler";
+import dynamic from "next/dynamic";
+import { getUserRole } from "@/lib/getUserRole";
 
-export default function Header() {
-  return (
-    <header className="py-4">
-      <nav className="ml-auto mr-3 hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
-        <div className="mr-auto ml-3 flex">
-          <SignedOut>
-            <SignUpButton>
-              <Button>Sign Up</Button>
-            </SignUpButton>
-          </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
-          <div className="mx-3 flex items-end">
-          <UserSessionHandler />
-          </div>
-        </div>
-        <Link
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          href="/auditreview"
-        >
-          Review Audits
-        </Link>
-        <Link
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          href="/audits/drosguide"
-        >
-          DROS Guide
-        </Link>
-        <Link
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          href="/audits/supaaudits"
-        >
-          Submit Audits
-        </Link>
-        <Link
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          href="/TGR/crew/calendar"
-        >
-          Calendar
-        </Link>
-        <Link
-          className="flex items-center gap-2 text-lg font-semibold md:text-base"
-          href="/"
-        >
-          <Button variant="outline" size="icon">
-            <HomeIcon />
-          </Button>
-          <ModeToggle />
-        </Link>
-      </nav>
-    </header>
-  );
+const HeaderUser = dynamic(() => import("./HeaderUser"));
+const HeaderAdmin = dynamic(() => import("./HeaderAdmin"));
+const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"));
+
+export default async function Header() {
+  // Replace with the actual method to get the user's email
+  const email = "samlee@thegunrange.biz"; // Example email
+  const role = await getUserRole(email);
+
+  console.log(`Rendering Header with Role: ${role}`);
+
+  if (!role) {
+    console.log("Role is null, showing Loading...");
+    return <div>Loading...</div>; // or a default header component
+  }
+
+  if (role === "super admin") {
+    return <HeaderSuperAdmin />;
+  }
+
+  if (role === "admin") {
+    return <HeaderAdmin />;
+  }
+
+  return <HeaderUser />;
 }

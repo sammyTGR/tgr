@@ -33,23 +33,37 @@ export type AuditData = {
 export const columns: ColumnDef<AuditData>[] = [
   {
     accessorKey: "dros_number",
-    header: "DROS Number",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="DROS Number" />
+    ),
+    cell: ({ row }) => {
+      const label = labels.find((label) => label.value === row.original.label);
+
+      return (
+        <div className="flex space-x-2">
+          {label && <Badge variant="outline">{label.label}</Badge>}
+          <span className="max-w-[500px] truncate font-medium">
+            {row.getValue("dros_number")}
+          </span>
+        </div>
+      );
+    },
     meta: {
-      style: { width: "300px" },
+      style: { width: "200px" },
     },
   },
   {
     accessorKey: "salesreps",
     header: "Sales Reps",
     meta: {
-      style: { width: "300px" },
+      style: { width: "100px" },
     },
   },
   {
     accessorKey: "audit_type",
     header: "Audit Type",
     meta: {
-      style: { width: "200px" },
+      style: { width: "100px" },
     },
   },
   {
@@ -69,6 +83,9 @@ export const columns: ColumnDef<AuditData>[] = [
         </div>
       );
     },
+    meta: {
+      style: { width: "60px" },
+    },
   },
   {
     accessorKey: "audit_date",
@@ -87,14 +104,23 @@ export const columns: ColumnDef<AuditData>[] = [
         </div>
       );
     },
+    meta: {
+      style: { width: "60px" },
+    },
   },
   {
     accessorKey: "error_location",
     header: "Error Location",
+    meta: {
+      style: { width: "200px" },
+    },
   },
   {
     accessorKey: "error_details",
     header: "Error Details",
+    meta: {
+      style: { width: "400px" },
+    },
   },
   {
     accessorKey: "error_notes",
@@ -104,8 +130,8 @@ export const columns: ColumnDef<AuditData>[] = [
     accessorKey: "dros_cancel",
     header: "DROS Cancelled",
   },
-  {
-    id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
-  },
+  // {
+  //   id: "actions",
+  //   cell: ({ row }) => <DataTableRowActions row={row} />,
+  // },
 ];
