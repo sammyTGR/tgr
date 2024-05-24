@@ -1,14 +1,16 @@
 "use client";
+import React, { useEffect, useState } from "react";
 import supabase from "../../../supabase/lib/supabaseClient";
 import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import React, { useEffect, useState } from "react";
 import AuditsByDayChart from "../../components/charts/AuditsByDayChart";
+import WithRole from "@/components/withRole"; // Import the HOC
+import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
 const words = "Audits";
 
-export default function AuditReview() {
+const AuditReview = () => {
   const [data, setData] = useState<AuditData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,6 +71,7 @@ export default function AuditReview() {
 
   return (
     <>
+      <UserSessionHandler /> {/* Include UserSessionHandler */}
       <div>
         <section>
           <div className="h-full flex flex-col space-y-8 p-8 md:flex">
@@ -99,5 +102,14 @@ export default function AuditReview() {
         <AuditsByDayChart />
       </div>
     </>
+  );
+};
+
+// Wrap the page with the WithRole HOC and specify allowed roles
+export default function ProtectedAuditReview() {
+  return (
+    <WithRole allowedRoles={['admin', 'super admin']}>
+      <AuditReview />
+    </WithRole>
   );
 }

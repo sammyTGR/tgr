@@ -58,7 +58,7 @@ export function DataTableRowActions<TData>({
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           Delete
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+          <DropdownMenuShortcut>ââ«</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
