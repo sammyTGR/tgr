@@ -31,15 +31,21 @@ const HeaderUser = () => {
         </div>
         <Link
           className="text-muted-foreground transition-colors hover:text-foreground"
+          href="/audits/drosguide"
+        >
+          DROS Guide
+        </Link>
+        <Link
+          className="text-muted-foreground transition-colors hover:text-foreground"
           href="/TGR/crew/calendar"
         >
           Calendar
         </Link>
         <Link
           className="text-muted-foreground transition-colors hover:text-foreground"
-          href="/audits/drosguide"
+          href="/TGR/crew/timeoffrequest"
         >
-          DROS Guide
+          Submit Time Off
         </Link>
         <Link
           className="flex items-center gap-2 text-lg font-semibold md:text-base"
