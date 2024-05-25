@@ -1,3 +1,4 @@
+// pages/api/time_off.ts used for submitting time off requests
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
@@ -10,8 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             // Fetch employee_id based on employee_name
             const { data: employeeData, error: employeeError } = await supabase
-                .from('employees') // Assuming you have an 'employees' table
-                .select('employee_id') // Select only the 'employee_id' field
+                .from('employees')
+                .select('employee_id')
                 .eq('name', employee_name)
                 .single();
 
@@ -19,8 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 console.error("Error fetching employee:", employeeError?.message);
                 return res.status(500).json({ error: 'Employee not found' });
             }
-
-            console.log("Employee data found:", employeeData);
 
             const employee_id = employeeData.employee_id;
 
@@ -46,3 +45,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 }
+

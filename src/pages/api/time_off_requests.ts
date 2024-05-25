@@ -1,3 +1,4 @@
+// pages/api/time_off_requests.ts used in time off review
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
@@ -8,7 +9,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             const { data, error } = await supabase
                 .from('time_off_requests')
-                .select('*');
+                .select('*')
+                .eq('status', 'pending'); // Filter where status is 'pending'
 
             if (error) {
                 console.error("Error fetching time off requests:", error.message);

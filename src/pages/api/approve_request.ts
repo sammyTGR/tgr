@@ -1,3 +1,4 @@
+// pages/api/approve_request.ts used in time off review
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
