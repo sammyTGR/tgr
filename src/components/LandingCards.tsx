@@ -104,7 +104,7 @@ export const TimeOffRequestCard = () => (
 
 export const AdminTimeOffReviewCard = () => (
     <>
-     <Link className="group" href="/TGR/crew/timeoffrequest">
+     <Link className="group" href="/admin/timeoffreview">
         <Card>
         <CardHeader className="flex items-center gap-2">
             <StopwatchIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
@@ -122,11 +122,11 @@ export const AdminTimeOffReviewCard = () => (
 
 export const GeneratorCard = () => (
     <>
-     <Link className="group" href="/TGR/crew/timeoffrequest">
+     <Link className="group" href="/admin/schedule_generator">
         <Card>
         <CardHeader className="flex items-center gap-2">
             <CodeIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-            <CardTitle>Requests & Missed Time</CardTitle>
+            <CardTitle>Generate Schedules</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-gray-500 dark:text-gray-400 text-center">

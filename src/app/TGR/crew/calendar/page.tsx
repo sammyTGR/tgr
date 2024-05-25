@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { createClient } from "@supabase/supabase-js";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import supabase from "../../../../../supabase/lib/supabaseClient";
-import WithRole from "@/components/withRole"; // Import the HOC
 
 const title = "TGR Crew Calendar";
 
@@ -31,49 +31,13 @@ const daysOfWeek = [
   "Saturday",
 ];
 
-function CalendarPage() {
+export default function Component() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [updateTrigger, setUpdateTrigger] = useState(false); // State to force re-render
 
-  useEffect(() => {
-    fetchCalendarData();
-  }, [currentDate, updateTrigger]); // Add updateTrigger as dependency
-
-  useEffect(() => {
-    const timeOffSubscription = supabase
-      .channel("time_off_requests")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "time_off_requests" },
-        (payload) => {
-          fetchCalendarData(); // Fetch calendar data on time off request changes
-          setUpdateTrigger((prev) => !prev); // Force re-render
-        }
-      )
-      .subscribe();
-
-    const schedulesSubscription = supabase
-      .channel("schedules")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "schedules" },
-        (payload) => {
-          fetchCalendarData(); // Fetch calendar data on schedule changes
-          setUpdateTrigger((prev) => !prev); // Force re-render
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions on unmount
-    return () => {
-      supabase.removeChannel(timeOffSubscription);
-      supabase.removeChannel(schedulesSubscription);
-    };
-  }, []);
-
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = useCallback(async () => {
     const startOfWeek = getStartOfWeek(currentDate);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
@@ -93,6 +57,7 @@ function CalendarPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
+      // console.log("Fetched calendar data:", data); // Add logging
       setCalendarData(data);
 
       const dates = Array.from({ length: 7 }, (_, i) => {
@@ -113,7 +78,45 @@ function CalendarPage() {
     } catch (error: any) {
       console.error("Failed to fetch calendar data:", error.message);
     }
-  };
+  }, [currentDate]);
+
+  useEffect(() => {
+    fetchCalendarData();
+  }, [currentDate, updateTrigger, fetchCalendarData]); // Add fetchCalendarData as dependency
+
+  useEffect(() => {
+    const timeOffSubscription = supabase
+      .channel("time_off_requests")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "time_off_requests" },
+        (payload) => {
+          // console.log("Time off request change received:", payload);
+          fetchCalendarData(); // Fetch calendar data on time off request changes
+          setUpdateTrigger((prev) => !prev); // Force re-render
+        }
+      )
+      .subscribe();
+
+    const schedulesSubscription = supabase
+      .channel("schedules")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "schedules" },
+        (payload) => {
+          // console.log("Schedule change received:", payload);
+          fetchCalendarData(); // Fetch calendar data on schedule changes
+          setUpdateTrigger((prev) => !prev); // Force re-render
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      supabase.removeChannel(timeOffSubscription);
+      supabase.removeChannel(schedulesSubscription);
+    };
+  }, [fetchCalendarData]); // Add fetchCalendarData as dependency
 
   const getStartOfWeek = (date: Date) => {
     const start = new Date(date);
@@ -173,7 +176,12 @@ function CalendarPage() {
             className="px-4 min-h-[68px] text-md flex items-center justify-center"
           >
             {eventsByDay[day].map((event, index) => {
+              // console.log(
+              //   `Rendering event for ${employee.name} on ${day}:`,
+              //   event
+              // ); // Log each event
               if (event.status === "time_off") {
+                // console.log(`Time off detected for ${employee.name} on ${day}`);
                 return (
                   <div
                     key={index}
@@ -267,14 +275,5 @@ function CalendarPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Wrap the page with the WithRole HOC and specify allowed roles
-export default function ProtectedCalendarPage() {
-  return (
-    <WithRole allowedRoles={['user', 'admin', 'super admin']}>
-      <CalendarPage />
-    </WithRole>
   );
 }

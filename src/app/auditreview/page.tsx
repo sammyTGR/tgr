@@ -1,22 +1,46 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import supabase from "../../../supabase/lib/supabaseClient";
 import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import AuditsByDayChart from "../../components/charts/AuditsByDayChart";
-import WithRole from "@/components/withRole"; // Import the HOC
-import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
 const words = "Audits";
 
-const AuditReview = () => {
+export default function AuditReview() {
   const [data, setData] = useState<AuditData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchAuditData = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("Auditsinput")
+      .select("*")
+      .order("audit_date", { ascending: false }); // Ensure sorting is handled by Supabase
+
+    if (error) {
+      console.error("Error fetching initial data:", error.message);
+      throw new Error(error.message);
+    }
+    return data as AuditData[];
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const fetchedData = await fetchAuditData();
+      // console.log("Fetched data:", fetchedData); // Verify the fetched data
+      setData(fetchedData);
+      setLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      setLoading(false);
+    }
+  }, [fetchAuditData]);
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     const AuditTableSubscription = supabase
@@ -41,37 +65,10 @@ const AuditReview = () => {
     return () => {
       supabase.removeChannel(AuditTableSubscription);
     };
-  }, []);
-
-  async function fetchAuditData(): Promise<AuditData[]> {
-    const { data, error } = await supabase
-      .from("Auditsinput")
-      .select("*")
-      .order("audit_date", { ascending: false }); // Ensure sorting is handled by Supabase
-
-    if (error) {
-      console.error("Error fetching initial data:", error.message);
-      throw new Error(error.message);
-    }
-    return data as AuditData[];
-  }
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const fetchedData = await fetchAuditData();
-      // console.log("Fetched data:", fetchedData); // Verify the fetched data
-      setData(fetchedData);
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      setLoading(false);
-    }
-  };
+  }, [fetchData]);
 
   return (
     <>
-      <UserSessionHandler /> {/* Include UserSessionHandler */}
       <div>
         <section>
           <div className="h-full flex flex-col space-y-8 p-8 md:flex">
@@ -102,14 +99,5 @@ const AuditReview = () => {
         <AuditsByDayChart />
       </div>
     </>
-  );
-};
-
-// Wrap the page with the WithRole HOC and specify allowed roles
-export default function ProtectedAuditReview() {
-  return (
-    <WithRole allowedRoles={['admin', 'super admin']}>
-      <AuditReview />
-    </WithRole>
   );
 }

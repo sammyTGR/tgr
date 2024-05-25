@@ -7,7 +7,7 @@ import {
   LightningBoltIcon,
   TextIcon,
 } from "@radix-ui/react-icons";
-import { AdminReviewAuditsCard, DrosGuidanceCard, AdminSubmitAuditsCard, AdminTimeOffReviewCard, GeneratorCard } from "@/components/LandingCards";
+import { AdminReviewAuditsCard, DrosGuidanceCard, AdminSubmitAuditsCard, AdminTimeOffReviewCard, TimeOffRequestCard, GeneratorCard } from "@/components/LandingCards";
 
 const words = "Super Admin Dashboard";
 const subwords = "Time To Phuck It Up";
@@ -34,9 +34,8 @@ export default function LandingPageSuperAdmin() {
             <AdminSubmitAuditsCard />
             <DrosGuidanceCard />
             <AdminTimeOffReviewCard />
-            <div className="col-span-full flex justify-center">
+            <TimeOffRequestCard />
             <GeneratorCard />
-            </div>
             </div>
           </div>
       </section>
