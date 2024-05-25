@@ -31,8 +31,8 @@ export default function LandingPageAdmin() {
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
             <AdminReviewAuditsCard />
-            <DrosGuidanceCard />
             <AdminSubmitAuditsCard />
+            <DrosGuidanceCard />
             <AdminTimeOffReviewCard />
           </div>
         </div>
