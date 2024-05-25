@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
@@ -23,10 +24,24 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2">
-      {/* <div className="flex-1 text-sm text-muted-foreground mx-2">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div> */}
+      <div className="flex items-center space-x-2">
+        <p className="text-sm font-medium">Page</p>
+        <strong>
+          {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+        </strong>
+      </div>
+      <div className="flex items-center space-x-2">
+        <p className="text-sm font-medium">Go to page:</p>
+        <Input
+          type="number"
+          defaultValue={(table.getState().pagination.pageIndex + 1) as any}
+          onChange={(e) => {
+            const page = e.target.value ? Number(e.target.value) - 1 : 0;
+            table.setPageIndex(page);
+          }}
+          className="w-16 rounded-md border px-2 py-1 text-right"
+        ></Input>
+      </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium mx-2">Rows per page</p>

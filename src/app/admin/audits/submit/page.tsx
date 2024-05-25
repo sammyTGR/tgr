@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/select";
 import supabase, {
   createClerkSupabaseClient,
-} from "../../../../supabase/lib/supabaseClient";
+} from "../../../../../supabase/lib/supabaseClient";
 import {
   Command,
   CommandDialog,

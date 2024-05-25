@@ -28,12 +28,12 @@ import { cn } from "@/lib/utils";
 const components: { title: string; href: string; description: string }[] = [
   {
     title: "Submit Audits",
-    href: "/audits/submit",
+    href: "/admin/audits/submit",
     description: "LesssGOOOOO!!!",
   },
   {
     title: "Review Audits",
-    href: "/auditreview",
+    href: "/admin/audits/review",
     description: "Take A Gander At Audits",
   },
   {

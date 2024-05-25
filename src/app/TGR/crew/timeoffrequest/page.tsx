@@ -298,7 +298,7 @@ function TimeOffRequestPage() {
               />
             )}
             <Button type="submit" variant="outline">
-              Submit Time Off Request
+              Submit Request
             </Button>
           </div>
         </form>
@@ -310,7 +310,7 @@ function TimeOffRequestPage() {
 // Wrap the page with the WithRole HOC and specify allowed roles
 export default function ProtectedTimeOffRequestPage() {
   return (
-    <WithRole allowedRoles={['user', 'admin', 'super admin']}>
+    <WithRole allowedRoles={["user", "admin", "super admin"]}>
       <TimeOffRequestPage />
     </WithRole>
   );

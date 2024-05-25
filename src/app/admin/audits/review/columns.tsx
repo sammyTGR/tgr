@@ -1,7 +1,7 @@
 "use client";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "@/app/auditreview/data-table-column-header";
-import { labels } from "@/app/auditreview/data";
+import { DataTableColumnHeader } from "./data-table-column-header";
+import { labels } from "./data";
 import { Badge } from "@/components/ui/badge";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { UUID } from "crypto";
@@ -125,10 +125,16 @@ export const columns: ColumnDef<AuditData>[] = [
   {
     accessorKey: "error_notes",
     header: "Notes",
+    meta: {
+      style: { width: "450px" },
+    },
   },
   {
     accessorKey: "dros_cancel",
     header: "DROS Cancelled",
+    meta: {
+      style: { width: "150px" },
+    },
   },
   // {
   //   id: "actions",
