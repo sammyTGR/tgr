@@ -21,6 +21,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/lib/SortableItem.js", "src/app/admin/todo/page.jsx", "src/app/hooks/useDroppable.jsx", "src/app/hooks/**/*.ts"],
   "exclude": ["node_modules"]
 }
