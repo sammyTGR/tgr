@@ -5,6 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { createClient } from "@supabase/supabase-js";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import supabase from "../../../../../supabase/lib/supabaseClient";
+import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table } from "@/components/ui/table";
 
 const title = "TGR Crew Calendar";
 
@@ -118,6 +119,17 @@ export default function Component() {
     };
   }, [fetchCalendarData]); // Add fetchCalendarData as dependency
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      if (now.getDay() === 0) {
+        setCurrentDate(new Date());
+      }
+    }, 3600000); // Check every hour
+
+    return () => clearInterval(interval);
+  }, []);
+
   const getStartOfWeek = (date: Date) => {
     const start = new Date(date);
     const day = start.getDay();
@@ -163,25 +175,12 @@ export default function Component() {
     });
 
     return (
-      <div
-        key={employee.name}
-        className="grid grid-cols-8 items-center divide-x divide-muted dark:divide-black"
-      >
-        <div className="px-4 font-medium min-h-[68px] flex items-center justify-start">
-          {employee.name}
-        </div>
+      <TableRow key={employee.name}>
+        <TableCell className="font-medium">{employee.name}</TableCell>
         {daysOfWeek.map((day) => (
-          <div
-            key={day}
-            className="px-4 min-h-[68px] text-md flex items-center justify-center"
-          >
+          <TableCell key={day} className="text-left">
             {eventsByDay[day].map((event, index) => {
-              // console.log(
-              //   `Rendering event for ${employee.name} on ${day}:`,
-              //   event
-              // ); // Log each event
               if (event.status === "time_off") {
-                // console.log(`Time off detected for ${employee.name} on ${day}`);
                 return (
                   <div
                     key={index}
@@ -224,56 +223,42 @@ export default function Component() {
                 </div>
               );
             })}
-          </div>
+          </TableCell>
         ))}
-      </div>
+      </TableRow>
     );
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12 bg-background text-foreground">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">
-          <TextGenerateEffect words={title} />
-        </h1>
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={handlePreviousWeek}>
-            <ChevronLeftIcon className="h-4 w-4" />
-            Previous Week
-          </Button>
-          <Button variant="outline" onClick={handleNextWeek}>
-            Next Week
-            <ChevronRightIcon className="h-4 w-4" />
-          </Button>
-        </div>
+    <div className="flex flex-col items-center space-y-4">
+      <h1 className="text-2xl font-bold"><TextGenerateEffect words={title} /></h1>
+      <div className="flex justify-between w-full max-w-4xl">
+        <Button variant="ghost" onClick={handlePreviousWeek}>
+          <ChevronLeftIcon className="h-4 w-4" />
+          Previous Week
+        </Button>
+        <Button variant="ghost" onClick={handleNextWeek}>
+          Next Week
+          <ChevronRightIcon className="h-4 w-4" />
+        </Button>
       </div>
-      <div className="bg-muted rounded-lg shadow-md overflow-hidden">
-        <div className="grid grid-cols-8 text-xl font-medium border-b border-muted dark:border-black">
-          <div className="py-3 px-4 bg-muted text-foreground flex items-center justify-center"></div>
-          {daysOfWeek.map((day) => (
-            <div
-              key={day}
-              className="py-3 px-4 bg-muted text-foreground flex items-center justify-center"
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-8 text-md font-medium border-b border-muted dark:border-black">
-          <div className="py-3 px-4 bg-muted text-foreground flex items-center justify-center text-center"></div>
-          {daysOfWeek.map((day) => (
-            <div
-              key={day}
-              className="py-3 px-4 bg-muted text-foreground flex items-center justify-center"
-            >
-              {weekDates[day]}
-            </div>
-          ))}
-        </div>
-        <div className="text-md font-medium divide-y divide-muted dark:divide-black justify-center text-center">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead />
+            {daysOfWeek.map((day) => (
+              <TableHead key={day}>
+                {day}
+                <br />
+                {weekDates[day]}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {calendarData.map((employee) => renderEmployeeRow(employee))}
-        </div>
-      </div>
+        </TableBody>
+      </Table>
     </div>
   );
 }

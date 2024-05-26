@@ -44,7 +44,8 @@ import { HoveredLink, Menu, MenuItem, ProductItem } from "@/components/ui/navbar
               <li>- Property Deed (Meets DOJ State Req)</li>
               <li>- Current (Wtihin 90 Days) Utility Bill</li>
             </ul>
-          <li>Most Recent W-2 + Current Utility Bill</li>
+          <li>Most Recent W-2</li>
+          <li>Current Utility Bill</li>
           <ul className="list-none list-inside pl-4">
               <li>Exception For LEO - W-2 Along With Department ID And Valid CA ID | DL</li>
             </ul>

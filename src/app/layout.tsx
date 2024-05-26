@@ -27,6 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    <>
     <ClerkProvider appearance={{ baseTheme: dark }}>
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
@@ -36,12 +37,13 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Header />
+      <Header />
             <main>{children}</main>
             <Toaster />
           </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>
+    </>
   );
 }

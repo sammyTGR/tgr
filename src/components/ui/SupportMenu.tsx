@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import React, { useEffect, useRef, useState } from "react";
 import styled from 'styled-components';
 import { createClient } from '@supabase/supabase-js';
+import { Button } from "./button";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -261,12 +262,12 @@ const SupportMenu = () => {
         <NavigationMenu.List style={{ display: "flex", flexDirection: "row", listStyleType: "none" }}>
           {menuItems.map((menuItem, index) => (
             <NavigationMenu.Item 
-            key={index}
+              key={index}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              <NavigationMenu.Trigger style={{ padding: '10px' }}>
-                {menuItem.label}
+              <NavigationMenu.Trigger asChild>
+                <Button variant="ghost"style={{ cursor: 'pointer' }}>{menuItem.label}</Button>
               </NavigationMenu.Trigger>
               {hoveredIndex === index && (
                 <SubItemsContainer style={{ display: 'grid' }}>
