@@ -53,11 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         return res.status(500).json({ error: scheduleError.message });
                     }
 
-                    console.log(`Updated schedule for date ${formattedDate}:`, scheduleData);
+                    // console.log(`Updated schedule for date ${formattedDate}:`, scheduleData);
                 }
             }
 
-            console.log("Request handled successfully:", timeOffData);
+            // console.log("Request handled successfully:", timeOffData);
             return res.status(200).json(timeOffData);
         } catch (err) {
             console.error("Unexpected error updating request status:", err);

@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: error.message });
             }
 
-            console.log("Fetched requests:", data); // Log the fetched data to ensure IDs are present
+            // console.log("Fetched requests:", data); // Log the fetched data to ensure IDs are present
             return res.status(200).json(data);
         } catch (err) {
             console.error("Unexpected error fetching pending requests:", err);

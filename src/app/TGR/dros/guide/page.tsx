@@ -9,10 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import IDsCard from '../Cards/IDsCard';
+import IDsCard from '../cards/IDsCard';
 import dynamic from 'next/dynamic';
-import {createClerkSupabaseClient} from '../../../../supabase/lib/supabaseClient';
-import FedsCard from '../Cards/FedsCard';
+import {createClerkSupabaseClient} from '../../../../../supabase/lib/supabaseClient';
+import FedsCard from '../cards/FedsCard';
 import WithRole from "@/components/withRole"; // Import the HOC
 import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 

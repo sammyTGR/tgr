@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: error.message });
             }
 
-            console.log("Time off request inserted:", data);
+            // console.log("Time off request inserted:", data);
             return res.status(200).json(data);
         } catch (err) {
             console.error("Unexpected error handling time off request:", err);

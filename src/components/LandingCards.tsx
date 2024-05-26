@@ -50,7 +50,7 @@ export const AdminSubmitAuditsCard = () => (
 
 export const DrosGuidanceCard = () => (
   <>
-    <Link className="group" href="/audits/drosguide">
+    <Link className="group" href="/tgr/dros/guide">
       <Card>
         <CardHeader className="flex items-center gap-2">
           <LightningBoltIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
@@ -68,7 +68,7 @@ export const DrosGuidanceCard = () => (
 
 export const CalendarCard = () => (
   <>
-    <Link className="group" href="/TGR/crew/calendar">
+    <Link className="group" href="/tgr/crew/calendar">
       <Card>
         <CardHeader className="flex items-center gap-2">
           <CalendarIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
@@ -86,7 +86,7 @@ export const CalendarCard = () => (
 
 export const TimeOffRequestCard = () => (
   <>
-    <Link className="group" href="/TGR/crew/timeoffrequest">
+    <Link className="group" href="/tgr/crew/timeoffrequest">
       <Card>
         <CardHeader className="flex items-center gap-2">
           <ClockIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />

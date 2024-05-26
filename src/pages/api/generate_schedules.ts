@@ -25,7 +25,7 @@ function generateDates(weeks: number): Date[] {
 }
 
 async function generateSchedules(weeks: number) {
-    console.log(`Starting to generate schedules for ${weeks} weeks.`);
+    // console.log(`Starting to generate schedules for ${weeks} weeks.`);
     const { data: employees, error: employeeError } = await supabase
         .from('employees')
         .select('employee_id, name');
@@ -35,7 +35,7 @@ async function generateSchedules(weeks: number) {
         throw employeeError;
     }
 
-    console.log("Employees fetched:", employees);
+    // console.log("Employees fetched:", employees);
 
     const { data: referenceSchedules, error: referenceScheduleError } = await supabase
         .from('reference_schedules')
@@ -46,7 +46,7 @@ async function generateSchedules(weeks: number) {
         throw referenceScheduleError;
     }
 
-    console.log("Reference schedules fetched:", referenceSchedules);
+    // console.log("Reference schedules fetched:", referenceSchedules);
 
     const dates = generateDates(weeks);
     const schedules = [];
@@ -70,7 +70,7 @@ async function generateSchedules(weeks: number) {
         }
     }
 
-    console.log("Generated schedules:", schedules);
+    // console.log("Generated schedules:", schedules);
 
     if (schedules.length === 0) {
         throw new Error("No schedules generated to insert");
@@ -85,11 +85,11 @@ async function generateSchedules(weeks: number) {
         throw error;
     }
 
-    console.log("Schedules inserted successfully:", data);
+    // console.log("Schedules inserted successfully:", data);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log('API Route /api/generate_schedules accessed');
+    // console.log('API Route /api/generate_schedules accessed');
     if (req.method === 'POST') {
         try {
             const weeks = req.body.weeks || 4; // Default to 4 weeks if not provided

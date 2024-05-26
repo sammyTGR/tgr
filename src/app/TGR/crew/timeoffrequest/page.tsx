@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import WithRole from "@/components/withRole"; // Import the HOC
@@ -54,6 +55,7 @@ function TimeOffRequestPage() {
   });
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [showOtherTextarea, setShowOtherTextarea] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     fetchCalendarData();
@@ -252,11 +254,21 @@ function TimeOffRequestPage() {
                 <SelectValue placeholder="Select Employee Name" />
               </SelectTrigger>
               <SelectContent>
-                {employeeNames.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
+                <Input
+                  placeholder="Search Employee Name..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="w-full px-3 py-2"
+                />
+                {employeeNames
+                  .filter((name) =>
+                    name.toLowerCase().includes(searchText.toLowerCase())
+                  )
+                  .map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <div className="flex flex-col space-y-2 max-w-lg justify-center items-center">

@@ -27,7 +27,7 @@ const WithRole = ({
       if (userEmail) {
         fetchUserRole(userEmail);
       } else {
-        console.log("User email is not available. Redirecting...");
+        // console.log("User email is not available. Redirecting...");
         router.push("/sign-in");
       }
     }
@@ -49,8 +49,8 @@ const WithRole = ({
     const userRole = data?.role;
 
     console.log("Fetched User Role:", userRole);
-    console.log("Allowed Roles:", allowedRoles);
-    console.log("Allowed Emails:", allowedEmails);
+    // console.log("Allowed Roles:", allowedRoles);
+    // console.log("Allowed Emails:", allowedEmails);
 
     const isRoleAllowed = userRole && allowedRoles.includes(userRole);
     const isEmailAllowed =
@@ -59,7 +59,7 @@ const WithRole = ({
     if (isRoleAllowed && isEmailAllowed) {
       setAuthorized(true);
     } else {
-      console.log("User is not authorized. Redirecting...");
+      // console.log("User is not authorized. Redirecting...");
       router.push("/sign-in"); // Redirect to a not authorized page or login
     }
   };

@@ -13,7 +13,7 @@ export default async function Header() {
   console.log(`Rendering Header with Role: ${role}`);
 
   if (!role) {
-    console.log("Role is null, showing Loading...");
+    // console.log("Role is null, showing Loading...");
     return <div>Loading...</div>; // or a default header component
   }
 

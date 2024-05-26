@@ -38,7 +38,7 @@ const components: { title: string; href: string; description: string }[] = [
   },
   {
     title: "DROS Guidance",
-    href: "/audits/drosguide",
+    href: "/tgr/dros/guide",
     description: "Sometimes We All Need A Lil' Help",
   },
 ];
@@ -46,12 +46,12 @@ const components: { title: string; href: string; description: string }[] = [
 const sched: { title: string; href: string; description: string }[] = [
   {
     title: "Calendar",
-    href: "/TGR/crew/calendar",
+    href: "/tgr/crew/calendar",
     description: "Where Dey At",
   },
   {
     title: "Submit Time Off",
-    href: "/TGR/crew/timeoffrequest",
+    href: "/tgr/crew/timeoffrequest",
     description: "Submit A Request",
   },
   {
