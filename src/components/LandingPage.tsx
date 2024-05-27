@@ -7,10 +7,12 @@ import { useState, useEffect } from "react";
 const LandingPageUser = dynamic(() => import("./LandingPageUser"));
 const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
 const LandingPageSuperAdmin = dynamic(() => import("./LandingPageSuperAdmin"));
+const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
 
 const LandingPage = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -18,19 +20,25 @@ const LandingPage = () => {
         const email = user.primaryEmailAddress.emailAddress;
         const fetchedRole = await getUserRole(email);
         setRole(fetchedRole);
-        // console.log(`Fetched and set role: ${fetchedRole}`);
       }
+      setLoading(false);
     };
 
-    fetchRole();
-  }, [user]);
+    if (isLoaded) {
+      fetchRole();
+    } else {
+      setLoading(false);
+    }
+  }, [user, isLoaded]);
 
-  if (!role) {
-    // console.log("Role is null, showing Loading...");
+  if (loading) {
     return <div>Loading...</div>; // or a default loading component
   }
 
-  // console.log(`Rendering Landing Page with Role: ${role}`);
+  // If the user is not logged in or has no role, show the public landing page
+  if (!user || !role) {
+    return <LandingPagePublic />;
+  }
 
   if (role === "super admin") {
     return <LandingPageSuperAdmin />;
