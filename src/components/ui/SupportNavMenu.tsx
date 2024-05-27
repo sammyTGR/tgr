@@ -11,34 +11,34 @@ const supabase = createClient(
 );
 
 // Verify and update the paths here
-const IDsCard = dynamic(() => import('../../app/tgr/dros/cards/IDsCard'), { ssr: false });
-const FedsCard = dynamic(() => import('../../app/tgr/dros/cards/FedsCard'), { ssr: false });
-const FedLimits = dynamic(() => import('../../app/tgr/dros/cards/FedLimits'), { ssr: false });
-const FedLimsName = dynamic(() => import('../../app/tgr/dros/cards/FedLimsName'), { ssr: false });
-const ProofDocs = dynamic(() => import('../../app/tgr/dros/cards/ProofDocs'), { ssr: false });
-const CorrectionDocs = dynamic(() => import('../../app/tgr/dros/cards/CorrectionDocs'), { ssr: false });
-const DelayedDeliveries = dynamic(() => import('../../app/tgr/dros/cards/DelayedDeliveries'), { ssr: false });
-const LeoPPT = dynamic(() => import('../../app/tgr/dros/cards/LeoPPT'), { ssr: false });
-const PeaceOfficer = dynamic(() => import('../../app/tgr/dros/cards/PeaceOfficerDROS'), { ssr: false });
-const ReserveOfficer = dynamic(() => import('../../app/tgr/dros/cards/ReserveOfficer'), { ssr: false });
-const FederalAgent = dynamic(() => import('../../app/tgr/dros/cards/FederalAgent'), { ssr: false });
-const ActiveDuty = dynamic(() => import('../../app/tgr/dros/cards/ActiveDuty'), { ssr: false });
-const LocalActive = dynamic(() => import('../../app/tgr/dros/cards/LocalActive'), { ssr: false });
-const RetiredMilitary = dynamic(() => import('../../app/tgr/dros/cards/RetiredMilitary'), { ssr: false });
-const InterimDl = dynamic(() => import('../../app/tgr/dros/cards/InterimDl'), { ssr: false });
-const PeaceOfficerDROS = dynamic(() => import('../../app/tgr/dros/cards/PeaceOfficer'), { ssr: false });
-const ReserveInfo = dynamic(() => import('../../app/tgr/dros/cards/ReserveInfo'), { ssr: false });
-const FedsAgentLeo = dynamic(() => import('../../app/tgr/dros/cards/FedsAgentLeo'), { ssr: false });
-const PartiucularLimDROS = dynamic(() => import('../../app/tgr/dros/cards/PartiucularLimDROS'), { ssr: false });
-const SecurityGuards = dynamic(() => import('../../app/tgr/dros/cards/SecurityGuards'), { ssr: false });
-const FFL03COE = dynamic(() => import('../../app/tgr/dros/cards/FFL03COE'), { ssr: false });
-const ConsignRedemp = dynamic(() => import('../../app/tgr/dros/cards/ConsignRedemp'), { ssr: false });
-const AmmoPurchase = dynamic(() => import('../../app/tgr/dros/cards/AmmoPurchase'), { ssr: false });
-const RegisteredAlien = dynamic(() => import('../../app/tgr/dros/cards/RegisteredAlien'), { ssr: false });
-const StudentVISA = dynamic(() => import('../../app/tgr/dros/cards/StudentVISA'), { ssr: false });
-const WorkVISA = dynamic(() => import('../../app/tgr/dros/cards/WorkVISA'), { ssr: false });
-const EmpAuth = dynamic(() => import('../../app/tgr/dros/cards/EmpAuth'), { ssr: false });
-const PendingResident = dynamic(() => import('../../app/tgr/dros/cards/PendingResident'), { ssr: false });
+const IDsCard = dynamic(() => import('../../app/TGR/dros/cards/IDsCard'), { ssr: false });
+const FedsCard = dynamic(() => import('../../app/TGR/dros/cards/FedsCard'), { ssr: false });
+const FedLimits = dynamic(() => import('../../app/TGR/dros/cards/FedLimits'), { ssr: false });
+const FedLimsName = dynamic(() => import('../../app/TGR/dros/cards/FedLimsName'), { ssr: false });
+const ProofDocs = dynamic(() => import('../../app/TGR/dros/cards/ProofDocs'), { ssr: false });
+const CorrectionDocs = dynamic(() => import('../../app/TGR/dros/cards/CorrectionDocs'), { ssr: false });
+const DelayedDeliveries = dynamic(() => import('../../app/TGR/dros/cards/DelayedDeliveries'), { ssr: false });
+const LeoPPT = dynamic(() => import('../../app/TGR/dros/cards/LeoPPT'), { ssr: false });
+const PeaceOfficer = dynamic(() => import('../../app/TGR/dros/cards/PeaceOfficerDROS'), { ssr: false });
+const ReserveOfficer = dynamic(() => import('../../app/TGR/dros/cards/ReserveOfficer'), { ssr: false });
+const FederalAgent = dynamic(() => import('../../app/TGR/dros/cards/FederalAgent'), { ssr: false });
+const ActiveDuty = dynamic(() => import('../../app/TGR/dros/cards/ActiveDuty'), { ssr: false });
+const LocalActive = dynamic(() => import('../../app/TGR/dros/cards/LocalActive'), { ssr: false });
+const RetiredMilitary = dynamic(() => import('../../app/TGR/dros/cards/RetiredMilitary'), { ssr: false });
+const InterimDl = dynamic(() => import('../../app/TGR/dros/cards/InterimDl'), { ssr: false });
+const PeaceOfficerDROS = dynamic(() => import('../../app/TGR/dros/cards/PeaceOfficer'), { ssr: false });
+const ReserveInfo = dynamic(() => import('../../app/TGR/dros/cards/ReserveInfo'), { ssr: false });
+const FedsAgentLeo = dynamic(() => import('../../app/TGR/dros/cards/FedsAgentLeo'), { ssr: false });
+const PartiucularLimDROS = dynamic(() => import('../../app/TGR/dros/cards/PartiucularLimDROS'), { ssr: false });
+const SecurityGuards = dynamic(() => import('../../app/TGR/dros/cards/SecurityGuards'), { ssr: false });
+const FFL03COE = dynamic(() => import('../../app/TGR/dros/cards/FFL03COE'), { ssr: false });
+const ConsignRedemp = dynamic(() => import('../../app/TGR/dros/cards/ConsignRedemp'), { ssr: false });
+const AmmoPurchase = dynamic(() => import('../../app/TGR/dros/cards/AmmoPurchase'), { ssr: false });
+const RegisteredAlien = dynamic(() => import('../../app/TGR/dros/cards/RegisteredAlien'), { ssr: false });
+const StudentVISA = dynamic(() => import('../../app/TGR/dros/cards/StudentVISA'), { ssr: false });
+const WorkVISA = dynamic(() => import('../../app/TGR/dros/cards/WorkVISA'), { ssr: false });
+const EmpAuth = dynamic(() => import('../../app/TGR/dros/cards/EmpAuth'), { ssr: false });
+const PendingResident = dynamic(() => import('../../app/TGR/dros/cards/PendingResident'), { ssr: false });
 // Add other imports as needed
 
 // Styled components
