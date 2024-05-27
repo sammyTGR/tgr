@@ -39,7 +39,7 @@ const auditComponents: { title: string; href: string; description: string }[] =
     },
     {
       title: "DROS Guidance",
-      href: "/tgr/dros/guide",
+      href: "/TGR/dros/guide",
       description: "Sometimes We All Need A Lil' Help",
     },
   ];
@@ -48,12 +48,12 @@ const schedComponents: { title: string; href: string; description: string }[] =
   [
     {
       title: "Calendar",
-      href: "/tgr/crew/calendar",
+      href: "/TGR/crew/calendar",
       description: "Where Dey At",
     },
     {
       title: "Submit Time Off",
-      href: "/tgr/crew/timeoffrequest",
+      href: "/TGR/crew/timeoffrequest",
       description: "Submit A Request",
     },
     {
