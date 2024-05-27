@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import supabase from "../../supabase/lib/supabaseClient"; // Import your Supabase client
@@ -18,22 +18,7 @@ const WithRole = ({
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
 
-  useEffect(() => {
-    if (isLoaded) {
-      const userEmail =
-        user?.primaryEmailAddress?.emailAddress.toLowerCase() ||
-        user?.emailAddresses[0]?.emailAddress.toLowerCase();
-
-      if (userEmail) {
-        fetchUserRole(userEmail);
-      } else {
-        // console.log("User email is not available. Redirecting...");
-        router.push("/sign-in");
-      }
-    }
-  }, [isLoaded, user, allowedRoles, allowedEmails, router]);
-
-  const fetchUserRole = async (email: string) => {
+  const fetchUserRole = useCallback(async (email: string) => {
     const { data, error } = await supabase
       .from("employees")
       .select("role")
@@ -62,7 +47,22 @@ const WithRole = ({
       // console.log("User is not authorized. Redirecting...");
       router.push("/sign-in"); // Redirect to a not authorized page or login
     }
-  };
+  }, [allowedRoles, allowedEmails, router]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      const userEmail =
+        user?.primaryEmailAddress?.emailAddress.toLowerCase() ||
+        user?.emailAddresses[0]?.emailAddress.toLowerCase();
+
+      if (userEmail) {
+        fetchUserRole(userEmail);
+      } else {
+        // console.log("User email is not available. Redirecting...");
+        router.push("/sign-in");
+      }
+    }
+  }, [isLoaded, user, fetchUserRole, router]);
 
   if (!isLoaded || !authorized) {
     return <div>Loading...</div>;
