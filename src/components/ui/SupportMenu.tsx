@@ -1,5 +1,3 @@
-// components/ui/supportmenutest.tsx
-
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import dynamic from 'next/dynamic';
 import React, { useEffect, useRef, useState } from "react";
@@ -12,6 +10,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Verify and update the paths here
 const IDsCard = dynamic(() => import('../../app/tgr/dros/cards/IDsCard'), { ssr: false });
 const FedsCard = dynamic(() => import('../../app/tgr/dros/cards/FedsCard'), { ssr: false });
 const FedLimits = dynamic(() => import('../../app/tgr/dros/cards/FedLimits'), { ssr: false });
