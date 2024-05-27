@@ -91,7 +91,7 @@ interface DataRow {
   error_location?: string;
   error_details?: string;
 }
-const SupportMenu = dynamic(() => import("@/components/ui/SupportMenu"), {
+const SupportMenu = dynamic(() => import("@/components/ui/SupportNavMenu"), {
   ssr: false,
 });
 

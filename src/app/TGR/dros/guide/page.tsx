@@ -19,7 +19,7 @@ import UserSessionHandler from "@/components/UserSessionHandler"; // Import User
 // Example type definition, adjust based on your actual data structure
 type DataRow = string[]; // Represents a single row of data as an array of strings
 type Data = DataRow[]; // Represents the entire dataset as an array of DataRow
-const SupportMenu = dynamic(() => import('@/components/ui/SupportMenu'), { ssr: false });
+const SupportMenu = dynamic(() => import('@/components/ui/SupportNavMenu'), { ssr: false });
 
 const supabase = createClerkSupabaseClient();
 
