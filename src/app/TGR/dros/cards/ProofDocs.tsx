@@ -8,8 +8,6 @@ import { useRouter } from "next/navigation";
     CardHeader,
     CardTitle,
   } from "@/components/ui/card"
-import { HoveredLink, Menu, MenuItem, ProductItem } from "@/components/ui/navbar-menu";
-
   
   function ProofDocs ({ className }: { className?: string }) {
   const router = useRouter();

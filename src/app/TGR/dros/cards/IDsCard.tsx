@@ -43,3 +43,4 @@ import { HoveredLink, Menu, MenuItem, ProductItem } from "@/components/ui/navbar
     )
   }
   export default IDsCard;
+  
