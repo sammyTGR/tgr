@@ -15,29 +15,19 @@ const HeaderPublic = () => {
       <NavigationMenu>
         <NavigationMenuList className="flex space-x-4 mr-3">
           <NavigationMenuItem>
-            <Link href="/" className="text-white">
-              Home
-            </Link>
+            <Link href="/">Home</Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/public/about" className="text-white">
-              About
-            </Link>
+            <Link href="/public/about">About</Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/public/contact" className="text-white">
-              Contact
-            </Link>
+            <Link href="/public/contact">Contact</Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/sign-in" className="text-white">
-              Sign In
-            </Link>
+            <Link href="/sign-in">Sign In</Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/sign-up" className="text-white">
-              Sign Up
-            </Link>
+            <Link href="/sign-up">Sign Up</Link>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
