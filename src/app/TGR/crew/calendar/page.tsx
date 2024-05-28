@@ -5,8 +5,14 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { createClient } from "@supabase/supabase-js";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import supabase from "../../../../../supabase/lib/supabaseClient";
-import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table } from "@/components/ui/table";
-
+import {
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableBody,
+  Table,
+} from "@/components/ui/table";
 const title = "TGR Crew Calendar";
 
 interface CalendarEvent {
@@ -231,7 +237,9 @@ export default function Component() {
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <h1 className="text-2xl font-bold"><TextGenerateEffect words={title} /></h1>
+      <h1 className="text-2xl font-bold">
+        <TextGenerateEffect words={title} />
+      </h1>
       <div className="flex justify-between w-full max-w-4xl">
         <Button variant="ghost" onClick={handlePreviousWeek}>
           <ChevronLeftIcon className="h-4 w-4" />

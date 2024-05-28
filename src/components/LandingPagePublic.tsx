@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 const LandingPagePublic = () => {
   return (
@@ -14,25 +15,28 @@ const LandingPagePublic = () => {
                   Elevate Your Shooting Skills
                 </h1>
                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400 mt-4">
-                  With our diverse team of certified instructors, you can learn all about the basics of firearms, all the way up to getting your CCW and more!
+                  With our diverse team of certified instructors, you can learn
+                  all about the basics of firearms, all the way up to getting
+                  your CCW and more!
                 </p>
                 <div className="mt-6 space-x-4">
                   <Link
                     className="inline-flex h-9 items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
-                    href="/"
+                    href="/public/classes"
                   >
                     Class Schedules
                   </Link>
                 </div>
               </div>
               <div className="flex justify-center">
-                {/* <img
-                  alt="Hero"
-                  className="mx-auto aspect-square overflow-hidden rounded-xl object-bottom sm:w-full"
-                  height="550"
-                  src="/placeholder.svg"
-                  width="550"
-                /> */}
+                <Image
+                  src="/TGR Filled.png"
+                  layout="responsive"
+                  width={600}
+                  height={200}
+                  alt="TGR Logo"
+                  className="max-w-xl max-h-40 mt-16"
+                />
               </div>
             </div>
           </div>
@@ -44,19 +48,19 @@ const LandingPagePublic = () => {
                 <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
                   Gun Range Info
                 </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-4">Unlock Your Shooting Potential</h2>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-4">
+                  Unlock Your Shooting Potential
+                </h2>
                 <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400 mt-4">
-                  Our gun range offers 20 stalls, all of which are first come first served (we don&apos;t take appointments). There are ZERO time limits with your visits. You can rapid fire, and for CCW holders, you can do holster work.
+                  Our gun range offers 20 stalls, all of which are first come
+                  first served (we don&apos;t take appointments). There are ZERO
+                  time limits with your visits. You can rapid fire, and for CCW
+                  holders, you can do holster work.
                 </p>
               </div>
-              <Link
-                    
-                    href="/public/waiver"
-                  >
-                    <Button>
-                    Sign The Waiver
-                    </Button>
-                  </Link>
+              <Link href="/public/waiver">
+                <Button>Sign The Waiver</Button>
+              </Link>
               <div className="flex justify-center">
                 {/* <img
                   alt="Image"
@@ -69,25 +73,29 @@ const LandingPagePublic = () => {
             </div>
           </div>
         </section>
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-100 dark:bg-gray-800">
+        <section className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Experience the Difference</h2>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
+                  Join The List Of Champions!
+                </h2>
                 <p className="mx-auto max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Join the thousands of customers that have come to call us their home range.
+                  Join the thousands of customers that have come to call us
+                  their home range.
                 </p>
               </div>
               <div className="mx-auto w-full max-w-sm space-y-2">
                 <form className="flex space-x-2">
-                  <Input className="max-w-lg flex-1" placeholder="Enter your email" type="email" />
+                  <Input
+                    className="max-w-lg flex-1"
+                    placeholder="Enter your email"
+                    type="email"
+                  />
                   <Button type="submit">Get Started</Button>
                 </form>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Sign up to get notified of our sales and events.
-                  <Link href="#" className="underline underline-offset-2">
-                    Terms & Conditions
-                  </Link>
                 </p>
               </div>
             </div>
@@ -95,7 +103,9 @@ const LandingPagePublic = () => {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2024 SL Inc. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          © 2024 SL Inc. All rights reserved.
+        </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link href="#" className="text-xs hover:underline underline-offset-4">
             Terms of Service
@@ -106,7 +116,7 @@ const LandingPagePublic = () => {
         </nav>
       </footer>
     </div>
-  )
-}
+  );
+};
 
 export default LandingPagePublic;
