@@ -26,13 +26,13 @@ const LandingPagePublic = () => {
                 </div>
               </div>
               <div className="flex justify-center">
-                <img
+                {/* <img
                   alt="Hero"
                   className="mx-auto aspect-square overflow-hidden rounded-xl object-bottom sm:w-full"
                   height="550"
                   src="/placeholder.svg"
                   width="550"
-                />
+                /> */}
               </div>
             </div>
           </div>
@@ -42,11 +42,11 @@ const LandingPagePublic = () => {
             <div className="grid items-center gap-6 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
               <div>
                 <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
-                  Key Features
+                  Gun Range Info
                 </div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-4">Unlock Your Shooting Potential</h2>
                 <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400 mt-4">
-                  Our gun range offers 20 stalls, all of which are first come first served (we don't take appointments). There are ZERO time limits with your visits. You can rapid fire, and for CCW holders, you can do holster work.
+                  Our gun range offers 20 stalls, all of which are first come first served (we don&apos;t take appointments). There are ZERO time limits with your visits. You can rapid fire, and for CCW holders, you can do holster work.
                 </p>
               </div>
               <Link
@@ -58,13 +58,13 @@ const LandingPagePublic = () => {
                     </Button>
                   </Link>
               <div className="flex justify-center">
-                <img
+                {/* <img
                   alt="Image"
                   className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last"
                   height="310"
                   src="/"
                   width="550"
-                />
+                /> */}
               </div>
             </div>
           </div>
@@ -95,7 +95,7 @@ const LandingPagePublic = () => {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2024 Acme Inc. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">© 2024 SL Inc. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link href="#" className="text-xs hover:underline underline-offset-4">
             Terms of Service
