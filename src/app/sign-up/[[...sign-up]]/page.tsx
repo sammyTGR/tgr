@@ -7,12 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SignUp } from "@clerk/nextjs";
-import UserProfileForm from "@/components/UserProfileForm"; // Import UserProfileForm
+import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
-export default function LoginForm() {
+export default function SignUpPage() {
   return (
     <div className="flex flex-col items-center justify-center">
       <Card className="mx-auto max-w-md space-y-4">
@@ -29,6 +27,7 @@ export default function LoginForm() {
           </div>
         </CardContent>
       </Card>
+      <UserSessionHandler /> {/* Include the UserSessionHandler component */}
     </div>
   );
 }

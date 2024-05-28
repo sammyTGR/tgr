@@ -21,7 +21,10 @@ async function fetchUserRole(clerkUserId: string): Promise<string|null> {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
-        const { clerkUserId, name, department, role, contact_info } = req.body;
+        const { clerkUserId, name, department, contact_info } = req.body;
+
+        // Default role to 'user' if not provided
+        const role = req.body.role || 'user';
 
         const { data, error } = await supabase
             .from('employees')

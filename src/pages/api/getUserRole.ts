@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from('employees')
         .select('role')
         .ilike('contact_info', email.toString().toLowerCase())
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error fetching user role:', error);
