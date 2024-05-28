@@ -14,14 +14,14 @@ const LandingPagePublic = () => {
                   Elevate Your Shooting Skills
                 </h1>
                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400 mt-4">
-                  With our virtual shooting experience and our skilled instructors, you can go from squirt gun shooter to PEW MASTER in no time!
+                  With our diverse team of certified instructors, you can learn all about the basics of firearms, all the way up to getting your CCW and more!
                 </p>
                 <div className="mt-6 space-x-4">
                   <Link
                     className="inline-flex h-9 items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
-                    href="sign-up"
+                    href="/"
                   >
-                    Get Started
+                    Class Schedules
                   </Link>
                 </div>
               </div>
@@ -44,12 +44,19 @@ const LandingPagePublic = () => {
                 <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
                   Key Features
                 </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-4">Unlock Your Digital Potential</h2>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-4">Unlock Your Shooting Potential</h2>
                 <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400 mt-4">
-                  Our platform offers a comprehensive suite of tools and features to help you create, manage, and
-                  optimize your online presence.
+                  Our gun range offers 20 stalls, all of which are first come first served (we don't take appointments). There are ZERO time limits with your visits. You can rapid fire, and for CCW holders, you can do holster work.
                 </p>
               </div>
+              <Link
+                    
+                    href="/public/waiver"
+                  >
+                    <Button>
+                    Sign The Waiver
+                    </Button>
+                  </Link>
               <div className="flex justify-center">
                 <img
                   alt="Image"
@@ -68,7 +75,7 @@ const LandingPagePublic = () => {
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Experience the Difference</h2>
                 <p className="mx-auto max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Join the thousands of businesses that have transformed their online presence with our platform.
+                  Join the thousands of customers that have come to call us their home range.
                 </p>
               </div>
               <div className="mx-auto w-full max-w-sm space-y-2">
@@ -77,7 +84,7 @@ const LandingPagePublic = () => {
                   <Button type="submit">Get Started</Button>
                 </form>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Sign up to get notified when we launch.
+                  Sign up to get notified of our sales and events.
                   <Link href="#" className="underline underline-offset-2">
                     Terms & Conditions
                   </Link>

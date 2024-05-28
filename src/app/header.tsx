@@ -39,7 +39,8 @@ export default function Header() {
     return <div>Loading...</div>;
   }
 
-  if (!user || !role) {
+  // Check if the user is not authenticated or role is null
+  if (!user || role === null) {
     return <HeaderPublic />;
   }
 
