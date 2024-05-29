@@ -1,3 +1,4 @@
+// src/app/header.tsx
 "use client";
 import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";

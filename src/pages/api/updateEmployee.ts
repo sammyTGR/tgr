@@ -4,27 +4,24 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-async function fetchUserRole(clerkUserId: string): Promise<string|null> {
-    const { data, error } = await supabase
-        .from('employees')
-        .select('role')
-        .eq('clerk_user_id', clerkUserId)
-        .single();
-
-    if (error || !data) {
-        console.error('Error fetching user role:', error);
-        return null;
-    }
-
-    return data.role;
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
         const { clerkUserId, name, department, contact_info } = req.body;
 
-        // Default role to 'user' if not provided
-        const role = req.body.role || 'user';
+        // Fetch existing employee
+        const { data: existingEmployee, error: fetchError } = await supabase
+            .from('employees')
+            .select('role')
+            .eq('clerk_user_id', clerkUserId)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
+            // Error other than 'no rows returned'
+            console.error('Error fetching existing employee:', fetchError);
+            return res.status(500).json({ error: fetchError.message });
+        }
+
+        const role = existingEmployee ? existingEmployee.role : 'user';
 
         const { data, error } = await supabase
             .from('employees')
