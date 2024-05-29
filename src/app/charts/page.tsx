@@ -1,5 +1,4 @@
 import AuditsByDayChart from "@/app/charts/AuditsByDayChart";
-import { render } from "react-dom";
 import {
   BarChart,
   XAxis,
