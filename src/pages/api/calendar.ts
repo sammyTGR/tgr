@@ -1,3 +1,4 @@
+// src/pages/api/calendar.ts
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
@@ -14,7 +15,7 @@ interface Schedule {
     day_of_week: string;
     start_time: string;
     end_time: string;
-    schedule_date: Date | null;
+    schedule_date: string;
     status: string;
     employee: Employee;
 }
@@ -38,8 +39,6 @@ export async function getCalendarData(start_date: string, end_date: string): Pro
         .gte('schedule_date', start_date)
         .lte('schedule_date', end_date)
         .order('employee_id', { ascending: true });
-
-    // console.log("Data fetched from Supabase:", JSON.stringify(data, null, 2));
 
     if (error) {
         throw new Error(error.message);
@@ -67,7 +66,7 @@ export async function getCalendarData(start_date: string, end_date: string): Pro
             start_time: item.start_time,
             end_time: item.end_time,
             schedule_date: item.schedule_date,
-            status: item.status // Ensure status is included
+            status: item.status
         });
 
         return acc;
@@ -77,14 +76,12 @@ export async function getCalendarData(start_date: string, end_date: string): Pro
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // console.log('API Route /api/calendar accessed');
     if (req.method === 'POST') {
         const { start_date, end_date } = req.body;
         try {
             const data = await getCalendarData(start_date, end_date);
             res.status(200).json(data);
         } catch (error: unknown) {
-            // console.error('Failed to fetch calendar data:', error);
             if (error instanceof Error) {
                 res.status(500).json({ message: 'Failed to fetch calendar data', error: error.message });
             } else {

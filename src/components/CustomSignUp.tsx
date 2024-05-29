@@ -1,45 +1,63 @@
 "use client";
-import React, { useEffect } from "react";
+
+import { SignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useSignUp, SignUp as ClerkSignUp } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { useSignUp } from "@clerk/nextjs";
+
+interface UserDetails {
+  clerkUserId: string;
+  contact_info: string;
+  name: string;
+}
 
 const CustomSignUp = () => {
-  const { isLoaded, signUp } = useSignUp();
+  const { signUp, setActive } = useSignUp();
   const router = useRouter();
 
   useEffect(() => {
-    const handleSignUp = async () => {
-      if (isLoaded && signUp.status === "complete") {
-        const userId = signUp.createdUserId;
-        const email = signUp.emailAddress?.toLowerCase(); // Ensure emailAddress exists
-        const name = signUp.firstName || ""; // Use the first name as the name
+    const handleSignUpComplete = async () => {
+      if (signUp && signUp.status === "complete") {
+        const clerkUserId = signUp.createdUserId ?? "";
+        const emailAddress = signUp.emailAddress ?? "";
+        const name = signUp.firstName ?? "Unnamed User";
 
-        if (!email) {
-          console.error("Email address is missing");
-          return;
-        }
+        await updateOrCreateEmployee({ clerkUserId, contact_info: emailAddress, name });
 
-        const response = await fetch("/api/updateEmployee", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ clerkUserId: userId, name, contact_info: email }),
-        });
-
-        if (response.ok) {
-          // Redirect to the user dashboard after successful sign-up
-          router.push("/user-dashboard");
-        } else {
-          console.error("Failed to create employee entry");
-        }
+        // Set the user as active and then redirect
+        await setActive({ session: signUp.createdSessionId });
+        router.push("/"); // Navigate to the home page
       }
     };
 
-    handleSignUp();
-  }, [isLoaded, signUp, router]);
+    handleSignUpComplete();
+  }, [signUp, setActive, router]);
 
-  return <ClerkSignUp />;
+  const updateOrCreateEmployee = async ({
+    clerkUserId,
+    contact_info,
+    name,
+  }: UserDetails) => {
+    try {
+      const response = await fetch("/api/updateEmployee", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ clerkUserId, contact_info, name }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to update employee data:", await response.text());
+      } else {
+        console.log("Employee data updated successfully");
+      }
+    } catch (error) {
+      console.error("An error occurred while updating employee data:", error);
+    }
+  };
+
+  return <SignUp />;
 };
 
 export default CustomSignUp;

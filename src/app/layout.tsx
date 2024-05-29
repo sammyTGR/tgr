@@ -13,6 +13,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { dark } from "@clerk/themes";
 import Header from "../app/header";
+import UserSessionHandler from "../components/UserSessionHandler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <>
     <ClerkProvider appearance={{ baseTheme: dark }}>
+      <UserSessionHandler />
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
           <ThemeProvider

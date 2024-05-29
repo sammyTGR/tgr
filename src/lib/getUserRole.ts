@@ -8,8 +8,7 @@ export async function getUserRole(email: string): Promise<string | null> {
         const { data, error } = await supabase
             .from('employees')
             .select('role')
-            .ilike('contact_info', email.toString().toLowerCase())
-            .single();
+            .ilike('contact_info', email.toString().toLowerCase());
 
         if (error) {
             console.error('Error fetching user role:', error);
@@ -21,7 +20,7 @@ export async function getUserRole(email: string): Promise<string | null> {
             return null;
         }
 
-        return data.role;
+        return data[0].role;
     } catch (error) {
         console.error('Error in getUserRole:', error);
         return null;

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { SignUp } from "@clerk/nextjs";
 import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
+import CustomSignUp from "@/components/CustomSignUp";
 
 export default function SignUpPage() {
   return (
@@ -23,7 +24,7 @@ export default function SignUpPage() {
           </CardHeader>
           <div className="grid gap-4 mb-4"></div>
           <div className="grid gap-4">
-            <SignUp />
+            <CustomSignUp />
           </div>
         </CardContent>
       </Card>

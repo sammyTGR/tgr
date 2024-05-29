@@ -1,4 +1,3 @@
-// src/app/header.tsx
 "use client";
 import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";
@@ -37,7 +36,7 @@ export default function Header() {
   }, [user, isLoaded]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   // Check if the user is not authenticated or role is null

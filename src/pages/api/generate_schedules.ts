@@ -113,23 +113,16 @@ async function generateSchedules(weeks: number) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log('API Route /api/generate_schedules accessed');
+    if (req.method !== 'POST') {
+        res.status(405).json({ message: 'Method Not Allowed' });
+        return;
+    }
 
-    if (req.method === 'POST') {
-        try {
-            const weeks = req.body.weeks || 4; // Default to 4 weeks if not provided
-            await generateSchedules(weeks);
-            res.status(200).json({ message: 'Schedules generated successfully' });
-        } catch (error: unknown) {
-            console.error('Failed to generate schedules:', error);
-            if (error instanceof Error) {
-                res.status(500).json({ message: 'Failed to generate schedules', error: error.message });
-            } else {
-                res.status(500).json({ message: 'Failed to generate schedules' });
-            }
-        }
-    } else {
-        res.setHeader('Allow', ['POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+    try {
+        const { weeks } = req.body;
+        await generateSchedules(weeks);
+        res.status(200).json({ message: 'Schedules generated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
     }
 }
