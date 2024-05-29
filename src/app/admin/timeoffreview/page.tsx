@@ -198,9 +198,11 @@ function ApproveRequestsPage() {
         ))}
       </div>
       {showCustomApprovalModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
-          <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4">Custom Approval</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 ">
+          <div className="bg-muted dark:bg-muted p-6 rounded-lg shadow-lg">
+            <h2 className="text-center text-xl font-bold mb-4">
+              Custom Approval
+            </h2>
             <textarea
               value={customApprovalText}
               onChange={(e) => setCustomApprovalText(e.target.value)}
@@ -208,7 +210,7 @@ function ApproveRequestsPage() {
               rows={4}
               placeholder="Enter custom approval text..."
             />
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-center space-between gap-4">
               <Button
                 variant="outline"
                 onClick={() => setShowCustomApprovalModal(false)}

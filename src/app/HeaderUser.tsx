@@ -24,9 +24,7 @@ const HeaderUser = () => {
           </SignedOut>
           <SignedIn>
             <UserButton />
-            <div className="mx-3 flex items-end">
-              <UserSessionHandler />
-            </div>
+            <UserSessionHandler />
           </SignedIn>
         </div>
         <Link
