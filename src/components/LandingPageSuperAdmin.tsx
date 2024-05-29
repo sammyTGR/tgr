@@ -14,6 +14,7 @@ import {
   AdminTimeOffReviewCard,
   TimeOffRequestCard,
   GeneratorCard,
+  ChartCard,
 } from "@/components/LandingCards";
 
 const words = "Super Admin Dashboard";

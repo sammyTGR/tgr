@@ -137,3 +137,21 @@ export const GeneratorCard = () => (
     </Link>
   </>
 );
+
+export const ChartCard = () => (
+  <>
+    <Link className="group" href="/charts\AuditsByDayChart">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <CodeIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Generate Charts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Review Charts With Random Data
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
