@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useUser } from '@clerk/clerk-react';
+import { useUser } from "@clerk/clerk-react";
 import { useRouter } from "next/navigation";
 import WithRole from "@/components/withRole"; // Import the HOC
 import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
@@ -22,19 +22,26 @@ interface TimeOffRequest {
 
 function ApproveRequestsPage() {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
-  const [userRole, setUserRole] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [showCustomApprovalModal, setShowCustomApprovalModal] = useState(false);
+  const [customApprovalText, setCustomApprovalText] = useState("");
+  const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
   const router = useRouter();
   const { user } = useUser();
 
   useEffect(() => {
     async function fetchUserRole() {
       if (user) {
-        const email = user.primaryEmailAddress?.emailAddress.toLowerCase() || user.emailAddresses[0]?.emailAddress.toLowerCase();
-        const response = await fetch(`/api/getUserRole?email=${encodeURIComponent(email)}`);
+        const email =
+          user.primaryEmailAddress?.emailAddress.toLowerCase() ||
+          user.emailAddresses[0]?.emailAddress.toLowerCase();
+        const response = await fetch(
+          `/api/getUserRole?email=${encodeURIComponent(email)}`
+        );
         if (!response.ok) {
-          console.error('Failed to fetch user role:', await response.text());
-          router.push('/unauthorized');
+          console.error("Failed to fetch user role:", await response.text());
+          router.push("/unauthorized");
           setIsLoading(false);
         } else {
           const data = await response.json();
@@ -70,7 +77,7 @@ function ApproveRequestsPage() {
     return <p>Checking authorization...</p>;
   }
 
-  if (!userRole || (userRole !== 'admin' && userRole !== 'super admin')) {
+  if (!userRole || (userRole !== "admin" && userRole !== "super admin")) {
     return <p>Unauthorized access</p>;
   }
 
@@ -88,6 +95,20 @@ function ApproveRequestsPage() {
 
   const handleLeftEarly = async (request_id: number) => {
     await handleRequest(request_id, "left_early");
+  };
+
+  const handleCustomApproval = (request_id: number) => {
+    setCurrentRequestId(request_id);
+    setShowCustomApprovalModal(true);
+  };
+
+  const handleSubmitCustomApproval = async () => {
+    if (currentRequestId !== null) {
+      await handleRequest(currentRequestId, `Custom: ${customApprovalText}`);
+      setShowCustomApprovalModal(false);
+      setCustomApprovalText("");
+      setCurrentRequestId(null);
+    }
   };
 
   const handleRequest = async (request_id: number, action: string) => {
@@ -165,11 +186,42 @@ function ApproveRequestsPage() {
                 >
                   Left Early
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleCustomApproval(request.request_id)}
+                >
+                  Custom Approval
+                </Button>
               </div>
             </div>
           </div>
         ))}
       </div>
+      {showCustomApprovalModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
+          <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Custom Approval</h2>
+            <textarea
+              value={customApprovalText}
+              onChange={(e) => setCustomApprovalText(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+              rows={4}
+              placeholder="Enter custom approval text..."
+            />
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCustomApprovalModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button variant="outline" onClick={handleSubmitCustomApproval}>
+                Submit
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -177,7 +229,7 @@ function ApproveRequestsPage() {
 // Wrap the page with the WithRole HOC and specify allowed roles
 export default function ProtectedApproveRequestsPage() {
   return (
-    <WithRole allowedRoles={['admin', 'super admin']}>
+    <WithRole allowedRoles={["admin", "super admin"]}>
       <ApproveRequestsPage />
     </WithRole>
   );

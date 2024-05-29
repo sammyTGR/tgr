@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import { createClient } from "@supabase/supabase-js";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import supabase from "../../../../../supabase/lib/supabaseClient";
 import {
@@ -208,6 +207,15 @@ export default function Component() {
                     className="text-orange-500 dark:text-orange-400"
                   >
                     Left Early
+                  </div>
+                );
+              } else if (event.status && event.status.startsWith("Custom:")) {
+                return (
+                  <div
+                    key={index}
+                    className="text-green-500 dark:text-green-400"
+                  >
+                    {event.status.replace("Custom: ", "")}
                   </div>
                 );
               }

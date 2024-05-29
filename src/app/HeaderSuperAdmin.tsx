@@ -119,16 +119,14 @@ const HeaderSuperAdmin = () => {
           </Button>
         </Link>
         <SignedOut>
-          <SignUpButton>
-            <Button>Sign Up</Button>
-          </SignUpButton>
+          <SignInButton>
+            <Button>Sign In</Button>
+          </SignInButton>
         </SignedOut>
         <SignedIn>
           <UserButton />
-          <div className="mx-3 flex items-end">
-            <UserSessionHandler />
-          </div>
         </SignedIn>
+        <UserSessionHandler />
       </div>
     </header>
   );
