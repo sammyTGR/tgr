@@ -133,16 +133,13 @@ const ScheduleGeneratorPage = () => {
 
   return (
     <>
-      <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
+      <div className="flex flex-col w-full max-w-md mx-auto py-8 md:py-12">
         <UserSessionHandler /> {/* Include UserSessionHandler */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Generate Schedules</h1>
         </div>
-        <div className="mb-4">
-          <label
-            htmlFor="weeks"
-            className="block text-sm font-medium text-gray-700"
-          >
+        <div className="flex flex-col mb-4">
+          <label htmlFor="weeks" className="block text-sm font-medium">
             Number of Weeks
           </label>
           <Input
@@ -155,7 +152,10 @@ const ScheduleGeneratorPage = () => {
           />
         </div>
         {scheduleData.map((schedule, index) => (
-          <div key={index} className="mb-4 flex items-center space-x-2">
+          <div
+            key={index}
+            className="mb-4 flex flex-col items-center space-y-2"
+          >
             <Select
               onValueChange={(value) =>
                 handleInputChange(index, {
@@ -163,7 +163,7 @@ const ScheduleGeneratorPage = () => {
                 } as ChangeEvent<HTMLSelectElement>)
               }
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectPrimitive.Value placeholder="Select Employee" />
               </SelectTrigger>
               <SelectContent>
@@ -183,49 +183,53 @@ const ScheduleGeneratorPage = () => {
               selected={schedule.day || undefined}
               onDayClick={(date) => handleDateChange(index, date)}
             />
-            <Input
-              type="text"
-              name="start_time"
-              value={schedule.start_time}
-              onChange={(e) => handleInputChange(index, e)}
-              placeholder="Start Time (e.g., 5:30PM)"
-            />
-            <Input
-              type="text"
-              name="end_time"
-              value={schedule.end_time}
-              onChange={(e) => handleInputChange(index, e)}
-              placeholder="End Time (e.g., 9:30PM)"
-            />
-            <Button variant="outline" onClick={() => handleRemoveFields(index)}>
-              Remove
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleSubmitSchedule(schedule)}
-              disabled={loading}
-            >
-              {loading ? "Submitting..." : "Submit Schedule"}
-            </Button>
+            <div className="flex space-x-2">
+              <Input
+                type="text"
+                name="start_time"
+                value={schedule.start_time}
+                onChange={(e) => handleInputChange(index, e)}
+                placeholder="Start Time (e.g., 5:30PM)"
+              />
+              <Input
+                type="text"
+                name="end_time"
+                value={schedule.end_time}
+                onChange={(e) => handleInputChange(index, e)}
+                placeholder="End Time (e.g., 9:30PM)"
+              />
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => handleRemoveFields(index)}
+              >
+                Remove
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleSubmitSchedule(schedule)}
+                disabled={loading}
+              >
+                {loading ? "Submitting..." : "Submit Schedule"}
+              </Button>
+            </div>
           </div>
         ))}
-        <Button variant="outline" onClick={handleAddFields}>
-          Add Schedule
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleGenerateSchedules}
-          disabled={loading}
-        >
-          {loading ? "Generating..." : "Generate Schedules"}
-        </Button>
+        <div className="flex items-center justify-between max-w-full py-2">
+          <Button variant="outline" onClick={handleAddFields}>
+            Add Schedule
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGenerateSchedules}
+            disabled={loading}
+          >
+            {loading ? "Generating..." : "Generate Schedules"}
+          </Button>
+        </div>
         {message && <p className="mt-4 text-center text-lg">{message}</p>}
       </div>
-      {/* <div>
-        <Button>
-          <BackfillButton />
-        </Button>
-      </div> */}
     </>
   );
 };
