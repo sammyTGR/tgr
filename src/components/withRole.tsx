@@ -9,11 +9,7 @@ interface WithRoleProps {
   allowedEmails?: string[];
 }
 
-const WithRole = ({
-  children,
-  allowedRoles,
-  allowedEmails = [],
-}: WithRoleProps) => {
+const WithRole: React.FC<WithRoleProps> = ({ children, allowedRoles, allowedEmails = [] }) => {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
@@ -32,33 +28,28 @@ const WithRole = ({
     }
 
     const userRole = data?.role;
-
     console.log("Fetched User Role:", userRole);
-    // console.log("Allowed Roles:", allowedRoles);
-    // console.log("Allowed Emails:", allowedEmails);
 
     const isRoleAllowed = userRole && allowedRoles.includes(userRole);
-    const isEmailAllowed =
-      !allowedEmails.length || allowedEmails.includes(email);
+    const isEmailAllowed = !allowedEmails.length || allowedEmails.includes(email);
 
     if (isRoleAllowed && isEmailAllowed) {
       setAuthorized(true);
     } else {
-      // console.log("User is not authorized. Redirecting...");
-      router.push("/sign-in"); // Redirect to a not authorized page or login
+      console.log("User is not authorized. Redirecting...");
+      router.push("/sign-in");
     }
   }, [allowedRoles, allowedEmails, router]);
 
   useEffect(() => {
-    if (isLoaded) {
-      const userEmail =
-        user?.primaryEmailAddress?.emailAddress.toLowerCase() ||
-        user?.emailAddresses[0]?.emailAddress.toLowerCase();
+    if (isLoaded && user) {
+      const userEmail = user.primaryEmailAddress?.emailAddress.toLowerCase() ||
+        user.emailAddresses[0]?.emailAddress.toLowerCase();
 
       if (userEmail) {
         fetchUserRole(userEmail);
       } else {
-        // console.log("User email is not available. Redirecting...");
+        console.log("User email is not available. Redirecting...");
         router.push("/sign-in");
       }
     }

@@ -143,7 +143,7 @@ const columnHText = canShowColumnH() ? data.find(row => {
 
   return (
     <div >
-     <div className="flex flow-row items-center justify-center max w-full mb-48">
+     <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
          <SupportMenu />
          {/* Render dialog content */}
       {activeDialogContentId}

@@ -1,18 +1,15 @@
 "use client";
+import React from "react";
 import Link from "next/link";
 import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
-import {
-  ActivityLogIcon,
-  LightningBoltIcon,
-  TextIcon,
-} from "@radix-ui/react-icons";
-import { DrosGuidanceCard, TimeOffRequestCard, CalendarCard } from "@/components/LandingCards";
+import { DrosGuidanceCard, TimeOffRequestCard, CalendarCard, WaiverCard, OrderCard } from "@/components/LandingCards";
+import { Separator } from "./ui/separator";
 
 const words = "Employee Dashboard";
 const subwords = "Let's GOOOOOOO!";
 
-export default function LandingPageUser() {
+const LandingPageUser: React.FC = React.memo(() => {
   return (
     <>
       <section className="w-full py-12 md:py-12">
@@ -30,14 +27,24 @@ export default function LandingPageUser() {
       <section className="w-full py-12 md:py-24">
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
-          <div className="col-span-full flex justify-center">
-            <DrosGuidanceCard />
+            <div className="col-span-full flex justify-center">
+              <DrosGuidanceCard />
             </div>
+            <Separator />
+              <Separator />
             <CalendarCard />
             <TimeOffRequestCard />
+            <Separator />
+              <Separator />
+            <WaiverCard />
+            <OrderCard />
           </div>
         </div>
       </section>
     </>
   );
-}
+});
+
+LandingPageUser.displayName = "LandingPageUser";
+
+export default LandingPageUser;

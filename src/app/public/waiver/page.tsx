@@ -34,7 +34,9 @@ const schema = z.object({
       message: "Street address must be a valid address format",
     }),
   city: z.string().min(1, { message: "City is required" }),
-  state: z.string().min(2, { message: "State is required" }),
+  state: z.string().min(2, { message: "State is required" }).max(2, {
+    message: "For Example: CA",
+  }),
   zip: z.string().min(5, { message: "Zip is required" }),
   occupation: z.string().optional().nullable(),
   company: z.string().optional().nullable(),
@@ -87,20 +89,92 @@ const WaiverForm = () => {
       toast.error("You are ineligible to shoot.");
       return;
     }
-
-    const { error } = await supabase.from("waiver").insert(data);
-    if (error) {
-      console.error("Error submitting form:", error);
-      toast.error("Error submitting form.");
-    } else {
-      console.log("Form submitted successfully");
-      reset();
-      toast.success("Form submitted successfully!");
+  
+    // Normalize the input data to uppercase for case-insensitive checking
+    const normalizedFirstName = data.first_name.toUpperCase();
+    const normalizedLastName = data.last_name.toUpperCase();
+    const normalizedEmail = data.email.toUpperCase();
+    const normalizedPhone = data.phone;
+    const normalizedStreet = data.street.toUpperCase();
+    const normalizedCity = data.city.toUpperCase();
+    const normalizedState = data.state.toUpperCase();
+    const normalizedSignature = data.signature.toUpperCase();
+  
+    try {
+      // Check for existing entries with the same normalized name, email, and phone number
+      const { data: existingEntries, error: fetchError } = await supabase
+        .from("waiver")
+        .select("id")
+        .eq("first_name", normalizedFirstName)
+        .eq("last_name", normalizedLastName)
+        .eq("email", normalizedEmail)
+        .eq("phone", normalizedPhone);
+  
+      if (fetchError) {
+        console.error("Error checking for duplicate entries:", fetchError);
+        toast.error("Error checking for duplicate entries.");
+        return;
+      }
+  
+      if (existingEntries && existingEntries.length > 0) {
+        toast.error("You already submitted a waiver fam!");
+        return;
+      }
+  
+      // Proceed with form submission if no duplicates are found
+      const { error } = await supabase.from("waiver").insert({
+        ...data,
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
+        email: normalizedEmail,
+        phone: normalizedPhone,
+        street: normalizedStreet,
+        city: normalizedCity,
+        state: normalizedState,
+        signature: normalizedSignature,
+      });
+  
+      if (error) {
+        console.error("Error submitting form:", error);
+        toast.error("Error submitting form.");
+      } else {
+        console.log("Form submitted successfully");
+        // Reset form fields
+        reset({
+          first_name: '',
+          last_name: '',
+          phone: '',
+          email: '',
+          street: '',
+          city: '',
+          state: '',
+          zip: '',
+          occupation: '',
+          company: '',
+          work_phone: '',
+          safety_rules: false,
+          information_accurate: false,
+          special_offers: false,
+          signature: '',
+          handgun_experience: '',
+          rifle_experience: '',
+          shotgun_experience: '',
+          mental_illness: '',
+          felony: '',
+          misdemeanor: '',
+          narcotics: '',
+          alcohol_abuse: '',
+        });
+        toast.success("Form submitted successfully!");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      toast.error("Unexpected error occurred.");
     }
   };
 
   return (
-    <div className="flex flex-col p-8 rounded-lg shadow-md w-full max-w-4xl mx-auto">
+    <div className="flex flex-col p-8 rounded-lg shadow-md w-full max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">
         Firearm Experience & Safety Questionnaire
       </h1>
@@ -548,6 +622,20 @@ const WaiverForm = () => {
             </div>
           </div>
         </div>
+        <p className="text-sm mb-6">
+          <span>
+          Applicant, for itself and its executor, and assigns, releases The Gun
+          Range from any and all liability for personal injury or property
+          damage arising out of the use of the equipment and/or facilities of
+          The Gun Range, and agree to hold The Gun Range, free, clear and
+          harmless for and indemnify The Gun Range from any responsability for
+          any and all claims and demands for personal injury or property damage
+          arising out of such use.</span><br/>
+          <br/><span className="italic mt-2">
+          By signing below, I certify that there is no
+          legal reason to prevent me from visiting, using, renting and/or
+          shooting at this range facility.</span>
+        </p>
         <div className="flex flex-col space-y-4">
           <div className="flex items-center">
             <Controller
@@ -619,12 +707,12 @@ const WaiverForm = () => {
               Gun Range via e-mail.
             </label>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center space-between">
             <Controller
               name="signature"
               control={control}
               render={({ field }) => (
-                <div className="flex flex-col">
+                <div className="flex flex-col w-[400px]">
                   <Input
                     {...field}
                     placeholder="Signature"
@@ -638,10 +726,13 @@ const WaiverForm = () => {
                 </div>
               )}
             />
-            <Button type="submit" className="ml-4">
+            <div className="flex justify-end ml-auto">
+            <Button type="submit">
               Submit
             </Button>
           </div>
+            </div>
+            
         </div>
       </form>
     </div>

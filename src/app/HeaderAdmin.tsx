@@ -12,12 +12,9 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import {
   SignInButton,
-  SignOutButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton,
@@ -25,7 +22,7 @@ import {
 import UserSessionHandler from "../components/UserSessionHandler";
 import { cn } from "@/lib/utils";
 
-const components: { title: string; href: string; description: string }[] = [
+const auditComponents: { title: string; href: string; description: string }[] = [
   {
     title: "Submit Audits",
     href: "/admin/audits/submit",
@@ -43,7 +40,7 @@ const components: { title: string; href: string; description: string }[] = [
   },
 ];
 
-const sched: { title: string; href: string; description: string }[] = [
+const schedComponents: { title: string; href: string; description: string }[] = [
   {
     title: "Calendar",
     href: "/TGR/crew/calendar",
@@ -57,11 +54,30 @@ const sched: { title: string; href: string; description: string }[] = [
   {
     title: "Review Time Off Requests",
     href: "/admin/timeoffreview",
-    description: "DENIED!",
+    description: "DENY THEM ALL!",
   },
 ];
 
-export function HeaderAdmin() {
+const serviceComponents: { title: string; href: string; description: string }[] = [
+  {
+    title: "Submit Requests",
+    href: "/sales/orders",
+    description: "Submit Requests For Customers",
+  },
+  {
+    title: "View Orders",
+    href: "/sales/orders",
+    description: "Not Working Yet",
+  },
+  {
+    title: "Safety Waiver",
+    href: "/public/waiver",
+    description: "Submit A Safety Waiver",
+  }
+
+];
+
+const HeaderAdmin = React.memo(() => {
   return (
     <header className="flex justify-between items-center p-2">
       <NavigationMenu>
@@ -70,7 +86,7 @@ export function HeaderAdmin() {
             <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {components.map((component) => (
+                {auditComponents.map((component) => (
                   <ListItem
                     key={component.title}
                     title={component.title}
@@ -86,7 +102,23 @@ export function HeaderAdmin() {
             <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {sched.map((sched) => (
+                {schedComponents.map((sched) => (
+                  <ListItem
+                    key={sched.title}
+                    title={sched.title}
+                    href={sched.href}
+                  >
+                    {sched.description}
+                  </ListItem>
+                ))}
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                {serviceComponents.map((sched) => (
                   <ListItem
                     key={sched.title}
                     title={sched.title}
@@ -106,11 +138,7 @@ export function HeaderAdmin() {
             <HomeIcon />
           </Button>
         </Link>
-        <Link href="/">
-          <Button variant="outline" size="icon">
-            <ModeToggle />
-          </Button>
-        </Link>
+        <ModeToggle />
         <SignedOut>
           <SignInButton>
             <Button>Sign In</Button>
@@ -123,7 +151,9 @@ export function HeaderAdmin() {
       </div>
     </header>
   );
-}
+});
+
+HeaderAdmin.displayName = "HeaderAdmin";
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -149,6 +179,7 @@ const ListItem = React.forwardRef<
     </li>
   );
 });
+
 ListItem.displayName = "ListItem";
 
 export default HeaderAdmin;

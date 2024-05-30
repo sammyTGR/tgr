@@ -2,34 +2,43 @@
 import dynamic from "next/dynamic";
 import { getUserRole } from "@/lib/getUserRole";
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const LandingPageUser = dynamic(() => import("./LandingPageUser"));
 const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
 const LandingPageSuperAdmin = dynamic(() => import("./LandingPageSuperAdmin"));
 const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
 
-const LandingPage = () => {
+const LandingPage: React.FC = () => {
   const { user, isLoaded } = useUser();
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const previousUserEmail = useRef<string | null>(null);
+
+  const fetchRole = useCallback(async (email: string) => {
+    if (email === previousUserEmail.current) {
+      return; // Skip fetching if email hasn't changed
+    }
+
+    previousUserEmail.current = email;
+    const fetchedRole = await getUserRole(email);
+    setRole(fetchedRole);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    const fetchRole = async () => {
-      if (user && user.primaryEmailAddress) {
-        const email = user.primaryEmailAddress.emailAddress;
-        const fetchedRole = await getUserRole(email);
-        setRole(fetchedRole);
+    if (isLoaded && user) {
+      const userEmail = user.primaryEmailAddress?.emailAddress.toLowerCase() ||
+        user.emailAddresses[0]?.emailAddress.toLowerCase();
+      if (userEmail) {
+        fetchRole(userEmail);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
-    };
-
-    if (isLoaded) {
-      fetchRole();
     } else {
       setLoading(false);
     }
-  }, [user, isLoaded]);
+  }, [isLoaded, user, fetchRole]);
 
   if (loading) {
     return <div>Loading...</div>; // or a default loading component

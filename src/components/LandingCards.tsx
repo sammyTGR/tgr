@@ -7,7 +7,9 @@ import {
   CalendarIcon,
   ClockIcon,
   CodeIcon,
+  InputIcon,
   LightningBoltIcon,
+  ReaderIcon,
   StopwatchIcon,
   TextIcon,
 } from "@radix-ui/react-icons";
@@ -149,6 +151,42 @@ export const ChartCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Review Charts With Random Data
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const WaiverCard = () => (
+  <>
+    <Link className="group" href="/public/waiver">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <ReaderIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Waiver Form</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Everyone Is Required To Fill This Out Before Shooting.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const OrderCard = () => (
+  <>
+    <Link className="group" href="/sales/orders">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <InputIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Submit Customer Request</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Submit Order Requests, Add To Waitlist, Contact Gunsmithing, etc.
           </p>
         </CardContent>
       </Card>

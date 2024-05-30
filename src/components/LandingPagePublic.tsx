@@ -1,54 +1,71 @@
+"use client";
+import React from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { TextGenerateEffect } from "./ui/text-generate-effect";
+import { TextGenerateColor } from "./ui/text-generate-color";
+import { TracingBeam } from "./ui/tracing-beam";
 
-const LandingPagePublic = () => {
+const title = "The Gun Range";
+const sub = "Your One Stop Shop For All Of Your Shooting Needs"
+
+const LandingPagePublic: React.FC = React.memo(() => {
   return (
     <div className="flex flex-col min-h-[100vh]">
       <main className="flex-1">
+      <TracingBeam className="w-full py-12 md:py-24 lg:py-32 border-y">
+      <div className="items-center justify-start text-start mt-12 ">
+            <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
+              <TextGenerateColor words={title} /></h1>
+              </div>
+      <div className="flex flex-col items-center justify-center text-end mt-12 ">
+            <h1 className="lg:leading-tighter text-xl font-bold tracking-tighter sm:text-2xl md:text-3xl xl:text-[3rem] 2xl:text-[2.75rem] mb-4">
+              <TextGenerateEffect words={sub} /></h1>
+              </div>
         <section className="w-full py-12 md:py-24 lg:py-32 border-y">
           <div className="container px-4 md:px-6 space-y-10 xl:space-y-16">
-            <div className="grid max-w-[1300px] mx-auto gap-4 px-4 sm:px-6 md:px-10 md:grid-cols-2 md:gap-16">
+            
+            <div className="grid items-center max-w-[1300px] mx-auto gap-4 px-4 sm:px-6 md:px-10 md:grid-cols-2 md:gap-8">
               <div>
-                <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.4rem] 2xl:text-[3.75rem]">
+                <h1 className="lg:leading-tighter text-2xl font-bold tracking-tighter sm:text-3xl md:text-4xl xl:text-[3.4rem] 2xl:text-[3.75rem]">
                   Elevate Your Shooting Skills
                 </h1>
-                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400 mt-4">
+                <p className="mx-auto max-w-p[600] md:text-xl mt-4">
                   With our diverse team of certified instructors, you can learn
                   all about the basics of firearms, all the way up to getting
                   your CCW and more!
                 </p>
                 <div className="mt-6 space-x-4">
-                  <Link
-                    className="inline-flex h-9 items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-gray-50 shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
-                    href="/public/classes"
-                  >
-                    Class Schedules
-                  </Link>
+                  
                 </div>
               </div>
-              <div className="flex justify-center">
-                <Image
-                  src="/TGR Filled.png"
-                  layout="responsive"
-                  width={600}
-                  height={200}
-                  alt="TGR Logo"
-                  className="max-w-xl max-h-40 mt-16"
-                />
+              <div className="flex justify-center items-center mb-4">
+              <Link
+                    href="/public/classes"
+                  >
+                    <Button variant="outline">
+                    Class Schedules
+                    </Button>
+                  </Link>
               </div>
             </div>
           </div>
         </section>
         <section className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-            <div className="grid items-center gap-6 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_550px]">
+            <div className="grid items-center gap-6 lg:grid-cols-[1fr_500px] lg:gap-2 xl:grid-cols-[1fr_550px]">
+            <div className="flex justify-center max-w-full">
+              <Link href="/public/waiver">
+                <Button>Sign The Waiver</Button>
+              </Link>
+              </div>
               <div>
-                <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
+                <div className="inline-block rounded-md bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
                   Gun Range Info
                 </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-4">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
                   Unlock Your Shooting Potential
                 </h2>
                 <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400 mt-4">
@@ -58,18 +75,8 @@ const LandingPagePublic = () => {
                   holders, you can do holster work.
                 </p>
               </div>
-              <Link href="/public/waiver">
-                <Button>Sign The Waiver</Button>
-              </Link>
-              <div className="flex justify-center">
-                {/* <img
-                  alt="Image"
-                  className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last"
-                  height="310"
-                  src="/"
-                  width="550"
-                /> */}
-              </div>
+              
+              
             </div>
           </div>
         </section>
@@ -81,7 +88,7 @@ const LandingPagePublic = () => {
                   Join The List Of Champions!
                 </h2>
                 <p className="mx-auto max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Join the thousands of customers that have come to call us
+                  Join the thousands of other members that have come to call us
                   their home range.
                 </p>
               </div>
@@ -92,7 +99,7 @@ const LandingPagePublic = () => {
                     placeholder="Enter your email"
                     type="email"
                   />
-                  <Button type="submit">Get Started</Button>
+                  <Button type="submit">Join!</Button>
                 </form>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Sign up to get notified of our sales and events.
@@ -101,6 +108,7 @@ const LandingPagePublic = () => {
             </div>
           </div>
         </section>
+    </TracingBeam>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -117,6 +125,8 @@ const LandingPagePublic = () => {
       </footer>
     </div>
   );
-};
+});
+
+LandingPagePublic.displayName = "LandingPagePublic";
 
 export default LandingPagePublic;

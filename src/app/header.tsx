@@ -2,44 +2,43 @@
 import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";
 import { getUserRole } from "@/lib/getUserRole";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
-const HeaderUser = dynamic(() => import("./HeaderUser"));
-const HeaderAdmin = dynamic(() => import("./HeaderAdmin"));
-const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"));
-const HeaderPublic = dynamic(() => import("./HeaderPublic"));
+const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
+const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
+const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), { ssr: false });
+const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
 
 export default function Header() {
   const { user, isLoaded } = useUser();
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function getRole() {
-      if (!user) {
-        setRole(null);
-        setLoading(false);
-        return;
-      }
-
-      const email = user.primaryEmailAddress?.emailAddress.toLowerCase() || user.emailAddresses[0]?.emailAddress.toLowerCase();
-      const fetchedRole = await getUserRole(email);
-      setRole(fetchedRole);
+  const fetchRole = useCallback(async () => {
+    if (!user) {
+      setRole(null);
       setLoading(false);
+      return;
     }
 
+    const email = user.primaryEmailAddress?.emailAddress.toLowerCase() || user.emailAddresses[0]?.emailAddress.toLowerCase();
+    const fetchedRole = await getUserRole(email);
+    setRole(fetchedRole);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
     if (isLoaded) {
-      getRole();
+      fetchRole();
     } else {
       setLoading(false); // Ensure loading state is updated when user is not loaded
     }
-  }, [user, isLoaded]);
+  }, [isLoaded, fetchRole]);
 
   if (loading) {
     return <div></div>;
   }
 
-  // Check if the user is not authenticated or role is null
   if (!user || role === null) {
     return <HeaderPublic />;
   }

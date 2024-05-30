@@ -1,12 +1,8 @@
 "use client";
+import React from "react";
 import Link from "next/link";
 import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
-import {
-  ActivityLogIcon,
-  LightningBoltIcon,
-  TextIcon,
-} from "@radix-ui/react-icons";
 import {
   AdminReviewAuditsCard,
   DrosGuidanceCard,
@@ -14,13 +10,15 @@ import {
   AdminTimeOffReviewCard,
   TimeOffRequestCard,
   GeneratorCard,
-  ChartCard,
+  WaiverCard,
+  OrderCard,
 } from "@/components/LandingCards";
+import { Separator } from "./ui/separator";
 
 const words = "Super Admin Dashboard";
 const subwords = "Time To Phuck It Up";
 
-export default function LandingPageSuperAdmin() {
+const LandingPageSuperAdmin: React.FC = React.memo(() => {
   return (
     <>
       <section className="w-full py-12 md:py-12">
@@ -44,9 +42,17 @@ export default function LandingPageSuperAdmin() {
             <TimeOffRequestCard />
             <AdminTimeOffReviewCard />
             <GeneratorCard />
+            <Separator />
+            <Separator />
+            <WaiverCard />
+            <OrderCard />
           </div>
         </div>
       </section>
     </>
   );
-}
+});
+
+LandingPageSuperAdmin.displayName = "LandingPageSuperAdmin";
+
+export default LandingPageSuperAdmin;

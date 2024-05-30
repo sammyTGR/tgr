@@ -370,11 +370,11 @@ const SubmitAudits = () => {
     <FormProvider {...methods}>
       <main>
         <header>
-          <div className="flex flow-row items-center justify-center max w-full mb-55">
+          <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
             <SupportMenu />
           </div>
         </header>
-        <div className="flex flex-row item-center justify-center mx-auto w-full max-w-[2250px] mt-48">
+        <div className="flex flex-row item-center justify-center mx-auto w-full max-w-[2250px] mt-20">
           <form onSubmit={handleSubmit}>
             <FormField
               control={control}

@@ -1,15 +1,18 @@
-import Link from "next/link";
+"use client";
+
+import * as React from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { HomeIcon } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,
 } from "@/components/ui/navigation-menu";
-import { HomeIcon } from "@radix-ui/react-icons";
 import { SignedOut, SignUpButton } from "@clerk/nextjs";
 
-const HeaderPublic = () => {
+const HeaderPublic = React.memo(() => {
   return (
     <header className="flex justify-between items-center p-2">
       <NavigationMenu>
@@ -43,6 +46,8 @@ const HeaderPublic = () => {
       </div>
     </header>
   );
-};
+});
+
+HeaderPublic.displayName = "HeaderPublic";
 
 export default HeaderPublic;

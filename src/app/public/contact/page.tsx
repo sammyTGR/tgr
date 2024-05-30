@@ -16,11 +16,11 @@ export default function Component() {
             <TextGenerateEffect words={sub} />
           </p>
         </div>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 flex flex-col md:grid-cols-2 lg:grid-cols-3 mt-8">
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Sales</h3>
+            <h3 className="text-xl font-bold">Class Scheduling</h3>
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
+              <div className="flex text-left gap-3">
                 <Avatar>
                   <AvatarImage alt="Rod Ibey" src="/placeholder-avatar.jpg" />
                   <AvatarFallback>RI</AvatarFallback>
@@ -111,6 +111,108 @@ export default function Component() {
                   <span className="font-medium">Phone:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
                     (916) 972-1484 EXT 5
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">Store Manager</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage
+                    alt="Jim Vu"
+                    src="/placeholder-avatar.jpg"
+                  />
+                  <AvatarFallback>JV</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">Jim Vu</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Store Manager
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    Jim@TheGunRange.Biz
+                  </a>
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    (916) 972-1484 EXT 8
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">Operations Manager</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage
+                    alt="Sammy Lee"
+                    src="/placeholder-avatar.jpg"
+                  />
+                  <AvatarFallback>SL</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">Sammy</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Operations Manager
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    Sammy@TheGunRange.Biz
+                  </a>
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    (916) 972-1484 EXT 9
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">Executive Secretary</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage
+                    alt="Amanda Weltch"
+                    src="/placeholder-avatar.jpg"
+                  />
+                  <AvatarFallback>AW</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">Amanda Weltch</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Executive Secretary
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    Amanda.Weltch@TheGunRange.Biz
+                  </a>
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    (916) 972-1484 EXT 7
                   </a>
                 </p>
               </div>

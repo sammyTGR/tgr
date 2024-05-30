@@ -20,8 +20,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@supabase/supabase-js";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Toaster } from "@/components/ui/sonner"; // Import the custom Toaster component
+import { toast } from "sonner"; // Import toast from Sonner
+import { useUser } from "@clerk/nextjs"; // Import Clerk useUser hook
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,25 +40,38 @@ type Employee = {
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 
 const schema = z.object({
-  customername: z.string().min(6, { message: "First and Last Name Reequired" }),
+  employee: z.string().nonempty({ message: "Employee name is required" }),
+  customer_type: z.string().nonempty({ message: "Customer type is required" }),
+  inquiry_type: z.string().nonempty({ message: "Inquiry type is required" }),
+  customer_name: z.string().min(6, { message: "First and Last Name Required" }),
   email: z.string().email(),
   phone: z
     .string()
-    .min(1, { message: "Phone number is required" })
     .regex(phoneRegex, {
       message: "Phone number must be in xxx-xxx-xxxx format",
     }),
   manufacturer: z.string().min(2, { message: "Manufacturer is required" }),
   item: z.string().min(4, { message: "Item is required" }),
-  details: z.string(),
+  details: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export default function Component() {
+  const { user } = useUser(); // Get the authenticated user
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [customerTypes, setCustomerTypes] = useState([]);
-  const [inquiryTypes, setInquiryTypes] = useState([]);
+  const [customerTypes, setCustomerTypes] = useState<string[]>([]);
+  const [inquiryTypes, setInquiryTypes] = useState<string[]>([]);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -64,15 +81,25 @@ export default function Component() {
     };
 
     const fetchCustomerTypes = async () => {
-      const response = await fetch("/api/customer-types");
-      const data = await response.json();
-      setCustomerTypes(data);
+      try {
+        const response = await fetch("/api/customer-types");
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+        setCustomerTypes(data);
+      } catch (error) {
+        console.error("Error fetching customer types:", error);
+      }
     };
 
     const fetchInquiryTypes = async () => {
-      const response = await fetch("/api/inquiry-types");
-      const data = await response.json();
-      setInquiryTypes(data);
+      try {
+        const response = await fetch("/api/inquiry-types");
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+        setInquiryTypes(data);
+      } catch (error) {
+        console.error("Error fetching inquiry types:", error);
+      }
     };
 
     fetchEmployees();
@@ -80,103 +107,186 @@ export default function Component() {
     fetchInquiryTypes();
   }, []);
 
+  const onSubmit = async (data: FormData) => {
+    if (!user) {
+      toast.error("User is not authenticated.");
+      return;
+    }
+
+    const submissionData = {
+      ...data,
+      clerk_user_id: user.id, // Capture clerk_user_id from the authenticated user
+    };
+
+    const { error } = await supabase.from("orders").insert(submissionData);
+    if (error) {
+      console.error("Error submitting order:", error);
+      toast.error("There was an error submitting your request.");
+    } else {
+      toast.success("Your order request has been submitted.");
+      reset();
+    }
+  };
+
   return (
     <div className="flex justify-center mt-36">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Special Order Request</CardTitle>
+          <CardTitle>Special Orders & Requests</CardTitle>
           <CardDescription>
-            Fill out the form to submit a special order request.
+            Fill out the form to submit a request for special orders, get added to a waitlist, and more. 
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="employee">Employee Name</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.name} value={employee.name}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <CardContent className="grid gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee">Employee Name</Label>
+                <Controller
+                  name="employee"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map((employee) => (
+                          <SelectItem key={employee.name} value={employee.name}>
+                            {employee.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.employee && (
+                  <p className="text-red-500">{errors.employee.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customer_type">Customer Type</Label>
+                <Controller
+                  name="customer_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select customer type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customerTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.customer_type && (
+                  <p className="text-red-500">{errors.customer_type.message}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="inquiry_type">Inquiry Type</Label>
+                <Controller
+                  name="inquiry_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select inquiry type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {inquiryTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.inquiry_type && (
+                  <p className="text-red-500">{errors.inquiry_type.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customername">Customer Name</Label>
+                <Input
+                  id="customer_name"
+                  placeholder="Enter customer name"
+                  {...register("customer_name")}
+                />
+                {errors.customer_name && (
+                  <p className="text-red-500">{errors.customer_name.message}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  placeholder="Enter phone number"
+                  {...register("phone")}
+                />
+                {errors.phone && (
+                  <p className="text-red-500">{errors.phone.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  placeholder="Enter email"
+                  type="email"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-red-500">{errors.email.message}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="manufacturer">Manufacturer</Label>
+                <Input
+                  id="manufacturer"
+                  placeholder="Enter manufacturer"
+                  {...register("manufacturer")}
+                />
+                {errors.manufacturer && (
+                  <p className="text-red-500">{errors.manufacturer.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item">Item/Model</Label>
+                <Input id="item" placeholder="Enter item/model" {...register("item")} />
+                {errors.item && (
+                  <p className="text-red-500">{errors.item.message}</p>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="customer-type">Customer Type</Label>
-              <Select>
-                <SelectTrigger id="customer-type">
-                  <SelectValue placeholder="Select customer type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customerTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="details">Request Details</Label>
+              <Textarea
+                id="details"
+                placeholder="Enter request details"
+                rows={4}
+                {...register("details")}
+              />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="inquiry-type">Inquiry Type</Label>
-              <Select>
-                <SelectTrigger id="inquiry-type">
-                  <SelectValue placeholder="Select inquiry type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {inquiryTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customername">Customer Name</Label>
-              <Input id="customername" placeholder="Enter customer name" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" placeholder="Enter phone number" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" placeholder="Enter email" type="email" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="manufacturer">Manufacturer</Label>
-              <Input id="manufacturer" placeholder="Enter manufacturer" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item">Item/Model</Label>
-              <Input id="item" placeholder="Enter item/model" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="details">Request Details</Label>
-            <Textarea
-              id="details"
-              placeholder="Enter request details"
-              rows={4}
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button className="ml-auto" type="submit">
-            Submit Request
-          </Button>
-        </CardFooter>
+          </CardContent>
+          <CardFooter>
+            <Button className="ml-auto" type="submit">
+              Submit Request
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );
