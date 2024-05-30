@@ -13,68 +13,68 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import {
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import UserSessionHandler from "../components/UserSessionHandler";
 import { cn } from "@/lib/utils";
 
-const auditComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Submit Audits",
-    href: "/admin/audits/submit",
-    description: "LesssGOOOOO!!!",
-  },
-  {
-    title: "Review Audits",
-    href: "/admin/audits/review",
-    description: "Take A Gander At Audits",
-  },
-  {
-    title: "DROS Guidance",
-    href: "/TGR/dros/guide",
-    description: "Sometimes We All Need A Lil' Help",
-  },
-];
+const auditComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Submit Audits",
+      href: "/admin/audits/submit",
+      description: "LesssGOOOOO!!!",
+    },
+    {
+      title: "Review Audits",
+      href: "/admin/audits/review",
+      description: "Take A Gander At Audits",
+    },
+    {
+      title: "DROS Guidance",
+      href: "/TGR/dros/guide",
+      description: "Sometimes We All Need A Lil' Help",
+    },
+  ];
 
-const schedComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Where Dey At",
-  },
-  {
-    title: "Submit Time Off",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
-  {
-    title: "Review Time Off Requests",
-    href: "/admin/timeoffreview",
-    description: "DENY THEM ALL!",
-  },
-];
+const schedComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Calendar",
+      href: "/TGR/crew/calendar",
+      description: "Where Dey At",
+    },
+    {
+      title: "Submit Time Off",
+      href: "/TGR/crew/timeoffrequest",
+      description: "Submit A Request",
+    },
+    {
+      title: "Review Time Off Requests",
+      href: "/admin/timeoffreview",
+      description: "DENY THEM ALL!",
+    },
+  ];
 
-const serviceComponents: { title: string; href: string; description: string }[] = [
+const serviceComponents: {
+  title: string;
+  href: string;
+  description: string;
+}[] = [
   {
-    title: "Submit Requests",
+    title: "Submit Orders",
     href: "/sales/orders",
     description: "Submit Requests For Customers",
   },
   {
     title: "View Orders",
-    href: "/sales/orders",
-    description: "Not Working Yet",
+    href: "/sales/orderreview",
+    description: "View Submitted Orders",
   },
   {
     title: "Safety Waiver",
     href: "/public/waiver",
     description: "Submit A Safety Waiver",
-  }
-
+  },
 ];
 
 const HeaderAdmin = React.memo(() => {

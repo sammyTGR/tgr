@@ -23,7 +23,6 @@ import { createClient } from "@supabase/supabase-js";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Toaster } from "@/components/ui/sonner"; // Import the custom Toaster component
 import { toast } from "sonner"; // Import toast from Sonner
 import { useUser } from "@clerk/nextjs"; // Import Clerk useUser hook
 
@@ -45,11 +44,9 @@ const schema = z.object({
   inquiry_type: z.string().nonempty({ message: "Inquiry type is required" }),
   customer_name: z.string().min(6, { message: "First and Last Name Required" }),
   email: z.string().email(),
-  phone: z
-    .string()
-    .regex(phoneRegex, {
-      message: "Phone number must be in xxx-xxx-xxxx format",
-    }),
+  phone: z.string().regex(phoneRegex, {
+    message: "Phone number must be in xxx-xxx-xxxx format",
+  }),
   manufacturer: z.string().min(2, { message: "Manufacturer is required" }),
   item: z.string().min(4, { message: "Item is required" }),
   details: z.string().optional(),
@@ -134,7 +131,8 @@ export default function Component() {
         <CardHeader>
           <CardTitle>Special Orders & Requests</CardTitle>
           <CardDescription>
-            Fill out the form to submit a request for special orders, get added to a waitlist, and more. 
+            Fill out the form to submit a request for special orders, get added
+            to a waitlist, and more.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -253,10 +251,12 @@ export default function Component() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="manufacturer">Manufacturer</Label>
+                <Label htmlFor="manufacturer">
+                  Manufacturer | Class Name | Etc.
+                </Label>
                 <Input
                   id="manufacturer"
-                  placeholder="Enter manufacturer"
+                  placeholder="S&W | CCW Class | etc."
                   {...register("manufacturer")}
                 />
                 {errors.manufacturer && (
@@ -264,8 +264,12 @@ export default function Component() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="item">Item/Model</Label>
-                <Input id="item" placeholder="Enter item/model" {...register("item")} />
+                <Label htmlFor="item">Item | Model | Class</Label>
+                <Input
+                  id="item"
+                  placeholder="M&P 2.0 | 16 HR CCW Class | etc."
+                  {...register("item")}
+                />
                 {errors.item && (
                   <p className="text-red-500">{errors.item.message}</p>
                 )}
@@ -275,7 +279,7 @@ export default function Component() {
               <Label htmlFor="details">Request Details</Label>
               <Textarea
                 id="details"
-                placeholder="Enter request details"
+                placeholder="FDE | Initial 16 HR Class | etc."
                 rows={4}
                 {...register("details")}
               />

@@ -18,8 +18,8 @@ import UserSessionHandler from "../components/UserSessionHandler";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TGR Auditing",
-  description: "Auditing Admin Resources",
+  title: "TGR",
+  description: "Everything TGR",
 };
 
 export default function RootLayout({
@@ -29,23 +29,23 @@ export default function RootLayout({
 }>) {
   return (
     <>
-    <ClerkProvider appearance={{ baseTheme: dark }}>
-      <UserSessionHandler />
-      <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-      <Header />
-            <main>{children}</main>
-            <Toaster />
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+      <ClerkProvider appearance={{ baseTheme: dark }}>
+        <UserSessionHandler />
+        <html lang="en" suppressHydrationWarning>
+          <body className={inter.className}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <Header />
+              <main>{children}</main>
+              <Toaster />
+            </ThemeProvider>
+          </body>
+        </html>
+      </ClerkProvider>
     </>
   );
 }

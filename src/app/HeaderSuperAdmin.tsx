@@ -23,48 +23,54 @@ import {
 import UserSessionHandler from "../components/UserSessionHandler";
 import { cn } from "@/lib/utils";
 
-const auditComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Submit Audits",
-    href: "/admin/audits/submit",
-    description: "LesssGOOOOO!!!",
-  },
-  {
-    title: "Review Audits",
-    href: "/admin/audits/review",
-    description: "Take A Gander At Audits",
-  },
-  {
-    title: "DROS Guidance",
-    href: "/TGR/dros/guide",
-    description: "Sometimes We All Need A Lil' Help",
-  },
-];
+const auditComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Submit Audits",
+      href: "/admin/audits/submit",
+      description: "LesssGOOOOO!!!",
+    },
+    {
+      title: "Review Audits",
+      href: "/admin/audits/review",
+      description: "Take A Gander At Audits",
+    },
+    {
+      title: "DROS Guidance",
+      href: "/TGR/dros/guide",
+      description: "Sometimes We All Need A Lil' Help",
+    },
+  ];
 
-const schedComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Where Dey At",
-  },
-  {
-    title: "Submit Time Off",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
-  {
-    title: "Review Time Off Requests",
-    href: "/admin/timeoffreview",
-    description: "NO!",
-  },
-  {
-    title: "Schedule Generator",
-    href: "/admin/schedule_generator",
-    description: "Create and Manage Schedules",
-  },
-];
+const schedComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Calendar",
+      href: "/TGR/crew/calendar",
+      description: "Where Dey At",
+    },
+    {
+      title: "Submit Time Off",
+      href: "/TGR/crew/timeoffrequest",
+      description: "Submit A Request",
+    },
+    {
+      title: "Review Time Off Requests",
+      href: "/admin/timeoffreview",
+      description: "NO!",
+    },
+    {
+      title: "Schedule Generator",
+      href: "/admin/schedule_generator",
+      description: "Create and Manage Schedules",
+    },
+  ];
 
-const serviceComponents: { title: string; href: string; description: string }[] = [
+const serviceComponents: {
+  title: string;
+  href: string;
+  description: string;
+}[] = [
   {
     title: "Submit Requests",
     href: "/sales/orders",
@@ -72,15 +78,14 @@ const serviceComponents: { title: string; href: string; description: string }[] 
   },
   {
     title: "View Orders",
-    href: "/sales/orders",
+    href: "/sales/orderreview",
     description: "View Customer Requests",
   },
   {
     title: "Safety Waiver",
     href: "/public/waiver",
     description: "Submit A Safety Waiver",
-  }
-
+  },
 ];
 
 const HeaderSuperAdmin = React.memo(() => {

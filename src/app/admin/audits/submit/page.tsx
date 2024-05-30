@@ -53,6 +53,7 @@ import {
   CommandShortcut,
   CommandSeparator,
 } from "@/components/ui/command";
+import { toast } from "sonner"; // Import toast from Sonner
 import WithRole from "@/components/withRole"; // Import the HOC
 import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
@@ -257,12 +258,12 @@ const SubmitAudits = () => {
         );
       }
 
-      alert("Audit Submitted Successfully!");
+      toast.success("Audit Submitted Successfully!");
       reset(); // Reset form fields after successful submission
       setResetKey((prevKey) => prevKey + 1);
     } catch (error: any) {
       console.error("Error during form submission:", error);
-      alert(
+      toast.success(
         `An error occurred during form submission: ${
           error.message || "Check server logs for more details."
         }`
