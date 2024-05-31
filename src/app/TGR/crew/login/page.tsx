@@ -19,7 +19,7 @@ function LoginComponent() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${location.origin}/auth/callback`,
+          redirectTo: `${location.origin}/auth/callback` + next,
         },
       });
 
