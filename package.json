@@ -41,6 +41,7 @@
     "cmdk": "^1.0.0",
     "dotenv": "^16.4.5",
     "embla-carousel-react": "^8.0.4",
+    "fast-glob": "^3.3.2",
     "framer-motion": "^11.2.6",
     "googleapis": "^137.1.0",
     "lucide-react": "^0.378.0",
@@ -66,6 +67,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8",
+    "prettier": "^3.2.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
