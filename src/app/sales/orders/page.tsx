@@ -19,17 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/utils/supabase/client"; // Ensure correct import
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner"; // Import toast from Sonner
-import { useRouter } from "next/navigation"; // Import Next.js router
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 type Employee = {
   name: string;
@@ -54,7 +49,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function Component() {
+export default function OrdersComponent() {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [customerTypes, setCustomerTypes] = useState<string[]>([]);
@@ -82,14 +77,14 @@ export default function Component() {
       if (error) {
         console.error("Error fetching session:", error.message);
         toast.error("Error fetching session. Please log in again.");
-        router.push("/sign-in"); // Redirect to login page if no session
+        router.push("/TGR/crew/login");
         return;
       }
       if (session) {
         setUserUuid(session.user.id);
       } else {
         toast.error("No active session found. Please log in.");
-        router.push("/sign-in"); // Redirect to login page if no active session
+        router.push("/TGR/crew/login");
       }
     };
 
@@ -157,7 +152,7 @@ export default function Component() {
 
     const submissionData = {
       ...data,
-      user_uuid: userUuid, // Capture user_uuid from the authenticated user
+      user_uuid: userUuid,
     };
 
     const { error } = await supabase.from("orders").insert(submissionData);
@@ -296,12 +291,10 @@ export default function Component() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="manufacturer">
-                  Manufacturer | Class Name | Etc.
-                </Label>
+                <Label htmlFor="manufacturer">Manufacturer</Label>
                 <Input
                   id="manufacturer"
-                  placeholder="S&W | CCW Class | etc."
+                  placeholder="Enter manufacturer"
                   {...register("manufacturer")}
                 />
                 {errors.manufacturer && (
@@ -309,10 +302,10 @@ export default function Component() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="item">Item | Model | Class</Label>
+                <Label htmlFor="item">Item/Model</Label>
                 <Input
                   id="item"
-                  placeholder="M&P 2.0 | 16 HR CCW Class | etc."
+                  placeholder="Enter item/model"
                   {...register("item")}
                 />
                 {errors.item && (
@@ -324,7 +317,7 @@ export default function Component() {
               <Label htmlFor="details">Request Details</Label>
               <Textarea
                 id="details"
-                placeholder="FDE | Initial 16 HR Class | etc."
+                placeholder="Enter request details"
                 rows={4}
                 {...register("details")}
               />

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import supabase from "../../../../../supabase/lib/supabaseClient";
+import { supabase } from "../../../../utils/supabase/client";
 import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";

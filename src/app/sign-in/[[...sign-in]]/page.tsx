@@ -17,9 +17,7 @@ export default function SignIn() {
   const params = useSearchParams();
   const next = params ? params.get("next") || "" : "";
 
-
   const loginWithOAuth = async (provider: "google") => {
-
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -36,10 +34,10 @@ export default function SignIn() {
         const user = userResponse.data.user;
 
         if (user) {
-          await fetch('/api/syncUser', {
-            method: 'POST',
+          await fetch("/api/syncUser", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify(user),
           });
@@ -66,7 +64,12 @@ export default function SignIn() {
         <div className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" required />
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+            />
           </div>
           <div className="grid gap-2">
             <div className="flex items-center">
@@ -80,9 +83,9 @@ export default function SignIn() {
           <Button type="submit" className="w-full">
             Login
           </Button>
-          <Button onClick={() => loginWithOAuth("google")} variant="outline" className="w-full">
+          {/* <Button onClick={() => loginWithOAuth("google")} variant="outline" className="w-full">
             Login with Google
-          </Button>
+          </Button> */}
         </div>
         <div className="mt-4 text-center text-sm">
           Don&apos;t have an account?{" "}

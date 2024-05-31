@@ -2,10 +2,9 @@
 
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import supabase from "../../../../supabase/lib/supabaseClient";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/utils/supabase/client";
 import { Order, createColumns } from "./columns";
-import { DataTable } from "./data-table"; // Adjust the import to the new data-table
+import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { OrderTableToolbar } from "./order-table-toolbar";
 import {
@@ -46,6 +45,10 @@ export default function OrdersReviewPage() {
       setLoading(false);
     }
   }, [fetchOrderData]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const markAsContacted = async (orderId: number) => {
     const { error } = await supabase
@@ -97,10 +100,6 @@ export default function OrdersReviewPage() {
       );
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const columns = createColumns(
     markAsContacted,

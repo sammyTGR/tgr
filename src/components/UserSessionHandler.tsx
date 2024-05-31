@@ -13,32 +13,41 @@ const UserSessionHandler: React.FC = () => {
   const router = useRouter();
   const previousUserDetails = useRef<UserDetails | null>(null);
 
-  const updateOrCreateEmployee = useCallback(async (userDetails: UserDetails) => {
-    if (JSON.stringify(previousUserDetails.current) === JSON.stringify(userDetails)) {
-      return; // Skip the update if details haven't changed
-    }
-
-    previousUserDetails.current = userDetails;
-
-    try {
-      const response = await fetch("/api/updateEmployee", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userDetails),
-      });
-
-      if (!response.ok) {
-        console.error("Failed to update employee data:", await response.text());
-      } else {
-        console.log("Employee data updated successfully");
-        router.refresh(); // Refresh the page to reload user data and role
+  const updateOrCreateEmployee = useCallback(
+    async (userDetails: UserDetails) => {
+      if (
+        JSON.stringify(previousUserDetails.current) ===
+        JSON.stringify(userDetails)
+      ) {
+        return; // Skip the update if details haven't changed
       }
-    } catch (error) {
-      console.error("An error occurred while updating employee data:", error);
-    }
-  }, [router]);
+
+      previousUserDetails.current = userDetails;
+
+      try {
+        const response = await fetch("/api/updateEmployee", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userDetails),
+        });
+
+        if (!response.ok) {
+          console.error(
+            "Failed to update employee data:",
+            await response.text()
+          );
+        } else {
+          console.log("Employee data updated successfully");
+          router.refresh(); // Refresh the page to reload user data and role
+        }
+      } catch (error) {
+        console.error("An error occurred while updating employee data:", error);
+      }
+    },
+    [router]
+  );
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,7 +59,8 @@ const UserSessionHandler: React.FC = () => {
 
       const user = data.user;
       const email = user.email?.toLowerCase();
-      const firstName = user.user_metadata?.full_name.split(" ")[0] || "Unnamed User"; // Assume full_name exists in user_metadata
+      const firstName =
+        user.user_metadata?.full_name.split(" ")[0] || "Unnamed User"; // Assume full_name exists in user_metadata
 
       const userDetails: UserDetails = {
         user_uuid: user.id,

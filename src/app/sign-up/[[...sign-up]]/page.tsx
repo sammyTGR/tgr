@@ -17,9 +17,7 @@ export default function SignUp() {
   const params = useSearchParams();
   const next = params ? params.get("next") || "" : "";
 
-
   const loginWithOAuth = async (provider: "google") => {
-
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -36,10 +34,10 @@ export default function SignUp() {
         const user = userResponse.data.user;
 
         if (user) {
-          await fetch('/api/syncUser', {
-            method: 'POST',
+          await fetch("/api/syncUser", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify(user),
           });
@@ -58,7 +56,9 @@ export default function SignUp() {
     <Card className="mx-auto max-w-sm">
       <CardHeader>
         <CardTitle className="text-xl">Sign Up</CardTitle>
-        <CardDescription>Enter your information to create an account</CardDescription>
+        <CardDescription>
+          Enter your information to create an account
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
@@ -74,7 +74,12 @@ export default function SignUp() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" required />
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
@@ -83,9 +88,9 @@ export default function SignUp() {
           <Button type="submit" className="w-full">
             Create an account
           </Button>
-          <Button onClick={() => loginWithOAuth("google")} variant="outline" className="w-full">
+          {/* <Button onClick={() => loginWithOAuth("google")} variant="outline" className="w-full">
             Login with Google
-          </Button>
+          </Button> */}
         </div>
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}

@@ -35,6 +35,14 @@ const HeaderPublic = React.memo(() => {
         </NavigationMenuList>
       </NavigationMenu>
       <div className="flex items-center mr-1 gap-2">
+        <Link href="/TGR/crew/login">
+          <Button
+            variant="outline"
+            className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+          >
+            TGR Employees
+          </Button>
+        </Link>
         <Link href="/">
           <Button variant="outline" size="icon">
             <HomeIcon />

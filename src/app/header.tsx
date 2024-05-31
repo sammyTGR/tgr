@@ -6,7 +6,9 @@ import { getUserRole } from "@/lib/getUserRole";
 
 const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
 const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
-const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), { ssr: false });
+const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), {
+  ssr: false,
+});
 const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
 
 export default function Header() {
@@ -43,7 +45,7 @@ export default function Header() {
   }, [fetchUser]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (!user || role === null) {

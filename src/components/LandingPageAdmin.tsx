@@ -41,7 +41,7 @@ const LandingPageAdmin: React.FC = React.memo(() => {
     return (
       <div>
         <h1>You must be signed in to view this page.</h1>
-        <Link href="/sign-in">
+        <Link href="/TGR/crew/login">
           <a>Sign In</a>
         </Link>
       </div>
@@ -65,7 +65,7 @@ const LandingPageAdmin: React.FC = React.memo(() => {
       <section className="w-full py-12 md:py-24">
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
-          <div className="col-span-full flex justify-center">
+            <div className="col-span-full flex justify-center">
               <DrosGuidanceCard />
             </div>
             <AdminReviewAuditsCard />

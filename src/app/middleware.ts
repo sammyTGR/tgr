@@ -77,6 +77,7 @@ export const config = {
 		'/admin(.*)',
 		'/api/(.*)',
 		'/TGR(.*)',
+		'/sales(.*)',
 		
 		/*
 		 * Match all request paths except for the ones starting with:

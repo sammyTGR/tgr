@@ -41,7 +41,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   const facets = column?.getFacetedUniqueValues();
   const selectedValues = new Set(column?.getFilterValue() as string[]);
 
-  console.log("Selected Values:", selectedValues); // Debug log
+  // console.log("Selected Values:", selectedValues); // Debug log
 
   return (
     <Popover>
@@ -102,7 +102,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                         selectedValues.add(option.value);
                       }
                       const filterValues = Array.from(selectedValues);
-                      console.log("Setting filter values:", filterValues); // Debug log
+                      // console.log("Setting filter values:", filterValues); // Debug log
                       column?.setFilterValue(
                         filterValues.length ? filterValues : undefined
                       );
@@ -137,7 +137,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandGroup>
                   <CommandItem
                     onSelect={() => {
-                      console.log("Clearing filters"); // Debug log
+                      // console.log("Clearing filters"); // Debug log
                       column?.setFilterValue(undefined);
                     }}
                     className="justify-center text-center"

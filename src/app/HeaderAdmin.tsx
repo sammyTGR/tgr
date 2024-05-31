@@ -94,7 +94,7 @@ const HeaderAdmin = React.memo(() => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    window.location.href = "/sign-in"; // Redirect to sign-in page after sign-out
+    window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
   return (
@@ -152,24 +152,29 @@ const HeaderAdmin = React.memo(() => {
         </NavigationMenuList>
       </NavigationMenu>
       <div className="flex items-center mr-1 gap-2">
+        {user ? (
+          <>
+            <Button
+              variant="outline"
+              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+              size="sm"
+              onClick={handleSignOut}
+            >
+              Sign Out
+            </Button>
+            <UserSessionHandler />
+          </>
+        ) : (
+          <Link href="/TGR/crew/login">
+            <Button>Sign In</Button>
+          </Link>
+        )}
         <Link href="/">
           <Button variant="outline" size="icon">
             <HomeIcon />
           </Button>
         </Link>
         <ModeToggle />
-        {user ? (
-          <>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              Sign Out
-            </Button>
-            <UserSessionHandler />
-          </>
-        ) : (
-          <Link href="/sign-in">
-            <Button>Sign In</Button>
-          </Link>
-        )}
       </div>
     </header>
   );

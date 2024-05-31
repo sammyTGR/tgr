@@ -39,9 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import supabase, {
-  createClerkSupabaseClient,
-} from "../../../../../supabase/lib/supabaseClient";
+import { supabase } from "../../../../utils/supabase/client";
 import {
   Command,
   CommandDialog,
@@ -55,7 +53,6 @@ import {
 } from "@/components/ui/command";
 import { toast } from "sonner"; // Import toast from Sonner
 import WithRole from "@/components/withRole"; // Import the HOC
-import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 
 type OptionType = {
   label: string;

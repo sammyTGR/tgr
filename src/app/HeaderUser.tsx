@@ -18,20 +18,25 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 
-const schedComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Check Out The Work Schedule",
-  },
-  {
-    title: "Time Off Request",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
-];
+const schedComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Calendar",
+      href: "/TGR/crew/calendar",
+      description: "Check Out The Work Schedule",
+    },
+    {
+      title: "Time Off Request",
+      href: "/TGR/crew/timeoffrequest",
+      description: "Submit A Request",
+    },
+  ];
 
-const serviceComponents: { title: string; href: string; description: string }[] = [
+const serviceComponents: {
+  title: string;
+  href: string;
+  description: string;
+}[] = [
   {
     title: "Special Order Form",
     href: "/sales/orders",
@@ -41,7 +46,7 @@ const serviceComponents: { title: string; href: string; description: string }[] 
     title: "Safety Waiver",
     href: "/public/waiver",
     description: "Submit A Safety Waiver",
-  }
+  },
 ];
 
 const HeaderUser = React.memo(() => {
@@ -60,7 +65,7 @@ const HeaderUser = React.memo(() => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    window.location.href = "/sign-in"; // Redirect to sign-in page after sign-out
+    window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
   return (
@@ -113,13 +118,18 @@ const HeaderUser = React.memo(() => {
         <ModeToggle />
         {user ? (
           <>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <Button
+              variant="outline"
+              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+              size="sm"
+              onClick={handleSignOut}
+            >
               Sign Out
             </Button>
             <UserSessionHandler />
           </>
         ) : (
-          <Link href="/sign-in">
+          <Link href="/TGR/crew/login">
             <Button>Sign In</Button>
           </Link>
         )}

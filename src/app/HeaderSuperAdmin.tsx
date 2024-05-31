@@ -18,46 +18,48 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 
-const auditComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Submit Audits",
-    href: "/admin/audits/submit",
-    description: "LesssGOOOOO!!!",
-  },
-  {
-    title: "Review Audits",
-    href: "/admin/audits/review",
-    description: "Take A Gander At Audits",
-  },
-  {
-    title: "DROS Guidance",
-    href: "/TGR/dros/guide",
-    description: "Sometimes We All Need A Lil' Help",
-  },
-];
+const auditComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Submit Audits",
+      href: "/admin/audits/submit",
+      description: "LesssGOOOOO!!!",
+    },
+    {
+      title: "Review Audits",
+      href: "/admin/audits/review",
+      description: "Take A Gander At Audits",
+    },
+    {
+      title: "DROS Guidance",
+      href: "/TGR/dros/guide",
+      description: "Sometimes We All Need A Lil' Help",
+    },
+  ];
 
-const schedComponents: { title: string; href: string; description: string }[] = [
-  {
-    title: "Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Where Dey At",
-  },
-  {
-    title: "Submit Time Off",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
-  {
-    title: "Review Time Off Requests",
-    href: "/admin/timeoffreview",
-    description: "NO!",
-  },
-  {
-    title: "Schedule Generator",
-    href: "/admin/schedule_generator",
-    description: "Create and Manage Schedules",
-  },
-];
+const schedComponents: { title: string; href: string; description: string }[] =
+  [
+    {
+      title: "Calendar",
+      href: "/TGR/crew/calendar",
+      description: "Where Dey At",
+    },
+    {
+      title: "Submit Time Off",
+      href: "/TGR/crew/timeoffrequest",
+      description: "Submit A Request",
+    },
+    {
+      title: "Review Time Off Requests",
+      href: "/admin/timeoffreview",
+      description: "NO!",
+    },
+    {
+      title: "Schedule Generator",
+      href: "/admin/schedule_generator",
+      description: "Create and Manage Schedules",
+    },
+  ];
 
 const serviceComponents: {
   title: string;
@@ -97,7 +99,7 @@ const HeaderSuperAdmin = React.memo(() => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    window.location.href = "/sign-in"; // Redirect to sign-in page after sign-out
+    window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
   return (
@@ -155,24 +157,29 @@ const HeaderSuperAdmin = React.memo(() => {
         </NavigationMenuList>
       </NavigationMenu>
       <div className="flex items-center mr-1 gap-2">
+        {user ? (
+          <>
+            <Button
+              variant="outline"
+              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+              size="sm"
+              onClick={handleSignOut}
+            >
+              Sign Out
+            </Button>
+            <UserSessionHandler />
+          </>
+        ) : (
+          <Link href="/TGR/crew/login">
+            <Button>Sign In</Button>
+          </Link>
+        )}
         <Link href="/">
           <Button variant="outline" size="icon">
             <HomeIcon />
           </Button>
         </Link>
         <ModeToggle />
-        {user ? (
-          <>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              Sign Out
-            </Button>
-            <UserSessionHandler />
-          </>
-        ) : (
-          <Link href="/sign-in">
-            <Button>Sign In</Button>
-          </Link>
-        )}
       </div>
     </header>
   );
