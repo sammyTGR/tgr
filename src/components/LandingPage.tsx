@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
-import { getUserRole } from "@/lib/getUserRole";
-import { useUser } from "@clerk/nextjs";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/utils/supabase/client";
+import { getUserRole } from "@/lib/getUserRole";
 
 const LandingPageUser = dynamic(() => import("./LandingPageUser"));
 const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
@@ -10,7 +10,7 @@ const LandingPageSuperAdmin = dynamic(() => import("./LandingPageSuperAdmin"));
 const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
 
 const LandingPage: React.FC = () => {
-  const { user, isLoaded } = useUser();
+  const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const previousUserEmail = useRef<string | null>(null);
@@ -26,19 +26,27 @@ const LandingPage: React.FC = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (isLoaded && user) {
-      const userEmail = user.primaryEmailAddress?.emailAddress.toLowerCase() ||
-        user.emailAddresses[0]?.emailAddress.toLowerCase();
-      if (userEmail) {
-        fetchRole(userEmail);
-      } else {
-        setLoading(false);
-      }
+  const fetchUser = useCallback(async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error("Error fetching user:", error.message);
+      setLoading(false);
+      return;
+    }
+    const currentUser = data.user;
+    setUser(currentUser);
+  
+    if (currentUser && currentUser.email) {
+      const email = currentUser.email.toLowerCase();
+      fetchRole(email);
     } else {
       setLoading(false);
     }
-  }, [isLoaded, user, fetchRole]);
+  }, [fetchRole]);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   if (loading) {
     return <div>Loading...</div>; // or a default loading component

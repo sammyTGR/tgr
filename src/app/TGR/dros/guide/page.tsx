@@ -63,25 +63,38 @@ const DROSGuide = () => {
   
   useEffect(() => {
     const fetchData = async () => {
+      try {
+        const { data: session, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          throw new Error(`Session Error: ${sessionError.message}`);
+        }
+  
+        if (!session) {
+          throw new Error('No active session found');
+        }
+  
         let { data: fetchedData, error } = await supabase
-            .from('Drops')
-            .select('*');
-
+          .from('Drops')
+          .select('*');
+  
         if (error) {
-            console.error('Failed to fetch data:', error.message);
-            return;
+          throw new Error(`Data Fetch Error: ${error.message}`);
         }
-
+  
         if (fetchedData) {
-            // console.log("Fetched raw data:", fetchedData);
-            setData(fetchedData);
+          console.log("Fetched raw data:", fetchedData);
+          setData(fetchedData);
         } else {
-            console.error('No data available');
+          console.error('No data available');
         }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      }
     };
-
+  
     fetchData();
-}, []);
+  }, []);
+  
 
 const getOptionsForSelect = (index: number) => {
   if (!data.length) return [];

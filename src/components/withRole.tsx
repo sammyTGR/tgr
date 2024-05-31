@@ -1,7 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import supabase from "../../supabase/lib/supabaseClient"; // Import your Supabase client
+import { supabase } from "@/utils/supabase/client";
 
 interface WithRoleProps {
   children: ReactNode;
@@ -10,9 +9,9 @@ interface WithRoleProps {
 }
 
 const WithRole: React.FC<WithRoleProps> = ({ children, allowedRoles, allowedEmails = [] }) => {
-  const { user, isLoaded } = useUser();
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const fetchUserRole = useCallback(async (email: string) => {
     const { data, error } = await supabase
@@ -23,7 +22,7 @@ const WithRole: React.FC<WithRoleProps> = ({ children, allowedRoles, allowedEmai
 
     if (error) {
       console.error("Error fetching user role from database:", error.message);
-      router.push("/sign-in");
+      router.push("/auth");
       return;
     }
 
@@ -37,23 +36,46 @@ const WithRole: React.FC<WithRoleProps> = ({ children, allowedRoles, allowedEmai
       setAuthorized(true);
     } else {
       console.log("User is not authorized. Redirecting...");
-      router.push("/sign-in");
+      router.push("/auth");
     }
   }, [allowedRoles, allowedEmails, router]);
 
   useEffect(() => {
-    if (isLoaded && user) {
-      const userEmail = user.primaryEmailAddress?.emailAddress.toLowerCase() ||
-        user.emailAddresses[0]?.emailAddress.toLowerCase();
+    const fetchUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Failed to fetch session:", error.message);
+          router.push("/auth");
+          return;
+        }
 
-      if (userEmail) {
-        fetchUserRole(userEmail);
-      } else {
-        console.log("User email is not available. Redirecting...");
-        router.push("/sign-in");
+        const session = data.session;
+        if (!session || !session.user) {
+          console.error("No session or user found.");
+          router.push("/auth");
+          return;
+        }
+
+        const user = session.user;
+        const email = user.email?.toLowerCase();
+
+        if (email) {
+          await fetchUserRole(email);
+        } else {
+          console.log("User email is not available. Redirecting...");
+          router.push("/auth");
+        }
+
+        setIsLoaded(true);
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        router.push("/auth");
       }
-    }
-  }, [isLoaded, user, fetchUserRole, router]);
+    };
+
+    fetchUser();
+  }, [fetchUserRole, router]);
 
   if (!isLoaded || !authorized) {
     return <div>Loading...</div>;

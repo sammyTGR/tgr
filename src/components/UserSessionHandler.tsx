@@ -1,16 +1,15 @@
 "use client";
 import React, { useEffect, useCallback, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/utils/supabase/client";
 
 interface UserDetails {
-  clerkUserId: string;
+  user_uuid: string;
   contact_info: string;
   name: string;
 }
 
 const UserSessionHandler: React.FC = () => {
-  const { user } = useUser();
   const router = useRouter();
   const previousUserDetails = useRef<UserDetails | null>(null);
 
@@ -42,26 +41,32 @@ const UserSessionHandler: React.FC = () => {
   }, [router]);
 
   useEffect(() => {
-    if (!user) return;
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        console.error("Failed to fetch user:", error);
+        return;
+      }
 
-    const primaryEmail = user.primaryEmailAddress?.emailAddress;
-    const backupEmail = user.emailAddresses.length > 0
-      ? user.emailAddresses[0].emailAddress
-      : null;
-    const firstName = user.firstName || "Unnamed User";
+      const user = data.user;
+      const email = user.email?.toLowerCase();
+      const firstName = user.user_metadata?.full_name.split(" ")[0] || "Unnamed User"; // Assume full_name exists in user_metadata
 
-    const userDetails: UserDetails = {
-      clerkUserId: user.id,
-      contact_info: (primaryEmail || backupEmail)?.toLowerCase() || "",
-      name: firstName,
+      const userDetails: UserDetails = {
+        user_uuid: user.id,
+        contact_info: email || "",
+        name: firstName,
+      };
+
+      if (userDetails.contact_info) {
+        updateOrCreateEmployee(userDetails);
+      } else {
+        console.error("No valid email address found for the user.");
+      }
     };
 
-    if (userDetails.contact_info) {
-      updateOrCreateEmployee(userDetails);
-    } else {
-      console.error("No valid email address found for the user.");
-    }
-  }, [user, updateOrCreateEmployee]);
+    fetchUser();
+  }, [updateOrCreateEmployee]);
 
   return null; // This component does not render anything
 };

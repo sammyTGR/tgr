@@ -29,8 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <>
-      <ClerkProvider appearance={{ baseTheme: dark }}>
-        <UserSessionHandler />
+      {/* <ClerkProvider appearance={{ baseTheme: dark }}> */}
+        {/* <UserSessionHandler /> */}
         <html lang="en" suppressHydrationWarning>
           <body className={inter.className}>
             <ThemeProvider
@@ -45,7 +45,7 @@ export default function RootLayout({
             </ThemeProvider>
           </body>
         </html>
-      </ClerkProvider>
+      {/* </ClerkProvider> */}
     </>
   );
 }

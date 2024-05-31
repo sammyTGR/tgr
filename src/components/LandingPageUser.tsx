@@ -1,15 +1,45 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
 import { DrosGuidanceCard, TimeOffRequestCard, CalendarCard, WaiverCard, OrderCard } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
+import { supabase } from "@/utils/supabase/client";
 
 const words = "Employee Dashboard";
 const subwords = "Let's GOOOOOOO!";
 
 const LandingPageUser: React.FC = React.memo(() => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (data) {
+        setUser(data.user);
+      }
+      setLoading(false);
+    };
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div>
+        <h1>You must be signed in to view this page.</h1>
+        <Link href="/sign-in">
+          <a>Sign In</a>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <>
       <section className="w-full py-12 md:py-12">

@@ -13,9 +13,10 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import UserSessionHandler from "../components/UserSessionHandler";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { supabase } from "@/utils/supabase/client";
 
 const auditComponents: { title: string; href: string; description: string }[] =
   [
@@ -78,6 +79,24 @@ const serviceComponents: {
 ];
 
 const HeaderAdmin = React.memo(() => {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (data) {
+        setUser(data.user);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = "/sign-in"; // Redirect to sign-in page after sign-out
+  };
+
   return (
     <header className="flex justify-between items-center p-2">
       <NavigationMenu>
@@ -139,15 +158,18 @@ const HeaderAdmin = React.memo(() => {
           </Button>
         </Link>
         <ModeToggle />
-        <SignedOut>
-          <SignInButton>
+        {user ? (
+          <>
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+            <UserSessionHandler />
+          </>
+        ) : (
+          <Link href="/sign-in">
             <Button>Sign In</Button>
-          </SignInButton>
-        </SignedOut>
-        <SignedIn>
-          <UserButton />
-        </SignedIn>
-        <UserSessionHandler />
+          </Link>
+        )}
       </div>
     </header>
   );

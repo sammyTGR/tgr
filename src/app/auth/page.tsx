@@ -13,45 +13,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSearchParams } from "next/navigation";
 
+
 export default function LoginForm() {
   const params = useSearchParams();
-  const next = params ? params.get("next") || "" : "";
+	const next = params ? params.get("next") || "" : "";
 
 
-  const loginWithOAuth = async (provider: "google") => {
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+  const loginWithOAuth =  (provider: "google") => {
+      supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: location.origin + "/auth/callback" + next,
+          redirectTo:location.origin + "/auth/callback" + next,
         },
       });
-
-      if (error) throw error;
-
-      // Wait for the redirect to complete and the session to be set
-      setTimeout(async () => {
-        const userResponse = await supabase.auth.getUser();
-        const user = userResponse.data.user;
-
-        if (user) {
-          await fetch('/api/syncUser', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(user),
-          });
-        }
-      }, 2000); // Add a delay to ensure the session is set
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error logging in with OAuth:", error.message);
-      } else {
-        console.error("Unexpected error logging in with OAuth:", error);
-      }
-    }
+   
   };
 
   return (
@@ -86,7 +61,7 @@ export default function LoginForm() {
         </div>
         <div className="mt-4 text-center text-sm">
           Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="underline">
+          <Link href="#" className="underline">
             Sign up
           </Link>
         </div>

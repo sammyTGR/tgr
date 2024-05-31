@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useUser } from "@clerk/nextjs";
-import { getUserRole } from "@/lib/getUserRole";
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/utils/supabase/client";
+import { getUserRole } from "@/lib/getUserRole";
 
 const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
 const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
@@ -10,33 +10,40 @@ const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), { ssr: fals
 const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
 
 export default function Header() {
-  const { user, isLoaded } = useUser();
+  const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = useCallback(async () => {
-    if (!user) {
-      setRole(null);
-      setLoading(false);
-      return;
-    }
-
-    const email = user.primaryEmailAddress?.emailAddress.toLowerCase() || user.emailAddresses[0]?.emailAddress.toLowerCase();
+  const fetchRole = useCallback(async (email: string) => {
     const fetchedRole = await getUserRole(email);
     setRole(fetchedRole);
     setLoading(false);
-  }, [user]);
+  }, []);
+
+  const fetchUser = useCallback(async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error("Error fetching user:", error.message);
+      setLoading(false);
+      return;
+    }
+    const currentUser = data.user;
+    setUser(currentUser);
+
+    if (currentUser && currentUser.email) {
+      const email = currentUser.email.toLowerCase();
+      fetchRole(email);
+    } else {
+      setLoading(false);
+    }
+  }, [fetchRole]);
 
   useEffect(() => {
-    if (isLoaded) {
-      fetchRole();
-    } else {
-      setLoading(false); // Ensure loading state is updated when user is not loaded
-    }
-  }, [isLoaded, fetchRole]);
+    fetchUser();
+  }, [fetchUser]);
 
   if (loading) {
-    return <div></div>;
+    return <div>Loading...</div>;
   }
 
   if (!user || role === null) {

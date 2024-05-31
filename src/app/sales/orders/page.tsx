@@ -24,7 +24,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner"; // Import toast from Sonner
-import { useUser } from "@clerk/nextjs"; // Import Clerk useUser hook
+import { useRouter } from "next/navigation"; // Import Next.js router
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,10 +55,13 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function Component() {
-  const { user } = useUser(); // Get the authenticated user
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [customerTypes, setCustomerTypes] = useState<string[]>([]);
   const [inquiryTypes, setInquiryTypes] = useState<string[]>([]);
+  const [userUuid, setUserUuid] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     register,
@@ -69,6 +72,48 @@ export default function Component() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error fetching session:", error.message);
+        toast.error("Error fetching session. Please log in again.");
+        router.push("/sign-in"); // Redirect to login page if no session
+        return;
+      }
+      if (session) {
+        setUserUuid(session.user.id);
+      } else {
+        toast.error("No active session found. Please log in.");
+        router.push("/sign-in"); // Redirect to login page if no active session
+      }
+    };
+
+    fetchSession();
+  }, [router]);
+
+  useEffect(() => {
+    if (userUuid) {
+      const fetchUserData = async () => {
+        const { data, error } = await supabase
+          .from("employees")
+          .select("name")
+          .eq("user_uuid", userUuid)
+          .single();
+        if (error) {
+          console.error("Error fetching user data:", error.message);
+        } else if (data) {
+          setUserName(data.name);
+        }
+      };
+
+      fetchUserData();
+    }
+  }, [userUuid]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -105,14 +150,14 @@ export default function Component() {
   }, []);
 
   const onSubmit = async (data: FormData) => {
-    if (!user) {
+    if (!userUuid) {
       toast.error("User is not authenticated.");
       return;
     }
 
     const submissionData = {
       ...data,
-      clerk_user_id: user.id, // Capture clerk_user_id from the authenticated user
+      user_uuid: userUuid, // Capture user_uuid from the authenticated user
     };
 
     const { error } = await supabase.from("orders").insert(submissionData);

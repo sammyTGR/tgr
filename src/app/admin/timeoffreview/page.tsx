@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useUser } from "@clerk/clerk-react";
+import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import WithRole from "@/components/withRole"; // Import the HOC
 import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
@@ -28,33 +28,39 @@ function ApproveRequestsPage() {
   const [customApprovalText, setCustomApprovalText] = useState("");
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
   const router = useRouter();
-  const { user } = useUser();
 
   useEffect(() => {
-    async function fetchUserRole() {
-      if (user) {
-        const email =
-          user.primaryEmailAddress?.emailAddress.toLowerCase() ||
-          user.emailAddresses[0]?.emailAddress.toLowerCase();
-        const response = await fetch(
-          `/api/getUserRole?email=${encodeURIComponent(email)}`
-        );
-        if (!response.ok) {
-          console.error("Failed to fetch user role:", await response.text());
-          router.push("/unauthorized");
-          setIsLoading(false);
-        } else {
-          const data = await response.json();
-          setUserRole(data.role);
-          setIsLoading(false);
-        }
+    const fetchUserRole = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        console.error("Failed to fetch user:", error);
+        router.push("/login");
+        setIsLoading(false);
+        return;
+      }
+
+      const email = data.user.email?.toLowerCase();
+      if (!email) {
+        console.error("No email found for the user.");
+        router.push("/unauthorized");
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/getUserRole?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        console.error("Failed to fetch user role:", await response.text());
+        router.push("/unauthorized");
+        setIsLoading(false);
       } else {
+        const data = await response.json();
+        setUserRole(data.role);
         setIsLoading(false);
       }
-    }
+    };
 
     fetchUserRole();
-  }, [user, router]);
+  }, [router]);
 
   useEffect(() => {
     fetchRequests();
