@@ -38,6 +38,7 @@ const HeaderPublic = React.memo(() => {
         <Link href="/TGR/crew/login">
           <Button
             variant="outline"
+            size="sm"
             className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
           >
             TGR Employees
