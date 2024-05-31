@@ -19,7 +19,7 @@ function LoginComponent() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: location.origin + "/auth/callback" + next,
+          redirectTo: `${location.origin}/auth/callback`,
         },
       });
 
@@ -76,7 +76,7 @@ function LoginComponent() {
                   <Button
                     onClick={() => loginWithOAuth("google")}
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-black text-white dark:bg-white dark:text-black"
                   >
                     Login with Google
                   </Button>
@@ -90,7 +90,7 @@ function LoginComponent() {
                   <Button
                     onClick={() => loginWithOAuth("google")}
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-black text-white dark:bg-white dark:text-black"
                   >
                     Login with Google
                   </Button>
