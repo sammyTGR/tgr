@@ -1,7 +1,6 @@
 "use client";
+import React, { useState, useEffect } from "react";
 import { supabase as supabaseBrowser } from "@/utils/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import React from "react";
 
 const initUser = {
   created_at: "",
@@ -12,21 +11,38 @@ const initUser = {
 };
 
 export default function useUser() {
-  return useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      const { data } = await supabaseBrowser.auth.getSession();
-      if (data.session?.user) {
-        // fetch user information profile
-        const { data: user } = await supabaseBrowser
-          .from("profiles")
-          .select("*")
-          .eq("id", data.session.user.id)
-          .single();
+  const [user, setUser] = useState(initUser);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-        return user;
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data } = await supabaseBrowser.auth.getSession();
+        if (data.session?.user) {
+          const { data: userProfile, error: fetchError } = await supabaseBrowser
+            .from("profiles")
+            .select("*")
+            .eq("id", data.session.user.id)
+            .single();
+
+          if (fetchError) {
+            throw fetchError;
+          }
+
+          setUser(userProfile);
+        } else {
+          setUser(initUser);
+        }
+      } catch (err: any) {
+        setError(err.message || "An error occurred while fetching the user.");
+      } finally {
+        setLoading(false);
       }
-      return initUser;
-    },
-  });
+    };
+
+    fetchUser();
+  }, []);
+
+  return { user, loading, error };
 }

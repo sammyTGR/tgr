@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useSearchParams } from "next/navigation";
 
 
-export default function LoginForm() {
+export default function AuthForm() {
   const params = useSearchParams();
 	const next = params ? params.get("next") || "" : "";
 

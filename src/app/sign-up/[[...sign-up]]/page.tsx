@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSearchParams } from "next/navigation";
 
-export default function LoginForm() {
+export default function SignUp() {
   const params = useSearchParams();
   const next = params ? params.get("next") || "" : "";
 
