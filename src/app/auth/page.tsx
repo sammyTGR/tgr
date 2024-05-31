@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,21 +13,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSearchParams } from "next/navigation";
+import React, { Suspense } from "react";
 
-
-export default function AuthForm() {
+function AuthFormInner() {
   const params = useSearchParams();
-	const next = params ? params.get("next") || "" : "";
+  const next = params ? params.get("next") || "" : "";
 
-
-  const loginWithOAuth =  (provider: "google") => {
-      supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo:location.origin + "/auth/callback" + next,
-        },
-      });
-   
+  const loginWithOAuth = (provider: "google") => {
+    supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: location.origin + "/auth/callback" + next,
+      },
+    });
   };
 
   return (
@@ -67,5 +66,13 @@ export default function AuthForm() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export default function AuthForm() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthFormInner />
+    </Suspense>
   );
 }
