@@ -8,7 +8,7 @@ import { RadioGroupItem, RadioGroup } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import supabase from "../../../../supabase/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
 
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;

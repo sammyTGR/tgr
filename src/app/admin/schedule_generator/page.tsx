@@ -4,7 +4,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import WithRole from "@/components/withRole"; // Import the HOC
 import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
-import supabase from "../../../../supabase/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import { Input } from "@/components/ui/input";
 import {
   Select,

@@ -41,10 +41,12 @@ export async function getCalendarData(start_date: string, end_date: string): Pro
         .order('employee_id', { ascending: true });
 
     if (error) {
+        console.error("Database query error:", error.message);
         throw new Error(error.message);
     }
 
     if (!data) {
+        console.error("No data returned from the query");
         throw new Error("No data returned");
     }
 
@@ -78,15 +80,13 @@ export async function getCalendarData(start_date: string, end_date: string): Pro
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
         const { start_date, end_date } = req.body;
+        console.log(`Received request with start_date: ${start_date}, end_date: ${end_date}`);
         try {
             const data = await getCalendarData(start_date, end_date);
             res.status(200).json(data);
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                res.status(500).json({ message: 'Failed to fetch calendar data', error: error.message });
-            } else {
-                res.status(500).json({ message: 'Failed to fetch calendar data' });
-            }
+        } catch (error: any) {
+            console.error("Error in handler:", error.message);
+            res.status(500).json({ message: 'Failed to fetch calendar data', error: error.message });
         }
     } else {
         res.setHeader('Allow', ['POST']);

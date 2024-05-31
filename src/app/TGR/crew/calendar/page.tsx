@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import supabase from "../../../../../supabase/lib/supabaseClient";
+import { supabase } from "../../../../utils/supabase/client";
 import {
   TableHead,
   TableRow,
@@ -41,7 +41,7 @@ export default function Component() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [updateTrigger, setUpdateTrigger] = useState(false); // State to force re-render
+  const [updateTrigger, setUpdateTrigger] = useState(false);
 
   const fetchCalendarData = useCallback(async () => {
     const startOfWeek = getStartOfWeek(currentDate);
@@ -63,7 +63,6 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      // console.log("Fetched calendar data:", data); // Add logging
       setCalendarData(data);
 
       const dates = Array.from({ length: 7 }, (_, i) => {
@@ -88,7 +87,7 @@ export default function Component() {
 
   useEffect(() => {
     fetchCalendarData();
-  }, [currentDate, updateTrigger, fetchCalendarData]); // Add fetchCalendarData as dependency
+  }, [currentDate, updateTrigger, fetchCalendarData]);
 
   useEffect(() => {
     const timeOffSubscription = supabase
@@ -97,9 +96,8 @@ export default function Component() {
         "postgres_changes",
         { event: "*", schema: "public", table: "time_off_requests" },
         (payload) => {
-          // console.log("Time off request change received:", payload);
-          fetchCalendarData(); // Fetch calendar data on time off request changes
-          setUpdateTrigger((prev) => !prev); // Force re-render
+          fetchCalendarData();
+          setUpdateTrigger((prev) => !prev);
         }
       )
       .subscribe();
@@ -110,19 +108,17 @@ export default function Component() {
         "postgres_changes",
         { event: "*", schema: "public", table: "schedules" },
         (payload) => {
-          // console.log("Schedule change received:", payload);
-          fetchCalendarData(); // Fetch calendar data on schedule changes
-          setUpdateTrigger((prev) => !prev); // Force re-render
+          fetchCalendarData();
+          setUpdateTrigger((prev) => !prev);
         }
       )
       .subscribe();
 
-    // Cleanup subscriptions on unmount
     return () => {
       supabase.removeChannel(timeOffSubscription);
       supabase.removeChannel(schedulesSubscription);
     };
-  }, [fetchCalendarData]); // Add fetchCalendarData as dependency
+  }, [fetchCalendarData]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -130,7 +126,7 @@ export default function Component() {
       if (now.getDay() === 0) {
         setCurrentDate(new Date());
       }
-    }, 3600000); // Check every hour
+    }, 3600000);
 
     return () => clearInterval(interval);
   }, []);
