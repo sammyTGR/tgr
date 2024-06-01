@@ -630,5 +630,3 @@ export default function ProtectedSubmitAudits() {
 
   return <SubmitAudits />;
 }
-
-
