@@ -47,9 +47,14 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
           </div>
         </div>
       </section>
-      <section className="w-full py-12 md:py-24">
+      <section className="w-full py-12 md:py-6">
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
+            <div className="col-span-full flex justify-center">
+              <DepositsCard />
+            </div>
+            <Separator />
+            <Separator />
             <AdminReviewAuditsCard />
             <AdminSubmitAuditsCard />
             <DrosGuidanceCard />
@@ -60,11 +65,6 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
             <Separator />
             <WaiverCard />
             <OrderCard />
-            <Separator />
-            <Separator />
-            <div className="col-span-full flex justify-center">
-              <DepositsCard />
-            </div>
           </div>
         </div>
       </section>
