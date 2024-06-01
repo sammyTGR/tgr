@@ -11,12 +11,13 @@ import {
   GeneratorCard,
   WaiverCard,
   OrderCard,
+  DepositsCard,
 } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
 
-const words = "Super Admin Dashboard";
-const subwords = "Time To Phuck It Up";
+const words = "Ops Management Dashboard";
+const subwords = "Fuck You Chris";
 
 const LandingPageSuperAdmin: React.FC = React.memo(() => {
   const { role } = useRole();
@@ -59,6 +60,11 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
             <Separator />
             <WaiverCard />
             <OrderCard />
+            <Separator />
+            <Separator />
+            <div className="col-span-full flex justify-center">
+              <DepositsCard />
+            </div>
           </div>
         </div>
       </section>

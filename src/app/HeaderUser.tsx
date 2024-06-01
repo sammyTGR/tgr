@@ -44,6 +44,14 @@ const serviceComponents = [
   },
 ];
 
+const formComps = [
+  {
+    title: "Daily Deposits",
+    href: "/TGR/deposits",
+    description: "Submit Daily Deposits",
+  },
+];
+
 const HeaderUser = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const { role } = useRole();
@@ -92,6 +100,22 @@ const HeaderUser = React.memo(() => {
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationMenuItem>
+            <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                {formComps.map((component) => (
+                  <ListItem
+                    key={component.title}
+                    title={component.title}
+                    href={component.href}
+                  >
+                    {component.description}
+                  </ListItem>
+                ))}
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
             <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
@@ -109,7 +133,7 @@ const HeaderUser = React.memo(() => {
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
-      <div className="flex items-center mr-1 gap-2">
+      <div className="flex items-center mr-1">
         {user ? (
           <>
             <Button
@@ -127,7 +151,7 @@ const HeaderUser = React.memo(() => {
           </Link>
         )}
         <Link href="/">
-          <Button variant="outline" size="icon">
+          <Button variant="ghost" size="icon">
             <HomeIcon />
           </Button>
         </Link>

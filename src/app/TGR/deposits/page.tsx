@@ -1,9 +1,10 @@
+// src/app/TGR/crew/deposits/page.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useRole } from "@/context/RoleContext"; // Adjust the import path as needed
+import { useRole } from "@/context/RoleContext";
 import { createClient } from "@supabase/supabase-js";
-import { toast } from "sonner"; // Import toast from Sonner
+import { toast } from "sonner";
 import {
   Card,
   CardHeader,
@@ -47,7 +48,7 @@ const registers = [
   "Register 5",
 ];
 
-export default function Component() {
+export default function DailyDepositsPage() {
   const { role, loading, user } = useRole();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
@@ -76,19 +77,17 @@ export default function Component() {
       role !== "admin" &&
       role !== "super admin"
     ) {
-      router.push("/unauthorized"); // Redirect to an unauthorized page or login page
+      router.push("/unauthorized");
     }
   }, [role, loading, router]);
 
   useEffect(() => {
-    // Add wheel event listeners to all inputs
     inputRefs.current.flat().forEach((input) => {
       if (input) {
         input.addEventListener("wheel", handleWheel, { passive: false });
       }
     });
 
-    // Clean up event listeners on unmount
     return () => {
       inputRefs.current.flat().forEach((input) => {
         if (input) {
@@ -195,7 +194,6 @@ export default function Component() {
       if (nextInput) {
         nextInput.focus();
       } else {
-        // If it's the last input in the list, focus the first input in the next register tab
         const nextTabFirstInput = inputRefs.current[registerIndex + 1]?.[0];
         if (nextTabFirstInput) {
           nextTabFirstInput.focus();
@@ -274,7 +272,6 @@ export default function Component() {
 
     if (insertError) {
       console.error("Error submitting deposit data:", insertError);
-      // Handle error (e.g., show an error message)
     } else {
       const currentDate = new Date().toLocaleDateString();
       console.log("Successfully submitted deposit data:", data);

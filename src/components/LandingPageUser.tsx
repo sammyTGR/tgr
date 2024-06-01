@@ -2,7 +2,14 @@
 import React from "react";
 import Link from "next/link";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
-import { DrosGuidanceCard, TimeOffRequestCard, CalendarCard, WaiverCard, OrderCard } from "@/components/LandingCards";
+import {
+  DrosGuidanceCard,
+  TimeOffRequestCard,
+  CalendarCard,
+  WaiverCard,
+  OrderCard,
+  DepositsCard,
+} from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
 
@@ -40,9 +47,9 @@ const LandingPageUser: React.FC = React.memo(() => {
       <section className="w-full py-12 md:py-24">
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
-            <div className="col-span-full flex justify-center">
-              <DrosGuidanceCard />
-            </div>
+            <div className="col-span-full flex justify-center"></div>
+            <DrosGuidanceCard />
+            <DepositsCard />
             <Separator />
             <Separator />
             <CalendarCard />

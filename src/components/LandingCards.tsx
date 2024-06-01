@@ -13,6 +13,7 @@ import {
   StopwatchIcon,
   TextIcon,
 } from "@radix-ui/react-icons";
+import { DollarSignIcon } from "lucide-react";
 
 export const AdminReviewAuditsCard = () => (
   <>
@@ -187,6 +188,24 @@ export const OrderCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Submit Order Requests, Add To Waitlist, Contact Gunsmithing, etc.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const DepositsCard = () => (
+  <>
+    <Link className="group" href="/TGR/deposits">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <DollarSignIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Submit Daily Deposits</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Submit Daily Deposits.
           </p>
         </CardContent>
       </Card>

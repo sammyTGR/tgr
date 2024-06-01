@@ -1,3 +1,4 @@
+// src/context/RoleContext.tsx
 "use client";
 import {
   createContext,
@@ -7,12 +8,11 @@ import {
   ReactNode,
 } from "react";
 import { supabase } from "@/utils/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
 
 interface RoleContextType {
   role: string | null;
   loading: boolean;
-  user: User | null;
+  user: any; // Add user to context
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -20,7 +20,7 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 export const RoleProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -37,17 +37,14 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const sessionUser = session.user as User;
-      const email = sessionUser.email;
+      const email = session.user?.email;
+      setUser(session.user); // Set the user
       if (!email) {
         console.error("No email found in session.");
         setLoading(false);
         return;
       }
 
-      setUser(sessionUser); // Set the user in the context
-
-      // Fetch role from employees table
       let { data: employeeData, error: employeeError } = await supabase
         .from("employees")
         .select("role")
@@ -64,7 +61,6 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
       if (employeeData) {
         setRole(employeeData.role);
       } else {
-        // If not found in employees, fetch from public_customers table
         const { data: customerData, error: customerError } = await supabase
           .from("public_customers")
           .select("role")
