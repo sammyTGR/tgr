@@ -55,9 +55,26 @@ export async function middleware(request: NextRequest) {
 		}
 	);
 
-	const { data } = await supabase.auth.getSession();
+	const { data: { session } } = await supabase.auth.getSession();
 	const url = new URL(request.url);
-	if (data.session) {
+
+	if (session) {
+		const { data: { user } } = await supabase.auth.getUser();
+
+		// Fetch user role from the employees table
+		const { data: roleData, error } = await supabase
+			.from('employees')
+			.select('role')
+			.eq('user_uuid', user?.id)
+			.single();
+
+		if (error || !roleData) {
+			return NextResponse.redirect(new URL("/auth", request.url));
+		}
+
+		const userRole = roleData.role;
+		response.headers.set("X-User-Role", userRole);
+
 		if (url.pathname === "/auth") {
 			return NextResponse.redirect(new URL("/", request.url));
 		}
@@ -78,14 +95,6 @@ export const config = {
 		'/api/(.*)',
 		'/TGR(.*)',
 		'/sales(.*)',
-		
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * Feel free to modify this pattern to include more paths.
-		 */
 		"/((?!_next/static|_next/image|favicon.ico).*)",
 	],
 };

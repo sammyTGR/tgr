@@ -12,6 +12,9 @@ import {
   TableBody,
   Table,
 } from "@/components/ui/table";
+import { useRole } from "../../../../context/RoleContext";
+import { Card, CardContent } from "@/components/ui/card"; // Import Card components
+
 const title = "TGR Crew Calendar";
 
 interface CalendarEvent {
@@ -37,13 +40,32 @@ const daysOfWeek = [
   "Saturday",
 ];
 
+const fetchEmployeeNames = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase.from("employees").select("name");
+    if (error) {
+      throw error;
+    }
+    return data.map((employee) => employee.name);
+  } catch (error) {
+    console.error("Failed to fetch employee names:", (error as Error).message);
+    return [];
+  }
+};
+
 export default function Component() {
-  const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
+  const [data, setData] = useState<{
+    calendarData: EmployeeCalendar[];
+    employeeNames: string[];
+  }>({
+    calendarData: [],
+    employeeNames: [],
+  });
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [updateTrigger, setUpdateTrigger] = useState(false);
+  const role = useRole();
 
-  const fetchCalendarData = useCallback(async () => {
+  const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
     const startOfWeek = getStartOfWeek(currentDate);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
@@ -62,8 +84,7 @@ export default function Component() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
-      setCalendarData(data);
+      const data: EmployeeCalendar[] = await response.json();
 
       const dates = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(startOfWeek);
@@ -80,36 +101,41 @@ export default function Component() {
       }, {} as { [key: string]: string });
 
       setWeekDates(datesMap);
-    } catch (error: any) {
-      console.error("Failed to fetch calendar data:", error.message);
+      return data;
+    } catch (error) {
+      console.error("Failed to fetch calendar data:", (error as Error).message);
+      return [];
     }
   }, [currentDate]);
 
   useEffect(() => {
-    fetchCalendarData();
-  }, [currentDate, updateTrigger, fetchCalendarData]);
+    const fetchData = async () => {
+      const [calendarData, employeeNames] = await Promise.all([
+        fetchCalendarData(),
+        fetchEmployeeNames(),
+      ]);
 
-  useEffect(() => {
-    const timeOffSubscription = supabase
-      .channel("time_off_requests")
+      setData({ calendarData, employeeNames });
+    };
+
+    fetchData();
+
+    const timeOffSubscription = supabase.channel("time_off_requests")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "time_off_requests" },
-        (payload) => {
-          fetchCalendarData();
-          setUpdateTrigger((prev) => !prev);
+        () => {
+          fetchData();
         }
       )
       .subscribe();
 
-    const schedulesSubscription = supabase
-      .channel("schedules")
+    const schedulesSubscription = supabase.channel("schedules")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "schedules" },
-        (payload) => {
-          fetchCalendarData();
-          setUpdateTrigger((prev) => !prev);
+        () => {
+          fetchData();
         }
       )
       .subscribe();
@@ -240,37 +266,43 @@ export default function Component() {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-4 p-4">
       <h1 className="text-2xl font-bold">
         <TextGenerateEffect words={title} />
       </h1>
-      <div className="flex justify-between w-full max-w-4xl">
-        <Button variant="ghost" onClick={handlePreviousWeek}>
-          <ChevronLeftIcon className="h-4 w-4" />
-          Previous Week
-        </Button>
-        <Button variant="ghost" onClick={handleNextWeek}>
-          Next Week
-          <ChevronRightIcon className="h-4 w-4" />
-        </Button>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead />
-            {daysOfWeek.map((day) => (
-              <TableHead key={day}>
-                {day}
-                <br />
-                {weekDates[day]}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {calendarData.map((employee) => renderEmployeeRow(employee))}
-        </TableBody>
-      </Table>
+      <Card className="w-full max-w-6xl">
+      <CardContent>
+        <div className="flex justify-between w-full mb-4">
+          <Button variant="ghost" onClick={handlePreviousWeek}>
+            <ChevronLeftIcon className="h-4 w-4" />
+            Previous Week
+          </Button>
+          <Button variant="ghost" onClick={handleNextWeek}>
+            Next Week
+            <ChevronRightIcon className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="overflow-x-auto"> {/* Added this div to make table horizontally scrollable */}
+          <Table className="min-w-full"> {/* Added min-w-full to make the table take full width */}
+            <TableHeader>
+              <TableRow>
+                <TableHead />
+                {daysOfWeek.map((day) => (
+                  <TableHead key={day}>
+                    {day}
+                    <br />
+                    {weekDates[day]}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.calendarData.map((employee) => renderEmployeeRow(employee))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+      </Card>
     </div>
   );
 }

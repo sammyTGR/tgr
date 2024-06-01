@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import WithRole from "@/components/withRole"; // Import the HOC
+import { useRole } from "@/context/RoleContext"; // Import the useRole hook
 
 const title = "Submit Time Off Requests";
 
@@ -45,6 +46,7 @@ const daysOfWeek = [
 ];
 
 function TimeOffRequestPage() {
+  const { role, loading } = useRole(); // Use the useRole hook
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [employeeNames, setEmployeeNames] = useState<string[]>([]);
   const [timeOffReasons, setTimeOffReasons] = useState<TimeOffReason[]>([]);
@@ -236,6 +238,14 @@ function TimeOffRequestPage() {
     }
   };
 
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "user" && role !== "admin" && role !== "super admin") {
+    return null; // Render nothing if the role is not authorized
+  }
+
   return (
     <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
       <h1 className="text-2xl font-bold mb-4">
@@ -319,11 +329,24 @@ function TimeOffRequestPage() {
   );
 }
 
-// Wrap the page with the WithRole HOC and specify allowed roles
+// Role-based access control wrapper component
 export default function ProtectedTimeOffRequestPage() {
-  return (
-    <WithRole allowedRoles={["user", "admin", "super admin"]}>
-      <TimeOffRequestPage />
-    </WithRole>
-  );
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "user" && role !== "admin" && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "user" && role !== "admin" && role !== "super admin") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <TimeOffRequestPage />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -13,54 +14,47 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import UserSessionHandler from "../components/UserSessionHandler";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useRole } from "../context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
 
-const auditComponents: { title: string; href: string; description: string }[] =
-  [
-    {
-      title: "Submit Audits",
-      href: "/admin/audits/submit",
-      description: "LesssGOOOOO!!!",
-    },
-    {
-      title: "Review Audits",
-      href: "/admin/audits/review",
-      description: "Take A Gander At Audits",
-    },
-    {
-      title: "DROS Guidance",
-      href: "/TGR/dros/guide",
-      description: "Sometimes We All Need A Lil' Help",
-    },
-  ];
+const auditComponents = [
+  {
+    title: "Submit Audits",
+    href: "/admin/audits/submit",
+    description: "LesssGOOOOO!!!",
+  },
+  {
+    title: "Review Audits",
+    href: "/admin/audits/review",
+    description: "Take A Gander At Audits",
+  },
+  {
+    title: "DROS Guidance",
+    href: "/TGR/dros/guide",
+    description: "Sometimes We All Need A Lil' Help",
+  },
+];
 
-const schedComponents: { title: string; href: string; description: string }[] =
-  [
-    {
-      title: "Calendar",
-      href: "/TGR/crew/calendar",
-      description: "Where Dey At",
-    },
-    {
-      title: "Submit Time Off",
-      href: "/TGR/crew/timeoffrequest",
-      description: "Submit A Request",
-    },
-    {
-      title: "Review Time Off Requests",
-      href: "/admin/timeoffreview",
-      description: "DENY THEM ALL!",
-    },
-  ];
+const schedComponents = [
+  {
+    title: "Calendar",
+    href: "/TGR/crew/calendar",
+    description: "Where Dey At",
+  },
+  {
+    title: "Submit Time Off",
+    href: "/TGR/crew/timeoffrequest",
+    description: "Submit A Request",
+  },
+  {
+    title: "Review Time Off Requests",
+    href: "/admin/timeoffreview",
+    description: "DENY THEM ALL!",
+  },
+];
 
-const serviceComponents: {
-  title: string;
-  href: string;
-  description: string;
-}[] = [
+const serviceComponents = [
   {
     title: "Submit Orders",
     href: "/sales/orders",
@@ -80,6 +74,7 @@ const serviceComponents: {
 
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
+  const { role } = useRole();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -96,6 +91,10 @@ const HeaderAdmin = React.memo(() => {
     setUser(null);
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
+
+  if (role !== "admin") {
+    return null; // Prevent rendering if the role is not admin
+  }
 
   return (
     <header className="flex justify-between items-center p-2">
@@ -162,7 +161,6 @@ const HeaderAdmin = React.memo(() => {
             >
               Sign Out
             </Button>
-            <UserSessionHandler />
           </>
         ) : (
           <Link href="/TGR/crew/login">

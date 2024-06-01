@@ -1,9 +1,6 @@
-// admin/schedule_generator/page.tsx
 "use client";
 import { useState, useEffect, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
-import WithRole from "@/components/withRole"; // Import the HOC
-import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
 import { supabase } from "@/utils/supabase/client";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,9 +9,11 @@ import {
   SelectTrigger,
   SelectContent,
   SelectGroup,
-} from "@/components/ui/select"; // Import Select components
-import { Calendar } from "@/components/ui/calendar"; // Import the Calendar component
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import * as SelectPrimitive from "@radix-ui/react-select";
+import { useRole } from "@/context/RoleContext";
+import { useRouter } from "next/navigation";
 
 interface ScheduleData {
   employee_id: string;
@@ -134,7 +133,6 @@ const ScheduleGeneratorPage = () => {
   return (
     <>
       <div className="flex flex-col w-full max-w-md mx-auto py-8 md:py-12">
-        <UserSessionHandler /> {/* Include UserSessionHandler */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Generate Schedules</h1>
         </div>
@@ -234,14 +232,24 @@ const ScheduleGeneratorPage = () => {
   );
 };
 
-// Wrap the page with the WithRole HOC and specify allowed roles and emails
+// Role-based access control wrapper component
 export default function ProtectedScheduleGeneratorPage() {
-  return (
-    <WithRole
-      allowedRoles={["super admin"]}
-      allowedEmails={["samlee@thegunrange.biz"]}
-    >
-      <ScheduleGeneratorPage />
-    </WithRole>
-  );
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "super admin") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <ScheduleGeneratorPage />;
 }

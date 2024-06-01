@@ -1,5 +1,3 @@
-// src/app/sales/orderreview/page.tsx
-
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
@@ -14,10 +12,12 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
 } from "@tanstack/react-table";
+import { useRole } from "@/context/RoleContext"; // Import the useRole hook
+import { useRouter } from "next/navigation"; // Import the router
 
 const title = "Review Submissions";
 
-export default function OrdersReviewPage() {
+function OrdersReviewPage() {
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -170,4 +170,26 @@ export default function OrdersReviewPage() {
       </section>
     </div>
   );
+}
+
+// Role-based access control wrapper component
+export default function ProtectedOrdersReviewPage() {
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "admin" && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "admin" && role !== "super admin") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <OrdersReviewPage />;
 }

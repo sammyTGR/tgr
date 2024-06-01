@@ -11,88 +11,114 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSearchParams } from "next/navigation";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+// Define the validation schema using Zod
+const schema = z.object({
+  email: z
+    .string()
+    .min(1, { message: "Email is required" })
+    .email({ message: "Invalid email address" }),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters" }),
+});
+
+type FormData = z.infer<typeof schema>;
 
 export default function SignIn() {
-  const params = useSearchParams();
-  const next = params ? params.get("next") || "" : "";
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
 
-  const loginWithOAuth = async (provider: "google") => {
+  const onSubmit = async (data: FormData) => {
+    const { email, password } = data;
+
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: location.origin + "/auth/callback" + next,
-        },
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
       if (error) throw error;
 
-      // Wait for the redirect to complete and the session to be set
-      setTimeout(async () => {
-        const userResponse = await supabase.auth.getUser();
-        const user = userResponse.data.user;
-
-        if (user) {
-          await fetch("/api/syncUser", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(user),
-          });
-        }
-      }, 2000); // Add a delay to ensure the session is set
+      toast.success("Signed in successfully");
+      window.location.href = "/"; // Redirect to home page after sign-in
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Error logging in with OAuth:", error.message);
+        console.error("Error signing in:", error.message);
+        toast.error(error.message);
       } else {
-        console.error("Unexpected error logging in with OAuth:", error);
+        console.error("Unexpected error signing in:", error);
+        toast.error("Unexpected error occurred.");
       }
     }
   };
 
   return (
     <div className="grid place-items-center h-screen">
-      <Card className="mx-auto max-w-sm">
+      <Card className="mx-auto max-w-sm ">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
+          <CardTitle className="text-xl">Sign In</CardTitle>
+          <CardDescription>Enter your credentials to sign in</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="email"
+                    type="email"
+                    placeholder="m@example.com"
+                    required
+                  />
+                )}
               />
+              {errors.email && (
+                <span className="text-red-500 text-xs">
+                  {errors.email.message}
+                </span>
+              )}
             </div>
             <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              <Input id="password" type="password" required />
+              <Label htmlFor="password">Password</Label>
+              <Controller
+                name="password"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    required
+                  />
+                )}
+              />
+              {errors.password && (
+                <span className="text-red-500 text-xs">
+                  {errors.password.message}
+                </span>
+              )}
             </div>
             <Button type="submit" className="w-full">
-              Login
+              Sign In
             </Button>
-            {/* <Button onClick={() => loginWithOAuth("google")} variant="outline" className="w-full">
-            Login with Google
-          </Button> */}
-          </div>
+          </form>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
+            Don't have an account?{" "}
             <Link href="/sign-up" className="underline">
               Sign up
             </Link>

@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import WithRole from "@/components/withRole"; // Import the HOC
-import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
+import { useRole } from "@/context/RoleContext"; // Import the useRole hook
 
 const title = "Review Time Off Requests";
 
@@ -22,45 +21,11 @@ interface TimeOffRequest {
 
 function ApproveRequestsPage() {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
-  const [userRole, setUserRole] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [showCustomApprovalModal, setShowCustomApprovalModal] = useState(false);
   const [customApprovalText, setCustomApprovalText] = useState("");
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) {
-        console.error("Failed to fetch user:", error);
-        router.push("/login");
-        setIsLoading(false);
-        return;
-      }
-
-      const email = data.user.email?.toLowerCase();
-      if (!email) {
-        console.error("No email found for the user.");
-        router.push("/unauthorized");
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/getUserRole?email=${encodeURIComponent(email)}`);
-      if (!response.ok) {
-        console.error("Failed to fetch user role:", await response.text());
-        router.push("/unauthorized");
-        setIsLoading(false);
-      } else {
-        const data = await response.json();
-        setUserRole(data.role);
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserRole();
-  }, [router]);
 
   useEffect(() => {
     fetchRequests();
@@ -78,14 +43,6 @@ function ApproveRequestsPage() {
       console.error("Failed to fetch time off requests:", error.message);
     }
   };
-
-  if (isLoading) {
-    return <p>Checking authorization...</p>;
-  }
-
-  if (!userRole || (userRole !== "admin" && userRole !== "super admin")) {
-    return <p>Unauthorized access</p>;
-  }
 
   const handleApprove = async (request_id: number) => {
     await handleRequest(request_id, "approved");
@@ -145,7 +102,6 @@ function ApproveRequestsPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
-      <UserSessionHandler /> {/* Include UserSessionHandler */}
       <h1 className="text-2xl font-bold mb-6">
         <TextGenerateEffect words={title} />
       </h1>
@@ -234,11 +190,24 @@ function ApproveRequestsPage() {
   );
 }
 
-// Wrap the page with the WithRole HOC and specify allowed roles
+// Role-based access control wrapper component
 export default function ProtectedApproveRequestsPage() {
-  return (
-    <WithRole allowedRoles={["admin", "super admin"]}>
-      <ApproveRequestsPage />
-    </WithRole>
-  );
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "admin" && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "admin" && role !== "super admin") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <ApproveRequestsPage />;
 }

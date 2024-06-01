@@ -1,6 +1,6 @@
 // In your fetchAuditData.ts
 "use server";
-import supabase from "../../../../../supabase/lib/supabaseServer";
+import { createClient as supabase } from "@/utils/supabase/server";
 import { AuditData } from "./columns";
 
 const fetchData = async (): Promise<AuditData[]> => {

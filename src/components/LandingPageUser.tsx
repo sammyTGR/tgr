@@ -1,35 +1,18 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
 import { DrosGuidanceCard, TimeOffRequestCard, CalendarCard, WaiverCard, OrderCard } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
-import { supabase } from "@/utils/supabase/client";
+import { useRole } from "../context/RoleContext";
 
 const words = "Employee Dashboard";
 const subwords = "Let's GOOOOOOO!";
 
 const LandingPageUser: React.FC = React.memo(() => {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { role } = useRole();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data) {
-        setUser(data.user);
-      }
-      setLoading(false);
-    };
-    fetchUser();
-  }, []);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user) {
+  if (role !== "user") {
     return (
       <div>
         <h1>You must be signed in to view this page.</h1>
@@ -61,11 +44,11 @@ const LandingPageUser: React.FC = React.memo(() => {
               <DrosGuidanceCard />
             </div>
             <Separator />
-              <Separator />
+            <Separator />
             <CalendarCard />
             <TimeOffRequestCard />
             <Separator />
-              <Separator />
+            <Separator />
             <WaiverCard />
             <OrderCard />
           </div>

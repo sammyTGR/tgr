@@ -1,4 +1,3 @@
-// pages/NewAudits.tsx the test page for DROSAudits
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -52,7 +51,8 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { toast } from "sonner"; // Import toast from Sonner
-import WithRole from "@/components/withRole"; // Import the HOC
+import { useRole } from "../../../../context/RoleContext"; // Import the useRole hook
+import { useRouter } from "next/navigation"; // Use the router for redirects
 
 type OptionType = {
   label: string;
@@ -611,9 +611,24 @@ const SubmitAudits = () => {
 };
 
 export default function ProtectedSubmitAudits() {
-  return (
-    <WithRole allowedRoles={["admin", "super admin"]}>
-      <SubmitAudits />
-    </WithRole>
-  );
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "admin" && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "admin" && role !== "super admin") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <SubmitAudits />;
 }
+
+

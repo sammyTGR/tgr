@@ -15,36 +15,23 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useRole } from "../context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
+import { useRole } from "@/context/RoleContext";
 
-const schedComponents = [
+const accountComponents = [
   {
-    title: "Calendar",
-    href: "/TGR/crew/calendar",
-    description: "Check Out The Work Schedule",
+    title: "Account Settings",
+    href: "/customer/account",
+    description: "Manage your account settings and preferences.",
   },
   {
-    title: "Time Off Request",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
+    title: "Order History",
+    href: "/customer/orders",
+    description: "View your past orders and track current ones.",
   },
 ];
 
-const serviceComponents = [
-  {
-    title: "Special Order Form",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
-  },
-  {
-    title: "Safety Waiver",
-    href: "/public/waiver",
-    description: "Submit A Safety Waiver",
-  },
-];
-
-const HeaderUser = React.memo(() => {
+const HeaderCustomer = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const { role } = useRole();
 
@@ -64,44 +51,25 @@ const HeaderUser = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
-  if (role !== "user") {
-    return null; // Prevent rendering if the role is not user
+  if (role !== "customer") {
+    return null; // Prevent rendering if the role is not customer
   }
 
   return (
     <header className="flex justify-between items-center p-2">
       <NavigationMenu>
-        <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
+        <NavigationMenuList className="flex space-x-4 mr-3">
           <NavigationMenuItem>
-            <Link href="/TGR/dros/guide">DROS Guide</Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
+            <NavigationMenuTrigger>Account</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {schedComponents.map((component) => (
+                {accountComponents.map((component) => (
                   <ListItem
                     key={component.title}
                     title={component.title}
                     href={component.href}
                   >
                     {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {serviceComponents.map((sched) => (
-                  <ListItem
-                    key={sched.title}
-                    title={sched.title}
-                    href={sched.href}
-                  >
-                    {sched.description}
                   </ListItem>
                 ))}
               </ul>
@@ -122,7 +90,7 @@ const HeaderUser = React.memo(() => {
             </Button>
           </>
         ) : (
-          <Link href="/TGR/crew/login">
+          <Link href="/sign-in">
             <Button>Sign In</Button>
           </Link>
         )}
@@ -137,7 +105,7 @@ const HeaderUser = React.memo(() => {
   );
 });
 
-HeaderUser.displayName = "HeaderUser";
+HeaderCustomer.displayName = "HeaderCustomer";
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -166,4 +134,4 @@ const ListItem = React.forwardRef<
 
 ListItem.displayName = "ListItem";
 
-export default HeaderUser;
+export default HeaderCustomer;

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,6 +35,7 @@ type FormData = z.infer<typeof schema>;
 export default function SignUp() {
   const params = useSearchParams();
   const next = params ? params.get("next") || "" : "";
+  const router = useRouter();
 
   const {
     handleSubmit,
@@ -48,7 +49,7 @@ export default function SignUp() {
     const { firstName, lastName, email, password } = data;
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -59,11 +60,28 @@ export default function SignUp() {
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
+
+      // Assign role to the new user
+      const response = await fetch('/api/assignRole', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, role: 'customer' }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
 
       toast.success(
         "Account created successfully. Please check your email to confirm."
       );
+
+      // Redirect to sign-in page
+      router.push('/sign-in');
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error creating account:", error.message);
@@ -77,7 +95,7 @@ export default function SignUp() {
 
   return (
     <div className="grid place-items-center h-screen">
-      <Card className="mx-auto max-w-sm ">
+      <Card className="mx-auto max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign Up</CardTitle>
           <CardDescription>
@@ -173,13 +191,10 @@ export default function SignUp() {
             <Button type="submit" className="w-full">
               Create an account
             </Button>
-            {/* <Button onClick={() => loginWithOAuth("google")} variant="outline" className="w-full">
-            Login with Google
-          </Button> */}
           </form>
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
-            <Link href="/sign-in" className="underline" prefetch={false}>
+            <Link href="/sign-in" className="underline">
               Sign in
             </Link>
           </div>

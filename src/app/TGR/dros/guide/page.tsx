@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -13,8 +12,8 @@ import IDsCard from "../cards/IDsCard";
 import dynamic from "next/dynamic";
 import { supabase } from "../../../../utils/supabase/client"; // Updated import
 import FedsCard from "../cards/FedsCard";
-import WithRole from "@/components/withRole"; // Import the HOC
-import UserSessionHandler from "@/components/UserSessionHandler"; // Import UserSessionHandler
+import { useRole } from "@/context/RoleContext"; // Import the useRole hook
+import { useRouter } from "next/navigation";
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -39,12 +38,9 @@ const DROSGuide = () => {
   const [selections, setSelections] = useState<(string | null)[]>(
     Array(8).fill(null)
   );
-  const router = useRouter();
   const [active, setActive] = useState<string | null>(null);
-  const [activeDialog, setActiveDialog] = useState(null);
-  const [activeDialogContentId, setActiveDialogContentId] = useState<
-    string | null
-  >(null);
+  const [activeDialogContentId, setActiveDialogContentId] = useState<string | null>(null);
+  const { role, loading } = useRole(); // Use the useRole hook
 
   const handleSubItemClick = (contentId: string) => {
     setActiveDialogContentId(contentId);
@@ -64,8 +60,7 @@ const DROSGuide = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: session, error: sessionError } =
-          await supabase.auth.getSession();
+        const { data: session, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
           throw new Error(`Session Error: ${sessionError.message}`);
         }
@@ -74,16 +69,13 @@ const DROSGuide = () => {
           throw new Error("No active session found");
         }
 
-        let { data: fetchedData, error } = await supabase
-          .from("Drops")
-          .select("*");
+        let { data: fetchedData, error } = await supabase.from("Drops").select("*");
 
         if (error) {
           throw new Error(`Data Fetch Error: ${error.message}`);
         }
 
         if (fetchedData) {
-          // console.log("Fetched raw data:", fetchedData);
           setData(fetchedData);
         } else {
           console.error("No data available");
@@ -178,6 +170,14 @@ const DROSGuide = () => {
       })?.requirements
     : "";
 
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "user" && role !== "admin" && role !== "super admin") {
+    return null; // Render nothing if the role is not authorized
+  }
+
   return (
     <div>
       <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
@@ -232,11 +232,24 @@ const DROSGuide = () => {
   );
 };
 
+// Role-based access control wrapper component
 export default function ProtectedDROSGuide() {
-  return (
-    <WithRole allowedRoles={["user", "admin", "super admin"]}>
-      <UserSessionHandler />
-      <DROSGuide />
-    </WithRole>
-  );
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "user" && role !== "admin" && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Show loading state while checking the role
+  }
+
+  if (role !== "user" && role !== "admin" && role !== "super admin") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <DROSGuide />;
 }
