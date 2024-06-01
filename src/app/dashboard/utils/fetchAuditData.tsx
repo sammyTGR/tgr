@@ -1,5 +1,5 @@
 // In your fetchAuditData.ts
-import supabase from '../../../../supabase/lib/supabaseClient';
+import {supabase} from '@/utils/supabase/client'
 import { AuditData } from './types';
 
 const fetchAuditData = async (): Promise<AuditData[]> => {
