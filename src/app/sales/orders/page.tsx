@@ -69,26 +69,26 @@ export default function OrdersComponent() {
   });
 
   useEffect(() => {
-    const fetchSession = async () => {
+    const fetchUser = async () => {
       const {
-        data: { session },
+        data: { user },
         error,
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getUser();
       if (error) {
-        console.error("Error fetching session:", error.message);
-        toast.error("Error fetching session. Please log in again.");
+        console.error("Error fetching user:", error.message);
+        toast.error("Error fetching user. Please log in again.");
         router.push("/TGR/crew/login");
         return;
       }
-      if (session) {
-        setUserUuid(session.user.id);
+      if (user) {
+        setUserUuid(user.id);
       } else {
-        toast.error("No active session found. Please log in.");
+        toast.error("No active user found. Please log in.");
         router.push("/TGR/crew/login");
       }
     };
 
-    fetchSession();
+    fetchUser();
   }, [router]);
 
   useEffect(() => {
@@ -291,10 +291,10 @@ export default function OrdersComponent() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="manufacturer">Manufacturer</Label>
+                <Label htmlFor="manufacturer">Manufacturer | Class</Label>
                 <Input
                   id="manufacturer"
-                  placeholder="Enter manufacturer"
+                  placeholder="Sig | CCW etc."
                   {...register("manufacturer")}
                 />
                 {errors.manufacturer && (
@@ -302,10 +302,10 @@ export default function OrdersComponent() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="item">Item/Model</Label>
+                <Label htmlFor="item">Item | Model | Course</Label>
                 <Input
                   id="item"
-                  placeholder="Enter item/model"
+                  placeholder="P320 | 16 Hour etc."
                   {...register("item")}
                 />
                 {errors.item && (

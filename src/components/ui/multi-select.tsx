@@ -70,7 +70,7 @@ const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>(
             <PopoverContent className="w-full p-0">
                 <Command className={className}>
                     <CommandInput placeholder="Search ..." />
-                    <CommandEmpty>No item found.</CommandEmpty>
+                    {/* <CommandEmpty>No item found.</CommandEmpty> */}
                     <CommandGroup className='max-h-64 overflow-auto'>
                         {options.map((option) => (
                             <CommandItem

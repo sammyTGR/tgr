@@ -24,23 +24,17 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const fetchRole = async () => {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        console.error(
-          "Error fetching session or no active session found:",
-          sessionError?.message
-        );
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        console.error("Error fetching user or no active session found:", error?.message);
         setLoading(false);
         return;
       }
 
-      const email = session.user?.email;
-      setUser(session.user); // Set the user
+      setUser(user); // Set the user
+      const email = user.email;
       if (!email) {
-        console.error("No email found in session.");
+        console.error("No email found in user.");
         setLoading(false);
         return;
       }

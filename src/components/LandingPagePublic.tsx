@@ -72,7 +72,7 @@ const LandingPagePublic: React.FC = React.memo(() => {
                   Our gun range offers 20 stalls, all of which are first come
                   first served (we don&apos;t take appointments). There are ZERO
                   time limits with your visits. You can rapid fire, and for CCW
-                  holders, you can do holster work.
+                  holders & Law Enforcement Officers, you can do holster work.
                 </p>
               </div>
               

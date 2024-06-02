@@ -12,6 +12,7 @@ import {
 } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
+import { Button } from "./ui/button";
 
 const words = "Employee Dashboard";
 const subwords = "Let's GOOOOOOO!";
@@ -24,7 +25,7 @@ const LandingPageUser: React.FC = React.memo(() => {
       <div>
         <h1>You must be signed in to view this page.</h1>
         <Link href="/sign-in">
-          <a>Sign In</a>
+          <Button>Sign In</Button>
         </Link>
       </div>
     );

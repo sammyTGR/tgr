@@ -1,9 +1,8 @@
-// src/app/TGR/crew/deposits/page.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useRole } from "@/context/RoleContext";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from '@/utils/supabase/client';
 import { toast } from "sonner";
 import {
   Card,
@@ -17,11 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const denominations = [
   { name: "Pennies", value: 0.01 },
@@ -266,17 +260,36 @@ export default function DailyDepositsPage() {
       user_uuid,
     }));
 
-    const { data, error: insertError } = await supabase
-      .from("daily_deposits")
-      .insert(deposits);
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        toast.error("Unauthorized");
+        console.error("Unauthorized: ", sessionError?.message || "No active session");
+        return;
+      }
 
-    if (insertError) {
-      console.error("Error submitting deposit data:", insertError);
-    } else {
+      const response = await fetch('/api/submitDailyDeposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(deposits),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error submitting deposit data:", errorData);
+        toast.error('There was an error submitting the deposit data.');
+        return;
+      }
+
       const currentDate = new Date().toLocaleDateString();
-      console.log("Successfully submitted deposit data:", data);
       toast.success(`Successfully submitted deposit data for ${currentDate}!`);
       resetFormAndTabs();
+    } catch (error) {
+      console.error("Unexpected error submitting deposit data:", error);
+      toast.error('Unexpected error occurred while submitting the deposit data.');
     }
   };
 
