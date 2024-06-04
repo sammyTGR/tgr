@@ -4,6 +4,7 @@ import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
 import {
   ActivityLogIcon,
+  ArchiveIcon,
   CalendarIcon,
   ClockIcon,
   CodeIcon,
@@ -206,6 +207,24 @@ export const DepositsCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Submit Daily Deposits.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const WaiverReviewCard = () => (
+  <>
+    <Link className="group" href="/TGR/deposits">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <ArchiveIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Check Customers In</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Check Customers In & Verify If They Completed Waivers.
           </p>
         </CardContent>
       </Card>
