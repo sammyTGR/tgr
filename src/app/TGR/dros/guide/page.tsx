@@ -238,18 +238,29 @@ export default function ProtectedDROSGuide() {
   const { role, loading } = useRole();
 
   useEffect(() => {
-    if (!loading && role !== "user" && role !== "admin" && role !== "super admin") {
-      router.push("/"); // Redirect to home or another page if the user is not authorized
+    // console.log("Loading:", loading);
+    // console.log("Role:", role);
+
+    if (!loading) {
+      if (role !== "user" && role !== "admin" && role !== "super admin") {
+        console.log("Redirecting to home due to unauthorized role");
+        router.push("/");
+      } else {
+        // console.log("User is authorized, role:", role);
+      }
     }
   }, [role, loading, router]);
 
   if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
+    // console.log("Currently loading...");
+    return <div></div>;
   }
 
   if (role !== "user" && role !== "admin" && role !== "super admin") {
-    return null; // Render nothing while redirecting
+    console.log("Role not authorized, rendering nothing");
+    return null;
   }
 
+  // console.log("Rendering DROSGuide for role:", role);
   return <DROSGuide />;
 }

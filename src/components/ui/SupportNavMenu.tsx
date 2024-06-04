@@ -299,13 +299,15 @@ export default function ProtectedSupportNavMenu() {
   const { role, loading } = useRole();
 
   useEffect(() => {
-    if (!loading && role !== "admin" && role !== "super admin") {
-      router.push("/"); // Redirect to home or another page if the user is not authorized
+    if (!loading) {
+      if (role !== "admin" && role !== "super admin" && role !== "user") {
+        router.push("/"); // Redirect to home or another page if the user is not authorized
+      }
     }
   }, [role, loading, router]);
 
   if (loading) {
-    return <div></div>; // Show loading state while checking the role
+    return <div>Loading...</div>; // Show loading state while checking the role
   }
 
   if (role !== "admin" && role !== "super admin" && role !== "user") {

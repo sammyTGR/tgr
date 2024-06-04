@@ -1,12 +1,5 @@
-// src/context/RoleContext.tsx
 "use client";
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/utils/supabase/client";
 
 interface RoleContextType {
@@ -54,6 +47,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
       if (employeeData) {
         setRole(employeeData.role);
+        console.log("Role from employees:", employeeData.role);
       } else {
         const { data: customerData, error: customerError } = await supabase
           .from("public_customers")
@@ -70,6 +64,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
         if (customerData) {
           setRole(customerData.role || "customer");
+          console.log("Role from public_customers:", customerData.role || "customer");
         } else {
           setRole(null);
         }
