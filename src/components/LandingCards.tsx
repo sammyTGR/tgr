@@ -216,7 +216,7 @@ export const DepositsCard = () => (
 
 export const WaiverReviewCard = () => (
   <>
-    <Link className="group" href="/TGR/deposits">
+    <Link className="group" href="/sales/waiver/checkin">
       <Card>
         <CardHeader className="flex items-center gap-2">
           <ArchiveIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
@@ -225,6 +225,24 @@ export const WaiverReviewCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Check Customers In & Verify If They Completed Waivers.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const AdminWaiverReviewCard = () => (
+  <>
+    <Link className="group" href="/sales/waiver/checkin">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <ArchiveIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Review Waivers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Verify If Customers Completed Waivers & Check Them In.
           </p>
         </CardContent>
       </Card>

@@ -33,6 +33,11 @@ const schedComponents = [
 
 const serviceComponents = [
   {
+    title: "Check Customers In",
+    href: "/sales/waiver/checkin",
+    description: "Check Customers In & Review Waivers",
+  },
+  {
     title: "Special Order Form",
     href: "/sales/orders",
     description: "Submit Requests For Customers",

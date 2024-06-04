@@ -130,7 +130,12 @@ export default function ProtectedWaiversCheckinPage() {
   const { role, loading } = useRole();
 
   useEffect(() => {
-    if (!loading && role !== "admin" && role !== "super admin") {
+    if (
+      !loading &&
+      role !== "admin" &&
+      role !== "super admin" &&
+      role !== "user"
+    ) {
       router.push("/"); // Redirect to home or another page if the user is not authorized
     }
   }, [role, loading, router]);
@@ -139,7 +144,7 @@ export default function ProtectedWaiversCheckinPage() {
     return <div>Loading...</div>; // Show loading state while checking the role
   }
 
-  if (role !== "admin" && role !== "super admin") {
+  if (role !== "admin" && role !== "super admin" && role !== "user") {
     return null; // Render nothing while redirecting
   }
 

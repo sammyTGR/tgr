@@ -70,6 +70,11 @@ const serviceComponents = [
     href: "/public/waiver",
     description: "Submit A Safety Waiver",
   },
+  {
+    title: "Review Waivers",
+    href: "/sales/waiver/checkin",
+    description: "Review Waivers & Check Customers In",
+  },
 ];
 
 const formComps = [
