@@ -8,6 +8,7 @@ const LandingPageUser = dynamic(() => import("./LandingPageUser"));
 const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
 const LandingPageSuperAdmin = dynamic(() => import("./LandingPageSuperAdmin"));
 const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
+const LandingPageCustomer = dynamic(() => import("./LandingPageCustomer")); // Import LandingPageCustomer
 
 const LandingPage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
@@ -35,6 +36,10 @@ const LandingPage: React.FC = () => {
 
   if (role === "admin") {
     return <LandingPageAdmin />;
+  }
+
+  if (role === "customer") { // Check for "customer" role
+    return <LandingPageCustomer />;
   }
 
   return <LandingPageUser />;

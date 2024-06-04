@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import styled from 'styled-components';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from "./button";
+import { useRole } from "../../context/RoleContext";
+import { useRouter } from "next/navigation";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -292,4 +294,23 @@ const SupportNavMenu = () => {
   );
 };
 
-export default SupportNavMenu;
+export default function ProtectedSupportNavMenu() {
+  const router = useRouter();
+  const { role, loading } = useRole();
+
+  useEffect(() => {
+    if (!loading && role !== "admin" && role !== "super admin") {
+      router.push("/"); // Redirect to home or another page if the user is not authorized
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return <div></div>; // Show loading state while checking the role
+  }
+
+  if (role !== "admin" && role !== "super admin" && role !== "user") {
+    return null; // Render nothing while redirecting
+  }
+
+  return <SupportNavMenu />;
+}

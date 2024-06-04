@@ -1,4 +1,4 @@
-// for customers
+// page/api/assignRole.ts used for assigning roles for customers
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
 
