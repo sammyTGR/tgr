@@ -1,9 +1,9 @@
 // src/pages/api/upload.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
-import formidable, { File, IncomingForm } from 'formidable';
+import formidable, { File } from 'formidable';
 import { read, utils } from 'xlsx';
-import fs from 'fs/promises';
+import fs from 'fs';
 import { parse } from 'csv-parse';
 
 export const config = {
@@ -51,141 +51,111 @@ const subcategoryMap = new Map<number, string>([
   [16, 'DROS Reprocessing Fee (Dealer Sale)'],
 ]);
 
-const processExcelFile = async (file: File) => {
-  try {
-    const data = await fs.readFile(file.filepath);
-    const workbook = read(data, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const jsonData = utils.sheet_to_json(sheet);
+const processExcelFile = async (filePath: string) => {
+  const data = fs.readFileSync(filePath);
+  const workbook = read(data, { type: 'buffer' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const jsonData = utils.sheet_to_json(sheet);
 
-    const processedData = jsonData.map((row: any) => {
-      const categoryLabel = categoryMap.get(Number(row['Cat'])) || '';
-      const subcategoryLabel = subcategoryMap.get(Number(row['Sub'])) || '';
-      return {
-        sales_reps: row['Sales Reps'] || '',
-        invoice: row['Invoice'] || '',
-        sku: row['Sku'] || '',
-        description: row['Desc'] || '',
-        sold_price: row['SoldPrice'] || 0,
-        sold_qty: row['SoldQty'] || 0,
-        cost: row['Cost'] || 0,
-        acct: row['Acct'] || '',
-        sale_date: new Date(row['Date']) || null,
-        discount: row['Disc'] || 0,
-        type: row['Type'] || '',
-        spiff: row['Spiff'] || 0,
-        last: row['Last'] || '',
-        last_name: row['LastName'] || '',
-        legacy: row['Legacy'] || '',
-        stloc: row['Stloc'] || '',
-        cat: Number(row['Cat']) || null,
-        sub: Number(row['Sub']) || null,
-        mfg: row['Mfg'] || '',
-        cust_type: row['CustType'] || '',
-        category_label: categoryLabel,
-        subcategory_label: subcategoryLabel
-      };
-    });
-
-    console.log('Processed Data:', processedData);
-
-    const { error } = await supabase.from('sales_data').insert(processedData);
-    if (error) {
-      console.error('Supabase Insert Error:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Excel Processing Error:', error);
-    throw error;
-  }
+  return jsonData.map((row: any) => ({
+    lanid: row['Lanid'] || '',
+    invoice: row['Invoice'] || '',
+    sku: row['Sku'] || '',
+    description: row['Description'] || '',
+    sold_price: parseFloat(row['SoldPrice']) || 0,
+    sold_qty: parseInt(row['SoldQty']) || 0,
+    cost: parseFloat(row['Cost']) || 0,
+    acct: row['Acct'] || '',
+    sale_date: row['Date'] ? new Date(row['Date']).toISOString() : null,
+    discount: parseFloat(row['Disc']) || 0,
+    type: row['Type'] || '',
+    spiff: parseFloat(row['Spiff']) || 0,
+    last_name: row['LastName'] || '',
+    legacy: row['Legacy'] || '',
+    stloc: row['Stloc'] || '',
+    cat: row['Cat'] ? parseInt(row['Cat']) : null,
+    sub: row['Sub'] ? parseInt(row['Sub']) : null,
+    mfg: row['Mfg'] || '',
+    cust_type: row['CustType'] || '',
+    category_label: categoryMap.get(parseInt(row['Cat'])) || '',
+    subcategory_label: subcategoryMap.get(parseInt(row['Sub'])) || '',
+  }));
 };
 
-const processCsvFile = async (file: File) => {
-  try {
-    const data = await fs.readFile(file.filepath);
-    const records: any[] = [];
-    const parser = parse(data, { columns: true });
+const processCsvFile = async (filePath: string) => {
+  const records: any[] = [];
+  const parser = fs.createReadStream(filePath).pipe(parse({ columns: true }));
 
-    for await (const record of parser) {
-      records.push(record);
-    }
+  for await (const record of parser) {
+    records.push(record);
+  }
 
-    const processedData = records.map((row: any) => {
-      const categoryLabel = categoryMap.get(Number(row['Cat'])) || '';
-      const subcategoryLabel = subcategoryMap.get(Number(row['Sub'])) || '';
-      return {
-        sales_reps: row['Sales Reps'] || '',
-        invoice: row['Invoice'] || '',
-        sku: row['Sku'] || '',
-        description: row['Desc'] || '',
-        sold_price: row['SoldPrice'] || 0,
-        sold_qty: row['SoldQty'] || 0,
-        cost: row['Cost'] || 0,
-        acct: row['Acct'] || '',
-        sale_date: new Date(row['Date']) || null,
-        discount: row['Disc'] || 0,
-        type: row['Type'] || '',
-        spiff: row['Spiff'] || 0,
-        last: row['Last'] || '',
-        last_name: row['LastName'] || '',
-        legacy: row['Legacy'] || '',
-        stloc: row['Stloc'] || '',
-        cat: Number(row['Cat']) || null,
-        sub: Number(row['Sub']) || null,
-        mfg: row['Mfg'] || '',
-        cust_type: row['CustType'] || '',
-        category_label: categoryLabel,
-        subcategory_label: subcategoryLabel
-      };
-    });
+  return records.map((row: any) => ({
+    lanid: row['Lanid'] || '',
+    invoice: row['Invoice'] || '',
+    sku: row['Sku'] || '',
+    description: row['Description'] || '',
+    sold_price: parseFloat(row['SoldPrice']) || 0,
+    sold_qty: parseInt(row['SoldQty']) || 0,
+    cost: parseFloat(row['Cost']) || 0,
+    acct: row['Acct'] || '',
+    sale_date: row['Date'] ? new Date(row['Date']).toISOString() : null,
+    discount: parseFloat(row['Disc']) || 0,
+    type: row['Type'] || '',
+    spiff: parseFloat(row['Spiff']) || 0,
+    last_name: row['LastName'] || '',
+    legacy: row['Legacy'] || '',
+    stloc: row['Stloc'] || '',
+    cat: row['Cat'] ? parseInt(row['Cat']) : null,
+    sub: row['Sub'] ? parseInt(row['Sub']) : null,
+    mfg: row['Mfg'] || '',
+    cust_type: row['CustType'] || '',
+    category_label: categoryMap.get(parseInt(row['Cat'])) || '',
+    subcategory_label: subcategoryMap.get(parseInt(row['Sub'])) || '',
+  }));
+};
 
-    console.log('Processed Data:', processedData);
-
-    const { error } = await supabase.from('sales_data').insert(processedData);
-    if (error) {
-      console.error('Supabase Insert Error:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('CSV Processing Error:', error);
+const insertDataToSupabase = async (data: any[]) => {
+  const { error } = await supabase.from('sales_data').insert(data);
+  if (error) {
+    console.error('Supabase Insert Error:', error);
     throw error;
   }
 };
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  const form = new IncomingForm();
-  console.log('Parsing form...');
+  const form = new formidable.IncomingForm();
 
-  form.parse(req, async (err: any, fields: formidable.Fields, files: formidable.Files) => {
+  form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('Form Parsing Error:', err);
       res.status(500).json({ error: 'Failed to parse form data' });
       return;
     }
 
-    console.log('Form parsed successfully:', { fields, files });
-
-    const fileArray = files.file as formidable.File[];
-    if (!fileArray || fileArray.length === 0) {
-      console.error('No files uploaded');
-      res.status(400).json({ error: 'No files uploaded' });
+    const file = files.file as unknown as File;
+    if (!file) {
+      console.error('No file uploaded');
+      res.status(400).json({ error: 'No file uploaded' });
       return;
     }
 
-    const file = fileArray[0];
+    const filePath = file.filepath;
     const fileType = file.mimetype;
 
     try {
-      console.log('Processing file:', file.originalFilename, fileType);
+      let processedData: any[] = [];
       if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-        await processExcelFile(file);
+        processedData = await processExcelFile(filePath);
       } else if (fileType === 'text/csv') {
-        await processCsvFile(file);
+        processedData = await processCsvFile(filePath);
       } else {
         console.error('Unsupported file type:', fileType);
         res.status(400).json({ error: 'Unsupported file type' });
         return;
       }
+
+      await insertDataToSupabase(processedData);
       res.status(200).json({ message: 'File processed successfully' });
     } catch (error) {
       console.error('File Processing Error:', error);
