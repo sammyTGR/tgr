@@ -18,7 +18,7 @@ import { useRole } from "../context/RoleContext";
 import { Button } from "./ui/button";
 
 const words = "Ops Management Dashboard";
-const subwords = "Fuck You Chris";
+const subwords = "Weekly Checks For 9MM Quality Control";
 
 const LandingPageSuperAdmin: React.FC = React.memo(() => {
   const { role } = useRole();
@@ -27,7 +27,7 @@ const LandingPageSuperAdmin: React.FC = React.memo(() => {
     return (
       <div>
         <h1>You must be signed in to view this page.</h1>
-        <Link href="/auth">
+        <Link href="/TGR/crew/login">
           <Button>Sign In</Button>
         </Link>
       </div>

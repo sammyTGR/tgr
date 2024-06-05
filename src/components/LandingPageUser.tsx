@@ -25,7 +25,7 @@ const LandingPageUser: React.FC = React.memo(() => {
     return (
       <div>
         <h1>You must be signed in to view this page.</h1>
-        <Link href="/sign-in">
+        <Link href="/TGR/crew/login">
           <Button>Sign In</Button>
         </Link>
       </div>

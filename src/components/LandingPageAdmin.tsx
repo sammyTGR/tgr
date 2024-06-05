@@ -19,7 +19,7 @@ import { useRole } from "../context/RoleContext";
 import { Button } from "./ui/button";
 
 const words = "Admin Dashboard";
-const subwords = "Time To Manage";
+const subwords = "Let&apos;s Get On It!";
 
 const LandingPageAdmin: React.FC = React.memo(() => {
   const { role } = useRole();
