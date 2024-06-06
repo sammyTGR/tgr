@@ -6,19 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { useRole } from "@/context/RoleContext"; // Import useRole
+import { TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
+import { Textarea } from "@/components/ui/textarea";
 
 const title = "TGR Ops Chat";
 
+interface ChatMessage {
+  id: number;
+  user_name: string;
+  message: string;
+  created_at: string;
+  user_id: string;
+}
+
 export default function ChatClient() {
   const [message, setMessage] = useState<string>("");
-  const [messages, setMessages] = useState<
-    {
-      user: string;
-      message: string;
-    }[]
-  >([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { user, role, loading } = useRole(); // Use useRole hook
   const [username, setUsername] = useState<string>("");
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editingMessage, setEditingMessage] = useState<string>("");
 
   const channel = useRef<RealtimeChannel | null>(null);
 
@@ -43,7 +50,20 @@ export default function ChatClient() {
       }
     };
 
+    const fetchMessages = async () => {
+      const { data, error } = await client
+        .from("chat_messages")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (data) {
+        setMessages(data);
+      } else {
+        console.error("Error fetching messages:", error?.message);
+      }
+    };
+
     fetchUsername();
+    fetchMessages();
 
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
@@ -54,9 +74,31 @@ export default function ChatClient() {
         },
       });
       channel.current
-        .on("broadcast", { event: "message" }, ({ payload }) => {
-          setMessages((prev) => [...prev, payload.message]);
-        })
+        .on<ChatMessage>(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new]);
+          }
+        )
+        .on<ChatMessage>(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "chat_messages" },
+          (payload) => {
+            setMessages((prev) =>
+              prev.filter((msg) => msg.id !== payload.old.id)
+            );
+          }
+        )
+        .on<ChatMessage>(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "chat_messages" },
+          (payload) => {
+            setMessages((prev) =>
+              prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
+            );
+          }
+        )
         .subscribe();
     }
 
@@ -66,8 +108,7 @@ export default function ChatClient() {
     };
   }, [user]);
 
-  function onSend() {
-    // console.log("Sending message:", message);
+  const onSend = async () => {
     if (
       !channel.current ||
       message.trim().length === 0 ||
@@ -80,13 +121,69 @@ export default function ChatClient() {
       });
       return;
     }
-    channel.current.send({
-      type: "broadcast",
-      event: "message",
-      payload: { message: { message, user: username } },
-    });
+
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const newMessage = {
+      user_name: username,
+      message,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+    };
+
+    const { error } = await client.from("chat_messages").insert([newMessage]);
+
+    if (error) {
+      console.error("Error inserting message:", error.message);
+      return;
+    }
+
     setMessage("");
-  }
+  };
+
+  const onDelete = async (id: number) => {
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { error } = await client.from("chat_messages").delete().eq("id", id);
+
+    if (error) {
+      console.error("Error deleting message:", error.message);
+      return;
+    }
+  };
+
+  const onEdit = (id: number, currentMessage: string) => {
+    setEditingMessageId(id);
+    setEditingMessage(currentMessage);
+  };
+
+  const onUpdate = async () => {
+    if (!editingMessageId) return;
+
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { error } = await client
+      .from("chat_messages")
+      .update({ message: editingMessage })
+      .eq("id", editingMessageId);
+
+    if (error) {
+      console.error("Error updating message:", error.message);
+      return;
+    }
+
+    setEditingMessageId(null);
+    setEditingMessage("");
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -95,25 +192,55 @@ export default function ChatClient() {
   return (
     <>
       <h1 className="lg:leading-tighter text-2xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[2.6rem] 2xl:text-[3rem]"></h1>
-      <Card className="flex flex-col h-full max-w-4xl mx-auto my-12">
+      <Card className="flex flex-col justify-between h-full max-w-xl mx-auto my-12">
         <CardTitle className="text-3xl ml-2">
           <TextGenerateEffect words={title} />
         </CardTitle>
 
-        <div className="mt-5 flex flex-col gap-1">
+        <div className="mt-5 flex flex-col flex-grow space-y-2 p-2 overflow-y-auto">
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`p-2 rounded-md w-2/3 text-lg bg-${
-                username === msg.user ? "blue-800" : "gray-600"
-              } ${username === msg.user ? "self-end" : "self-start"}`}
+              className={`p-2 rounded-md text-lg ${
+                msg.user_id === user.id
+                  ? "bg-muted self-end"
+                  : "bg-blue-800 self-start"
+              } message-container`}
             >
-              <span className="font-bold">{msg.user}: </span>
-              {msg.message}
+              {msg.user_id !== user.id && (
+                <span className="font-bold">{msg.user_name}: </span>
+              )}
+              {editingMessageId === msg.id ? (
+                <>
+                  <Textarea
+                    value={editingMessage}
+                    onChange={(e) => setEditingMessage(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Button onClick={onUpdate} className="mb-2">
+                    Update
+                  </Button>
+                </>
+              ) : (
+                <>{msg.message}</>
+              )}
+              {msg.user_id === user.id && (
+                <div className="message-actions">
+                  <Button
+                    onClick={() => onEdit(msg.id, msg.message)}
+                    variant="ghost"
+                  >
+                    <Pencil1Icon />
+                  </Button>
+                  <Button onClick={() => onDelete(msg.id)} variant="ghost">
+                    <TrashIcon />
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        <div className="flex gap-2 p-2 mx-auto">
+        <div className="flex space-x-4 p-2 min-w-full">
           <Input
             type="text"
             placeholder="Message"
@@ -126,9 +253,11 @@ export default function ChatClient() {
                 onSend();
               }
             }}
-            className="flex-[0.7] text-lg"
+            className="flex-grow text-lg"
           />
-          <Button onClick={onSend}>Send</Button>
+          <Button onClick={onSend} className="flex-shrink-0">
+            Send
+          </Button>
         </div>
       </Card>
     </>

@@ -74,4 +74,27 @@
     body {
       @apply bg-background text-foreground;
     }
+
+    .message-container {
+      position: relative;
+      padding-right: 2.5rem; /* Add padding to the right for the icons */
+    }
+    
+    .message-actions {
+      position: absolute;
+      right: 0; /* Adjust this value as needed */
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.6); /* Optional: add background for better visibility */
+      padding: 0.2rem;
+      border-radius: 0.2rem;
+    }
+    
+    .message-container:hover .message-actions {
+      display: flex;
+    }
+    
+    
   }
