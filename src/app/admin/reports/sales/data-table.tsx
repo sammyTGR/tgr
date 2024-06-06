@@ -1,3 +1,5 @@
+// src/app/admin/reports/sales/data-table.tsx
+
 import * as React from "react";
 import { flexRender, Table as TableType } from "@tanstack/react-table";
 import {
@@ -9,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -16,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { SalesDataTablePagination } from "./data-table-pagination";
+import { SalesDataTablePagination } from "./data-table-pagination"; // Ensure the correct import path
 
 interface DataTableProps<TData> {
   table: TableType<TData>;

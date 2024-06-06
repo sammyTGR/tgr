@@ -6,11 +6,13 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   ColumnDef,
+  SortingState,
 } from "@tanstack/react-table";
 import { supabase } from "@/utils/supabase/client";
 import { DataTable } from "./data-table";
 import { SalesTableToolbar } from "./sales-table-toolbar";
 import { salesColumns } from "./columns";
+import { toast } from "sonner"; // Importing Sonner toast
 
 interface SalesData {
   id: number;
@@ -45,42 +47,88 @@ const SalesDataTable = () => {
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageCount, setPageCount] = useState(0);
+  const [filters, setFilters] = useState<any[]>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
-  const fetchSalesData = async (pageIndex: number, pageSize: number) => {
-    const { data, error, count } = await supabase
-      .from("sales_data")
-      .select("*", { count: 'exact' }) // Include the exact count of rows
-      .range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
+  const fetchSalesData = async (
+    pageIndex: number,
+    pageSize: number,
+    filters: any[],
+    sorting: SortingState
+  ) => {
+    const response = await fetch("/api/fetch-sales-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ pageIndex, pageSize, filters, sorting }),
+    });
+
+    const { data, count, error } = await response.json();
 
     if (error) {
       console.error("Error fetching sales data:", error);
     } else {
       setSales(data);
-      if (count) {
+      if (count !== undefined) {
         setPageCount(Math.ceil(count / pageSize));
       }
     }
   };
 
-  const fetchTotalDROS = async () => {
-    const { data, error } = await supabase.rpc("calculate_total_dros");
+  const fetchTotalDROS = async (filters: any[]) => {
+    const response = await fetch("/api/calculate-total-dros", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ filters }),
+    });
+
+    const { totalDROS, error } = await response.json();
+
     if (error) {
       console.error("Error fetching total DROS:", error);
     } else {
-      setTotalDROS(data[0].total_dros);
+      setTotalDROS(totalDROS);
     }
   };
 
   useEffect(() => {
-    fetchSalesData(pageIndex, pageSize);
-    fetchTotalDROS();
-  }, [pageIndex, pageSize]);
+    fetchSalesData(pageIndex, pageSize, filters, sorting);
+    fetchTotalDROS(filters);
+  }, [pageIndex, pageSize, filters, sorting]);
 
-  const onUpdate = (id: number, updates: Partial<SalesData>) => {
-    setSales((currentSales) =>
-      currentSales.map((sale) =>
-        sale.id === id ? { ...sale, ...updates } : sale
-      )
+  const onUpdate = async (id: number, updates: Partial<SalesData>) => {
+    const { error } = await supabase
+      .from("sales_data")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating sales data:", error);
+      toast.error("Failed to update labels.");
+    } else {
+      setSales((currentSales) =>
+        currentSales.map((sale) =>
+          sale.id === id ? { ...sale, ...updates } : sale
+        )
+      );
+      toast.success("Labels updated successfully.");
+    }
+  };
+
+  const handleFilterChange = (newFilters: any[]) => {
+    setFilters(newFilters);
+  };
+
+  const handleSortingChange = (
+    updaterOrValue: SortingState | ((old: SortingState) => SortingState)
+  ) => {
+    setSorting((old) =>
+      typeof updaterOrValue === "function"
+        ? updaterOrValue(old)
+        : updaterOrValue
     );
   };
 
@@ -88,7 +136,11 @@ const SalesDataTable = () => {
     data: sales,
     columns: salesColumns(onUpdate),
     pageCount,
-    state: { pagination: { pageIndex, pageSize } },
+    state: {
+      pagination: { pageIndex, pageSize },
+      columnFilters: filters,
+      sorting,
+    },
     onPaginationChange: (updater) => {
       const newPaginationState =
         typeof updater === "function"
@@ -97,16 +149,22 @@ const SalesDataTable = () => {
       setPageIndex(newPaginationState.pageIndex);
       setPageSize(newPaginationState.pageSize);
     },
+    onSortingChange: handleSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    manualPagination: true, // Enable manual pagination
+    manualPagination: true,
+    manualSorting: true,
   });
 
   return (
     <div>
-      <SalesTableToolbar table={table} totalDROS={totalDROS} />
+      <SalesTableToolbar
+        table={table}
+        totalDROS={totalDROS}
+        onFilterChange={handleFilterChange}
+      />
       <DataTable table={table} />
     </div>
   );

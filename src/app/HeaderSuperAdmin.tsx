@@ -90,6 +90,22 @@ const formComps = [
   },
 ];
 
+const reportsComps = [
+  {
+    title: "Daily Sales",
+    href: "/admin/reports/sales",
+    description: "Set Categories & View Sales",
+  },
+];
+
+const profileComps = [
+  {
+    title: "Amanda",
+    href: "/admin/team/profiles/amanda",
+    description: "Amanda's Profile",
+  },
+];
+
 const HeaderSuperAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const { role } = useRole();
@@ -155,6 +171,38 @@ const HeaderSuperAdmin = React.memo(() => {
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                 {formComps.map((component) => (
+                  <ListItem
+                    key={component.title}
+                    title={component.title}
+                    href={component.href}
+                  >
+                    {component.description}
+                  </ListItem>
+                ))}
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Reporting</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                {reportsComps.map((component) => (
+                  <ListItem
+                    key={component.title}
+                    title={component.title}
+                    href={component.href}
+                  >
+                    {component.description}
+                  </ListItem>
+                ))}
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Staff Profiles</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                {profileComps.map((component) => (
                   <ListItem
                     key={component.title}
                     title={component.title}

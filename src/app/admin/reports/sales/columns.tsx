@@ -1,4 +1,3 @@
-"use client";
 import { format } from "date-fns";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
@@ -125,10 +124,14 @@ export const salesColumns = (
     meta: {
       style: { width: "120px" },
     },
+    sortingFn: "datetime",
     filterFn: (row, columnId, filterValue) => {
-      const formattedDate = format(new Date(row.getValue(columnId)), "MM-dd-yyyy");
+      const formattedDate = format(
+        new Date(row.getValue(columnId)),
+        "MM-dd-yyyy"
+      );
       return formattedDate.includes(filterValue);
-    }
+    },
   },
   {
     accessorKey: "Disc",
