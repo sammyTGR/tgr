@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { HomeIcon } from "@radix-ui/react-icons";
+import { ChatBubbleIcon, HomeIcon } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -196,6 +196,11 @@ const HeaderAdmin = React.memo(() => {
             <Button>Sign In</Button>
           </Link>
         )}
+        <Link href="/TGR/crew/chat">
+          <Button variant="ghost" size="icon">
+            <ChatBubbleIcon />
+          </Button>
+        </Link>
         <Link href="/">
           <Button variant="ghost" size="icon">
             <HomeIcon />
