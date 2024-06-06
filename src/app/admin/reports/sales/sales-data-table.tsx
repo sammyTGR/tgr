@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -6,8 +6,6 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   ColumnDef,
-  Table as ReactTable,
-  ColumnFiltersState,
 } from "@tanstack/react-table";
 import { supabase } from "@/utils/supabase/client";
 import { DataTable } from "./data-table";
@@ -41,63 +39,42 @@ interface SalesData {
   status: string;
 }
 
-const columns: ColumnDef<SalesData>[] = [
-  { accessorKey: "Lanid", header: "Lanid" },
-  { accessorKey: "Invoice", header: "Invoice" },
-  { accessorKey: "Sku", header: "Sku" },
-  { accessorKey: "Desc", header: "Description" },
-  { accessorKey: "SoldPrice", header: "Sold Price" },
-  { accessorKey: "SoldQty", header: "Sold Qty" },
-  { accessorKey: "Cost", header: "Cost" },
-  { accessorKey: "Acct", header: "Account" },
-  { accessorKey: "Date", header: "Date" },
-  { accessorKey: "Disc", header: "Discount" },
-  { accessorKey: "Type", header: "Type" },
-  { accessorKey: "Spiff", header: "Spiff" },
-  { accessorKey: "Last", header: "Last" },
-  { accessorKey: "LastName", header: "Last Name" },
-  { accessorKey: "Legacy", header: "Legacy" },
-  { accessorKey: "Stloc", header: "Stloc" },
-  { accessorKey: "Cat", header: "Category" },
-  { accessorKey: "Sub", header: "Subcategory" },
-  { accessorKey: "Mfg", header: "Manufacturer" },
-  { accessorKey: "CustType", header: "Customer Type" },
-  { accessorKey: "category_label", header: "Category Label" },
-  { accessorKey: "subcategory_label", header: "Subcategory Label" },
-];
-
 const SalesDataTable = () => {
   const [sales, setSales] = useState<SalesData[]>([]);
   const [totalDROS, setTotalDROS] = useState<number>(0);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [pageCount, setPageCount] = useState(0);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data, error } = await supabase
-        .from("sales_data")
-        .select("*")
-        .limit(10000); // Fetching 10000 rows to handle large dataset
-      if (error) {
-        console.error("Error fetching sales data:", error);
-      } else {
-        setSales(data);
+  const fetchSalesData = async (pageIndex: number, pageSize: number) => {
+    const { data, error, count } = await supabase
+      .from("sales_data")
+      .select("*", { count: 'exact' }) // Include the exact count of rows
+      .range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
+
+    if (error) {
+      console.error("Error fetching sales data:", error);
+    } else {
+      setSales(data);
+      if (count) {
+        setPageCount(Math.ceil(count / pageSize));
       }
-    };
+    }
+  };
 
-    fetchData();
-  }, []);
-
-  const calculateTotalDROS = (data: SalesData[]) => {
-    return data.reduce((total, row) => {
-      if (row.subcategory_label) {
-        return total + (row.SoldQty || 0);
-      }
-      return total;
-    }, 0);
+  const fetchTotalDROS = async () => {
+    const { data, error } = await supabase.rpc("calculate_total_dros");
+    if (error) {
+      console.error("Error fetching total DROS:", error);
+    } else {
+      setTotalDROS(data[0].total_dros);
+    }
   };
 
   useEffect(() => {
-    setTotalDROS(calculateTotalDROS(sales));
-  }, [sales]);
+    fetchSalesData(pageIndex, pageSize);
+    fetchTotalDROS();
+  }, [pageIndex, pageSize]);
 
   const onUpdate = (id: number, updates: Partial<SalesData>) => {
     setSales((currentSales) =>
@@ -110,10 +87,21 @@ const SalesDataTable = () => {
   const table = useReactTable({
     data: sales,
     columns: salesColumns(onUpdate),
+    pageCount,
+    state: { pagination: { pageIndex, pageSize } },
+    onPaginationChange: (updater) => {
+      const newPaginationState =
+        typeof updater === "function"
+          ? updater({ pageIndex, pageSize })
+          : updater;
+      setPageIndex(newPaginationState.pageIndex);
+      setPageSize(newPaginationState.pageSize);
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    manualPagination: true, // Enable manual pagination
   });
 
   return (

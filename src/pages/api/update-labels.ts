@@ -33,11 +33,11 @@ const categoryMap = new Map<number, string>([
   [102, 'Monthly Storage Fee (Per Firearm)'],
 ]);
 
-const subcategoryMap = new Map<number, string>([
-  [1, 'Dros Fee'],
-  [7, 'Standard Ammunition Eligibility Check'],
-  [8, 'Basic Ammunition Eligibility Check'],
-  [16, 'DROS Reprocessing Fee (Dealer Sale)'],
+const subcategoryMap = new Map<string, string>([
+  ["170-7", "Standard Ammunition Eligibility Check"],
+  ["170-1", "Dros Fee"],
+  ["170-16", "DROS Reprocessing Fee (Dealer Sale)"],
+  ["170-8", "Basic Ammunition Eligibility Check"],
 ]);
 
 const updateLabels = async () => {
@@ -47,7 +47,7 @@ const updateLabels = async () => {
   const updates = data.map((row) => ({
     id: row.id,
     category_label: categoryMap.get(row.Cat) || '',
-    subcategory_label: subcategoryMap.get(row.Sub) || '',
+    subcategory_label: subcategoryMap.get(`${row.Cat}-${row.Sub}`) || '',
   }));
 
   for (const update of updates) {

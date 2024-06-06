@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { DataTablePagination } from "./pagination";
+import { SalesDataTablePagination } from "./data-table-pagination";
 
 interface DataTableProps<TData> {
   table: TableType<TData>;
@@ -118,7 +118,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
         </div>
       </div>
       <div className="flex-none mt-4">
-        <DataTablePagination table={table} />
+        <SalesDataTablePagination table={table} />
       </div>
     </div>
   );
