@@ -100,6 +100,11 @@ const reportsComps = [
 
 const profileComps = [
   {
+    title: "Staff Notes",
+    href: "/admin/todo",
+    description: "Notes For Individuals",
+  },
+  {
     title: "Amanda",
     href: "/admin/team/profiles/amanda",
     description: "Amanda's Profile",
