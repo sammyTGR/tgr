@@ -95,6 +95,14 @@
     .message-container:hover .message-actions {
       display: flex;
     }
+    .button-icon {
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+    
+    .button-icon:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
     
     
   }

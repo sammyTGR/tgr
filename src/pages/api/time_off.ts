@@ -1,10 +1,19 @@
 // pages/api/time_off.ts used for submitting time off requests
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { corsHeaders } from '@/utils/cors';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') {
+        res.status(200).json({ message: 'CORS preflight request success' });
+        return;
+    }
+    
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+
     if (req.method === 'POST') {
         const { employee_name, start_date, end_date, reason, other_reason } = req.body;
 

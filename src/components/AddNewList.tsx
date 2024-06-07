@@ -12,19 +12,19 @@ import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
 import { PlusIcon } from "@radix-ui/react-icons";
 
-export function AddNewItem({
-  addNewItem,
+export function AddNewList({
+  addNewList,
 }: {
-  addNewItem: (name: string) => void;
+  addNewList: (name: string) => void;
 }) {
-  const [itemName, setItemName] = useState("");
+  const [listName, setListName] = useState("");
 
   const handleSubmit = () => {
-    if (itemName.trim() === "") {
+    if (listName.trim() === "") {
       return;
     }
-    addNewItem(itemName);
-    setItemName("");
+    addNewList(listName);
+    setListName("");
   };
 
   return (
@@ -36,15 +36,15 @@ export function AddNewItem({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-start">
-          <DialogTitle>Add New Item</DialogTitle>
-          <DialogDescription>Enter the details of your item</DialogDescription>
+          <DialogTitle>Add New List</DialogTitle>
+          <DialogDescription>Enter the details of your list</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 pt-2">
           <Input
             id="name"
-            value={itemName}
+            value={listName}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setItemName(e.target.value)
+              setListName(e.target.value)
             }
           />
         </div>

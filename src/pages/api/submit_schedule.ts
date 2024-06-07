@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { corsHeaders } from '@/utils/cors';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +14,14 @@ const getDayOfWeek = (date: Date): string => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'OPTIONS') {
+    res.status(200).json({ message: 'CORS preflight request success' });
+    return;
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+
   if (req.method !== 'POST') {
     res.status(405).json({ message: 'Method Not Allowed' });
     return;
@@ -21,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { employee_id, day, start_time, end_time } = req.body;
 
   if (!employee_id || !day || !start_time || !end_time) {
+    console.error('Missing required fields', { employee_id, day, start_time, end_time });
     res.status(400).json({ message: 'Missing required fields' });
     return;
   }
@@ -43,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (existingSchedule) {
+      console.warn('Schedule already exists for this employee on this day', existingSchedule);
       res.status(400).json({ message: 'Schedule already exists for this employee on this day' });
       return;
     }

@@ -1,8 +1,17 @@
 // page/api/assignRole.ts used for assigning roles for customers
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { corsHeaders } from '@/utils/cors';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'OPTIONS') {
+    res.status(200).json({ message: 'CORS preflight request success' });
+    return;
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+  
   if (req.method === 'POST') {
     const { email, role } = req.body;
 

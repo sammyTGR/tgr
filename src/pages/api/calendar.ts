@@ -1,6 +1,7 @@
 // src/pages/api/calendar.ts
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { corsHeaders } from '@/utils/cors';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -13,8 +14,8 @@ interface Employee {
 
 interface Schedule {
     day_of_week: string;
-    start_time: string;
-    end_time: string;
+    start_time: string | null;
+    end_time: string | null;
     schedule_date: string;
     status: string;
     employee: Employee;
@@ -78,6 +79,14 @@ export async function getCalendarData(start_date: string, end_date: string): Pro
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'OPTIONS') {
+        res.status(200).json({ message: 'CORS preflight request success' });
+        return;
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+
     if (req.method === 'POST') {
         const { start_date, end_date } = req.body;
         console.log(`Received request with start_date: ${start_date}, end_date: ${end_date}`);

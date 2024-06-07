@@ -1,22 +1,142 @@
-/**
- * v0 by Vercel.
- * @see https://v0.dev/t/aNpMoCgx8pF
- * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
- */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import { supabase } from "@/utils/supabase/client"; // Ensure this path is correct
+import { useRole } from "@/context/RoleContext"; // Adjust the import path accordingly
+
+interface Note {
+  id: number;
+  employee_id: number;
+  note: string;
+  type: string;
+  created_at: string;
+}
 
 export default function Component() {
   const [activeTab, setActiveTab] = useState("notes");
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [newNote, setNewNote] = useState("");
+  const [performanceReview, setPerformanceReview] = useState("");
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const { user } = useRole(); // Get user from RoleContext
+
+  useEffect(() => {
+    if (user) {
+      fetchEmployeeId();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (employeeId !== null) {
+      fetchNotes();
+      subscribeToNoteChanges();
+    }
+  }, [employeeId]);
+
+  const fetchEmployeeId = async () => {
+    const email = user?.email;
+    if (!email) return;
+
+    const { data, error } = await supabase
+      .from("employees")
+      .select("employee_id")
+      .eq("contact_info", email.toLowerCase())
+      .single();
+
+    if (error) {
+      console.error("Error fetching employee ID:", error.message);
+    } else if (data) {
+      setEmployeeId(data.employee_id);
+    }
+  };
+
+  const fetchNotes = async () => {
+    const { data, error } = await supabase
+      .from("employee_profile_notes")
+      .select("*")
+      .eq("employee_id", employeeId);
+
+    if (error) {
+      console.error("Error fetching notes:", error);
+    } else if (data) {
+      setNotes(data as Note[]);
+    }
+  };
+
+  const subscribeToNoteChanges = () => {
+    const channel = supabase
+      .channel("custom-all-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "employee_profile_notes" },
+        (payload) => {
+          console.log("Change received!", payload);
+          fetchNotes(); // Re-fetch notes on any change
+        }
+      )
+      .subscribe();
+
+    // Clean up subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const handleAddNote = async (type: string) => {
+    if (employeeId === null || newNote.trim() === "") return;
+
+    const { data, error } = await supabase
+      .from("employee_profile_notes")
+      .insert([{ employee_id: employeeId, note: newNote, type }]);
+
+    if (error) {
+      console.error("Error adding note:", error);
+    } else if (data) {
+      setNewNote(""); // Clear the new note input field
+    }
+  };
+
+  const handleDeleteNote = async (id: number) => {
+    const { error } = await supabase
+      .from("employee_profile_notes")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting note:", error);
+    } else {
+      setNotes(notes.filter((note) => note.id !== id));
+    }
+  };
+
+  const handleEditNote = async (id: number, updatedNote: string | null) => {
+    if (updatedNote === null || updatedNote.trim() === "") return;
+
+    const { error } = await supabase
+      .from("employee_profile_notes")
+      .update({ note: updatedNote })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating note:", error);
+    } else {
+      setNotes(
+        notes.map((note) =>
+          note.id === id ? { ...note, note: updatedNote } : note
+        )
+      );
+    }
+  };
+
   return (
     <Card className="h-full max-w-4xl mx-auto my-12">
       <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -52,33 +172,47 @@ export default function Component() {
                 <Label htmlFor="new-note">Add a new note</Label>
                 <Textarea
                   id="new-note"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
                   placeholder="Type your note here..."
                   className="min-h-[100px]"
                 />
+                <Button onClick={() => handleAddNote("notes")}>Add Note</Button>
               </div>
               <div className="grid gap-4">
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">Performance Review</div>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    Exceeded expectations in Q1. Recommended for promotion.
-                  </div>
-                </div>
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">New Skills Learned</div>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    Learned how to audit and navigate through AIM, DROS Support,
-                    Fastbound.
-                  </div>
-                </div>
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">
-                    Goal for Next Quarter
-                  </div>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    Continue In-depth Learning In AIM To Start Training New
-                    Hires And Refresher Training For Current Employees.
-                  </div>
-                </div>
+                {notes
+                  .filter((note) => note.type === "notes")
+                  .map((note) => (
+                    <div
+                      key={note.id}
+                      className="flex justify-between items-start"
+                    >
+                      <div>
+                        <div className="text-sm font-medium">{note.note}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleEditNote(
+                              note.id,
+                              prompt("Edit note:", note.note) ?? note.note
+                            )
+                          }
+                        >
+                          <Pencil1Icon />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteNote(note.id)}
+                        >
+                          <TrashIcon />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
           </TabsContent>
@@ -90,65 +224,107 @@ export default function Component() {
           <TabsContent value="reviews">
             <div className="p-6 space-y-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="new-note">Add a new note</Label>
+                <Label htmlFor="new-review">Add a new review</Label>
                 <Textarea
-                  id="new-note"
-                  placeholder="Type your note here..."
+                  id="new-review"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Type your review here..."
                   className="min-h-[100px]"
                 />
+                <Button onClick={() => handleAddNote("reviews")}>
+                  Add Review
+                </Button>
               </div>
               <div className="grid gap-4">
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">Performance Review</div>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    Exceeded expectations in Q1. Recommended for promotion.
-                  </div>
-                </div>
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">New Skills Learned</div>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    Learned how to audit and navigate through AIM, DROS Support,
-                    Fastbound.
-                  </div>
-                </div>
-                <div className="grid gap-1">
-                  <div className="text-sm font-medium">
-                    Goal for Next Quarter
-                  </div>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    Continue In-depth Learning In AIM To Start Training New
-                    Hires And Refresher Training For Current Employees.
-                  </div>
-                </div>
+                {notes
+                  .filter((note) => note.type === "reviews")
+                  .map((note) => (
+                    <div
+                      key={note.id}
+                      className="flex justify-between items-start"
+                    >
+                      <div>
+                        <div className="text-sm font-medium">{note.note}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleEditNote(
+                              note.id,
+                              prompt("Edit note:", note.note) ?? note.note
+                            )
+                          }
+                        >
+                          <Pencil1Icon />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteNote(note.id)}
+                        >
+                          <TrashIcon />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
           </TabsContent>
           <TabsContent value="growth">
             <div className="p-6 space-y-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="performance-review">Performance Review</Label>
+                <Label htmlFor="new-growth">
+                  Add a new growth tracking entry
+                </Label>
                 <Textarea
-                  id="performance-review"
-                  placeholder="Enter performance review details..."
+                  id="new-growth"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Type your growth tracking entry here..."
                   className="min-h-[100px]"
                 />
+                <Button onClick={() => handleAddNote("growth")}>
+                  Add Entry
+                </Button>
               </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="training-completed">Training Completed</Label>
-                <Input
-                  id="training-completed"
-                  placeholder="Enter training details..."
-                />
+              <div className="grid gap-4">
+                {notes
+                  .filter((note) => note.type === "growth")
+                  .map((note) => (
+                    <div
+                      key={note.id}
+                      className="flex justify-between items-start"
+                    >
+                      <div>
+                        <div className="text-sm font-medium">{note.note}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() =>
+                            handleEditNote(
+                              note.id,
+                              prompt("Edit note:", note.note) ?? note.note
+                            )
+                          }
+                        >
+                          <Pencil1Icon />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteNote(note.id)}
+                        >
+                          <TrashIcon />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
               </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="goals">Goals</Label>
-                <Textarea
-                  id="goals"
-                  placeholder="Enter goals..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              <Button>Save</Button>
             </div>
           </TabsContent>
         </Tabs>

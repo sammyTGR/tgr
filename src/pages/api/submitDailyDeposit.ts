@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { corsHeaders } from '@/utils/cors';
 
 interface Deposit {
   register: string;
@@ -27,6 +28,14 @@ interface Deposit {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'OPTIONS') {
+    res.status(200).json({ message: 'CORS preflight request success' });
+    return;
+}
+
+res.setHeader('Access-Control-Allow-Origin', '*');
+res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+
   if (req.method === 'POST') {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {

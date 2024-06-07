@@ -19,8 +19,8 @@ const title = "TGR Crew Calendar";
 
 interface CalendarEvent {
   day_of_week: string;
-  start_time: string;
-  end_time: string;
+  start_time: string | null;
+  end_time: string | null;
   schedule_date: string;
   status?: string;
 }
@@ -65,7 +65,9 @@ export default function Component() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const role = useRole();
 
-  const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
+  const fetchCalendarData = useCallback(async (): Promise<
+    EmployeeCalendar[]
+  > => {
     const startOfWeek = getStartOfWeek(currentDate);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
@@ -120,7 +122,8 @@ export default function Component() {
 
     fetchData();
 
-    const timeOffSubscription = supabase.channel("time_off_requests")
+    const timeOffSubscription = supabase
+      .channel("time_off_requests")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "time_off_requests" },
@@ -130,7 +133,8 @@ export default function Component() {
       )
       .subscribe();
 
-    const schedulesSubscription = supabase.channel("schedules")
+    const schedulesSubscription = supabase
+      .channel("schedules")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "schedules" },
@@ -180,7 +184,8 @@ export default function Component() {
     });
   };
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | null) => {
+    if (!time) return "N/A";
     const [hours, minutes] = time.split(":");
     const date = new Date();
     date.setHours(Number(hours), Number(minutes));
@@ -242,6 +247,14 @@ export default function Component() {
                 );
               }
 
+              if (event.start_time === null || event.end_time === null) {
+                return (
+                  <div key={index} className="text-gray-500 dark:text-gray-400">
+                    Off
+                  </div>
+                );
+              }
+
               const [startHours, startMinutes] = event.start_time.split(":");
               const startTime = new Date();
               startTime.setHours(Number(startHours), Number(startMinutes));
@@ -271,37 +284,43 @@ export default function Component() {
         <TextGenerateEffect words={title} />
       </h1>
       <Card className="w-full max-w-6xl">
-      <CardContent>
-        <div className="flex justify-between w-full mb-4">
-          <Button variant="ghost" onClick={handlePreviousWeek}>
-            <ChevronLeftIcon className="h-4 w-4" />
-            Previous Week
-          </Button>
-          <Button variant="ghost" onClick={handleNextWeek}>
-            Next Week
-            <ChevronRightIcon className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="overflow-x-auto"> {/* Added this div to make table horizontally scrollable */}
-          <Table className="min-w-full"> {/* Added min-w-full to make the table take full width */}
-            <TableHeader>
-              <TableRow>
-                <TableHead />
-                {daysOfWeek.map((day) => (
-                  <TableHead key={day}>
-                    {day}
-                    <br />
-                    {weekDates[day]}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.calendarData.map((employee) => renderEmployeeRow(employee))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+        <CardContent>
+          <div className="flex justify-between w-full mb-4">
+            <Button variant="ghost" onClick={handlePreviousWeek}>
+              <ChevronLeftIcon className="h-4 w-4" />
+              Previous Week
+            </Button>
+            <Button variant="ghost" onClick={handleNextWeek}>
+              Next Week
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            {" "}
+            {/* Added this div to make table horizontally scrollable */}
+            <Table className="min-w-full">
+              {" "}
+              {/* Added min-w-full to make the table take full width */}
+              <TableHeader>
+                <TableRow>
+                  <TableHead />
+                  {daysOfWeek.map((day) => (
+                    <TableHead key={day}>
+                      {day}
+                      <br />
+                      {weekDates[day]}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.calendarData.map((employee) =>
+                  renderEmployeeRow(employee)
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
