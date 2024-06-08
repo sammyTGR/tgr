@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { useRole } from "@/context/RoleContext";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useRouter } from "next/navigation";
 
 interface ScheduleData {
@@ -22,7 +22,7 @@ interface ScheduleData {
   end_time: string;
 }
 
-const ScheduleGeneratorPage = () => {
+export default function ScheduleGeneratorPage() {
   const [weeks, setWeeks] = useState(4);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -160,126 +160,112 @@ const ScheduleGeneratorPage = () => {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto py-8 md:py-12">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Generate Schedules</h1>
-      </div>
-      <div className="flex flex-col mb-4">
-        <label htmlFor="weeks" className="block text-sm font-medium">
-          Number of Weeks
-        </label>
-        <Input
-          type="number"
-          id="weeks"
-          value={weeks}
-          onChange={(e) => setWeeks(Number(e.target.value))}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-          min="1"
-        />
-      </div>
-      {scheduleData.map((schedule, index) => (
-        <div key={index} className="mb-4 flex flex-col items-center space-y-2">
-          <Select
-            onValueChange={(value) =>
-              handleInputChange(index, {
-                target: { name: "employee_id", value },
-              } as ChangeEvent<HTMLSelectElement>)
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectPrimitive.Value placeholder="Select Employee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {employees.map((employee) => (
-                  <SelectItem
-                    key={employee.employee_id}
-                    value={employee.employee_id}
-                  >
-                    {employee.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <Calendar
-            selected={schedule.day || undefined}
-            onDayClick={(date) => handleDateChange(index, date)}
-          />
-          <div className="flex space-x-2">
-            <Input
-              type="text"
-              name="start_time"
-              value={schedule.start_time}
-              onChange={(e) => handleInputChange(index, e)}
-              placeholder="Start Time (e.g., 5:30PM)"
-            />
-            <Input
-              type="text"
-              name="end_time"
-              value={schedule.end_time}
-              onChange={(e) => handleInputChange(index, e)}
-              placeholder="End Time (e.g., 9:30PM)"
-            />
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => handleRemoveFields(index)}>
-              Remove
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleSubmitSchedule(schedule)}
-              disabled={loading}
-            >
-              {loading ? "Submitting..." : "Submit Schedule"}
-            </Button>
-          </div>
+    <RoleBasedWrapper allowedRoles={["super admin"]}>
+      <div className="flex flex-col w-full max-w-md mx-auto py-8 md:py-12">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Generate Schedules</h1>
         </div>
-      ))}
-      <div className="flex items-center justify-between max-w-full py-2">
-        <Button variant="outline" onClick={handleAddFields}>
-          Add Schedule
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleGenerateSchedules}
-          disabled={loading}
-        >
-          {loading ? "Generating..." : "Generate Schedules"}
-        </Button>
+        <div className="flex flex-col mb-4">
+          <label htmlFor="weeks" className="block text-sm font-medium">
+            Number of Weeks
+          </label>
+          <Input
+            type="number"
+            id="weeks"
+            value={weeks}
+            onChange={(e) => setWeeks(Number(e.target.value))}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            min="1"
+          />
+        </div>
+        {scheduleData.map((schedule, index) => (
+          <div
+            key={index}
+            className="mb-4 flex flex-col items-center space-y-2"
+          >
+            <Select
+              onValueChange={(value) =>
+                handleInputChange(index, {
+                  target: { name: "employee_id", value },
+                } as ChangeEvent<HTMLSelectElement>)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectPrimitive.Value placeholder="Select Employee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {employees.map((employee) => (
+                    <SelectItem
+                      key={employee.employee_id}
+                      value={employee.employee_id}
+                    >
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Calendar
+              selected={schedule.day || undefined}
+              onDayClick={(date) => handleDateChange(index, date)}
+            />
+            <div className="flex space-x-2">
+              <Input
+                type="text"
+                name="start_time"
+                value={schedule.start_time}
+                onChange={(e) => handleInputChange(index, e)}
+                placeholder="Start Time (e.g., 5:30PM)"
+              />
+              <Input
+                type="text"
+                name="end_time"
+                value={schedule.end_time}
+                onChange={(e) => handleInputChange(index, e)}
+                placeholder="End Time (e.g., 9:30PM)"
+              />
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => handleRemoveFields(index)}
+              >
+                Remove
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleSubmitSchedule(schedule)}
+                disabled={loading}
+              >
+                {loading ? "Submitting..." : "Submit Schedule"}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="flex items-center justify-between max-w-full py-2">
+          <Button variant="outline" onClick={handleAddFields}>
+            Add Schedule
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGenerateSchedules}
+            disabled={loading}
+          >
+            {loading ? "Generating..." : "Generate Schedules"}
+          </Button>
+        </div>
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            onClick={generateSchedulesForAllEmployees}
+            disabled={loading}
+          >
+            {loading ? "Generating All..." : "Generate All Schedules"}
+          </Button>
+        </div>
+        {message && <p className="mt-4 text-center text-lg">{message}</p>}
       </div>
-      <div className="mt-6">
-        <Button
-          variant="outline"
-          onClick={generateSchedulesForAllEmployees}
-          disabled={loading}
-        >
-          {loading ? "Generating All..." : "Generate All Schedules"}
-        </Button>
-      </div>
-      {message && <p className="mt-4 text-center text-lg">{message}</p>}
-    </div>
+    </RoleBasedWrapper>
   );
-};
-
-// Role-based access control wrapper component
-export default function ProtectedScheduleGeneratorPage() {
-  const router = useRouter();
-  const { role, loading } = useRole();
-
-  useEffect(() => {
-    if (!loading && role !== "super admin") {
-      router.push("/"); // Redirect to home or another page if the user is not authorized
-    }
-  }, [role, loading, router]);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "super admin") {
-    return null; // Render nothing while redirecting
-  }
-
-  return <ScheduleGeneratorPage />;
 }

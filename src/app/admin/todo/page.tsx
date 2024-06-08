@@ -38,6 +38,7 @@ import { useRole } from "@/context/RoleContext"; // Correct import
 import { supabase } from "@/utils/supabase/client";
 import { AddNewList } from "@/components/AddNewList";
 import { EditListTitle } from "@/components/EditListTitle";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 // Define the item interface
 interface Item {
@@ -371,67 +372,76 @@ const Todo: React.FC<HomeProps> = () => {
   };
 
   return (
-    <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
-      <div className="flex justify-start p-4 mb-4">
-        <AddNewList addNewList={addNewList} />
-      </div>
-      <div className="container mt-10 px-4 md:px-6">
-        <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            {lists.map((list) => (
-              <Card key={list.id} className="w-full min-w-[325px] md:max-w-lg">
-                <CardHeader className="space-y-1 ">
-                  <CardTitle className="text-2xl flex justify-between">
-                    {list.title}
-                    <EditListTitle
-                      list={list}
-                      updateListTitle={updateListTitle}
-                      deleteList={deleteList}
-                    />
-                  </CardTitle>
-                  <CardDescription>List All Of Your Projects</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <SortableContext
-                    items={list.items.map((item) => item.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {list.items.map((item) => (
-                      <SortableLinks
-                        key={item.id}
-                        item={item}
-                        onDelete={() => handleDelete(list.id, item.id)}
-                        updateItem={updateItem}
-                      />
-                    ))}
-                  </SortableContext>
-                  <AddNewItem addNewItem={(newItem: string) => addNewItem(list.id, newItem)} />
-                </CardContent>
-              </Card>
-            ))}
-            <DragOverlay>
-              {activeId ? (
-                <SortableLinks
-                  item={{
-                    id: activeId,
-                    name: "",
-                    user_id: "",
-                    user_name: "",
-                    list_id: "",
-                  }}
-                  onDelete={() => {}}
-                  updateItem={() => {}}
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
+        <div className="flex justify-start p-4 mb-4">
+          <AddNewList addNewList={addNewList} />
         </div>
-      </div>
-    </main>
+        <div className="container mt-10 px-4 md:px-6">
+          <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              {lists.map((list) => (
+                <Card
+                  key={list.id}
+                  className="w-full min-w-[325px] md:max-w-lg"
+                >
+                  <CardHeader className="space-y-1 ">
+                    <CardTitle className="text-2xl flex justify-between">
+                      {list.title}
+                      <EditListTitle
+                        list={list}
+                        updateListTitle={updateListTitle}
+                        deleteList={deleteList}
+                      />
+                    </CardTitle>
+                    <CardDescription>List All Of Your Projects</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-4">
+                    <SortableContext
+                      items={list.items.map((item) => item.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {list.items.map((item) => (
+                        <SortableLinks
+                          key={item.id}
+                          item={item}
+                          onDelete={() => handleDelete(list.id, item.id)}
+                          updateItem={updateItem}
+                        />
+                      ))}
+                    </SortableContext>
+                    <AddNewItem
+                      addNewItem={(newItem: string) =>
+                        addNewItem(list.id, newItem)
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+              <DragOverlay>
+                {activeId ? (
+                  <SortableLinks
+                    item={{
+                      id: activeId,
+                      name: "",
+                      user_id: "",
+                      user_name: "",
+                      list_id: "",
+                    }}
+                    onDelete={() => {}}
+                    updateItem={() => {}}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+        </div>
+      </main>
+    </RoleBasedWrapper>
   );
 };
 

@@ -1,19 +1,14 @@
-"use client";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 
-const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
-const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
-const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), {
-  ssr: false,
-});
-const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
-const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), {
-  ssr: false,
-});
+interface RoleBasedWrapperProps {
+  children: ReactNode;
+  allowedRoles: string[];
+}
 
-export default function Header() {
+function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
+  const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,25 +52,21 @@ export default function Header() {
     fetchRole();
   }, []);
 
+  useEffect(() => {
+    if (!loading && role && !allowedRoles.includes(role)) {
+      router.push("/");
+    }
+  }, [role, loading, router, allowedRoles]);
+
   if (loading) {
-    return <div></div>; // Show loading spinner or any placeholder
+    return <div>Loading...</div>;
   }
 
-  if (!role) {
-    return <HeaderPublic />;
+  if (!role || !allowedRoles.includes(role)) {
+    return null;
   }
 
-  if (role === "super admin") {
-    return <HeaderSuperAdmin />;
-  }
-
-  if (role === "admin") {
-    return <HeaderAdmin />;
-  }
-
-  if (role === "customer") {
-    return <HeaderCustomer />;
-  }
-
-  return <HeaderUser />;
+  return <>{children}</>;
 }
+
+export default RoleBasedWrapper;

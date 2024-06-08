@@ -4,6 +4,7 @@ import { supabase } from "../../../../utils/supabase/client";
 import { AuditData, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const words = "Audits";
 
@@ -67,29 +68,31 @@ export default function AuditReview() {
   }, [fetchData]);
 
   return (
-    <>
-      <div className="h-screen flex flex-col">
-        <section className="flex-1 flex flex-col space-y-4 p-4">
-          <div className="flex items-center justify-between space-y-2">
-            <div>
-              <h2 className="text-2xl font-bold">
-                <TextGenerateEffect words={words} />
-              </h2>
-            </div>
-          </div>
-          <div className="flex-1 flex flex-col space-y-4">
-            <div className="rounded-md border flex-1 flex flex-col">
-              <div className="relative w-full h-full overflow-auto flex-1">
-                {loading ? (
-                  <p>Loading...</p>
-                ) : (
-                  <DataTable columns={columns} data={data} />
-                )}
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <>
+        <div className="h-screen flex flex-col">
+          <section className="flex-1 flex flex-col space-y-4 p-4">
+            <div className="flex items-center justify-between space-y-2">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  <TextGenerateEffect words={words} />
+                </h2>
               </div>
             </div>
-          </div>
-        </section>
-      </div>
-    </>
+            <div className="flex-1 flex flex-col space-y-4">
+              <div className="rounded-md border flex-1 flex flex-col">
+                <div className="relative w-full h-full overflow-auto flex-1">
+                  {loading ? (
+                    <p>Loading...</p>
+                  ) : (
+                    <DataTable columns={columns} data={data} />
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </>
+    </RoleBasedWrapper>
   );
 }

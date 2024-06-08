@@ -1,3 +1,4 @@
+"user server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { protectedPaths } from "@/lib/constant";
@@ -18,16 +19,6 @@ export async function middleware(request: NextRequest) {
 					return request.cookies.get(name)?.value;
 				},
 				set(name: string, value: string, options: CookieOptions) {
-					request.cookies.set({
-						name,
-						value,
-						...options,
-					});
-					response = NextResponse.next({
-						request: {
-							headers: request.headers,
-						},
-					});
 					response.cookies.set({
 						name,
 						value,
@@ -35,16 +26,6 @@ export async function middleware(request: NextRequest) {
 					});
 				},
 				remove(name: string, options: CookieOptions) {
-					request.cookies.set({
-						name,
-						value: "",
-						...options,
-					});
-					response = NextResponse.next({
-						request: {
-							headers: request.headers,
-						},
-					});
 					response.cookies.set({
 						name,
 						value: "",
@@ -75,9 +56,24 @@ export async function middleware(request: NextRequest) {
 		const userRole = roleData.role;
 		response.headers.set("X-User-Role", userRole);
 
-		if (url.pathname === "/auth") {
-			return NextResponse.redirect(new URL("/", request.url));
+		// Set the role as a cookie
+		response.cookies.set({
+			name: 'X-User-Role',
+			value: userRole,
+			path: '/',
+		});
+
+		// Redirect to the correct landing page based on role
+		if (url.pathname === "/auth" || url.pathname === "/") {
+			if (userRole === "admin") {
+				return NextResponse.redirect(new URL("/landing-page/admin", request.url));
+			} else if (userRole === "super admin") {
+				return NextResponse.redirect(new URL("/landing-page/super-admin", request.url));
+			} else {
+				return NextResponse.redirect(new URL("/landing-page/user", request.url));
+			}
 		}
+
 		return response;
 	} else {
 		if (protectedPaths.includes(url.pathname)) {

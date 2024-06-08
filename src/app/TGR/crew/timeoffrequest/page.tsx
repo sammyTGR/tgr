@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { useRole } from "@/context/RoleContext"; // Import the useRole hook
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const title = "Submit Time Off Requests";
 
@@ -46,7 +47,6 @@ const daysOfWeek = [
 ];
 
 function TimeOffRequestPage() {
-  const { role, loading } = useRole(); // Use the useRole hook
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [employeeNames, setEmployeeNames] = useState<string[]>([]);
   const [timeOffReasons, setTimeOffReasons] = useState<TimeOffReason[]>([]);
@@ -238,115 +238,87 @@ function TimeOffRequestPage() {
     }
   };
 
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "user" && role !== "admin" && role !== "super admin") {
-    return null; // Render nothing if the role is not authorized
-  }
-
   return (
-    <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-2xl font-bold mb-4">
-        <TextGenerateEffect words={title} />
-      </h1>
-      <div className="w-full space-y-4">
-        <form onSubmit={handleSubmit} className="mt-8">
-          <div className="flex flex-col space-y-4 max-w-2xl">
-            <Select
-              value={timeOffData.employee_name}
-              onValueChange={(value) =>
-                setTimeOffData({ ...timeOffData, employee_name: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Employee Name" />
-              </SelectTrigger>
-              <SelectContent>
-                <Input
-                  placeholder="Search Employee Name..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  className="w-full px-3 py-2"
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
+        <h1 className="text-2xl font-bold mb-4">
+          <TextGenerateEffect words={title} />
+        </h1>
+        <div className="w-full space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8">
+            <div className="flex flex-col space-y-4 max-w-2xl">
+              <Select
+                value={timeOffData.employee_name}
+                onValueChange={(value) =>
+                  setTimeOffData({ ...timeOffData, employee_name: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Employee Name" />
+                </SelectTrigger>
+                <SelectContent>
+                  <Input
+                    placeholder="Search Employee Name..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="w-full px-3 py-2"
+                  />
+                  {employeeNames
+                    .filter((name) =>
+                      name.toLowerCase().includes(searchText.toLowerCase())
+                    )
+                    .map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <div className="flex flex-col space-y-2 max-w-lg justify-center items-center">
+                <label className="text-lg font-medium flex justify-center text-center">
+                  Select Dates Below
+                </label>
+                <Calendar
+                  mode="multiple"
+                  selected={selectedDates}
+                  onSelect={handleSelectDates}
                 />
-                {employeeNames
-                  .filter((name) =>
-                    name.toLowerCase().includes(searchText.toLowerCase())
-                  )
-                  .map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
+              </div>
+              <Select
+                value={timeOffData.reason}
+                onValueChange={handleReasonChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOffReasons.map((reason) => (
+                    <SelectItem key={reason.id} value={reason.reason}>
+                      {reason.reason}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-            <div className="flex flex-col space-y-2 max-w-lg justify-center items-center">
-              <label className="text-lg font-medium flex justify-center text-center">
-                Select Dates Below
-              </label>
-              <Calendar
-                mode="multiple"
-                selected={selectedDates}
-                onSelect={handleSelectDates}
-              />
+                </SelectContent>
+              </Select>
+              {showOtherTextarea && (
+                <Textarea
+                  placeholder="Please specify your reason"
+                  value={timeOffData.other_reason}
+                  onChange={(e) =>
+                    setTimeOffData({
+                      ...timeOffData,
+                      other_reason: e.target.value,
+                    })
+                  }
+                  className="textarea"
+                />
+              )}
+              <Button type="submit" variant="outline">
+                Submit Request
+              </Button>
             </div>
-            <Select
-              value={timeOffData.reason}
-              onValueChange={handleReasonChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Reason" />
-              </SelectTrigger>
-              <SelectContent>
-                {timeOffReasons.map((reason) => (
-                  <SelectItem key={reason.id} value={reason.reason}>
-                    {reason.reason}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {showOtherTextarea && (
-              <Textarea
-                placeholder="Please specify your reason"
-                value={timeOffData.other_reason}
-                onChange={(e) =>
-                  setTimeOffData({
-                    ...timeOffData,
-                    other_reason: e.target.value,
-                  })
-                }
-                className="textarea"
-              />
-            )}
-            <Button type="submit" variant="outline">
-              Submit Request
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </RoleBasedWrapper>
   );
-}
-
-// Role-based access control wrapper component
-export default function ProtectedTimeOffRequestPage() {
-  const router = useRouter();
-  const { role, loading } = useRole();
-
-  useEffect(() => {
-    if (!loading && role !== "user" && role !== "admin" && role !== "super admin") {
-      router.push("/"); // Redirect to home or another page if the user is not authorized
-    }
-  }, [role, loading, router]);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "user" && role !== "admin" && role !== "super admin") {
-    return null; // Render nothing while redirecting
-  }
-
-  return <TimeOffRequestPage />;
 }

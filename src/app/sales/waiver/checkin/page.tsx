@@ -15,10 +15,11 @@ import {
 } from "@tanstack/react-table";
 import { useRole } from "@/context/RoleContext"; // Import the useRole hook
 import { useRouter } from "next/navigation"; // Import the router
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const title = "Review Waiver Submissions";
 
-function WaiversCheckinPage() {
+export default function WaiversCheckinPage() {
   const [data, setData] = useState<Waiver[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,55 +99,30 @@ function WaiversCheckinPage() {
   }, [fetchData]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <section className="flex-1 flex flex-col space-y-4 p-4">
-        <div className="flex items-center justify-between space-y-2">
-          <div>
-            <h2 className="text-2xl font-bold">
-              <TextGenerateEffect words={title} />
-            </h2>
-          </div>
-        </div>
-        <div className="flex-1 flex flex-col space-y-4">
-          <WaiverTableToolbar table={table} /> {/* Add the toolbar here */}
-          <div className="rounded-md border flex-1 flex flex-col">
-            <div className="relative w-full h-full overflow-auto flex-1">
-              {loading ? (
-                <p>Loading...</p>
-              ) : (
-                <DataTable table={table} /> // Pass the table object to DataTable
-              )}
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+      <div className="h-screen flex flex-col">
+        <section className="flex-1 flex flex-col space-y-4 p-4">
+          <div className="flex items-center justify-between space-y-2">
+            <div>
+              <h2 className="text-2xl font-bold">
+                <TextGenerateEffect words={title} />
+              </h2>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+          <div className="flex-1 flex flex-col space-y-4">
+            <WaiverTableToolbar table={table} /> {/* Add the toolbar here */}
+            <div className="rounded-md border flex-1 flex flex-col">
+              <div className="relative w-full h-full overflow-auto flex-1">
+                {loading ? (
+                  <p>Loading...</p>
+                ) : (
+                  <DataTable table={table} /> // Pass the table object to DataTable
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </RoleBasedWrapper>
   );
-}
-
-// Role-based access control wrapper component
-export default function ProtectedWaiversCheckinPage() {
-  const router = useRouter();
-  const { role, loading } = useRole();
-
-  useEffect(() => {
-    if (
-      !loading &&
-      role !== "admin" &&
-      role !== "super admin" &&
-      role !== "user"
-    ) {
-      router.push("/"); // Redirect to home or another page if the user is not authorized
-    }
-  }, [role, loading, router]);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "admin" && role !== "super admin" && role !== "user") {
-    return null; // Render nothing while redirecting
-  }
-
-  return <WaiversCheckinPage />;
 }

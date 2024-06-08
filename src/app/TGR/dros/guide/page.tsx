@@ -12,8 +12,8 @@ import IDsCard from "../cards/IDsCard";
 import dynamic from "next/dynamic";
 import { supabase } from "../../../../utils/supabase/client"; // Updated import
 import FedsCard from "../cards/FedsCard";
-import { useRole } from "@/context/RoleContext"; // Import the useRole hook
 import { useRouter } from "next/navigation";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -33,14 +33,14 @@ interface DropdownItem {
   requirements: string;
 }
 
-const DROSGuide = () => {
+export default function DROSGuide() {
   const [data, setData] = useState<DropdownItem[]>([]);
   const [selections, setSelections] = useState<(string | null)[]>(
     Array(8).fill(null)
   );
-  const [active, setActive] = useState<string | null>(null);
-  const [activeDialogContentId, setActiveDialogContentId] = useState<string | null>(null);
-  const { role, loading } = useRole(); // Use the useRole hook
+  const [activeDialogContentId, setActiveDialogContentId] = useState<
+    string | null
+  >(null);
 
   const handleSubItemClick = (contentId: string) => {
     setActiveDialogContentId(contentId);
@@ -60,7 +60,8 @@ const DROSGuide = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: session, error: sessionError } = await supabase.auth.getSession();
+        const { data: session, error: sessionError } =
+          await supabase.auth.getSession();
         if (sessionError) {
           throw new Error(`Session Error: ${sessionError.message}`);
         }
@@ -69,7 +70,9 @@ const DROSGuide = () => {
           throw new Error("No active session found");
         }
 
-        let { data: fetchedData, error } = await supabase.from("Drops").select("*");
+        let { data: fetchedData, error } = await supabase
+          .from("Drops")
+          .select("*");
 
         if (error) {
           throw new Error(`Data Fetch Error: ${error.message}`);
@@ -170,97 +173,58 @@ const DROSGuide = () => {
       })?.requirements
     : "";
 
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "user" && role !== "admin" && role !== "super admin") {
-    return null; // Render nothing if the role is not authorized
-  }
-
   return (
-    <div>
-      <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
-        <SupportMenu />
-        {activeDialogContentId}
-      </div>
-      <div className="flex flex-col justify-center px-4 space-y-6 mx-auto max-w-lg">
-        {selections.map((selection, index) => (
-          <Select
-            key={index}
-            disabled={index > 0 && selections[index - 1] === null}
-            onValueChange={(value) => handleSelectionChange(index, value)}
-            value={selection || "none"}
-          >
-            <SelectTrigger className="flex max-w-full">
-              <SelectValue
-                placeholder={`Select from ${String.fromCharCode(
-                  "A".charCodeAt(0) + index
-                )}`}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">...</SelectItem>
-              {getOptionsForSelect(index).map((option, optionIndex) => (
-                <SelectItem key={optionIndex} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ))}
-      </div>
-      <br />
-      <div className="flex flex-row justify-center mx-auto max-w-[700px]">
-        {columnHText &&
-          (columnHText as string).split("\n").map((line, index) => (
-            <React.Fragment key={index}>
-              {line}
-              <br />
-            </React.Fragment>
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+      <div>
+        <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
+          <SupportMenu />
+          {activeDialogContentId}
+        </div>
+        <div className="flex flex-col justify-center px-4 space-y-6 mx-auto max-w-lg">
+          {selections.map((selection, index) => (
+            <Select
+              key={index}
+              disabled={index > 0 && selections[index - 1] === null}
+              onValueChange={(value) => handleSelectionChange(index, value)}
+              value={selection || "none"}
+            >
+              <SelectTrigger className="flex max-w-full">
+                <SelectValue
+                  placeholder={`Select from ${String.fromCharCode(
+                    "A".charCodeAt(0) + index
+                  )}`}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">...</SelectItem>
+                {getOptionsForSelect(index).map((option, optionIndex) => (
+                  <SelectItem key={optionIndex} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ))}
+        </div>
+        <br />
+        <div className="flex flex-row justify-center mx-auto max-w-[700px]">
+          {columnHText &&
+            (columnHText as string).split("\n").map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                <br />
+              </React.Fragment>
+            ))}
+        </div>
+        <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
+          <Button
+            onClick={resetSelections}
+            className="mb-6 flex-shrink mt-10 py-2"
+          >
+            Reset Selections
+          </Button>
+        </div>
       </div>
-      <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
-        <Button
-          onClick={resetSelections}
-          className="mb-6 flex-shrink mt-10 py-2"
-        >
-          Reset Selections
-        </Button>
-      </div>
-    </div>
+    </RoleBasedWrapper>
   );
-};
-
-// Role-based access control wrapper component
-export default function ProtectedDROSGuide() {
-  const router = useRouter();
-  const { role, loading } = useRole();
-
-  useEffect(() => {
-    // console.log("Loading:", loading);
-    // console.log("Role:", role);
-
-    if (!loading) {
-      if (role !== "user" && role !== "admin" && role !== "super admin") {
-        console.log("Redirecting to home due to unauthorized role");
-        router.push("/");
-      } else {
-        // console.log("User is authorized, role:", role);
-      }
-    }
-  }, [role, loading, router]);
-
-  if (loading) {
-    // console.log("Currently loading...");
-    return <div></div>;
-  }
-
-  if (role !== "user" && role !== "admin" && role !== "super admin") {
-    console.log("Role not authorized, rendering nothing");
-    return null;
-  }
-
-  // console.log("Rendering DROSGuide for role:", role);
-  return <DROSGuide />;
 }

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { useRole } from "../../../../context/RoleContext";
 import { Card, CardContent } from "@/components/ui/card"; // Import Card components
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const title = "TGR Crew Calendar";
 
@@ -40,13 +41,17 @@ const daysOfWeek = [
   "Saturday",
 ];
 
-const fetchEmployeeNames = async (): Promise<string[]> => {
+const fetchEmployeeNames = async (): Promise<
+  { name: string; rank: number }[]
+> => {
   try {
-    const { data, error } = await supabase.from("employees").select("name");
+    const { data, error } = await supabase
+      .from("employees")
+      .select("name, rank");
     if (error) {
       throw error;
     }
-    return data.map((employee) => employee.name);
+    return data;
   } catch (error) {
     console.error("Failed to fetch employee names:", (error as Error).message);
     return [];
@@ -112,12 +117,23 @@ export default function Component() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [calendarData, employeeNames] = await Promise.all([
+      const [calendarData, employeeData] = await Promise.all([
         fetchCalendarData(),
         fetchEmployeeNames(),
       ]);
 
-      setData({ calendarData, employeeNames });
+      // Map employee names to their ranks
+      const employeeRanks = employeeData.reduce((acc, employee) => {
+        acc[employee.name] = employee.rank;
+        return acc;
+      }, {} as { [key: string]: number });
+
+      // Sort calendar data based on employee ranks
+      calendarData.sort(
+        (a, b) => employeeRanks[a.name] - employeeRanks[b.name]
+      );
+
+      setData({ calendarData, employeeNames: employeeData.map((e) => e.name) });
     };
 
     fetchData();
@@ -249,7 +265,7 @@ export default function Component() {
 
               if (event.start_time === null || event.end_time === null) {
                 return (
-                  <div key={index} className="text-gray-500 dark:text-gray-400">
+                  <div key={index} className="text-gray-800 dark:text-gray-300">
                     Off
                   </div>
                 );
@@ -279,49 +295,51 @@ export default function Component() {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4 p-4">
-      <h1 className="text-2xl font-bold">
-        <TextGenerateEffect words={title} />
-      </h1>
-      <Card className="w-full max-w-6xl">
-        <CardContent>
-          <div className="flex justify-between w-full mb-4">
-            <Button variant="ghost" onClick={handlePreviousWeek}>
-              <ChevronLeftIcon className="h-4 w-4" />
-              Previous Week
-            </Button>
-            <Button variant="ghost" onClick={handleNextWeek}>
-              Next Week
-              <ChevronRightIcon className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="overflow-x-auto">
-            {" "}
-            {/* Added this div to make table horizontally scrollable */}
-            <Table className="min-w-full">
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+      <div className="flex flex-col items-center space-y-4 p-4">
+        <h1 className="text-2xl font-bold">
+          <TextGenerateEffect words={title} />
+        </h1>
+        <Card className="w-full max-w-6xl">
+          <CardContent>
+            <div className="flex justify-between w-full mb-4">
+              <Button variant="ghost" onClick={handlePreviousWeek}>
+                <ChevronLeftIcon className="h-4 w-4" />
+                Previous Week
+              </Button>
+              <Button variant="ghost" onClick={handleNextWeek}>
+                Next Week
+                <ChevronRightIcon className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
               {" "}
-              {/* Added min-w-full to make the table take full width */}
-              <TableHeader>
-                <TableRow>
-                  <TableHead />
-                  {daysOfWeek.map((day) => (
-                    <TableHead key={day}>
-                      {day}
-                      <br />
-                      {weekDates[day]}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.calendarData.map((employee) =>
-                  renderEmployeeRow(employee)
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              {/* Added this div to make table horizontally scrollable */}
+              <Table className="min-w-full">
+                {" "}
+                {/* Added min-w-full to make the table take full width */}
+                <TableHeader>
+                  <TableRow>
+                    <TableHead />
+                    {daysOfWeek.map((day) => (
+                      <TableHead key={day}>
+                        {day}
+                        <br />
+                        {weekDates[day]}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.calendarData.map((employee) =>
+                    renderEmployeeRow(employee)
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </RoleBasedWrapper>
   );
 }

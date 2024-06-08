@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useRole } from "@/context/RoleContext";
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import {
   Card,
@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const denominations = [
   { name: "Pennies", value: 0.01 },
@@ -261,18 +262,24 @@ export default function DailyDepositsPage() {
     }));
 
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       if (sessionError || !session) {
         toast.error("Unauthorized");
-        console.error("Unauthorized: ", sessionError?.message || "No active session");
+        console.error(
+          "Unauthorized: ",
+          sessionError?.message || "No active session"
+        );
         return;
       }
 
-      const response = await fetch('/api/submitDailyDeposit', {
-        method: 'POST',
+      const response = await fetch("/api/submitDailyDeposit", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(deposits),
       });
@@ -280,7 +287,7 @@ export default function DailyDepositsPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Error submitting deposit data:", errorData);
-        toast.error('There was an error submitting the deposit data.');
+        toast.error("There was an error submitting the deposit data.");
         return;
       }
 
@@ -289,7 +296,9 @@ export default function DailyDepositsPage() {
       resetFormAndTabs();
     } catch (error) {
       console.error("Unexpected error submitting deposit data:", error);
-      toast.error('Unexpected error occurred while submitting the deposit data.');
+      toast.error(
+        "Unexpected error occurred while submitting the deposit data."
+      );
     }
   };
 
@@ -301,147 +310,152 @@ export default function DailyDepositsPage() {
   }
 
   return (
-    <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-6xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center space-x-2">
-          <TabsList>
-            {registers.map((register, index) => (
-              <TabsTrigger key={index} value={`reg${index + 1}`}>
-                {`Reg ${index + 1}`}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <div className="flex items-center">
-            <Switch
-              id="deposit-type"
-              checked={isSecondCount}
-              onCheckedChange={handleSwitchChange}
-            />
-            <Label htmlFor="deposit-type" className="ml-2">
-              Select For 2nd Count
-            </Label>
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+      <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-6xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center space-x-2">
+            <TabsList>
+              {registers.map((register, index) => (
+                <TabsTrigger key={index} value={`reg${index + 1}`}>
+                  {`Reg ${index + 1}`}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <div className="flex items-center">
+              <Switch
+                id="deposit-type"
+                checked={isSecondCount}
+                onCheckedChange={handleSwitchChange}
+              />
+              <Label htmlFor="deposit-type" className="ml-2">
+                Select For 2nd Count
+              </Label>
+            </div>
           </div>
-        </div>
 
-        {registers.map((register, registerIndex) => (
-          <TabsContent key={registerIndex} value={`reg${registerIndex + 1}`}>
-            <Card className="mb-4">
-              <CardHeader>
-                <CardTitle>{register}</CardTitle>
-              </CardHeader>
-              <CardContent className="w-full">
-                <div className="border p-4">
-                  {denominations.map((denomination, denominationIndex) => (
-                    <div
-                      className="grid grid-cols-4 gap-4 mb-4"
-                      key={denominationIndex}
-                    >
-                      <div>{denomination.name}</div>
-                      <Input
-                        id={`input-${registerIndex}-${denominationIndex}`}
-                        className="col-span-2"
-                        type="number"
-                        inputMode="numeric"
-                        ref={(el) => {
-                          if (!inputRefs.current[registerIndex]) {
-                            inputRefs.current[registerIndex] = [];
+          {registers.map((register, registerIndex) => (
+            <TabsContent key={registerIndex} value={`reg${registerIndex + 1}`}>
+              <Card className="mb-4">
+                <CardHeader>
+                  <CardTitle>{register}</CardTitle>
+                </CardHeader>
+                <CardContent className="w-full">
+                  <div className="border p-4">
+                    {denominations.map((denomination, denominationIndex) => (
+                      <div
+                        className="grid grid-cols-4 gap-4 mb-4"
+                        key={denominationIndex}
+                      >
+                        <div>{denomination.name}</div>
+                        <Input
+                          id={`input-${registerIndex}-${denominationIndex}`}
+                          className="col-span-2"
+                          type="number"
+                          inputMode="numeric"
+                          ref={(el) => {
+                            if (!inputRefs.current[registerIndex]) {
+                              inputRefs.current[registerIndex] = [];
+                            }
+                            inputRefs.current[registerIndex][
+                              denominationIndex
+                            ] = el;
+                          }}
+                          value={
+                            quantities[registerIndex][denominationIndex] === 0
+                              ? ""
+                              : quantities[registerIndex][
+                                  denominationIndex
+                                ].toString()
                           }
-                          inputRefs.current[registerIndex][denominationIndex] =
-                            el;
-                        }}
-                        value={
-                          quantities[registerIndex][denominationIndex] === 0
-                            ? ""
-                            : quantities[registerIndex][
-                                denominationIndex
-                              ].toString()
-                        }
-                        onChange={(e) =>
-                          handleQuantityChange(
-                            registerIndex,
-                            denominationIndex,
-                            parseInt(e.target.value)
-                          )
-                        }
-                        onKeyDown={(e) =>
-                          handleKeyDown(e, registerIndex, denominationIndex)
-                        }
-                      />
-                      <div className="text-right">
-                        ${calculateTotal(registerIndex, denominationIndex)}
-                      </div>
-                    </div>
-                  ))}
-                  <div className="grid grid-cols-4 gap-4 mb-4">
-                    <div className="col-span-3 text-left">Total In Drawer</div>
-                    <div className="text-right">
-                      ${calculateOverallTotal(registerIndex)}
-                    </div>
-                  </div>
-                  {!isSecondCount && (
-                    <>
-                      <div className="grid grid-cols-4 gap-4 mb-4">
-                        <div className="col-span-3 text-left">
-                          Total To Deposit
-                        </div>
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              registerIndex,
+                              denominationIndex,
+                              parseInt(e.target.value)
+                            )
+                          }
+                          onKeyDown={(e) =>
+                            handleKeyDown(e, registerIndex, denominationIndex)
+                          }
+                        />
                         <div className="text-right">
-                          {calculateTotalToDeposit(registerIndex)}
+                          ${calculateTotal(registerIndex, denominationIndex)}
                         </div>
                       </div>
-                      <div className="grid grid-cols-6 gap-4 mb-4">
-                        <Input
-                          className="col-span-2"
-                          placeholder="AIM Generated Total"
-                          value={aimGeneratedTotals[registerIndex]}
-                          onChange={(e) =>
-                            handleAimGeneratedTotalChange(
-                              registerIndex,
-                              e.target.value
-                            )
-                          }
-                        />
-                        <div className="col-span-2 text-center">
-                          {discrepancyMessages[registerIndex]}
-                        </div>
-                        <Input
-                          className="col-span-2"
-                          placeholder="Explain Discrepancies"
-                          value={explainDiscrepancies[registerIndex]}
-                          onChange={(e) =>
-                            handleExplainDiscrepanciesChange(
-                              registerIndex,
-                              e.target.value
-                            )
-                          }
-                        />
+                    ))}
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                      <div className="col-span-3 text-left">
+                        Total In Drawer
                       </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <div className="flex justify-between items-center w-full">
-                  <Button
-                    variant="outline"
-                    onClick={() => clearForm(registerIndex)}
-                    className="mr-4"
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        ))}
-        {!isSecondCount && (
-          <Button
-            className="flex justify-between ml-auto mt-4"
-            onClick={handleSubmit}
-          >
-            Submit
-          </Button>
-        )}
-      </Tabs>
-    </main>
+                      <div className="text-right">
+                        ${calculateOverallTotal(registerIndex)}
+                      </div>
+                    </div>
+                    {!isSecondCount && (
+                      <>
+                        <div className="grid grid-cols-4 gap-4 mb-4">
+                          <div className="col-span-3 text-left">
+                            Total To Deposit
+                          </div>
+                          <div className="text-right">
+                            {calculateTotalToDeposit(registerIndex)}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-6 gap-4 mb-4">
+                          <Input
+                            className="col-span-2"
+                            placeholder="AIM Generated Total"
+                            value={aimGeneratedTotals[registerIndex]}
+                            onChange={(e) =>
+                              handleAimGeneratedTotalChange(
+                                registerIndex,
+                                e.target.value
+                              )
+                            }
+                          />
+                          <div className="col-span-2 text-center">
+                            {discrepancyMessages[registerIndex]}
+                          </div>
+                          <Input
+                            className="col-span-2"
+                            placeholder="Explain Discrepancies"
+                            value={explainDiscrepancies[registerIndex]}
+                            onChange={(e) =>
+                              handleExplainDiscrepanciesChange(
+                                registerIndex,
+                                e.target.value
+                              )
+                            }
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <div className="flex justify-between items-center w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => clearForm(registerIndex)}
+                      className="mr-4"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          ))}
+          {!isSecondCount && (
+            <Button
+              className="flex justify-between ml-auto mt-4"
+              onClick={handleSubmit}
+            >
+              Submit
+            </Button>
+          )}
+        </Tabs>
+      </main>
+    </RoleBasedWrapper>
   );
 }

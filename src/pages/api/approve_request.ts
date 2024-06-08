@@ -9,10 +9,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'OPTIONS') {
         res.status(200).json({ message: 'CORS preflight request success' });
         return;
-      }
+    }
     
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
       
     if (req.method === 'POST') {
         const { request_id, action } = req.body;
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: timeOffError.message });
             }
 
-            // Update the schedules table with the custom approval text
+            // Extract details from the time off request
             const { employee_id, start_date, end_date } = timeOffData;
 
             // Generate dates between start_date and end_date
@@ -46,17 +46,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 dates.push(new Date(d));
             }
 
+            // Array to map days of the week
+            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
             for (const date of dates) {
                 const formattedDate = date.toISOString().split('T')[0]; // Format date as 'YYYY-MM-DD'
-                const { error: scheduleError } = await supabase
-                    .from('schedules')
-                    .update({ status: action })
-                    .eq('employee_id', employee_id)
-                    .eq('schedule_date', formattedDate);
+                const dayOfWeek = daysOfWeek[date.getUTCDay()]; // Get the day of the week as text
+                console.log(`Processing date: ${formattedDate} which is a ${dayOfWeek}`);
 
-                if (scheduleError) {
-                    console.error(`Error updating schedule for date ${formattedDate}:`, scheduleError);
-                    return res.status(500).json({ error: scheduleError.message });
+                // Check if the date exists in the schedules table
+                let { data: scheduleData, error: scheduleFetchError } = await supabase
+                    .from('schedules')
+                    .select('*')
+                    .eq('employee_id', employee_id)
+                    .eq('schedule_date', formattedDate)
+                    .single();
+            
+                if (scheduleFetchError) {
+                    console.error(`Error fetching schedule for date ${formattedDate}:`, scheduleFetchError);
+                }
+            
+                if (!scheduleData) {
+                    console.log(`Inserting new schedule for date ${formattedDate}`);
+                    // Insert new schedule if it doesn't exist
+                    const { error: scheduleInsertError } = await supabase
+                        .from('schedules')
+                        .insert({ employee_id, schedule_date: formattedDate, day_of_week: dayOfWeek, status: action });
+            
+                    if (scheduleInsertError) {
+                        console.error(`Error inserting schedule for date ${formattedDate}:`, scheduleInsertError);
+                        return res.status(500).json({ error: scheduleInsertError.message });
+                    }
+                } else {
+                    console.log(`Updating existing schedule for date ${formattedDate}`);
+                    // Update existing schedule
+                    const { error: scheduleUpdateError } = await supabase
+                        .from('schedules')
+                        .update({ status: action })
+                        .eq('employee_id', employee_id)
+                        .eq('schedule_date', formattedDate);
+            
+                    if (scheduleUpdateError) {
+                        console.error(`Error updating schedule for date ${formattedDate}:`, scheduleUpdateError);
+                        return res.status(500).json({ error: scheduleUpdateError.message });
+                    }
                 }
             }
 

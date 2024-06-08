@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { useRole } from "@/context/RoleContext"; // Import the useRole hook
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const title = "Review Time Off Requests";
 
@@ -19,7 +19,7 @@ interface TimeOffRequest {
   name: string;
 }
 
-function ApproveRequestsPage() {
+export default function ApproveRequestsPage() {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [showCustomApprovalModal, setShowCustomApprovalModal] = useState(false);
@@ -101,113 +101,93 @@ function ApproveRequestsPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-2xl font-bold mb-6">
-        <TextGenerateEffect words={title} />
-      </h1>
-      <div className="space-y-4">
-        {requests.map((request) => (
-          <div
-            key={request.request_id}
-            className="p-4 bg-white dark:bg-gray-950 rounded-lg shadow-md"
-          >
-            <div className="flex justify-between">
-              <div>
-                <p className="font-medium">Employee: {request.name}</p>
-                <p>Start Date: {request.start_date}</p>
-                <p>End Date: {request.end_date}</p>
-                <p>
-                  Reason: {request.reason}{" "}
-                  {request.reason === "Other" &&
-                    request.other_reason &&
-                    `: ${request.other_reason}`}
-                </p>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleApprove(request.request_id)}
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleDeny(request.request_id)}
-                >
-                  Deny
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleCalledOut(request.request_id)}
-                >
-                  Called Out
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleLeftEarly(request.request_id)}
-                >
-                  Left Early
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleCustomApproval(request.request_id)}
-                >
-                  Custom Approval
-                </Button>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
+        <h1 className="text-2xl font-bold mb-6">
+          <TextGenerateEffect words={title} />
+        </h1>
+        <div className="space-y-4">
+          {requests.map((request) => (
+            <div
+              key={request.request_id}
+              className="p-4 bg-white dark:bg-gray-950 rounded-lg shadow-md"
+            >
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-medium">Employee: {request.name}</p>
+                  <p>Start Date: {request.start_date}</p>
+                  <p>End Date: {request.end_date}</p>
+                  <p>
+                    Reason: {request.reason}{" "}
+                    {request.reason === "Other" &&
+                      request.other_reason &&
+                      `: ${request.other_reason}`}
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleApprove(request.request_id)}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDeny(request.request_id)}
+                  >
+                    Deny
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleCalledOut(request.request_id)}
+                  >
+                    Called Out
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleLeftEarly(request.request_id)}
+                  >
+                    Left Early
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleCustomApproval(request.request_id)}
+                  >
+                    Custom Approval
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-      {showCustomApprovalModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 ">
-          <div className="bg-muted dark:bg-muted p-6 rounded-lg shadow-lg">
-            <h2 className="text-center text-xl font-bold mb-4">
-              Custom Approval
-            </h2>
-            <textarea
-              value={customApprovalText}
-              onChange={(e) => setCustomApprovalText(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mb-4"
-              rows={4}
-              placeholder="Enter custom approval text..."
-            />
-            <div className="flex justify-center space-between gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowCustomApprovalModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button variant="outline" onClick={handleSubmitCustomApproval}>
-                Submit
-              </Button>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
-    </div>
+        {showCustomApprovalModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 ">
+            <div className="bg-muted dark:bg-muted p-6 rounded-lg shadow-lg">
+              <h2 className="text-center text-xl font-bold mb-4">
+                Custom Approval
+              </h2>
+              <textarea
+                value={customApprovalText}
+                onChange={(e) => setCustomApprovalText(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded mb-4"
+                rows={4}
+                placeholder="Enter custom approval text..."
+              />
+              <div className="flex justify-center space-between gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCustomApprovalModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button variant="outline" onClick={handleSubmitCustomApproval}>
+                  Submit
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </RoleBasedWrapper>
   );
-}
-
-// Role-based access control wrapper component
-export default function ProtectedApproveRequestsPage() {
-  const router = useRouter();
-  const { role, loading } = useRole();
-
-  useEffect(() => {
-    if (!loading && role !== "admin" && role !== "super admin") {
-      router.push("/"); // Redirect to home or another page if the user is not authorized
-    }
-  }, [role, loading, router]);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "admin" && role !== "super admin") {
-    return null; // Render nothing while redirecting
-  }
-
-  return <ApproveRequestsPage />;
 }

@@ -8,6 +8,7 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { useRole } from "@/context/RoleContext"; // Import useRole
 import { TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const title = "TGR Ops Chat";
 
@@ -190,76 +191,78 @@ export default function ChatClient() {
   }
 
   return (
-    <>
-      <h1 className="lg:leading-tighter text-2xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[2.6rem] 2xl:text-[3rem]"></h1>
-      <Card className="flex flex-col justify-between h-full max-w-xl mx-auto my-12">
-        <CardTitle className="text-3xl ml-2">
-          <TextGenerateEffect words={title} />
-        </CardTitle>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <>
+        <h1 className="lg:leading-tighter text-2xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[2.6rem] 2xl:text-[3rem]"></h1>
+        <Card className="flex flex-col justify-between h-full max-w-xl mx-auto my-12">
+          <CardTitle className="text-3xl ml-2">
+            <TextGenerateEffect words={title} />
+          </CardTitle>
 
-        <div className="mt-5 flex flex-col flex-grow space-y-2 p-2 overflow-y-auto">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`p-2 rounded-md text-lg ${
-                msg.user_id === user.id
-                  ? "bg-muted self-start"
-                  : "bg-blue-800 text-white self-end"
-              } message-container`}
-            >
-              {msg.user_id !== user.id && (
-                <span className="font-bold">{msg.user_name}: </span>
-              )}
-              {editingMessageId === msg.id ? (
-                <>
-                  <Textarea
-                    value={editingMessage}
-                    onChange={(e) => setEditingMessage(e.target.value)}
-                    className="mb-2"
-                  />
-                  <Button onClick={onUpdate} className="mb-2">
-                    Update
-                  </Button>
-                </>
-              ) : (
-                <>{msg.message}</>
-              )}
-              {msg.user_id === user.id && (
-                <div className="message-actions">
-                  <Button
-                    onClick={() => onEdit(msg.id, msg.message)}
-                    variant="ghost"
-                  >
-                    <Pencil1Icon />
-                  </Button>
-                  <Button onClick={() => onDelete(msg.id)} variant="ghost">
-                    <TrashIcon />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex space-x-4 p-2 min-w-full">
-          <Input
-            type="text"
-            placeholder="Message"
-            value={message}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setMessage(e.target.value)
-            }
-            onKeyUp={(e: React.KeyboardEvent<HTMLInputElement>) => {
-              if (e.key === "Enter") {
-                onSend();
+          <div className="mt-5 flex flex-col flex-grow space-y-2 p-2 overflow-y-auto">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`p-2 rounded-md text-lg ${
+                  msg.user_id === user.id
+                    ? "bg-muted self-start"
+                    : "bg-blue-800 text-white self-end"
+                } message-container`}
+              >
+                {msg.user_id !== user.id && (
+                  <span className="font-bold">{msg.user_name}: </span>
+                )}
+                {editingMessageId === msg.id ? (
+                  <>
+                    <Textarea
+                      value={editingMessage}
+                      onChange={(e) => setEditingMessage(e.target.value)}
+                      className="mb-2"
+                    />
+                    <Button onClick={onUpdate} className="mb-2">
+                      Update
+                    </Button>
+                  </>
+                ) : (
+                  <>{msg.message}</>
+                )}
+                {msg.user_id === user.id && (
+                  <div className="message-actions">
+                    <Button
+                      onClick={() => onEdit(msg.id, msg.message)}
+                      variant="ghost"
+                    >
+                      <Pencil1Icon />
+                    </Button>
+                    <Button onClick={() => onDelete(msg.id)} variant="ghost">
+                      <TrashIcon />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex space-x-4 p-2 min-w-full">
+            <Input
+              type="text"
+              placeholder="Message"
+              value={message}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setMessage(e.target.value)
               }
-            }}
-            className="flex-grow text-lg"
-          />
-          <Button onClick={onSend} className="flex-shrink-0">
-            Send
-          </Button>
-        </div>
-      </Card>
-    </>
+              onKeyUp={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === "Enter") {
+                  onSend();
+                }
+              }}
+              className="flex-grow text-lg"
+            />
+            <Button onClick={onSend} className="flex-shrink-0">
+              Send
+            </Button>
+          </div>
+        </Card>
+      </>
+    </RoleBasedWrapper>
   );
 }

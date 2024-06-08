@@ -2,7 +2,6 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
-import { useRole } from "../context/RoleContext";
 
 const LandingPageUser = dynamic(() => import("./LandingPageUser"));
 const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
@@ -11,22 +10,54 @@ const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
 const LandingPageCustomer = dynamic(() => import("./LandingPageCustomer")); // Import LandingPageCustomer
 
 const LandingPage: React.FC = () => {
-  const [user, setUser] = useState<any>(null);
-  const { role } = useRole();
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Error fetching user:", error.message);
-        return;
+    const fetchRole = async () => {
+      const roleHeader = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("X-User-Role="))
+        ?.split("=")[1];
+      if (roleHeader) {
+        setRole(roleHeader);
+        setLoading(false);
+      } else {
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
+        if (userError) {
+          console.error("Error fetching user:", userError.message);
+          setLoading(false);
+          return;
+        }
+
+        const user = userData.user;
+
+        const { data: roleData, error: roleError } = await supabase
+          .from("employees")
+          .select("role")
+          .eq("user_uuid", user?.id)
+          .single();
+
+        if (roleError) {
+          console.error("Error fetching role:", roleError.message);
+          setLoading(false);
+          return;
+        }
+
+        setRole(roleData.role);
+        setLoading(false);
       }
-      setUser(data.user);
     };
-    fetchUser();
+
+    fetchRole();
   }, []);
 
-  if (!user || !role) {
+  if (loading) {
+    return <div>Loading...</div>; // Show loading spinner or any placeholder
+  }
+
+  if (!role) {
     return <LandingPagePublic />;
   }
 
@@ -38,7 +69,8 @@ const LandingPage: React.FC = () => {
     return <LandingPageAdmin />;
   }
 
-  if (role === "customer") { // Check for "customer" role
+  if (role === "customer") {
+    // Check for "customer" role
     return <LandingPageCustomer />;
   }
 

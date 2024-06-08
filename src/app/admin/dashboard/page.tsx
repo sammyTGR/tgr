@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
-import { useRole } from "@/context/RoleContext"; // Ensure you have this context
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 interface Employee {
   employee_id: number;
@@ -12,10 +12,11 @@ interface Employee {
 
 const Dashboard = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(
+    null
+  );
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeePosition, setNewEmployeePosition] = useState("");
-  const { user } = useRole();
 
   useEffect(() => {
     fetchEmployees();
@@ -51,49 +52,51 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
-      <h1>Admin Dashboard</h1>
-      <p>Welcome, Admin!</p>
-      <h2>Employee List</h2>
-      <ul>
-        {employees.map((employee) => (
-          <li key={employee.employee_id}>
-            <Link href={`/admin/team/profiles/${employee.employee_id}`}>
-              {employee.name}
-            </Link>
-            <span> - {employee.position}</span>
-          </li>
-        ))}
-      </ul>
-      <h2>Create New Employee</h2>
+    <RoleBasedWrapper allowedRoles={["super admin"]}>
       <div>
-        <select
-          value={selectedEmployeeId ?? ""}
-          onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-        >
-          <option value="">Select Existing Employee</option>
+        <h1>Admin Dashboard</h1>
+        <p>Welcome, Admin!</p>
+        <h2>Employee List</h2>
+        <ul>
           {employees.map((employee) => (
-            <option key={employee.employee_id} value={employee.employee_id}>
-              {employee.name}
-            </option>
+            <li key={employee.employee_id}>
+              <Link href={`/admin/team/profiles/${employee.employee_id}`}>
+                {employee.name}
+              </Link>
+              <span> - {employee.position}</span>
+            </li>
           ))}
-        </select>
-        <div>or create a new one</div>
-        <input
-          type="text"
-          placeholder="Employee Name"
-          value={newEmployeeName}
-          onChange={(e) => setNewEmployeeName(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Employee Position"
-          value={newEmployeePosition}
-          onChange={(e) => setNewEmployeePosition(e.target.value)}
-        />
-        <button onClick={handleCreateEmployee}>Create Employee</button>
+        </ul>
+        <h2>Create New Employee</h2>
+        <div>
+          <select
+            value={selectedEmployeeId ?? ""}
+            onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
+          >
+            <option value="">Select Existing Employee</option>
+            {employees.map((employee) => (
+              <option key={employee.employee_id} value={employee.employee_id}>
+                {employee.name}
+              </option>
+            ))}
+          </select>
+          <div>or create a new one</div>
+          <input
+            type="text"
+            placeholder="Employee Name"
+            value={newEmployeeName}
+            onChange={(e) => setNewEmployeeName(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Employee Position"
+            value={newEmployeePosition}
+            onChange={(e) => setNewEmployeePosition(e.target.value)}
+          />
+          <button onClick={handleCreateEmployee}>Create Employee</button>
+        </div>
       </div>
-    </div>
+    </RoleBasedWrapper>
   );
 };
 

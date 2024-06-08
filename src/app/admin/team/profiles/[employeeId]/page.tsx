@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 interface Note {
   id: number;
@@ -26,7 +27,9 @@ const EmployeeProfile = () => {
   const employeeIdParam = params.employeeId; // Get the employeeId from the URL
 
   // Convert employeeId to integer
-  const employeeId = Array.isArray(employeeIdParam) ? parseInt(employeeIdParam[0], 10) : parseInt(employeeIdParam, 10);
+  const employeeId = Array.isArray(employeeIdParam)
+    ? parseInt(employeeIdParam[0], 10)
+    : parseInt(employeeIdParam, 10);
 
   console.log("Employee ID from URL:", employeeId); // Debug output
 
@@ -126,12 +129,12 @@ const EmployeeProfile = () => {
     const { data, error } = await supabase
       .from("employee_profile_notes")
       .insert([
-        { 
-          profile_employee_id: employeeId, 
+        {
+          profile_employee_id: employeeId,
           employee_id: parseInt(user.id, 10), // Assuming `user.id` contains the integer ID of the admin creating the note
-          note: noteContent, 
-          type 
-        }
+          note: noteContent,
+          type,
+        },
       ]);
 
     if (error) {
@@ -190,240 +193,252 @@ const EmployeeProfile = () => {
   if (!employee) return <div>Loading...</div>;
 
   return (
-    <Card className="h-full max-w-4xl mx-auto my-12">
-      <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-4">
-          <Avatar>
-            <img src={employee.avatar_url || "/placeholder.svg"} alt="Employee Avatar" />
-            <AvatarFallback>{employee.name[0]}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-xl font-bold">{employee.name}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {employee.position}
-            </p>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <Card className="h-full max-w-4xl mx-auto my-12">
+        <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <img
+                src={employee.avatar_url || "/placeholder.svg"}
+                alt="Employee Avatar"
+              />
+              <AvatarFallback>{employee.name[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-xl font-bold">{employee.name}</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {employee.position}
+              </p>
+            </div>
           </div>
+        </header>
+        <div className="flex-1 overflow-auto">
+          <Tabs
+            defaultValue="notes"
+            className="w-full"
+            value={activeTab}
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="border-b border-gray-200 dark:border-gray-700">
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="absences">Absences</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
+            </TabsList>
+            <TabsContent value="notes">
+              <div className="p-6 space-y-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="new-note">Add a new note</Label>
+                  <Textarea
+                    id="new-note"
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Type your note here..."
+                    className="min-h-[100px]"
+                  />
+                  <Button onClick={() => handleAddNote("notes")}>
+                    Add Note
+                  </Button>
+                </div>
+                <div className="grid gap-4">
+                  {notes
+                    .filter((note) => note.type === "notes")
+                    .map((note) => (
+                      <div
+                        key={note.id}
+                        className="flex justify-between items-start"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">{note.note}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleEditNote(
+                                note.id,
+                                prompt("Edit note:", note.note) ?? note.note
+                              )
+                            }
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteNote(note.id)}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="absences">
+              <div className="p-6 space-y-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="new-absence">Add a new absence</Label>
+                  <Textarea
+                    id="new-absence"
+                    value={newAbsence}
+                    onChange={(e) => setNewAbsence(e.target.value)}
+                    placeholder="Enter date and reason for absence (e.g., 2023-12-01: Called out sick)"
+                    className="min-h-[100px]"
+                  />
+                  <Button onClick={() => handleAddNote("absence")}>
+                    Add Absence
+                  </Button>
+                </div>
+                <div className="grid gap-4">
+                  {notes
+                    .filter((note) => note.type === "absence")
+                    .map((note) => (
+                      <div
+                        key={note.id}
+                        className="flex justify-between items-start"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">{note.note}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleEditNote(
+                                note.id,
+                                prompt("Edit absence:", note.note) ?? note.note
+                              )
+                            }
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteNote(note.id)}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="reviews">
+              <div className="p-6 space-y-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="new-review">Add a new review</Label>
+                  <Textarea
+                    id="new-review"
+                    value={newReview}
+                    onChange={(e) => setNewReview(e.target.value)}
+                    placeholder="Type your review here..."
+                    className="min-h-[100px]"
+                  />
+                  <Button onClick={() => handleAddNote("reviews")}>
+                    Add Review
+                  </Button>
+                </div>
+                <div className="grid gap-4">
+                  {notes
+                    .filter((note) => note.type === "reviews")
+                    .map((note) => (
+                      <div
+                        key={note.id}
+                        className="flex justify-between items-start"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">{note.note}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleEditNote(
+                                note.id,
+                                prompt("Edit note:", note.note) ?? note.note
+                              )
+                            }
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteNote(note.id)}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="growth">
+              <div className="p-6 space-y-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="new-growth">
+                    Add a new growth tracking entry
+                  </Label>
+                  <Textarea
+                    id="new-growth"
+                    value={newGrowth}
+                    onChange={(e) => setNewGrowth(e.target.value)}
+                    placeholder="Type your growth tracking entry here..."
+                    className="min-h-[100px]"
+                  />
+                  <Button onClick={() => handleAddNote("growth")}>
+                    Add Entry
+                  </Button>
+                </div>
+                <div className="grid gap-4">
+                  {notes
+                    .filter((note) => note.type === "growth")
+                    .map((note) => (
+                      <div
+                        key={note.id}
+                        className="flex justify-between items-start"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">{note.note}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleEditNote(
+                                note.id,
+                                prompt("Edit note:", note.note) ?? note.note
+                              )
+                            }
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteNote(note.id)}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
-      </header>
-      <div className="flex-1 overflow-auto">
-        <Tabs
-          defaultValue="notes"
-          className="w-full"
-          value={activeTab}
-          onValueChange={setActiveTab}
-        >
-          <TabsList className="border-b border-gray-200 dark:border-gray-700">
-            <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="absences">Absences</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
-          </TabsList>
-          <TabsContent value="notes">
-            <div className="p-6 space-y-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="new-note">Add a new note</Label>
-                <Textarea
-                  id="new-note"
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Type your note here..."
-                  className="min-h-[100px]"
-                />
-                <Button onClick={() => handleAddNote("notes")}>Add Note</Button>
-              </div>
-              <div className="grid gap-4">
-                {notes
-                  .filter((note) => note.type === "notes")
-                  .map((note) => (
-                    <div
-                      key={note.id}
-                      className="flex justify-between items-start"
-                    >
-                      <div>
-                        <div className="text-sm font-medium">{note.note}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleEditNote(
-                              note.id,
-                              prompt("Edit note:", note.note) ?? note.note
-                            )
-                          }
-                        >
-                          <Pencil1Icon />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDeleteNote(note.id)}
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="absences">
-            <div className="p-6 space-y-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="new-absence">Add a new absence</Label>
-                <Textarea
-                  id="new-absence"
-                  value={newAbsence}
-                  onChange={(e) => setNewAbsence(e.target.value)}
-                  placeholder="Enter date and reason for absence (e.g., 2023-12-01: Called out sick)"
-                  className="min-h-[100px]"
-                />
-                <Button onClick={() => handleAddNote("absence")}>Add Absence</Button>
-              </div>
-              <div className="grid gap-4">
-                {notes
-                  .filter((note) => note.type === "absence")
-                  .map((note) => (
-                    <div key={note.id} className="flex justify-between items-start">
-                      <div>
-                        <div className="text-sm font-medium">{note.note}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleEditNote(
-                              note.id,
-                              prompt("Edit absence:", note.note) ?? note.note
-                            )
-                          }
-                        >
-                          <Pencil1Icon />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDeleteNote(note.id)}
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="reviews">
-            <div className="p-6 space-y-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="new-review">Add a new review</Label>
-                <Textarea
-                  id="new-review"
-                  value={newReview}
-                  onChange={(e) => setNewReview(e.target.value)}
-                  placeholder="Type your review here..."
-                  className="min-h-[100px]"
-                />
-                <Button onClick={() => handleAddNote("reviews")}>
-                  Add Review
-                </Button>
-              </div>
-              <div className="grid gap-4">
-                {notes
-                  .filter((note) => note.type === "reviews")
-                  .map((note) => (
-                    <div
-                      key={note.id}
-                      className="flex justify-between items-start"
-                    >
-                      <div>
-                        <div className="text-sm font-medium">{note.note}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleEditNote(
-                              note.id,
-                              prompt("Edit note:", note.note) ?? note.note
-                            )
-                          }
-                        >
-                          <Pencil1Icon />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDeleteNote(note.id)}
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="growth">
-            <div className="p-6 space-y-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="new-growth">
-                  Add a new growth tracking entry
-                </Label>
-                <Textarea
-                  id="new-growth"
-                  value={newGrowth}
-                  onChange={(e) => setNewGrowth(e.target.value)}
-                  placeholder="Type your growth tracking entry here..."
-                  className="min-h-[100px]"
-                />
-                <Button onClick={() => handleAddNote("growth")}>
-                  Add Entry
-                </Button>
-              </div>
-              <div className="grid gap-4">
-                {notes
-                  .filter((note) => note.type === "growth")
-                  .map((note) => (
-                    <div
-                      key={note.id}
-                      className="flex justify-between items-start"
-                    >
-                      <div>
-                        <div className="text-sm font-medium">{note.note}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            handleEditNote(
-                              note.id,
-                              prompt("Edit note:", note.note) ?? note.note
-                            )
-                          }
-                        >
-                          <Pencil1Icon />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDeleteNote(note.id)}
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Card>
+      </Card>
+    </RoleBasedWrapper>
   );
 };
 
