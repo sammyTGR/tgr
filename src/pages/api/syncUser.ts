@@ -1,27 +1,28 @@
-// pages/api/syncUser.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import {supabase} from '@/utils/supabase/client';
 import { corsHeaders } from '@/utils/cors';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') {
         res.status(200).json({ message: 'CORS preflight request success' });
         return;
     }
-    
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
-    
+
     if (req.method === 'POST') {
         const user = req.body;
+        console.log('Received user data:', user);
 
         // Extract necessary fields from the user object
         const user_uuid = user.id;
         const email = user.email.toLowerCase();
-        const full_name = user.user_metadata.full_name;
+        const full_name = user.user_metadata.full_name || '';
         const first_name = full_name.split(' ')[0];
+
+        console.log('Processed user data:', { user_uuid, email, first_name });
 
         try {
             // Step 1: Check if an entry with the given email exists
@@ -36,6 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 console.error('Error fetching existing employee:', fetchError);
                 return res.status(500).json({ error: fetchError.message });
             }
+
+            console.log('Existing employee:', existingEmployee);
 
             // Step 2: If an entry with the email exists, update it with user_uuid
             if (existingEmployee) {
@@ -68,6 +71,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 console.error('Error updating or creating employee:', error);
                 return res.status(500).json({ error: error.message });
             }
+
+            console.log('User created or updated successfully:', data);
 
             res.status(200).json({ message: 'User created or updated successfully', data });
         } catch (error) {

@@ -2,6 +2,7 @@ import React, { FC } from "react";
 import { Card } from "@/components/ui/card";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { EditItem } from "@/components/EditItem";
 import { TrashIcon } from "@radix-ui/react-icons";
 
 interface Item {
@@ -15,9 +16,14 @@ interface Item {
 interface SortableLinkCardProps {
   item: Item;
   onDelete: (id: number) => void;
+  updateItem: (id: number, name: string) => void;
 }
 
-const SortableLinks: FC<SortableLinkCardProps> = ({ item, onDelete }) => {
+const SortableLinks: FC<SortableLinkCardProps> = ({
+  item,
+  onDelete,
+  updateItem,
+}) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
 
@@ -30,12 +36,18 @@ const SortableLinks: FC<SortableLinkCardProps> = ({ item, onDelete }) => {
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card className="p-4 relative flex justify-between items-center gap-2 group">
         <div>{item.name}</div>
-        <button
-          onClick={() => onDelete(item.id)}
-          className="hidden group-hover:block"
-        >
-          <TrashIcon className="h-4 w-4 text-red-500" />
-        </button>
+        <div className="flex justify-center items-center gap-2 hidden group-hover:flex">
+        <EditItem
+            item={item}
+            updateItem={updateItem}
+            deleteItem={(id) => {
+              // Logic to delete the item with the given id
+            }}
+          />
+          <button onClick={() => onDelete(item.id)}>
+            <TrashIcon className="h-4 w-4" />
+          </button>
+        </div>
       </Card>
     </div>
   );

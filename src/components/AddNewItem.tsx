@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import React, { useState } from "react";
+import React from "react";
 import { PlusIcon } from "@radix-ui/react-icons";
 
 export function AddNewItem({
@@ -17,7 +17,7 @@ export function AddNewItem({
 }: {
   addNewItem: (name: string) => void;
 }) {
-  const [itemName, setItemName] = useState("");
+  const [itemName, setItemName] = React.useState("");
 
   const handleSubmit = () => {
     if (itemName.trim() === "") {

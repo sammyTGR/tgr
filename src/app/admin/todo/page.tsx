@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, FC } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   DndContext,
   closestCenter,
@@ -10,12 +11,19 @@ import {
   useSensors,
   DragOverlay,
 } from "@dnd-kit/core";
+
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
+
 import SortableLinks from "@/components/SortableLinks";
 import {
   Card,
@@ -47,7 +55,9 @@ interface List {
   items: Item[];
 }
 
-interface HomeProps {}
+interface HomeProps {
+  // You can add any additional props if needed
+}
 
 const Todo: React.FC<HomeProps> = () => {
   const { role, user } = useRole(); // Fetch role and user information from context
@@ -361,7 +371,7 @@ const Todo: React.FC<HomeProps> = () => {
   };
 
   return (
-    <main className="flex grid cols-3 justify-center mt-10h-screen px-2 mx-auto select-none">
+    <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
       <div className="flex justify-start p-4 mb-4">
         <AddNewList addNewList={addNewList} />
       </div>
@@ -373,10 +383,7 @@ const Todo: React.FC<HomeProps> = () => {
             onDragEnd={handleDragEnd}
           >
             {lists.map((list) => (
-              <Card
-                key={list.id}
-                className="w-full p-2 min-w-[325px] md:max-w-lg"
-              >
+              <Card key={list.id} className="w-full min-w-[325px] md:max-w-lg">
                 <CardHeader className="space-y-1 ">
                   <CardTitle className="text-2xl flex justify-between">
                     {list.title}
@@ -398,9 +405,11 @@ const Todo: React.FC<HomeProps> = () => {
                         key={item.id}
                         item={item}
                         onDelete={() => handleDelete(list.id, item.id)}
+                        updateItem={updateItem}
                       />
                     ))}
                   </SortableContext>
+                  <AddNewItem addNewItem={(newItem: string) => addNewItem(list.id, newItem)} />
                 </CardContent>
               </Card>
             ))}
@@ -415,6 +424,7 @@ const Todo: React.FC<HomeProps> = () => {
                     list_id: "",
                   }}
                   onDelete={() => {}}
+                  updateItem={() => {}}
                 />
               ) : null}
             </DragOverlay>

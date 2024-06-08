@@ -100,14 +100,14 @@ const reportsComps = [
 
 const profileComps = [
   {
-    title: "Staff Notes",
+    title: "Notes",
     href: "/admin/todo",
-    description: "Notes For Individuals",
+    description: "All Kinda Notes",
   },
   {
-    title: "Amanda",
-    href: "/admin/team/profiles/amanda",
-    description: "Amanda's Profile",
+    title: "Staff Profiles",
+    href: "/admin/dashboard",
+    description: "All Profiles",
   },
 ];
 
@@ -204,7 +204,7 @@ const HeaderSuperAdmin = React.memo(() => {
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuTrigger>Staff Profiles</NavigationMenuTrigger>
+            <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                 {profileComps.map((component) => (

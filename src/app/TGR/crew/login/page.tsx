@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,15 +11,17 @@ import { supabase } from "@/utils/supabase/client";
 const title = "TGR Crew Login";
 
 function LoginComponent() {
+  const [loading, setLoading] = useState(false);
   const params = useSearchParams();
   const next = params ? params.get("next") || "" : "";
 
   const loginWithOAuth = async (provider: "google") => {
+    setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${location.origin}/auth/callback` + next,
+          redirectTo: `${location.origin}/auth/callback${next}`,
         },
       });
 
@@ -31,13 +33,21 @@ function LoginComponent() {
         const user = userResponse.data.user;
 
         if (user) {
-          await fetch("/api/syncUser", {
+          console.log('User data:', user); // Add logging here
+          const response = await fetch("/api/syncUser", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(user),
           });
+
+          if (response.ok) {
+            // Redirect to the intended page or dashboard
+            window.location.href = next || "/dashboard";
+          } else {
+            console.error("Error syncing user:", await response.text());
+          }
         }
       }, 2000); // Add a delay to ensure the session is set
     } catch (error) {
@@ -46,13 +56,15 @@ function LoginComponent() {
       } else {
         console.error("Unexpected error logging in with OAuth:", error);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="grid place-items-center h-screen">
       <div className="flex min-h-[100dvh] items-center justify-center px-4">
-        <div className="w-[400px] h-[500px] max-w-md space-y-6">
+        <div className="w-[400px] h-[500px] max-w-md space-y-6  p-6">
           <div className="space-y-2 text-start">
             <h1 className="text-3xl font-bold">
               <TextGenerateEffect words={title} />
@@ -63,9 +75,9 @@ function LoginComponent() {
           </div>
           <Tabs
             defaultValue="login"
-            className="grid w-[500px] grid-cols-2 rounded-lg bg-white shadow-lg dark:bg-black h-[300px]"
+            className="grid w-[500px] grid-cols-2 border border-gray-300 rounded-lg h-[300px]"
           >
-            <TabsList className="flex bg-black text-white dark:bg-white dark:text-black">
+            <TabsList className="flex ">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
@@ -75,10 +87,11 @@ function LoginComponent() {
                   <Label htmlFor="email">Login With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
-                    variant="outline"
-                    className="w-full bg-black text-white dark:bg-white dark:text-black"
+                    variant="default"
+                    className="w-full "
+                    disabled={loading}
                   >
-                    Login with Google
+                    {loading ? "Logging in..." : "Login with Google"}
                   </Button>
                 </div>
               </div>
@@ -89,10 +102,11 @@ function LoginComponent() {
                   <Label htmlFor="email">Sign Up With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
-                    variant="outline"
-                    className="w-full bg-black text-white dark:bg-white dark:text-black"
+                    variant="default"
+                    className="w-full "
+                    disabled={loading}
                   >
-                    Login with Google
+                    {loading ? "Signing up..." : "Sign Up with Google"}
                   </Button>
                 </div>
               </div>
