@@ -46,7 +46,7 @@ const daysOfWeek = [
   "Saturday",
 ];
 
-function TimeOffRequestPage() {
+export default function TimeOffRequestPage() {
   const [calendarData, setCalendarData] = useState<EmployeeCalendar[]>([]);
   const [employeeNames, setEmployeeNames] = useState<string[]>([]);
   const [timeOffReasons, setTimeOffReasons] = useState<TimeOffReason[]>([]);
@@ -239,7 +239,7 @@ function TimeOffRequestPage() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
       <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-4">
           <TextGenerateEffect words={title} />
