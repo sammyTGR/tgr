@@ -37,7 +37,7 @@ export function AddNewItem({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-start">
           <DialogTitle>Add New Item</DialogTitle>
-          <DialogDescription>Enter the details of your item</DialogDescription>
+          <DialogDescription>You Can Drag Your Items To Different Lists</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 pt-2">
           <Input

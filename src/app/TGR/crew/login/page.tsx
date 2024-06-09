@@ -44,7 +44,7 @@ function LoginComponent() {
 
           if (response.ok) {
             // Redirect to the intended page or dashboard
-            window.location.href = next || "/dashboard";
+            window.location.href = next || "/";
           } else {
             console.error("Error syncing user:", await response.text());
           }
@@ -75,15 +75,15 @@ function LoginComponent() {
           </div>
           <Tabs
             defaultValue="login"
-            className="grid w-[500px] grid-cols-2 border border-gray-300 rounded-lg h-[300px]"
+            className="grid w-[600px] grid-cols-2 border border-gray-300 rounded-lg h-[400px] mx-auto"
           >
             <TabsList className="flex ">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
-              <div className="space-y-4 p-6 flex items-center justify-center">
-                <div className="mt-20 space-y-4 items-center justify-center flex flex-col">
+              <div className="flex flex-col my-40 items-center justify-center">
+                <div className="flex flex-col">
                   <Label htmlFor="email">Login With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
@@ -97,8 +97,8 @@ function LoginComponent() {
               </div>
             </TabsContent>
             <TabsContent value="signup">
-              <div className="space-y-4 p-6 flex items-center justify-center">
-                <div className="mt-20 space-y-4 items-center justify-center flex flex-col">
+              <div className="flex flex-col my-40 items-center justify-center">
+                <div className="flex flex-col">
                   <Label htmlFor="email">Sign Up With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}

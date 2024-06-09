@@ -39,7 +39,7 @@ export function EditListTitle({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="button-icon">
+        <Button variant="outline" size="icon">
           <Pencil1Icon className="h-4 w-4" />
         </Button>
       </DialogTrigger>

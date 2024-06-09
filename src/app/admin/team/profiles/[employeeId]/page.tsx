@@ -31,7 +31,7 @@ const EmployeeProfile = () => {
     ? parseInt(employeeIdParam[0], 10)
     : parseInt(employeeIdParam, 10);
 
-  console.log("Employee ID from URL:", employeeId); // Debug output
+  // console.log("Employee ID from URL:", employeeId); // Debug output
 
   const [activeTab, setActiveTab] = useState("notes");
   const [notes, setNotes] = useState<Note[]>([]);
@@ -43,7 +43,7 @@ const EmployeeProfile = () => {
   const { user } = useRole(); // Get user from RoleContext
 
   useEffect(() => {
-    console.log("User:", user);
+    // console.log("User:", user);
     if (user && employeeId) {
       fetchEmployeeData();
       fetchNotes();
@@ -63,7 +63,7 @@ const EmployeeProfile = () => {
     if (error) {
       console.error("Error fetching employee data:", error.message);
     } else {
-      console.log("Employee Data:", data); // Debug output
+      // console.log("Employee Data:", data); // Debug output
       setEmployee(data);
     }
   };

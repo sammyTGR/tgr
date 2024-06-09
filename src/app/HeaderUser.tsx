@@ -15,8 +15,8 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useRole } from "../context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const schedComponents = [
   {
@@ -59,7 +59,6 @@ const formComps = [
 
 const HeaderUser = React.memo(() => {
   const [user, setUser] = useState<any>(null);
-  const { role } = useRole();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -77,11 +76,11 @@ const HeaderUser = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
-  if (role !== "user") {
-    return null; // Prevent rendering if the role is not user
-  }
+
 
   return (
+    <RoleBasedWrapper allowedRoles={["user"]}>
+
     <header className="flex justify-between items-center p-2">
       <NavigationMenu>
         <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
@@ -163,6 +162,8 @@ const HeaderUser = React.memo(() => {
         <ModeToggle />
       </div>
     </header>
+
+    </RoleBasedWrapper>
   );
 });
 

@@ -1,10 +1,11 @@
-"use client";
+
+  "use client";
 
 import { useState, useEffect, useRef, FC } from "react";
-import { v4 as uuidv4 } from "uuid";
 import {
   DndContext,
   closestCenter,
+  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -18,11 +19,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-
-import {
-  restrictToVerticalAxis,
-  restrictToParentElement,
-} from "@dnd-kit/modifiers";
 
 import SortableLinks from "@/components/SortableLinks";
 import {
@@ -38,7 +34,6 @@ import { useRole } from "@/context/RoleContext"; // Correct import
 import { supabase } from "@/utils/supabase/client";
 import { AddNewList } from "@/components/AddNewList";
 import { EditListTitle } from "@/components/EditListTitle";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 // Define the item interface
 interface Item {
@@ -72,10 +67,11 @@ const Todo: React.FC<HomeProps> = () => {
   const [lists, setLists] = useState<List[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const channel = useRef<RealtimeChannel | null>(null);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number | string | null>(null);
+  const [activeItem, setActiveItem] = useState<Item | null>(null);
+  const [activeList, setActiveList] = useState<List | null>(null);
 
   useEffect(() => {
-    // Fetch lists from Supabase
     const fetchLists = async () => {
       const { data: listData, error: listError } = await supabase
         .from("lists")
@@ -98,7 +94,6 @@ const Todo: React.FC<HomeProps> = () => {
       }
     };
 
-    // Fetch username from employees table
     const fetchUsername = async () => {
       if (user) {
         const { data: userData, error } = await supabase
@@ -181,14 +176,34 @@ const Todo: React.FC<HomeProps> = () => {
     };
   }, [user]);
 
+  const handleDragStart = (event: any) => {
+    const { active } = event;
+    setActiveId(active.id);
+
+    const activeList = lists.find((list) => list.id === active.id);
+    if (activeList) {
+      setActiveList(activeList);
+    } else {
+      const activeItem = lists
+        .map((list) => list.items)
+        .flat()
+        .find((item) => item.id === active.id);
+      setActiveItem(activeItem || null);
+    }
+  };
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-
+  
+    setActiveId(null);
+    setActiveItem(null);
+    setActiveList(null);
+  
     if (!over) return;
-
+  
     const activeContainer = findContainer(active.id);
     const overContainer = findContainer(over.id);
-
+  
     if (activeContainer && overContainer && activeContainer !== overContainer) {
       setLists((prevLists) => {
         const activeList = prevLists.find(
@@ -196,24 +211,24 @@ const Todo: React.FC<HomeProps> = () => {
         );
         const overList = prevLists.find((list) => list.id === overContainer);
         if (!activeList || !overList) return prevLists;
-
+  
         const activeIndex = activeList.items.findIndex(
           (item) => item.id === active.id
         );
         const overIndex = overList.items.findIndex(
           (item) => item.id === over.id
         );
-
+  
         if (activeIndex === -1 || overIndex === -1) return prevLists;
-
+  
         const [movedItem] = activeList.items.splice(activeIndex, 1);
         overList.items.splice(overIndex, 0, movedItem);
-
+  
         return prevLists.map((list) =>
           list.id === activeContainer
-            ? { ...activeList }
+            ? { ...list, items: activeList.items }
             : list.id === overContainer
-            ? { ...overList }
+            ? { ...list, items: overList.items }
             : list
         );
       });
@@ -223,32 +238,40 @@ const Todo: React.FC<HomeProps> = () => {
           (list) => list.id === activeContainer
         );
         if (!activeList) return prevLists;
-
+  
         const activeIndex = activeList.items.findIndex(
           (item) => item.id === active.id
         );
         const overIndex = activeList.items.findIndex(
           (item) => item.id === over.id
         );
-
+  
         if (activeIndex !== -1 && overIndex !== -1) {
           const newItems = arrayMove(activeList.items, activeIndex, overIndex);
           return prevLists.map((list) =>
             list.id === activeContainer ? { ...list, items: newItems } : list
           );
         }
-
+  
         return prevLists;
       });
+    } else {
+      const activeIndex = lists.findIndex((list) => list.id === active.id);
+      const overIndex = lists.findIndex((list) => list.id === over.id);
+  
+      if (activeIndex !== -1 && overIndex !== -1) {
+        setLists((prevLists) => arrayMove(prevLists, activeIndex, overIndex));
+      }
     }
-  };
+  };  
 
-  const findContainer = (id: number): string | undefined => {
+  const findContainer = (id: number | string): string | undefined => {
     for (const list of lists) {
       if (list.items.find((item) => item.id === id)) {
         return list.id;
       }
     }
+    return lists.find((list) => list.id === id)?.id;
   };
 
   const handleDelete = async (listId: string, idToDelete: number) => {
@@ -336,22 +359,23 @@ const Todo: React.FC<HomeProps> = () => {
     }
   };
 
-  const deleteList = async (id: string) => {
+  const deleteList = async (id: string | number) => {
+    const stringId = id.toString();
     const { error: listError } = await supabase
       .from("lists")
       .delete()
-      .eq("id", id);
+      .eq("id", stringId);
     const { error: itemsError } = await supabase
       .from("items")
       .delete()
-      .eq("list_id", id);
+      .eq("list_id", stringId);
     if (listError || itemsError) {
       console.error("Error deleting list:", listError || itemsError);
     } else {
-      setLists((prevLists) => prevLists.filter((list) => list.id !== id));
+      setLists((prevLists) => prevLists.filter((list) => list.id !== stringId));
     }
   };
-
+  
   const updateItem = async (id: number, name: string) => {
     const { error } = await supabase
       .from("items")
@@ -372,76 +396,63 @@ const Todo: React.FC<HomeProps> = () => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
-        <div className="flex justify-start p-4 mb-4">
-          <AddNewList addNewList={addNewList} />
-        </div>
-        <div className="container mt-10 px-4 md:px-6">
-          <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
+    <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
+      <div className="flex justify-start p-4 mb-4">
+        <AddNewList addNewList={addNewList} />
+      </div>
+      <div className="container mt-10 px-4 md:px-6">
+        <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners} // Change this to closestCorners
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={lists.map((list) => list.id)} strategy={verticalListSortingStrategy}>
               {lists.map((list) => (
-                <Card
-                  key={list.id}
-                  className="w-full min-w-[325px] md:max-w-lg"
-                >
-                  <CardHeader className="space-y-1 ">
-                    <CardTitle className="text-2xl flex justify-between">
-                      {list.title}
-                      <EditListTitle
-                        list={list}
-                        updateListTitle={updateListTitle}
-                        deleteList={deleteList}
-                      />
-                    </CardTitle>
-                    <CardDescription>List All Of Your Projects</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-4">
-                    <SortableContext
-                      items={list.items.map((item) => item.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {list.items.map((item) => (
-                        <SortableLinks
-                          key={item.id}
-                          item={item}
-                          onDelete={() => handleDelete(list.id, item.id)}
-                          updateItem={updateItem}
-                        />
-                      ))}
-                    </SortableContext>
-                    <AddNewItem
-                      addNewItem={(newItem: string) =>
-                        addNewItem(list.id, newItem)
-                      }
-                    />
-                  </CardContent>
-                </Card>
-              ))}
-              <DragOverlay>
-                {activeId ? (
+                <div key={list.id}>
                   <SortableLinks
-                    item={{
-                      id: activeId,
-                      name: "",
-                      user_id: "",
-                      user_name: "",
-                      list_id: "",
-                    }}
-                    onDelete={() => {}}
-                    updateItem={() => {}}
+                    item={list}
+                    onDelete={deleteList}
+                    updateItem={updateItem}
+                    updateListTitle={updateListTitle}
                   />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          </div>
+                  <AddNewItem addNewItem={(newItem) => addNewItem(list.id, newItem)} />
+                </div>
+              ))}
+            </SortableContext>
+            <DragOverlay>
+              {activeId && (
+                <div>
+                  {activeList ? (
+                    <Card className="w-full min-w-[325px] md:max-w-lg">
+                      <CardHeader className="space-y-1 ">
+                        <CardTitle className="text-2xl flex justify-between">
+                          {activeList.title}
+                          <EditListTitle
+                            list={activeList}
+                            updateListTitle={updateListTitle}
+                            deleteList={deleteList}
+                          />
+                        </CardTitle>
+                        <CardDescription>List All Of Your Projects</CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid gap-4">
+                        {activeList.items.map((item) => (
+                          <div key={item.id}>{item.name}</div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div>{activeItem?.name}</div>
+                  )}
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
         </div>
-      </main>
-    </RoleBasedWrapper>
+      </div>
+    </main>
   );
 };
 

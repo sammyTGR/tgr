@@ -67,6 +67,10 @@ module.exports = {
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
+          "shine": {
+          from: { backgroundPosition: '200% 0' },
+          to: { backgroundPosition: '-200% 0' },
+          },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
@@ -85,6 +89,7 @@ module.exports = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "meteor": "meteor 5s linear infinite",
+        "shine": "shine 8s ease-in-out infinite",
       },
       spacing: {
         '400px': '400px',

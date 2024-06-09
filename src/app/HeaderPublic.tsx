@@ -10,7 +10,6 @@ import {
   NavigationMenuList,
   NavigationMenuItem,
 } from "@/components/ui/navigation-menu";
-import { SignedOut, SignUpButton } from "@clerk/nextjs";
 
 const HeaderPublic = React.memo(() => {
   return (
