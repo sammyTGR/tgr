@@ -1,4 +1,5 @@
 "use client";
+// *ts-ignore
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -257,7 +258,7 @@ export default function TimeOffRequestPage() {
                 />
               </div>
               <label className="text-lg font-medium flex justify-center text-center">
-                  Select Dates By Clicking On All Dates You'll Be Out
+                  Select Dates By Clicking On All Dates You&apos;ll Be Out
                 </label>
               <Select
                 value={timeOffData.employee_name}
