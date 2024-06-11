@@ -16,6 +16,7 @@ import {
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
 import { Button } from "./ui/button";
+import Image from "next/image";
 
 const words = "Ops Management Dashboard";
 const subwords = "Weekly Checks For 9MM Quality Control";
