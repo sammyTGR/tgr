@@ -1,49 +1,62 @@
 "use client";
-"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, FC } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   DndContext,
-  closestCorners,
+  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragOverlay,
 } from "@dnd-kit/core";
+
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+
 import SortableLinks from "@/components/SortableLinks";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AddNewItem } from "@/components/AddNewItem";
 import { RealtimeChannel } from "@supabase/supabase-js";
-import { useRole } from "@/context/RoleContext";
+import { useRole } from "@/context/RoleContext"; // Correct import
 import { supabase } from "@/utils/supabase/client";
 import { AddNewList } from "@/components/AddNewList";
 import { EditListTitle } from "@/components/EditListTitle";
-import { TrashIcon } from "@radix-ui/react-icons";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
+// Define the item interface
 interface Item {
   name: string;
   id: number;
   user_id: string;
   user_name: string;
   list_id: string;
-  completed: boolean;
 }
 
+// Define the list interface
 interface List {
   id: string;
   title: string;
   items: Item[];
 }
 
-const Todo = () => {
-  const { role, user } = useRole();
+interface HomeProps {
+  // You can add any additional props if needed
+}
+
+const Todo: React.FC<HomeProps> = () => {
+  const { role, user } = useRole(); // Fetch role and user information from context
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -292,7 +305,6 @@ const Todo = () => {
       user_id: user.id,
       user_name: username,
       list_id: listId,
-      completed: false, // Ensure new items are marked as not completed by default
     };
     const { data, error } = await supabase.from("items").insert([newItemData]);
     if (error) {
@@ -315,7 +327,7 @@ const Todo = () => {
     const { data, error } = await supabase
       .from("lists")
       .insert([newListData])
-      .select("id");
+      .select("id"); // Explicitly select the id
 
     if (error) {
       console.error("Error adding list:", error);
@@ -339,6 +351,22 @@ const Todo = () => {
     }
   };
 
+  const deleteList = async (id: string) => {
+    const { error: listError } = await supabase
+      .from("lists")
+      .delete()
+      .eq("id", id);
+    const { error: itemsError } = await supabase
+      .from("items")
+      .delete()
+      .eq("list_id", id);
+    if (listError || itemsError) {
+      console.error("Error deleting list:", listError || itemsError);
+    } else {
+      setLists((prevLists) => prevLists.filter((list) => list.id !== id));
+    }
+  };
+
   const updateItem = async (id: number, updatedItem: Partial<Item>) => {
     const { error } = await supabase
       .from("items")
@@ -358,37 +386,20 @@ const Todo = () => {
     }
   };
 
-  const deleteList = async (id: string | number) => {
-    const stringId = id.toString();
-    const { error: listError } = await supabase
-      .from("lists")
-      .delete()
-      .eq("id", id);
-    const { error: itemsError } = await supabase
-      .from("items")
-      .delete()
-      .eq("list_id", id);
-    if (listError || itemsError) {
-      console.error("Error deleting list:", listError || itemsError);
-    } else {
-      setLists((prevLists) => prevLists.filter((list) => list.id !== id));
-    }
-  };
-
   return (
-    <main className="flex grid cols-4 justify-center mt-10 h-screen px-2 mx-auto select-none">
-      <div className="flex justify-start p-4 mb-4">
-        <AddNewList addNewList={addNewList} />
-      </div>
-      <div className="container mt-10 px-4 md:px-6">
-        <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext items={lists.map((list) => list.id)} strategy={verticalListSortingStrategy}>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
+        <div className="flex justify-start p-4 mb-4">
+          <AddNewList addNewList={addNewList} />
+        </div>
+        <div className="container mt-10 px-4 md:px-6">
+          <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
               {lists.map((list) => (
                 <Card
                   key={list.id}

@@ -61,6 +61,11 @@ const formComps = [
     description: "Submit ALL Range Repairs",
   },
   {
+    title: "Points Submissions",
+    href: "/TGR/crew/points",
+    description: "Report All Submitted Points",
+  },
+  {
     title: "Daily Deposits",
     href: "/TGR/deposits",
     description: "Submit Daily Deposits",

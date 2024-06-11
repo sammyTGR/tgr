@@ -93,6 +93,11 @@ const formComps = [
     href: "/TGR/deposits",
     description: "Submit Daily Deposits",
   },
+  {
+    title: "Points Submissions",
+    href: "/TGR/crew/points",
+    description: "Report All Submitted Points",
+  },
 ];
 
 const sopComps = [

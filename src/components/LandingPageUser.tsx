@@ -12,6 +12,7 @@ import {
   WaiverReviewCard,
   RangeWalkCard,
   SOPCard,
+  PointsCard,
 } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
@@ -64,8 +65,12 @@ const LandingPageUser: React.FC = React.memo(() => {
               <DrosGuidanceCard />
             </div>
             <div className="col-span-full flex justify-center">
-              <SOPCard />
+              
             </div>
+            <PointsCard />
+            <SOPCard />
+            <Separator />
+            <Separator />
             <RangeWalkCard />
             <DepositsCard />
             <Separator />

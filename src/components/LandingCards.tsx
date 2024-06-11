@@ -323,3 +323,21 @@ export const AdminSOPCard = () => (
     </Link>
   </>
 );
+
+export const PointsCard = () => (
+  <>
+    <Link className="group" href="/TGR/crew/points">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <FileTextIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Submit Your Points</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Report All Of Your Submitted Points.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);

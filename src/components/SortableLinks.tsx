@@ -12,8 +12,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { BoxIcon, CheckboxIcon, TrashIcon } from "@radix-ui/react-icons";
-import { EditListTitle } from "./EditListTitle";
+import { EditItem } from "@/components/EditItem";
+import { EditListTitle } from "@/components/EditListTitle";
+import { TrashIcon } from "@radix-ui/react-icons";
 
 interface Item {
   id: number;
@@ -21,7 +22,6 @@ interface Item {
   user_id: string;
   user_name: string;
   list_id: string;
-  completed: boolean;
 }
 
 interface List {
@@ -32,7 +32,7 @@ interface List {
 
 interface SortableLinkCardProps {
   item: Item | List;
-  onDelete: (id: string | number) => void;
+  onDelete: (id: number | string) => void;
   updateItem: (id: number, updatedItem: Partial<Item>) => void;
   updateListTitle?: (id: string, title: string) => void;
 }
@@ -43,27 +43,27 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
   updateItem,
   updateListTitle,
 }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: item.id });
 
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
   };
 
-  const handleToggleComplete = () => {
-    if ('completed' in item) {
-      updateItem(item.id, { completed: !item.completed });
-    }
-  };
-
-  if ('name' in item) {
+  if ("name" in item) {
     return (
       <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card className="p-4 relative flex justify-between items-center gap-2 group">
           <div>{item.name}</div>
-          <div className="flex justify-center items-center gap-2">
-            <button onClick={handleToggleComplete}>
-              {item.completed ? <CheckboxIcon className="h-4 w-4" /> : <BoxIcon className="h-4 w-4" />}
+          {/* <div className="flex justify-center items-center gap-2 hidden group-hover:flex">
+            <EditItem
+              item={item}
+              updateItem={updateItem}
+              deleteItem={onDelete}
+            />
+            <button onClick={() => onDelete(item.id)}>
+              <TrashIcon className="h-4 w-4" />
             </button>
           </div> */}
         </Card>
