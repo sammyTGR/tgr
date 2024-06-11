@@ -205,8 +205,8 @@ export default function ChatClient() {
                 key={i}
                 className={`p-2 rounded-md text-lg ${
                   msg.user_id === user.id
-                    ? "bg-muted self-start"
-                    : "bg-blue-800 text-white self-end"
+                    ? "bg-blue-800 text-end self-end"
+                    : "bg-muted text-white self-start"
                 } message-container`}
               >
                 {msg.user_id !== user.id && (
