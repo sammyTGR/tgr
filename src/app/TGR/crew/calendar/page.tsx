@@ -303,11 +303,11 @@ export default function Component() {
         <Card className="w-full max-w-6xl">
           <CardContent>
             <div className="flex justify-between w-full mb-4">
-              <Button variant="ghost" onClick={handlePreviousWeek}>
+              <Button variant="linkHover2" onClick={handlePreviousWeek}>
                 <ChevronLeftIcon className="h-4 w-4" />
                 Previous Week
               </Button>
-              <Button variant="ghost" onClick={handleNextWeek}>
+              <Button variant="linkHover1" onClick={handleNextWeek}>
                 Next Week
                 <ChevronRightIcon className="h-4 w-4" />
               </Button>

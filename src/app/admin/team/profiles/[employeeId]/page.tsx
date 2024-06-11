@@ -80,7 +80,7 @@ const EmployeeProfile = () => {
     if (error) {
       console.error("Error fetching notes:", error);
     } else {
-      console.log("Notes Data:", data); // Debug output
+      // console.log("Notes Data:", data); // Debug output
       setNotes(data as Note[]);
     }
   };
@@ -94,7 +94,7 @@ const EmployeeProfile = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "employee_profile_notes" },
         (payload) => {
-          console.log("Change received!", payload);
+          // console.log("Change received!", payload);
           fetchNotes(); // Re-fetch notes on any change
         }
       )
@@ -195,6 +195,8 @@ const EmployeeProfile = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <div className="section w-full">
+        
       <Card className="h-full max-w-4xl mx-auto my-12">
         <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
@@ -211,11 +213,13 @@ const EmployeeProfile = () => {
                 {employee.position}
               </p>
             </div>
-            <div className="ml-auto">
-              <Link href="/admin/dashboard">
-                <Button variant="linkHover1">Back To Profiles</Button>
-              </Link>
-            </div>
+            <div className="flex ml-auto">
+          <Link href="/admin/dashboard">
+          <Button variant="linkHover1">
+            Back To Profiles
+          </Button>
+          </Link>
+        </div>
           </div>
         </header>
         <div className="flex-1 overflow-auto">
@@ -444,6 +448,7 @@ const EmployeeProfile = () => {
           </Tabs>
         </div>
       </Card>
+      </div>
     </RoleBasedWrapper>
   );
 };

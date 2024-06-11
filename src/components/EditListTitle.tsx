@@ -25,7 +25,7 @@ export function EditListTitle({
 }: {
   list: List;
   updateListTitle: (id: string, title: string) => void;
-  deleteList: (id: string) => void;
+  deleteList: (id: string | number) => void;
 }) {
   const [title, setTitle] = useState(list.title);
 
@@ -68,6 +68,7 @@ export function EditListTitle({
             className="w-full"
             variant="destructive"
           >
+            <TrashIcon className="h-4 w-4" />
             Delete List
           </Button>
         </DialogFooter>

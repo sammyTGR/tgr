@@ -313,7 +313,7 @@ export default function TimeOffRequestPage() {
                   className="textarea"
                 />
               )}
-              <Button variant="gooeyLeft" type="submit">
+              <Button type="submit" variant="gooeyRight">
                 Submit Request
               </Button>
             </div>

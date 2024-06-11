@@ -218,7 +218,7 @@ export default function DROSGuide() {
         </div>
         <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
           <Button
-            variant="linkHover1"
+          variant="gooeyLeft"
             onClick={resetSelections}
             className="mb-6 flex-shrink py-1"
           >
