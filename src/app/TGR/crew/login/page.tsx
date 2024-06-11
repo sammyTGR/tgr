@@ -81,11 +81,11 @@ function LoginComponent() {
             </TabsList>
             <TabsContent value="login">
               <div className="flex flex-col my-40 items-center justify-center">
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="email">Login With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
-                    variant="default"
+                    variant="ringHover"
                     className="w-full "
                     disabled={loading}
                   >
@@ -96,11 +96,11 @@ function LoginComponent() {
             </TabsContent>
             <TabsContent value="signup">
               <div className="flex flex-col my-40 items-center justify-center">
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="email">Sign Up With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
-                    variant="default"
+                    variant="ringHover"
                     className="w-full "
                     disabled={loading}
                   >
