@@ -12,6 +12,7 @@ import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import Link from "next/link";
 
 interface Note {
   id: number;
@@ -209,6 +210,11 @@ const EmployeeProfile = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {employee.position}
               </p>
+            </div>
+            <div className="ml-auto">
+              <Link href="/admin/dashboard">
+                <Button variant="linkHover1">Back To Profiles</Button>
+              </Link>
             </div>
           </div>
         </header>
