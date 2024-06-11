@@ -15,6 +15,7 @@ import {
   AdminWaiverReviewCard,
   RangeWalkCard,
   RangeRepairCard,
+  AdminSOPCard,
 } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
@@ -55,9 +56,12 @@ const LandingPageAdmin: React.FC = React.memo(() => {
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
             <div className="col-span-full flex justify-center"></div>
-            <div className="col-span-full flex justify-center">
-              <DrosGuidanceCard />
-            </div>
+            <div className="col-span-full flex justify-center"></div>
+            <div className="col-span-full flex justify-center"></div>
+            <DrosGuidanceCard />
+            <AdminSOPCard />
+            <Separator />
+            <Separator />
             <RangeWalkCard />
             <RangeRepairCard />
             <Separator />

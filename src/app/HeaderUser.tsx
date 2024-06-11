@@ -93,7 +93,12 @@ const HeaderUser = React.memo(() => {
           <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
             <NavigationMenuItem>
               <Link href="/TGR/dros/guide">
-                <Button variant="linkHover2">DROS Guide</Button>
+                <Button variant="linkHover1">DROS Guide</Button>
+              </Link>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <Link href="/TGR/sop">
+                <Button variant="linkHover2">TGR SOPs</Button>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>

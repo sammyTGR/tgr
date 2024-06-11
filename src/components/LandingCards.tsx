@@ -9,6 +9,7 @@ import {
   ClockIcon,
   CodeIcon,
   EyeOpenIcon,
+  FileTextIcon,
   InputIcon,
   LightningBoltIcon,
   ReaderIcon,
@@ -280,6 +281,42 @@ export const RangeRepairCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Submit Range Repair Reports.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const SOPCard = () => (
+  <>
+    <Link className="group" href="/TGR/sop">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <FileTextIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>TGR SOPs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Study This During Down Time To Understand Processes.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const AdminSOPCard = () => (
+  <>
+    <Link className="group" href="/TGR/sop">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <FileTextIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>SOPs For Admins</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            SOPs For Back Of The House SOPs.
           </p>
         </CardContent>
       </Card>

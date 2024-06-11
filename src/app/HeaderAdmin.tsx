@@ -95,6 +95,19 @@ const formComps = [
   },
 ];
 
+const sopComps = [
+  {
+    title: "TGR SOPs",
+    href: "/TGR/sop",
+    description: "SOPs For Front Of The House",
+  },
+  {
+    title: "Admin SOPs",
+    href: "/admin/sop",
+    description: "SOPs For Back Of The House",
+  },
+];
+
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const { role } = useRole();
@@ -160,6 +173,22 @@ const HeaderAdmin = React.memo(() => {
             <NavigationMenuContent>
               <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                 {formComps.map((component) => (
+                  <ListItem
+                    key={component.title}
+                    title={component.title}
+                    href={component.href}
+                  >
+                    {component.description}
+                  </ListItem>
+                ))}
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                {sopComps.map((component) => (
                   <ListItem
                     key={component.title}
                     title={component.title}
