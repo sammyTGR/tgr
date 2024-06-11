@@ -584,12 +584,15 @@ export default function SubmitAudits() {
                   />
 
                   <div className="flex justify-between mb-4 mt-4">
-                    <Button onClick={() => remove(index)}>Remove</Button>
+                    <Button variant="linkHover2" onClick={() => remove(index)}>
+                      Remove
+                    </Button>
                   </div>
                 </div>
               ))}
               <div className="flex justify-between mb-4 mt-4">
                 <Button
+                  variant="linkHover2"
                   type="button"
                   onClick={() =>
                     append({
@@ -602,7 +605,9 @@ export default function SubmitAudits() {
                 >
                   Add Another Audit
                 </Button>
-                <Button type="submit">Submit</Button>
+                <Button variant="linkHover1" type="submit">
+                  Submit
+                </Button>
               </div>
             </form>
           </div>

@@ -180,7 +180,7 @@ export default function DROSGuide() {
           <SupportMenu />
           {activeDialogContentId}
         </div>
-        <div className="flex flex-col justify-center px-4 space-y-6 mx-auto max-w-lg">
+        <div className="flex flex-col justify-center px-4 space-y-6 mx-auto max-w-sm">
           {selections.map((selection, index) => (
             <Select
               key={index}
@@ -218,9 +218,9 @@ export default function DROSGuide() {
         </div>
         <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
           <Button
-            variant="ringHover"
+            variant="linkHover1"
             onClick={resetSelections}
-            className="mb-6 flex-shrink mt-10 py-2"
+            className="mb-6 flex-shrink py-1"
           >
             Reset Selections
           </Button>
