@@ -8,6 +8,7 @@ import {
   CalendarIcon,
   ClockIcon,
   CodeIcon,
+  EyeOpenIcon,
   InputIcon,
   LightningBoltIcon,
   ReaderIcon,
@@ -243,6 +244,42 @@ export const AdminWaiverReviewCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Verify If Customers Completed Waivers & Check Them In.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const RangeWalkCard = () => (
+  <>
+    <Link className="group" href="/TGR/rangewalk">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <EyeOpenIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Submit Range Walk</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Submit Daily Range Walk Reports.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const RangeRepairCard = () => (
+  <>
+    <Link className="group" href="/TGR/rangerepairs">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <EyeOpenIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Submit Range Repair</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Submit Range Repair Reports.
           </p>
         </CardContent>
       </Card>

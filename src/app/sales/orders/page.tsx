@@ -324,7 +324,7 @@ export default function OrdersComponent() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="ml-auto" type="submit">
+            <Button variant="ringHover" className="ml-auto" type="submit">
               Submit Request
             </Button>
           </CardFooter>

@@ -33,11 +33,6 @@ const schedComponents = [
 
 const serviceComponents = [
   {
-    title: "Check Customers In",
-    href: "/sales/waiver/checkin",
-    description: "Check Customers In & Review Waivers",
-  },
-  {
     title: "Special Order Form",
     href: "/sales/orders",
     description: "Submit Requests For Customers",
@@ -47,9 +42,24 @@ const serviceComponents = [
     href: "/public/waiver",
     description: "Submit A Safety Waiver",
   },
+  {
+    title: "Check Customers In",
+    href: "/sales/waiver/checkin",
+    description: "Check Customers In & Review Waivers",
+  },
 ];
 
 const formComps = [
+  {
+    title: "Range Walks",
+    href: "/TGR/rangewalk",
+    description: "Submit Daily Range Walks",
+  },
+  {
+    title: "Range Repairs",
+    href: "/TGR/rangerepairs",
+    description: "Submit ALL Range Repairs",
+  },
   {
     title: "Daily Deposits",
     href: "/TGR/deposits",
@@ -76,93 +86,91 @@ const HeaderUser = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
-
-
   return (
     <RoleBasedWrapper allowedRoles={["user"]}>
-
-    <header className="flex justify-between items-center p-2">
-      <NavigationMenu>
-        <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
-          <NavigationMenuItem>
-            <Link href="/TGR/dros/guide">DROS Guide</Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {schedComponents.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {formComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {serviceComponents.map((sched) => (
-                  <ListItem
-                    key={sched.title}
-                    title={sched.title}
-                    href={sched.href}
-                  >
-                    {sched.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-      <div className="flex items-center mr-1">
-        {user ? (
-          <>
-            <Button
-              variant="outline"
-              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-              size="sm"
-              onClick={handleSignOut}
-            >
-              Sign Out
+      <header className="flex justify-between items-center p-2">
+        <NavigationMenu>
+          <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
+            <NavigationMenuItem>
+              <Link href="/TGR/dros/guide">
+                <Button variant="linkHover2">DROS Guide</Button>
+              </Link>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {schedComponents.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {formComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {serviceComponents.map((sched) => (
+                    <ListItem
+                      key={sched.title}
+                      title={sched.title}
+                      href={sched.href}
+                    >
+                      {sched.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+        <div className="flex items-center mr-1">
+          {user ? (
+            <>
+              <Button
+                variant="outline"
+                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Link href="/TGR/crew/login">
+              <Button>Sign In</Button>
+            </Link>
+          )}
+          <Link href="/">
+            <Button variant="ghost" size="icon">
+              <HomeIcon />
             </Button>
-          </>
-        ) : (
-          <Link href="/TGR/crew/login">
-            <Button>Sign In</Button>
           </Link>
-        )}
-        <Link href="/">
-          <Button variant="ghost" size="icon">
-            <HomeIcon />
-          </Button>
-        </Link>
-        <ModeToggle />
-      </div>
-    </header>
-
+          <ModeToggle />
+        </div>
+      </header>
     </RoleBasedWrapper>
   );
 });

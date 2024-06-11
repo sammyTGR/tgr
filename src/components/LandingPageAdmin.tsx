@@ -13,6 +13,8 @@ import {
   DepositsCard,
   WaiverReviewCard,
   AdminWaiverReviewCard,
+  RangeWalkCard,
+  RangeRepairCard,
 } from "@/components/LandingCards";
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
@@ -56,6 +58,10 @@ const LandingPageAdmin: React.FC = React.memo(() => {
             <div className="col-span-full flex justify-center">
               <DrosGuidanceCard />
             </div>
+            <RangeWalkCard />
+            <RangeRepairCard />
+            <Separator />
+            <Separator />
             <AdminWaiverReviewCard />
             <DepositsCard />
             <Separator />

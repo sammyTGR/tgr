@@ -248,9 +248,7 @@ export default function TimeOffRequestPage() {
         <div className="w-full space-y-4">
           <form onSubmit={handleSubmit} className="mt-8">
             <div className="flex flex-col space-y-4 max-w-2xl">
-              
               <div className="flex flex-col border border-gray-200 dark:border-gray-800 rounded-lg max-w-lg mx-auto">
-                
                 <Calendar
                   mode="multiple"
                   selected={selectedDates}
@@ -258,8 +256,8 @@ export default function TimeOffRequestPage() {
                 />
               </div>
               <label className="text-lg font-medium flex justify-center text-center">
-                  Select Dates By Clicking On All Dates You&apos;ll Be Out
-                </label>
+                Select Dates By Clicking On All Dates You&apos;ll Be Out
+              </label>
               <Select
                 value={timeOffData.employee_name}
                 onValueChange={(value) =>
@@ -315,7 +313,7 @@ export default function TimeOffRequestPage() {
                   className="textarea"
                 />
               )}
-              <Button type="submit" variant="default">
+              <Button variant="gooeyLeft" type="submit">
                 Submit Request
               </Button>
             </div>

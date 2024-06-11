@@ -218,6 +218,7 @@ export default function DROSGuide() {
         </div>
         <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
           <Button
+            variant="ringHover"
             onClick={resetSelections}
             className="mb-6 flex-shrink mt-10 py-2"
           >

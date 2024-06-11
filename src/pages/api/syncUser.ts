@@ -1,6 +1,9 @@
 // src/pages/api/syncUser.ts
+// src/pages/api/syncUser.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/utils/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
@@ -16,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('Processed user data:', { user_uuid, email, first_name });
 
         try {
-            // Step 1: Check if an entry with the given email exists
+            // Check if an entry with the given email exists
             const { data: existingEmployee, error: fetchError } = await supabase
                 .from('employees')
                 .select('*')
@@ -24,14 +27,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .single();
 
             if (fetchError && fetchError.code !== 'PGRST116') {
-                // Error other than 'no rows returned'
                 console.error('Error fetching existing employee:', fetchError);
                 return res.status(500).json({ error: fetchError.message });
             }
 
             console.log('Existing employee:', existingEmployee);
 
-            // Step 2: If an entry with the email exists, update it with user_uuid
+            // If an entry with the email exists, update it with user_uuid
             if (existingEmployee) {
                 const { error: updateError } = await supabase
                     .from('employees')
@@ -46,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(200).json({ message: 'User updated successfully for existing employee' });
             }
 
-            // Step 3: If no entry with the email exists, proceed with upsert
+            // If no entry with the email exists, proceed with upsert
             const { data, error } = await supabase
                 .from('employees')
                 .upsert({
@@ -55,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     name: first_name,
                     role: 'user' // Set default role as 'user'
                 }, {
-                    onConflict: 'user_uuid'
+                    onConflict: 'contact_info'
                 });
 
             if (error) {

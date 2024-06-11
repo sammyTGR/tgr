@@ -27,13 +27,11 @@ function LoginComponent() {
 
       if (error) throw error;
 
-      // Wait for the redirect to complete and the session to be set
       setTimeout(async () => {
         const userResponse = await supabase.auth.getUser();
         const user = userResponse.data.user;
 
         if (user) {
-          console.log('User data:', user); // Add logging here
           const response = await fetch("/api/syncUser", {
             method: "POST",
             headers: {
@@ -49,7 +47,7 @@ function LoginComponent() {
             console.error("Error syncing user:", await response.text());
           }
         }
-      }, 2000); // Add a delay to ensure the session is set
+      }, 2000);
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error logging in with OAuth:", error.message);

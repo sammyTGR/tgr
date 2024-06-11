@@ -48,7 +48,6 @@ export default function Component() {
   const { role } = useRole();
   const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [lanes, setLanes] = useState<string | null>(null);
   const [description, setDescription] = useState<string>("");
 
   const handleDateSelect = (day: Date | undefined) => {
@@ -58,7 +57,7 @@ export default function Component() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!date || !lanes) {
+    if (!date || !description) {
       toast.error("Please fill out all required fields.");
       return;
     }
@@ -75,14 +74,13 @@ export default function Component() {
       }
 
       const data = {
-        date_of_walk: date,
-        lanes,
-        lanes_with_problems: selectedProblems.join(", "),
+        date_of_repair: date,
+        lanes_repaired: selectedProblems.join(", "),
         description,
         role,
       };
 
-      const response = await fetch("/api/submitRangeWalkReport", {
+      const response = await fetch("/api/submitRangeRepairs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,10 +93,9 @@ export default function Component() {
         throw new Error("Failed to submit the report.");
       }
 
-      toast.success("Report submitted successfully.");
+      toast.success("Repair Report Submitted Successfully.");
       // Reset form
       setDate(undefined);
-      setLanes(null);
       setSelectedProblems([]);
       setDescription("");
     } catch (error) {
@@ -110,15 +107,16 @@ export default function Component() {
   return (
     <Card className="w-full max-w-md mx-auto my-24">
       <CardHeader>
-        <CardTitle>Range Walk Report</CardTitle>
+        <CardTitle>Range Repair Report</CardTitle>
         <CardDescription>
-          Please fill out the form to report any issues from your range walk.
+          Please fill out the form to report EVERY action taken during your
+          range repair.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="grid gap-6">
           <div className="grid gap-2">
-            <Label htmlFor="date">Date Of Range Walk</Label>
+            <Label htmlFor="date">Date Of Range Repairs</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -140,22 +138,7 @@ export default function Component() {
             </Popover>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="lanes">Lanes</Label>
-            <Select onValueChange={setLanes}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select lanes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  All Lanes (Main & Back Range)
-                </SelectItem>
-                <SelectItem value="1-15">Lanes 1-15</SelectItem>
-                <SelectItem value="a-e">Lanes A-E</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="problems">Lanes With Problems</Label>
+            <Label htmlFor="problems">Repaired Lanes</Label>
             <MultiSelect
               options={lanesOptions}
               selected={selectedProblems}
@@ -178,14 +161,13 @@ export default function Component() {
             type="button"
             onClick={() => {
               setDate(undefined);
-              setLanes(null);
               setSelectedProblems([]);
               setDescription("");
             }}
           >
             Cancel
           </Button>
-          <Button variant="gooeyLeft" type="submit">
+          <Button variant="gooeyRight" type="submit">
             Submit
           </Button>
         </CardFooter>
