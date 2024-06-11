@@ -1,11 +1,10 @@
-
-  "use client";
+"use client";
 
 import { useState, useEffect, useRef, FC } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   DndContext,
   closestCenter,
-  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -34,6 +33,7 @@ import { useRole } from "@/context/RoleContext"; // Correct import
 import { supabase } from "@/utils/supabase/client";
 import { AddNewList } from "@/components/AddNewList";
 import { EditListTitle } from "@/components/EditListTitle";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 // Define the item interface
 interface Item {
@@ -69,9 +69,9 @@ const Todo: React.FC<HomeProps> = () => {
   const channel = useRef<RealtimeChannel | null>(null);
   const [activeId, setActiveId] = useState<number | string | null>(null);
   const [activeItem, setActiveItem] = useState<Item | null>(null);
-  const [activeList, setActiveList] = useState<List | null>(null);
 
   useEffect(() => {
+    // Fetch lists from Supabase
     const fetchLists = async () => {
       const { data: listData, error: listError } = await supabase
         .from("lists")
@@ -94,6 +94,7 @@ const Todo: React.FC<HomeProps> = () => {
       }
     };
 
+    // Fetch username from employees table
     const fetchUsername = async () => {
       if (user) {
         const { data: userData, error } = await supabase
@@ -182,7 +183,7 @@ const Todo: React.FC<HomeProps> = () => {
 
     const activeList = lists.find((list) => list.id === active.id);
     if (activeList) {
-      setActiveList(activeList);
+      setActiveItem(null);
     } else {
       const activeItem = lists
         .map((list) => list.items)
@@ -194,16 +195,14 @@ const Todo: React.FC<HomeProps> = () => {
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-  
     setActiveId(null);
     setActiveItem(null);
-    setActiveList(null);
-  
+
     if (!over) return;
-  
+
     const activeContainer = findContainer(active.id);
     const overContainer = findContainer(over.id);
-  
+
     if (activeContainer && overContainer && activeContainer !== overContainer) {
       setLists((prevLists) => {
         const activeList = prevLists.find(
@@ -211,24 +210,24 @@ const Todo: React.FC<HomeProps> = () => {
         );
         const overList = prevLists.find((list) => list.id === overContainer);
         if (!activeList || !overList) return prevLists;
-  
+
         const activeIndex = activeList.items.findIndex(
           (item) => item.id === active.id
         );
         const overIndex = overList.items.findIndex(
           (item) => item.id === over.id
         );
-  
+
         if (activeIndex === -1 || overIndex === -1) return prevLists;
-  
+
         const [movedItem] = activeList.items.splice(activeIndex, 1);
         overList.items.splice(overIndex, 0, movedItem);
-  
+
         return prevLists.map((list) =>
           list.id === activeContainer
-            ? { ...list, items: activeList.items }
+            ? { ...activeList }
             : list.id === overContainer
-            ? { ...list, items: overList.items }
+            ? { ...overList }
             : list
         );
       });
@@ -238,32 +237,25 @@ const Todo: React.FC<HomeProps> = () => {
           (list) => list.id === activeContainer
         );
         if (!activeList) return prevLists;
-  
+
         const activeIndex = activeList.items.findIndex(
           (item) => item.id === active.id
         );
         const overIndex = activeList.items.findIndex(
           (item) => item.id === over.id
         );
-  
+
         if (activeIndex !== -1 && overIndex !== -1) {
           const newItems = arrayMove(activeList.items, activeIndex, overIndex);
           return prevLists.map((list) =>
             list.id === activeContainer ? { ...list, items: newItems } : list
           );
         }
-  
+
         return prevLists;
       });
-    } else {
-      const activeIndex = lists.findIndex((list) => list.id === active.id);
-      const overIndex = lists.findIndex((list) => list.id === over.id);
-  
-      if (activeIndex !== -1 && overIndex !== -1) {
-        setLists((prevLists) => arrayMove(prevLists, activeIndex, overIndex));
-      }
     }
-  };  
+  };
 
   const findContainer = (id: number | string): string | undefined => {
     for (const list of lists) {
@@ -359,27 +351,26 @@ const Todo: React.FC<HomeProps> = () => {
     }
   };
 
-  const deleteList = async (id: string | number) => {
-    const stringId = id.toString();
+  const deleteList = async (id: string) => {
     const { error: listError } = await supabase
       .from("lists")
       .delete()
-      .eq("id", stringId);
+      .eq("id", id);
     const { error: itemsError } = await supabase
       .from("items")
       .delete()
-      .eq("list_id", stringId);
+      .eq("list_id", id);
     if (listError || itemsError) {
       console.error("Error deleting list:", listError || itemsError);
     } else {
-      setLists((prevLists) => prevLists.filter((list) => list.id !== stringId));
+      setLists((prevLists) => prevLists.filter((list) => list.id !== id));
     }
   };
-  
-  const updateItem = async (id: number, name: string) => {
+
+  const updateItem = async (id: number, updatedItem: Partial<Item>) => {
     const { error } = await supabase
       .from("items")
-      .update({ name })
+      .update(updatedItem)
       .eq("id", id);
     if (error) {
       console.error("Error updating item:", error);
@@ -388,7 +379,7 @@ const Todo: React.FC<HomeProps> = () => {
         prevLists.map((list) => ({
           ...list,
           items: list.items.map((item) =>
-            item.id === id ? { ...item, name } : item
+            item.id === id ? { ...item, ...updatedItem } : item
           ),
         }))
       );
@@ -396,63 +387,77 @@ const Todo: React.FC<HomeProps> = () => {
   };
 
   return (
-    <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
-      <div className="flex justify-start p-4 mb-4">
-        <AddNewList addNewList={addNewList} />
-      </div>
-      <div className="container mt-10 px-4 md:px-6">
-        <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners} // Change this to closestCorners
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext items={lists.map((list) => list.id)} strategy={verticalListSortingStrategy}>
-              {lists.map((list) => (
-                <div key={list.id}>
-                  <SortableLinks
-                    item={list}
-                    onDelete={deleteList}
-                    updateItem={updateItem}
-                    updateListTitle={updateListTitle}
-                  />
-                  <AddNewItem addNewItem={(newItem) => addNewItem(list.id, newItem)} />
-                </div>
-              ))}
-            </SortableContext>
-            <DragOverlay>
-              {activeId && (
-                <div>
-                  {activeList ? (
-                    <Card className="w-full min-w-[325px] md:max-w-lg">
-                      <CardHeader className="space-y-1 ">
-                        <CardTitle className="text-2xl flex justify-between">
-                          {activeList.title}
-                          <EditListTitle
-                            list={activeList}
-                            updateListTitle={updateListTitle}
-                            deleteList={deleteList}
-                          />
-                        </CardTitle>
-                        <CardDescription>List All Of Your Projects</CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid gap-4">
-                        {activeList.items.map((item) => (
-                          <div key={item.id}>{item.name}</div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div>{activeItem?.name}</div>
-                  )}
-                </div>
-              )}
-            </DragOverlay>
-          </DndContext>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
+        <div className="flex justify-start p-4 mb-4">
+          <AddNewList addNewList={addNewList} />
         </div>
-      </div>
-    </main>
+        <div className="container mt-10 px-4 md:px-6">
+          <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-3 md:grid-cols-3">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              {lists.map((list) => (
+                <Card
+                  key={list.id}
+                  className="w-full min-w-[325px] md:max-w-lg"
+                >
+                  <CardHeader className="space-y-1 ">
+                    <CardTitle className="text-2xl flex justify-between">
+                      {list.title}
+                      <EditListTitle
+                        list={list}
+                        updateListTitle={updateListTitle}
+                        deleteList={deleteList}
+                      />
+                    </CardTitle>
+                    <CardDescription>List All Of Your Projects</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-4">
+                    <SortableContext
+                      items={list.items.map((item) => item.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {list.items.map((item) => (
+                        <SortableLinks
+                          key={item.id}
+                          item={item}
+                          onDelete={() => handleDelete(list.id, item.id)}
+                          updateItem={updateItem}
+                        />
+                      ))}
+                    </SortableContext>
+                    <AddNewItem
+                      addNewItem={(newItem: string) =>
+                        addNewItem(list.id, newItem)
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+              <DragOverlay>
+                {activeId ? (
+                  <SortableLinks
+                    item={{
+                      id: activeId as number,
+                      name: "",
+                      user_id: "",
+                      user_name: "",
+                      list_id: "",
+                    }}
+                    onDelete={() => {}}
+                    updateItem={() => {}}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+        </div>
+      </main>
+    </RoleBasedWrapper>
   );
 };
 

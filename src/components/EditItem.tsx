@@ -26,7 +26,7 @@ export function EditItem({
   deleteItem,
 }: {
   item: Item;
-  updateItem: (id: number, name: string) => void;
+  updateItem: (id: number, updatedItem: Partial<Item>) => void;
   deleteItem: (id: number) => void;
 }) {
   const [name, setName] = useState(item.name);
@@ -35,7 +35,7 @@ export function EditItem({
     if (name.trim() === "") {
       return;
     }
-    updateItem(item.id, name);
+    updateItem(item.id, { name });
   };
 
   return (

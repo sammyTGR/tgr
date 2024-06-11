@@ -1,6 +1,16 @@
 import React, { FC } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { EditItem } from "@/components/EditItem";
 import { EditListTitle } from "@/components/EditListTitle";
@@ -22,8 +32,8 @@ interface List {
 
 interface SortableLinkCardProps {
   item: Item | List;
-  onDelete: (id: string | number) => void;
-  updateItem: (id: number, name: string) => void;
+  onDelete: (id: number | string) => void;
+  updateItem: (id: number, updatedItem: Partial<Item>) => void;
   updateListTitle?: (id: string, title: string) => void;
 }
 
@@ -41,12 +51,12 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
     transition,
   };
 
-  if ('name' in item) {
+  if ("name" in item) {
     return (
       <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card className="p-4 relative flex justify-between items-center gap-2 group">
           <div>{item.name}</div>
-          <div className="flex justify-center items-center gap-2 hidden group-hover:flex">
+          {/* <div className="flex justify-center items-center gap-2 hidden group-hover:flex">
             <EditItem
               item={item}
               updateItem={updateItem}
@@ -55,7 +65,7 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
             <button onClick={() => onDelete(item.id)}>
               <TrashIcon className="h-4 w-4" />
             </button>
-          </div>
+          </div> */}
         </Card>
       </div>
     );

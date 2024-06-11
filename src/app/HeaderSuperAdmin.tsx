@@ -84,6 +84,16 @@ const serviceComponents = [
 
 const formComps = [
   {
+    title: "Range Walks",
+    href: "/TGR/rangewalk",
+    description: "Submit Daily Range Walks",
+  },
+  {
+    title: "Range Repairs",
+    href: "/TGR/rangerepairs",
+    description: "Submit ALL Range Repairs",
+  },
+  {
     title: "Daily Deposits",
     href: "/TGR/deposits",
     description: "Submit Daily Deposits",
