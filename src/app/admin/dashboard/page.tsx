@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { PersonIcon } from "@radix-ui/react-icons";
+import { AvatarIcon, PersonIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
 
 interface Employee {
@@ -73,7 +73,7 @@ const Dashboard = () => {
                 key={employee.employee_id}
                 className="flex flex-col items-center justify-center p-4 border rounded-lg shadow-md"
               >
-                <PersonIcon className="w-8 h-8 mb-2" />
+                <AvatarIcon className="w-8 h-8 mb-2" />
                 <Link href={`/admin/team/profiles/${employee.employee_id}`}>
                   <Button
                     variant="linkHover1"

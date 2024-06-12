@@ -12,7 +12,7 @@ import { supabase } from "@/utils/supabase/client";
 import { DataTable } from "./data-table";
 import { SalesTableToolbar } from "./sales-table-toolbar";
 import { salesColumns } from "./columns";
-import { toast } from "sonner"; // Importing Sonner toast
+import { toast } from "sonner";
 
 interface SalesData {
   id: number;
@@ -48,7 +48,9 @@ const SalesDataTable = () => {
   const [pageSize, setPageSize] = useState(10);
   const [pageCount, setPageCount] = useState(0);
   const [filters, setFilters] = useState<any[]>([]);
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "Date", desc: true },
+  ]);
 
   const fetchSalesData = async (
     pageIndex: number,

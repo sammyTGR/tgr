@@ -18,6 +18,7 @@ interface ChatMessage {
   message: string;
   created_at: string;
   user_id: string;
+  is_read: boolean; // Add is_read to the ChatMessage interface
 }
 
 export default function ChatClient() {
@@ -58,6 +59,23 @@ export default function ChatClient() {
         .order("created_at", { ascending: true });
       if (data) {
         setMessages(data);
+
+        // Mark unread messages as read for the current user
+        const unreadMessages = data.filter(
+          (msg) => msg.user_id === user.id && !msg.is_read
+        );
+        const messageIds = unreadMessages.map((msg) => msg.id);
+
+        if (messageIds.length > 0) {
+          const { error: updateError } = await client
+            .from("chat_messages")
+            .update({ is_read: true })
+            .in("id", messageIds);
+
+          if (updateError) {
+            console.error("Error marking messages as read:", updateError);
+          }
+        }
       } else {
         console.error("Error fetching messages:", error?.message);
       }
@@ -133,6 +151,7 @@ export default function ChatClient() {
       message,
       user_id: user.id,
       created_at: new Date().toISOString(),
+      is_read: false, // Set is_read to false for new messages
     };
 
     const { error } = await client.from("chat_messages").insert([newMessage]);
@@ -242,7 +261,7 @@ export default function ChatClient() {
               </div>
             ))}
           </div>
-          <div className="flex space-x-4 p-2 min-w-full">
+          <div className="flex space-x-4 p-2 min-w-full ">
             <Input
               type="text"
               placeholder="Message"
@@ -257,7 +276,11 @@ export default function ChatClient() {
               }}
               className="flex-grow text-lg"
             />
-            <Button onClick={onSend} className="flex-shrink-0">
+            <Button
+              variant="linkHover2"
+              onClick={onSend}
+              className="flex-shrink-0"
+            >
               Send
             </Button>
           </div>

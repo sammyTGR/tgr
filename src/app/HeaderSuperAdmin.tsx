@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useRole } from "../context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
+import useUnreadMessages from "@/pages/api/fetch-unread"; // Import the hook
 
 const auditComponents = [
   {
@@ -148,10 +149,13 @@ const HeaderSuperAdmin = React.memo(() => {
       const { data, error } = await supabase.auth.getUser();
       if (data) {
         setUser(data.user);
+        console.log("Logged-in user ID:", data?.user); // Log the user ID
       }
     };
     fetchUser();
   }, []);
+
+  const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -301,6 +305,7 @@ const HeaderSuperAdmin = React.memo(() => {
         <Link href="/TGR/crew/chat">
           <Button variant="ghost" size="icon">
             <ChatBubbleIcon />
+            {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
           </Button>
         </Link>
         <Link href="/">

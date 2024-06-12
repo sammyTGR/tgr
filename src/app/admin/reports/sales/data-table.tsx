@@ -1,5 +1,3 @@
-// src/app/admin/reports/sales/data-table.tsx
-
 import * as React from "react";
 import { flexRender, Table as TableType } from "@tanstack/react-table";
 import {

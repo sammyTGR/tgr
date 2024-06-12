@@ -1,7 +1,6 @@
 // src/pages/api/fetch-sales-data.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
-import { corsHeaders } from '@/utils/cors';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'OPTIONS') {
@@ -14,6 +13,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   try {
     const { pageIndex, pageSize, filters, sorting } = req.body;
+
+    console.log('Request body:', req.body);
 
     let query = supabase
       .from('sales_data')
@@ -36,6 +37,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     const { data, count, error } = await query.range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
 
     if (error) throw error;
+
+    console.log('Fetched data:', data);
 
     res.status(200).json({ data, count });
   } catch (error) {
