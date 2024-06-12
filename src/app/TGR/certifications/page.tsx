@@ -102,7 +102,7 @@ const CertificationsPage: React.FC = () => {
         : updaterOrValue
     );
   };
-
+  //*ts-ignore
   const table = useReactTable({
     data: certifications,
     columns: certificationColumns(onUpdate),
