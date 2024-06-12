@@ -125,6 +125,11 @@ const reportsComps = [
     href: "/admin/reports/sales",
     description: "Set Categories & View Sales",
   },
+  {
+    title: "Certifications",
+    href: "/TGR/certifications",
+    description: "View All Certifications",
+  },
 ];
 
 const profileComps = [
@@ -149,7 +154,7 @@ const HeaderSuperAdmin = React.memo(() => {
       const { data, error } = await supabase.auth.getUser();
       if (data) {
         setUser(data.user);
-        console.log("Logged-in user ID:", data?.user); // Log the user ID
+        // console.log("Logged-in user ID:", data?.user); // Log the user ID
       }
     };
     fetchUser();

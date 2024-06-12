@@ -98,6 +98,11 @@ const formComps = [
     href: "/TGR/crew/points",
     description: "Report All Submitted Points",
   },
+  {
+    title: "Certifications",
+    href: "/TGR/certifications",
+    description: "View All Certifications",
+  },
 ];
 
 const sopComps = [

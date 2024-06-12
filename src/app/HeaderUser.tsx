@@ -70,6 +70,11 @@ const formComps = [
     href: "/TGR/deposits",
     description: "Submit Daily Deposits",
   },
+  {
+    title: "Certifications",
+    href: "/TGR/certifications",
+    description: "View All Certifications",
+  },
 ];
 
 const HeaderUser = React.memo(() => {
