@@ -148,4 +148,3 @@ const CertificationsPage: React.FC = () => {
 };
 
 export default CertificationsPage;
-0;
