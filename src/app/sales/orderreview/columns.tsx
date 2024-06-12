@@ -8,6 +8,7 @@ import { statuses } from "./data";
 import { includesArrayString } from "./custom-filter"; // Import the custom filter function
 
 export type Order = {
+  is_read: any;
   id: number;
   employee: string;
   customer_type: string;
