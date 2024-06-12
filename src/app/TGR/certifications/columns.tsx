@@ -8,7 +8,7 @@ import { includesArrayString } from "./custom-filter";
 
 export const certificationColumns = (
   onUpdate: (id: string, updates: Partial<CertificationData>) => void
-): ColumnDef<CertificationData, unknown>[] => [
+): ColumnDef<CertificationData>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -48,11 +48,7 @@ export const certificationColumns = (
     meta: {
       style: { width: "150px" },
     },
-    sortingFn: (rowA, rowB, columnId) => {
-      const dateA = parseISO(rowA.getValue(columnId));
-      const dateB = parseISO(rowB.getValue(columnId));
-      return dateA.getTime() - dateB.getTime();
-    },
+    sortingFn: "datetime",
     filterFn: (row, columnId, filterValue) => {
       const formattedDate = format(
         new Date(row.getValue(columnId)),

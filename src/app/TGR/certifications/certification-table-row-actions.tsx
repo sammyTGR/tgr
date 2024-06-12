@@ -1,5 +1,5 @@
 // src/app/TGR/certifications/certification-table-row-actions.tsx
-import { CertificationData } from "./columns";
+import { CertificationData } from "./types";
 import { supabase } from "@/utils/supabase/client";
 import {
   DropdownMenu,
