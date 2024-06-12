@@ -10,6 +10,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  PaginationState,
   ColumnDef,
 } from "@tanstack/react-table";
 
@@ -30,8 +31,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { CertificationDataTablePagination } from "./data-table-pagination";
-import { CertificationData } from "./types";
+import { CertificationDataTablePagination } from "./data-table-pagination"; // Ensure the correct import path
+import { CertificationData } from "./types"; // Import the extended type and CertificationData type
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -61,8 +62,6 @@ export function CertificationDataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
-  const effectivePageSize = filters.length > 0 ? data.length : pageSize;
-
   const table = useReactTable({
     data,
     columns,
@@ -70,25 +69,30 @@ export function CertificationDataTable<TData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
-      pagination: { pageIndex, pageSize: effectivePageSize },
+      pagination: { pageIndex, pageSize },
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
-      const newPagination =
-        typeof updater === "function"
-          ? updater({ pageIndex, pageSize: effectivePageSize })
-          : updater;
-      setPageIndex(newPagination.pageIndex);
-      setPageSize(newPagination.pageSize);
+      if (typeof updater === "function") {
+        const { pageIndex: newPageIndex, pageSize: newPageSize } = updater({
+          pageIndex,
+          pageSize,
+        });
+        setPageIndex(newPageIndex);
+        setPageSize(newPageSize);
+      } else {
+        setPageIndex(updater.pageIndex);
+        setPageSize(updater.pageSize);
+      }
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: true,
-    pageCount: filters.length > 0 ? 1 : pageCount, // Show single page if filtered
+    manualPagination: true, // Set based on your data handling strategy
+    pageCount,
   });
 
   return (

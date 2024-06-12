@@ -1,3 +1,4 @@
+// src/pages/api/fetch-unread.ts
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 
@@ -5,7 +6,6 @@ const useUnreadMessages = (userId: string) => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadMessages = async () => {
-    console.log("Fetching unread messages for user:", userId);
     const { count, error } = await supabase
       .from("chat_messages")
       .select("id", { count: "exact" })
@@ -15,7 +15,6 @@ const useUnreadMessages = (userId: string) => {
     if (error) {
       console.error("Error fetching unread messages:", error);
     } else {
-      console.log("Unread messages count:", count);
       setUnreadCount(count || 0);
     }
   };
@@ -27,7 +26,6 @@ const useUnreadMessages = (userId: string) => {
       const subscription = supabase
         .channel('chat_messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, payload => {
-          console.log("Received real-time update:", payload);
           fetchUnreadMessages();
         })
         .subscribe();

@@ -1,4 +1,4 @@
-// src/app/TGR/certifications/columns.ts
+// src/app/TGR/certifications/columns.tsx
 import { ColumnDef } from "@tanstack/react-table";
 import { format, parseISO, isValid } from "date-fns";
 import { CertificationData } from "./types";
@@ -8,7 +8,7 @@ import { includesArrayString } from "./custom-filter";
 
 export const certificationColumns = (
   onUpdate: (id: string, updates: Partial<CertificationData>) => void
-): ColumnDef<CertificationData>[] => [
+): ColumnDef<CertificationData, unknown>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -42,24 +42,22 @@ export const certificationColumns = (
       <DataTableColumnHeader column={column} title="Expiration" />
     ),
     cell: ({ row }) => {
-      const expiration = row.original.expiration as string | null;
-      if (!expiration) return "N/A";
-
-      const date = parseISO(expiration);
+      const date = parseISO(row.original.expiration);
       return isValid(date) ? format(date, "yyyy-MM-dd") : "Invalid Date";
     },
     meta: {
       style: { width: "150px" },
     },
-    sortingFn: "datetime",
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = parseISO(rowA.getValue(columnId));
+      const dateB = parseISO(rowB.getValue(columnId));
+      return dateA.getTime() - dateB.getTime();
+    },
     filterFn: (row, columnId, filterValue) => {
-      const expiration = row.getValue(columnId) as string | null;
-      if (!expiration) return false;
-
-      const date = parseISO(expiration);
-      const formattedDate = isValid(date)
-        ? format(date, "MM-dd-yyyy")
-        : "Invalid Date";
+      const formattedDate = format(
+        new Date(row.getValue(columnId)),
+        "yyyy-MM-dd"
+      );
       return formattedDate.includes(filterValue);
     },
   },

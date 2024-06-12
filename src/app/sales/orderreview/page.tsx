@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRouter } from "next/navigation"; // Import the router
+import { useRouter } from "next/navigation";
 
 const title = "Review Submissions";
 
@@ -40,6 +40,21 @@ export default function OrdersReviewPage() {
       const fetchedData = await fetchOrderData();
       setData(fetchedData);
       setLoading(false);
+
+      // Mark fetched unread orders as read
+      const unreadOrders = fetchedData.filter((order) => !order.is_read);
+      const orderIds = unreadOrders.map((order) => order.id);
+
+      if (orderIds.length > 0) {
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update({ is_read: true })
+          .in("id", orderIds);
+
+        if (updateError) {
+          console.error("Error marking orders as read:", updateError);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
       setLoading(false);

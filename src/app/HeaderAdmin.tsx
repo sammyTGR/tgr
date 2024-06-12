@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChatBubbleIcon, HomeIcon } from "@radix-ui/react-icons";
+import { ChatBubbleIcon, HomeIcon, FileTextIcon } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -17,6 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useRole } from "../context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
+import useUnreadMessages from "@/pages/api/fetch-unread";
+import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
 
 const auditComponents = [
   {
@@ -131,6 +133,9 @@ const HeaderAdmin = React.memo(() => {
     };
     fetchUser();
   }, []);
+
+  const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
+  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -248,6 +253,13 @@ const HeaderAdmin = React.memo(() => {
         <Link href="/TGR/crew/chat">
           <Button variant="ghost" size="icon">
             <ChatBubbleIcon />
+            {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+          </Button>
+        </Link>
+        <Link href="/sales/orderreview">
+          <Button variant="ghost" size="icon">
+            <FileTextIcon />
+            {unreadOrderCount > 0 && <span className="badge">{unreadOrderCount}</span>}
           </Button>
         </Link>
         <Link href="/">

@@ -7,7 +7,6 @@ import {
   getPaginationRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  ColumnDef,
   SortingState,
   PaginationState,
 } from "@tanstack/react-table";
@@ -102,7 +101,7 @@ const CertificationsPage: React.FC = () => {
         : updaterOrValue
     );
   };
-  //*ts-ignore
+
   const table = useReactTable({
     data: certifications,
     columns: certificationColumns(onUpdate),
@@ -117,11 +116,18 @@ const CertificationsPage: React.FC = () => {
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: handleSortingChange,
     onColumnFiltersChange: setFilters,
-    onPaginationChange: (updater) => {
-      const [pageIndex, setPageIndex] = useState<number>(0);
-      0;
-      setPageIndex(pageIndex);
-      setPageSize(pageSize);
+    onPaginationChange: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
+      if (typeof updater === "function") {
+        const { pageIndex: newPageIndex, pageSize: newPageSize } = updater({
+          pageIndex,
+          pageSize,
+        });
+        setPageIndex(newPageIndex);
+        setPageSize(newPageSize);
+      } else {
+        setPageIndex(updater.pageIndex);
+        setPageSize(updater.pageSize);
+      }
     },
     manualPagination: true,
     pageCount,
