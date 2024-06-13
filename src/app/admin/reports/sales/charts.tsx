@@ -28,30 +28,32 @@ const SalesDonutChart = () => {
   }, []);
 
   return (
-    <Card className="p-6">
-      <Title>Sales by Category</Title>
-      <Text className="mb-4">
-        Total sales price multiplied by quantity sold
-      </Text>
-      <div className="flex justify-center">
-        <div style={{ width: "100%", maxWidth: "600px", height: "600px" }}>
-          <DonutChart
-            data={chartData}
-            category="value"
-            index="name"
-            valueFormatter={dataFormatter}
-            colors={[
-              "blue-900",
-              "blue-800",
-              "blue-700",
-              "blue-600",
-              "blue-500",
-              "blue-400",
-            ]}
-          />
+    <div className="flex flex-col">
+      <Card className="p-6">
+        <Title>Sales by Category</Title>
+        <Text className="mb-4">
+          Total sales price multiplied by quantity sold
+        </Text>
+        <div className="flex justify-center">
+          <div style={{ width: "400px", maxWidth: "800px", height: "600px" }}>
+            <DonutChart
+              data={chartData}
+              category="value"
+              index="name"
+              valueFormatter={dataFormatter}
+              colors={[
+                "blue-900",
+                "blue-800",
+                "blue-700",
+                "blue-600",
+                "blue-500",
+                "blue-400",
+              ]}
+            />
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };
 

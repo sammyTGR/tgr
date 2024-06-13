@@ -64,9 +64,10 @@ function CorrectionDocs({ className }: { className?: string }) {
               <li>Most Recent W-2 + Current (Within 90 Days) Utility Bill</li>
               <ul className="list-none list-inside pl-4">
                 <li>
-                  Exception For LEO - W-2 (Must Be Within 90 Days) Along With Department ID And Valid CA
+                  Exception For LEO - W-2 Along With Department ID And Valid CA
                   ID | DL
                 </li>
+                <li>- Cannot Accept W-2s After April 30th</li>
               </ul>
               <li>Current & Valid CA DMV Disabled Placard</li>
             </ul>
