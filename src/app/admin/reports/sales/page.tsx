@@ -177,7 +177,7 @@ const SalesPage = () => {
         <SalesDataTable />
         <div className="mt-4">
           <input type="file" accept=".csv" onChange={handleFileChange} />
-          <Button onClick={handleSubmit} className="mt-4">
+          <Button variant="linkHover1" onClick={handleSubmit} className="mt-4">
             Upload and Process
           </Button>
         </div>
