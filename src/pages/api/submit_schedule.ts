@@ -1,11 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { corsHeaders } from '@/utils/cors';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from '@/utils/supabase/client';
 
 // Function to get the day of the week from a date
 const getDayOfWeek = (date: Date): string => {

@@ -47,9 +47,9 @@ const LandingPageAdmin: React.FC = React.memo(() => {
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
               <TextGenerateEffect words={words} />
             </h1>
-            <p className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
+            <h2 className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
               <TextGenerateEffect words={subwords} />
-            </p>
+            </h2>
           </div>
         </div>
       </section>

@@ -55,7 +55,7 @@ import { useRouter } from "next/navigation";
                 <li>- Internet Bill</li>
                 <li>- Water Bill</li>
               </ul>
-            <li>Most Recent W-2</li>
+            <li>Most Recent W-2 (Within 90 Days)</li>
             <li>Current & Valid CA DMV Disabled Placard</li>
             <li>Valid CA CCW Permit</li>
             <li>Valid CA Hunting License</li>

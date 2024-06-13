@@ -59,12 +59,12 @@ function CorrectionDocs({ className }: { className?: string }) {
               </li>
               <ul className="list-none list-inside pl-4">
                 <li>- Property Deed (Meets DOJ State Req)</li>
-                <li>- Current (Wtihin 90 Days) Utility Bill</li>
+                <li>- Current (Within 90 Days) Utility Bill</li>
               </ul>
-              <li>Most Recent W-2 + Current (Wtihin 90 Days) Utility Bill</li>
+              <li>Most Recent W-2 + Current (Within 90 Days) Utility Bill</li>
               <ul className="list-none list-inside pl-4">
                 <li>
-                  Exception For LEO - W-2 Along With Department ID And Valid CA
+                  Exception For LEO - W-2 (Must Be Within 90 Days) Along With Department ID And Valid CA
                   ID | DL
                 </li>
               </ul>

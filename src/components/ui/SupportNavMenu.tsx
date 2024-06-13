@@ -2,15 +2,9 @@ import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import dynamic from 'next/dynamic';
 import React, { useEffect, useRef, useState } from "react";
 import styled from 'styled-components';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/utils/supabase/client';
 import { Button } from "./button";
-import { useRole } from "../../context/RoleContext";
-import { useRouter } from "next/navigation";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import RoleBasedWrapper from "../RoleBasedWrapper";
 
 // Verify and update the paths here
 const IDsCard = dynamic(() => import('../../app/TGR/dros/cards/IDsCard'), { ssr: false });
@@ -162,7 +156,7 @@ const dialogContentComponents = {
   // Add other mappings as necessary
 };
 
-const SupportNavMenu = () => {
+export default function SupportNavMenu() {
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const dialogRef = useRef<HTMLDivElement>(null);
     const [activeDialogContent, setActiveDialogContent] = useState<React.ReactNode | null>(null);
@@ -258,6 +252,7 @@ const SupportNavMenu = () => {
   };
 
   return (
+    <RoleBasedWrapper allowedRoles={["user","admin", "super admin"]}>
     <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
       <NavigationMenu.Root>
         <NavigationMenu.List style={{ display: "flex", flexDirection: "row", listStyleType: "none" }}>
@@ -291,28 +286,6 @@ const SupportNavMenu = () => {
         </div>
       )}
     </div>
+    </RoleBasedWrapper>
   );
 };
-
-export default function ProtectedSupportNavMenu() {
-  const router = useRouter();
-  const { role, loading } = useRole();
-
-  useEffect(() => {
-    if (!loading) {
-      if (role !== "admin" && role !== "super admin" && role !== "user") {
-        router.push("/"); // Redirect to home or another page if the user is not authorized
-      }
-    }
-  }, [role, loading, router]);
-
-  if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking the role
-  }
-
-  if (role !== "admin" && role !== "super admin" && role !== "user") {
-    return null; // Render nothing while redirecting
-  }
-
-  return <SupportNavMenu />;
-}
