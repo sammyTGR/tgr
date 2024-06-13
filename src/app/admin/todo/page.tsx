@@ -414,7 +414,7 @@ const Todo: React.FC<HomeProps> = () => {
                         deleteList={deleteList}
                       />
                     </CardTitle>
-                    <CardDescription>List All Of Your Projects</CardDescription>
+                    {/* <CardDescription>List All Of Your Projects</CardDescription> */}
                   </CardHeader>
                   <CardContent className="grid gap-4">
                     <SortableContext
