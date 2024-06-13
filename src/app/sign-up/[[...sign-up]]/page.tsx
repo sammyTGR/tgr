@@ -77,7 +77,7 @@ export default function SignUp() {
       }
 
       toast.success(
-        "Account created successfully. Please check your email to confirm."
+        "Account created successfully! G'head & sign in!"
       );
 
       // Redirect to sign-in page

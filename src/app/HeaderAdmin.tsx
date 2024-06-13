@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChatBubbleIcon, HomeIcon, FileTextIcon } from "@radix-ui/react-icons";
+import { ChatBubbleIcon, HomeIcon, FileTextIcon, CalendarIcon } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -15,10 +15,11 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useRole } from "../context/RoleContext";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { supabase } from "@/utils/supabase/client";
 import useUnreadMessages from "@/pages/api/fetch-unread";
 import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
+import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
 
 const auditComponents = [
   {
@@ -122,7 +123,6 @@ const sopComps = [
 
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
-  const { role } = useRole();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -136,6 +136,7 @@ const HeaderAdmin = React.memo(() => {
 
   const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
   const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
+  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -143,133 +144,145 @@ const HeaderAdmin = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
-  if (role !== "admin") {
-    return null; // Prevent rendering if the role is not admin
-  }
-
   return (
-    <header className="flex justify-between items-center p-2">
-      <NavigationMenu>
-        <NavigationMenuList className="flex space-x-4 mr-3">
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {auditComponents.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {schedComponents.map((sched) => (
-                  <ListItem
-                    key={sched.title}
-                    title={sched.title}
-                    href={sched.href}
-                  >
-                    {sched.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {formComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {sopComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {serviceComponents.map((sched) => (
-                  <ListItem
-                    key={sched.title}
-                    title={sched.title}
-                    href={sched.href}
-                  >
-                    {sched.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-      <div className="flex items-center mr-1">
-        {user ? (
-          <>
-            <Button
-              variant="outline"
-              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-              size="sm"
-              onClick={handleSignOut}
-            >
-              Sign Out
+    <RoleBasedWrapper allowedRoles={["admin"]}>
+      <header className="flex justify-between items-center p-2">
+        <NavigationMenu>
+          <NavigationMenuList className="flex space-x-4 mr-3">
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {auditComponents.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {schedComponents.map((sched) => (
+                    <ListItem
+                      key={sched.title}
+                      title={sched.title}
+                      href={sched.href}
+                    >
+                      {sched.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {formComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {sopComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {serviceComponents.map((sched) => (
+                    <ListItem
+                      key={sched.title}
+                      title={sched.title}
+                      href={sched.href}
+                    >
+                      {sched.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+        <div className="flex items-center mr-1">
+          {user ? (
+            <>
+              <Button
+                variant="outline"
+                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Link href="/TGR/crew/login">
+              <Button>Sign In</Button>
+            </Link>
+          )}
+          <Link href="/TGR/crew/chat">
+            <Button variant="ghost" size="icon">
+              <ChatBubbleIcon />
+              {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
             </Button>
-          </>
-        ) : (
-          <Link href="/TGR/crew/login">
-            <Button>Sign In</Button>
           </Link>
-        )}
-        <Link href="/TGR/crew/chat">
-          <Button variant="ghost" size="icon">
-            <ChatBubbleIcon />
-            {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-          </Button>
-        </Link>
-        <Link href="/sales/orderreview">
-          <Button variant="ghost" size="icon">
-            <FileTextIcon />
-            {unreadOrderCount > 0 && <span className="badge">{unreadOrderCount}</span>}
-          </Button>
-        </Link>
-        <Link href="/">
-          <Button variant="ghost" size="icon">
-            <HomeIcon />
-          </Button>
-        </Link>
-        <ModeToggle />
-      </div>
-    </header>
+          {unreadOrderCount > 0 && (
+            <Link href="/sales/orderreview">
+              <Button variant="ghost" size="icon">
+                <FileTextIcon />
+                {unreadOrderCount > 0 && (
+                  <span className="badge">{unreadOrderCount}</span>
+                )}
+              </Button>
+            </Link>
+          )}
+          {unreadTimeOffCount > 0 && (
+            <Link href="/admin/timeoffreview">
+              <Button variant="ghost" size="icon">
+                <CalendarIcon />
+                {unreadTimeOffCount > 0 && (
+                  <span className="badge">{unreadTimeOffCount}</span>
+                )}
+              </Button>
+            </Link>
+          )}
+          <Link href="/">
+            <Button variant="ghost" size="icon">
+              <HomeIcon />
+            </Button>
+          </Link>
+          <ModeToggle />
+        </div>
+      </header>
+    </RoleBasedWrapper>
   );
 });
 

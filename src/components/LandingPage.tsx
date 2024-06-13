@@ -1,3 +1,4 @@
+// src/components/LandingPage.tsx
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -33,19 +34,35 @@ const LandingPage: React.FC = () => {
 
         const user = userData.user;
 
+        // Check the employees table
         const { data: roleData, error: roleError } = await supabase
           .from("employees")
           .select("role")
           .eq("user_uuid", user?.id)
           .single();
 
-        if (roleError) {
-          console.error("Error fetching role:", roleError.message);
-          setLoading(false);
-          return;
+        if (roleError || !roleData) {
+          // Check the public_customers table if not found in employees table
+          const { data: customerData, error: customerError } = await supabase
+            .from("public_customers")
+            .select("role")
+            .eq("email", user?.email)
+            .single();
+
+          if (customerError || !customerData) {
+            console.error(
+              "Error fetching role:",
+              roleError?.message || customerError?.message
+            );
+            setLoading(false);
+            return;
+          }
+
+          setRole(customerData.role);
+        } else {
+          setRole(roleData.role);
         }
 
-        setRole(roleData.role);
         setLoading(false);
       }
     };
@@ -70,7 +87,6 @@ const LandingPage: React.FC = () => {
   }
 
   if (role === "customer") {
-    // Check for "customer" role
     return <LandingPageCustomer />;
   }
 

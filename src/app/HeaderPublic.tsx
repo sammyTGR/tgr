@@ -13,23 +13,33 @@ import {
 
 const HeaderPublic = React.memo(() => {
   return (
-    <header className="flex justify-between items-center p-2">
+    <header className="flex justify-between items-center p-1">
       <NavigationMenu>
-        <NavigationMenuList className="flex space-x-4 mr-3">
+        <NavigationMenuList className="flex mr-3">
           <NavigationMenuItem>
-            <Link href="/">Home</Link>
+            <Link href="/">
+            <Button variant="linkHover2">Home</Button>
+            </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/public/about">About</Link>
+            <Link href="/public/about">
+            <Button variant="linkHover2">About</Button>
+            </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/public/contact">Contact</Link>
+            <Link href="/public/contact">
+            <Button variant="linkHover2">Contact</Button>
+            </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/sign-in">Sign In</Link>
+            <Link href="/sign-in">
+            <Button variant="linkHover2">Sign In</Button>
+            </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/sign-up">Sign Up</Link>
+            <Link href="/sign-up">
+            <Button variant="linkHover2">Sign Up</Button>
+            </Link>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>

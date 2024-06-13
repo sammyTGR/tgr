@@ -13,7 +13,6 @@ import {
   getSortedRowModel,
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRouter } from "next/navigation";
 
 const title = "Review Submissions";
 
@@ -40,21 +39,6 @@ export default function OrdersReviewPage() {
       const fetchedData = await fetchOrderData();
       setData(fetchedData);
       setLoading(false);
-
-      // Mark fetched unread orders as read
-      const unreadOrders = fetchedData.filter((order) => !order.is_read);
-      const orderIds = unreadOrders.map((order) => order.id);
-
-      if (orderIds.length > 0) {
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({ is_read: true })
-          .in("id", orderIds);
-
-        if (updateError) {
-          console.error("Error marking orders as read:", updateError);
-        }
-      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
       setLoading(false);
@@ -65,10 +49,28 @@ export default function OrdersReviewPage() {
     fetchData();
   }, [fetchData]);
 
-  const markAsContacted = async (orderId: number) => {
+  const markAsRead = async (orderId: number) => {
     const { error } = await supabase
       .from("orders")
-      .update({ contacted: true })
+      .update({ is_read: true })
+      .eq("id", orderId);
+
+    if (error) {
+      console.error("Error marking order as read:", error);
+    } else {
+      setData((currentData) =>
+        currentData.map((order) =>
+          order.id === orderId ? { ...order, is_read: true } : order
+        )
+      );
+    }
+  };
+
+  const markAsContacted = async (orderId: number) => {
+    console.log(`Marking order ${orderId} as contacted`);
+    const { error } = await supabase
+      .from("orders")
+      .update({ contacted: true, is_read: true })
       .eq("id", orderId);
 
     if (error) {
@@ -76,16 +78,17 @@ export default function OrdersReviewPage() {
     } else {
       setData((currentData) =>
         currentData.map((order) =>
-          order.id === orderId ? { ...order, contacted: true } : order
+          order.id === orderId ? { ...order, contacted: true, is_read: true } : order
         )
       );
     }
   };
 
   const undoMarkAsContacted = async (orderId: number) => {
+    console.log(`Undo marking order ${orderId} as contacted`);
     const { error } = await supabase
       .from("orders")
-      .update({ contacted: false })
+      .update({ contacted: false, is_read: false })
       .eq("id", orderId);
 
     if (error) {
@@ -93,16 +96,17 @@ export default function OrdersReviewPage() {
     } else {
       setData((currentData) =>
         currentData.map((order) =>
-          order.id === orderId ? { ...order, contacted: false } : order
+          order.id === orderId ? { ...order, contacted: false, is_read: false } : order
         )
       );
     }
   };
 
   const setStatus = async (orderId: number, status: string) => {
+    console.log(`Setting status of order ${orderId} to ${status}`);
     const { error } = await supabase
       .from("orders")
-      .update({ status })
+      .update({ status, is_read: true })
       .eq("id", orderId);
 
     if (error) {
@@ -110,7 +114,7 @@ export default function OrdersReviewPage() {
     } else {
       setData((currentData) =>
         currentData.map((order) =>
-          order.id === orderId ? { ...order, status } : order
+          order.id === orderId ? { ...order, status, is_read: true } : order
         )
       );
     }
@@ -172,13 +176,13 @@ export default function OrdersReviewPage() {
             </div>
           </div>
           <div className="flex-1 flex flex-col space-y-4">
-            <OrderTableToolbar table={table} /> {/* Add the toolbar here */}
+            <OrderTableToolbar table={table} />
             <div className="rounded-md border flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto flex-1">
                 {loading ? (
                   <p>Loading...</p>
                 ) : (
-                  <DataTable table={table} /> // Pass the table object to DataTable
+                  <DataTable table={table} />
                 )}
               </div>
             </div>

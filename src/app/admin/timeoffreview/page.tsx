@@ -90,6 +90,18 @@ export default function ApproveRequestsPage() {
 
       const result = await response.json();
 
+      // Update the is_read field if the status changes
+      if (action !== "pending") {
+        const { error: updateError } = await supabase
+          .from("time_off_requests")
+          .update({ is_read: true })
+          .eq("request_id", request_id);
+        
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+      }
+
       // Refresh the requests list after approval/denial
       const updatedRequests = requests.filter(
         (request) => request.request_id !== request_id

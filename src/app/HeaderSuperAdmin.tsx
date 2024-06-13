@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChatBubbleIcon, HomeIcon } from "@radix-ui/react-icons";
+import { ChatBubbleIcon, HomeIcon, CalendarIcon, FileTextIcon } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -15,9 +15,11 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useRole } from "../context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
 import useUnreadMessages from "@/pages/api/fetch-unread"; // Import the hook
+import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
+import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const auditComponents = [
   {
@@ -147,20 +149,20 @@ const profileComps = [
 
 const HeaderSuperAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
-  const { role } = useRole();
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (data) {
         setUser(data.user);
-        // console.log("Logged-in user ID:", data?.user); // Log the user ID
       }
     };
     fetchUser();
   }, []);
 
   const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
+  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
+  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -168,159 +170,173 @@ const HeaderSuperAdmin = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
-  if (role !== "super admin") {
-    return null; // Prevent rendering if the role is not super admin
-  }
-
   return (
-    <header className="flex justify-between items-center p-2">
-      <NavigationMenu>
-        <NavigationMenuList className="flex space-x-4 mr-3">
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {auditComponents.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {schedComponents.map((sched) => (
-                  <ListItem
-                    key={sched.title}
-                    title={sched.title}
-                    href={sched.href}
-                  >
-                    {sched.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {formComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Reporting</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {reportsComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {profileComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {sopComps.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                {serviceComponents.map((sched) => (
-                  <ListItem
-                    key={sched.title}
-                    title={sched.title}
-                    href={sched.href}
-                  >
-                    {sched.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-      <div className="flex items-center mr-1">
-        {user ? (
-          <>
-            <Button
-              variant="outline"
-              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-              size="sm"
-              onClick={handleSignOut}
-            >
-              Sign Out
+    <RoleBasedWrapper allowedRoles={["super admin"]}>
+      <header className="flex justify-between items-center p-2">
+        <NavigationMenu>
+          <NavigationMenuList className="flex space-x-4 mr-3">
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {auditComponents.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {schedComponents.map((sched) => (
+                    <ListItem
+                      key={sched.title}
+                      title={sched.title}
+                      href={sched.href}
+                    >
+                      {sched.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {formComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Reporting</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {reportsComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {profileComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {sopComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {serviceComponents.map((sched) => (
+                    <ListItem
+                      key={sched.title}
+                      title={sched.title}
+                      href={sched.href}
+                    >
+                      {sched.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+        <div className="flex items-center mr-1">
+          {user ? (
+            <>
+              <Button
+                variant="outline"
+                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Link href="/TGR/crew/login">
+              <Button>Sign In</Button>
+            </Link>
+          )}
+          <Link href="/TGR/crew/chat">
+            <Button variant="ghost" size="icon">
+              <ChatBubbleIcon />
+              {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
             </Button>
-          </>
-        ) : (
-          <Link href="/TGR/crew/login">
-            <Button>Sign In</Button>
           </Link>
-        )}
-        <Link href="/TGR/crew/chat">
-          <Button variant="ghost" size="icon">
-            <ChatBubbleIcon />
-            {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-          </Button>
-        </Link>
-        <Link href="/">
-          <Button variant="ghost" size="icon">
-            <HomeIcon />
-          </Button>
-        </Link>
-        <ModeToggle />
-      </div>
-    </header>
+          {unreadOrderCount > 0 && (
+            <Link href="/sales/orderreview">
+              <Button variant="ghost" size="icon">
+                <FileTextIcon />
+                <span className="badge">{unreadOrderCount}</span>
+              </Button>
+            </Link>
+          )}
+          {unreadTimeOffCount > 0 && (
+            <Link href="/admin/timeoffreview">
+              <Button variant="ghost" size="icon">
+                <CalendarIcon />
+                <span className="badge">{unreadTimeOffCount}</span>
+              </Button>
+            </Link>
+          )}
+          <Link href="/">
+            <Button variant="ghost" size="icon">
+              <HomeIcon />
+            </Button>
+          </Link>
+          <ModeToggle />
+        </div>
+      </header>
+    </RoleBasedWrapper>
   );
 });
 

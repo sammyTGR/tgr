@@ -1,3 +1,4 @@
+// src/components/RoleBasedWrapper.tsx
 import { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
@@ -22,8 +23,7 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
         setRole(roleHeader);
         setLoading(false);
       } else {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) {
           console.error("Error fetching user:", userError.message);
           setLoading(false);
@@ -32,19 +32,32 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
 
         const user = userData.user;
 
+        // Check the employees table
         const { data: roleData, error: roleError } = await supabase
           .from("employees")
           .select("role")
           .eq("user_uuid", user?.id)
           .single();
 
-        if (roleError) {
-          console.error("Error fetching role:", roleError.message);
-          setLoading(false);
-          return;
+        if (roleError || !roleData) {
+          // Check the public_customers table if not found in employees table
+          const { data: customerData, error: customerError } = await supabase
+            .from("public_customers")
+            .select("role")
+            .eq("email", user?.email)
+            .single();
+
+          if (customerError || !customerData) {
+            console.error("Error fetching role:", roleError?.message || customerError?.message);
+            setLoading(false);
+            return;
+          }
+
+          setRole(customerData.role);
+        } else {
+          setRole(roleData.role);
         }
 
-        setRole(roleData.role);
         setLoading(false);
       }
     };
