@@ -220,59 +220,12 @@ const Todo: React.FC<HomeProps> = () => {
 
     if (!over) return;
 
-    const activeContainer = findContainer(active.id);
-    const overContainer = findContainer(over.id);
-
-    if (activeContainer && overContainer && activeContainer !== overContainer) {
+    if (active.id !== over.id) {
       setLists((prevLists) => {
-        const activeList = prevLists.find(
-          (list) => list.id === activeContainer
-        );
-        const overList = prevLists.find((list) => list.id === overContainer);
-        if (!activeList || !overList) return prevLists;
+        const oldIndex = prevLists.findIndex((list) => list.id === active.id);
+        const newIndex = prevLists.findIndex((list) => list.id === over.id);
 
-        const activeIndex = activeList.items.findIndex(
-          (item) => item.id === active.id
-        );
-        const overIndex = overList.items.findIndex(
-          (item) => item.id === over.id
-        );
-
-        if (activeIndex === -1 || overIndex === -1) return prevLists;
-
-        const [movedItem] = activeList.items.splice(activeIndex, 1);
-        overList.items.splice(overIndex, 0, movedItem);
-
-        return prevLists.map((list) =>
-          list.id === activeContainer
-            ? { ...activeList }
-            : list.id === overContainer
-            ? { ...overList }
-            : list
-        );
-      });
-    } else if (activeContainer === overContainer) {
-      setLists((prevLists) => {
-        const activeList = prevLists.find(
-          (list) => list.id === activeContainer
-        );
-        if (!activeList) return prevLists;
-
-        const activeIndex = activeList.items.findIndex(
-          (item) => item.id === active.id
-        );
-        const overIndex = activeList.items.findIndex(
-          (item) => item.id === over.id
-        );
-
-        if (activeIndex !== -1 && overIndex !== -1) {
-          const newItems = arrayMove(activeList.items, activeIndex, overIndex);
-          return prevLists.map((list) =>
-            list.id === activeContainer ? { ...list, items: newItems } : list
-          );
-        }
-
-        return prevLists;
+        return arrayMove(prevLists, oldIndex, newIndex);
       });
     }
   };
