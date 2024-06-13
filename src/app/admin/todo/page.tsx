@@ -34,6 +34,7 @@ import { supabase } from "@/utils/supabase/client";
 import { AddNewList } from "@/components/AddNewList";
 import { EditListTitle } from "@/components/EditListTitle";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { EditItem } from "@/components/EditItem";
 
 // Define the item interface
 interface Item {
@@ -422,12 +423,22 @@ const Todo: React.FC<HomeProps> = () => {
                       strategy={verticalListSortingStrategy}
                     >
                       {list.items.map((item) => (
-                        <SortableLinks
-                          key={item.id}
-                          item={item}
-                          onDelete={() => handleDelete(list.id, item.id)}
-                          updateItem={updateItem}
-                        />
+                        <div className="relative group" key={item.id}>
+                          <SortableLinks
+                            item={item}
+                            onDelete={(id: number | string) =>
+                              handleDelete(list.id, id as number)
+                            }
+                            updateItem={updateItem}
+                          />
+                          <div className="absolute top-2 right-2 hidden group-hover:flex">
+                            <EditItem
+                              item={item}
+                              updateItem={updateItem}
+                              deleteItem={() => handleDelete(list.id, item.id)}
+                            />
+                          </div>
+                        </div>
                       ))}
                     </SortableContext>
                     <AddNewItem

@@ -10,7 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
-import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import {
+  HobbyKnifeIcon,
+  Pencil1Icon,
+  Pencil2Icon,
+  TrashIcon,
+} from "@radix-ui/react-icons";
 
 interface List {
   id: string;
@@ -39,8 +44,8 @@ export function EditListTitle({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Pencil1Icon className="h-4 w-4" />
+        <Button variant="linkHover2" size="icon">
+          <Pencil2Icon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

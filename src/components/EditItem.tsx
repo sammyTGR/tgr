@@ -41,16 +41,14 @@ export function EditItem({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="linkHover2" size="icon">
           <Pencil1Icon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="text-start">
           <DialogTitle>Edit Item</DialogTitle>
-          <DialogDescription>
-            Enter the new name for your item
-          </DialogDescription>
+          <DialogDescription>Change Your List Item</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 pt-2">
           <Input

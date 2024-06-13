@@ -14,7 +14,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { EditItem } from "@/components/EditItem";
 import { EditListTitle } from "@/components/EditListTitle";
-import { TrashIcon } from "@radix-ui/react-icons";
+import { Pencil1Icon } from "@radix-ui/react-icons";
 
 interface Item {
   id: number;
@@ -32,7 +32,7 @@ interface List {
 
 interface SortableLinkCardProps {
   item: Item | List;
-  onDelete: (id: number | string) => void;
+  onDelete: (id: string | number) => void;
   updateItem: (id: number, updatedItem: Partial<Item>) => void;
   updateListTitle?: (id: string, title: string) => void;
 }
@@ -56,16 +56,13 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
       <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card className="p-4 relative flex justify-between items-center gap-2 group">
           <div>{item.name}</div>
-          {/* <div className="flex justify-center items-center gap-2 hidden group-hover:flex">
+          <div className="hidden group-hover:flex absolute top-2 right-2">
             <EditItem
               item={item}
               updateItem={updateItem}
-              deleteItem={onDelete}
+              deleteItem={() => onDelete(item.id)}
             />
-            <button onClick={() => onDelete(item.id)}>
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </div> */}
+          </div>
         </Card>
       </div>
     );
@@ -80,7 +77,7 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
                 <EditListTitle
                   list={item}
                   updateListTitle={updateListTitle}
-                  deleteList={onDelete}
+                  deleteList={() => onDelete(item.id)}
                 />
               )}
             </CardTitle>
