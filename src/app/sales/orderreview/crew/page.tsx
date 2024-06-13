@@ -1,10 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
-import { Order, createColumns } from "./columns";
-import { DataTable } from "./data-table";
+import { Order, createColumns } from "../crewcolumns";
+import { DataTable } from "../crew-data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { OrderTableToolbar } from "./order-table-toolbar";
+import { OrderTableToolbar } from "../crew-order-table-toolbar";
 import {
   useReactTable,
   getCoreRowModel,
@@ -14,7 +14,7 @@ import {
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
-const title = "Review Submissions";
+const title = "Check Order Status";
 
 export default function OrdersReviewPage() {
   const [data, setData] = useState<Order[]>([]);
@@ -169,7 +169,7 @@ export default function OrdersReviewPage() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">

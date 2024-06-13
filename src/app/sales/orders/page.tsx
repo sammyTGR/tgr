@@ -44,7 +44,7 @@ const schema = z.object({
   }),
   manufacturer: z.string().min(2, { message: "Manufacturer is required" }),
   item: z.string().min(4, { message: "Item is required" }),
-  details: z.string().optional(),
+  details: z.string().min(4, { message: "Details are required" }),
 });
 
 type FormData = z.infer<typeof schema>;

@@ -20,7 +20,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
     if (filters && filters.length > 0) {
       filters.forEach((filter: { id: string; value: string }) => {
-        if (filter.id === "status" && Array.isArray(filter.value)) {
+        if (filter.id === "action_status" && Array.isArray(filter.value)) {
           query = query.in(filter.id, filter.value);
         } else if (filter.id === "number") {
           query = query.eq(filter.id, filter.value); // Use equality for numeric filtering

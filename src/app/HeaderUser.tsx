@@ -38,6 +38,11 @@ const serviceComponents = [
     description: "Submit Requests For Customers",
   },
   {
+    title: "Check On Orders",
+    href: "/sales/orderreview/crew",
+    description: "Check On Submitted Order Status",
+  },
+  {
     title: "Safety Waiver",
     href: "/public/waiver",
     description: "Submit A Safety Waiver",

@@ -47,7 +47,7 @@ const CertificationTable: React.FC = () => {
     if (isNaN(parsedDate.getTime())) {
       return "Invalid Date";
     }
-    return format(parsedDate, "yyyy-MM-dd");
+    return format(parsedDate, "MM-dd-yyyy");
   };
 
   if (loading) {

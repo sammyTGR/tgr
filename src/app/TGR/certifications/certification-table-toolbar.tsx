@@ -20,14 +20,14 @@ export function CertificationTableToolbar<TData>({
   const [nameFilter, setNameFilter] = useState("");
   const [certificateFilter, setCertificateFilter] = useState("");
   const [numberFilter, setNumberFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [actionStatusFilter, setActionStatusFilter] = useState<string[]>([]);
 
   // Check if any filter is applied
   const isFiltered =
     nameFilter.length > 0 ||
     certificateFilter.length > 0 ||
     numberFilter.length > 0 ||
-    statusFilter.length > 0;
+    actionStatusFilter.length > 0;
 
   // Sync local state with table state
   useEffect(() => {
@@ -37,7 +37,8 @@ export function CertificationTableToolbar<TData>({
       if (filter.id === "certificate")
         setCertificateFilter(filter.value as string);
       if (filter.id === "number") setNumberFilter(filter.value as string);
-      if (filter.id === "status") setStatusFilter(filter.value as string[]);
+      if (filter.id === "action_status")
+        setActionStatusFilter(filter.value as string[]);
     });
   }, [table]);
 
@@ -48,7 +49,7 @@ export function CertificationTableToolbar<TData>({
     if (columnId === "name") setNameFilter(value as string);
     if (columnId === "certificate") setCertificateFilter(value as string);
     if (columnId === "number") setNumberFilter(value as string);
-    if (columnId === "status") setStatusFilter(value as string[]);
+    if (columnId === "action_status") setActionStatusFilter(value as string[]);
 
     // Update filters in the parent component
     const newFilters = table
@@ -86,13 +87,13 @@ export function CertificationTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {table.getColumn("status") && (
+        {table.getColumn("action_status") && (
           <DataTableFacetedFilter
-            column={table.getColumn("status")}
+            column={table.getColumn("action_status")}
             title="Status"
             options={statuses}
             onSelect={(selectedValues) =>
-              handleFilterChange("status", selectedValues)
+              handleFilterChange("action_status", selectedValues)
             }
           />
         )}
@@ -104,7 +105,7 @@ export function CertificationTableToolbar<TData>({
               setNameFilter("");
               setCertificateFilter("");
               setNumberFilter("");
-              setStatusFilter([]);
+              setActionStatusFilter([]);
               onFilterChange([]);
             }}
             className="h-8 px-2 lg:px-3"

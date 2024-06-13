@@ -6,6 +6,15 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import CertificationTableRowActions from "./certification-table-row-actions";
 import { includesArrayString } from "./custom-filter";
 
+const calculateStatus = (expiration: string) => {
+  const expirationDate = parseISO(expiration);
+  const today = new Date();
+  const timeDiff = expirationDate.getTime() - today.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+  return daysDiff <= 60 ? "Start Renewal Process" : "";
+};
+
 export const certificationColumns = (
   onUpdate: (id: string, updates: Partial<CertificationData>) => void
 ): ColumnDef<CertificationData>[] => [
@@ -43,7 +52,7 @@ export const certificationColumns = (
     ),
     cell: ({ row }) => {
       const date = parseISO(row.original.expiration);
-      return isValid(date) ? format(date, "yyyy-MM-dd") : "Invalid Date";
+      return isValid(date) ? format(date, "MM-dd-yyyy") : "Invalid Date";
     },
     meta: {
       style: { width: "150px" },
@@ -62,6 +71,7 @@ export const certificationColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
+    cell: ({ row }) => calculateStatus(row.original.expiration),
     meta: {
       style: { width: "150px" },
     },
@@ -75,6 +85,7 @@ export const certificationColumns = (
     meta: {
       style: { width: "150px" },
     },
+    filterFn: includesArrayString,
   },
   {
     accessorKey: "actions",
