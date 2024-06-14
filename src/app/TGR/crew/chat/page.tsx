@@ -262,19 +262,20 @@ export default function ChatClient() {
             ))}
           </div>
           <div className="flex space-x-4 p-2 min-w-full ">
-            <Input
-              type="text"
+            <Textarea
               placeholder="Message"
               value={message}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 setMessage(e.target.value)
               }
-              onKeyUp={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                if (e.key === "Enter") {
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
                   onSend();
                 }
               }}
               className="flex-grow text-lg"
+              rows={1}
             />
             <Button
               variant="linkHover2"

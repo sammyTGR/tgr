@@ -70,6 +70,10 @@ function CorrectionDocs({ className }: { className?: string }) {
                 <li>- Cannot Accept W-2s After April 30th</li>
               </ul>
               <li>Current & Valid CA DMV Disabled Placard</li>
+              <li>
+                Federal Firearms License (FFL 03) - Collector Of Curios and
+                Relics
+              </li>
             </ul>
           </div>
         </CardContent>
