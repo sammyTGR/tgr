@@ -15,6 +15,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { updateProfile } from "@/lib/auth-actions"; // Import the updateProfile function
 
 // Define the validation schema using Zod
 const schema = z.object({
@@ -42,12 +43,16 @@ export default function SignIn() {
     const { email, password } = data;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      if (signInData.user) {
+        await updateProfile(signInData.user); // Call updateProfile after successful sign-in
+      }
 
       toast.success("Signed in successfully");
       window.location.href = "/"; // Redirect to home page after sign-in

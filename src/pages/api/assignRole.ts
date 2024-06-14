@@ -1,4 +1,4 @@
-// page/api/assignRole.ts used for assigning roles for customers
+// src/pages/api/assignRole.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
 import { corsHeaders } from '@/utils/cors';
@@ -17,8 +17,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const { data, error } = await supabase
-        .from('public_customers')
-        .insert([{ email, role }]);
+        .from('profiles')
+        .update({ role })
+        .eq('email', email);
 
       if (error) throw error;
 

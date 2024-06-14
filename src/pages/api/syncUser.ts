@@ -1,7 +1,5 @@
 // src/pages/api/syncUser.ts
-// src/pages/api/syncUser.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -9,64 +7,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const user = req.body;
         console.log('Received user data:', user);
 
-        // Extract necessary fields from the user object
         const user_uuid = user.id;
         const email = user.email.toLowerCase();
         const full_name = user.user_metadata.full_name || '';
+        const avatar_url = user.user_metadata.avatar_url || '';
         const first_name = full_name.split(' ')[0];
+        const last_name = full_name.split(' ')[1] || '';
 
-        console.log('Processed user data:', { user_uuid, email, first_name });
+        console.log('Processed user data:', { user_uuid, email, first_name, last_name });
 
         try {
-            // Check if an entry with the given email exists
-            const { data: existingEmployee, error: fetchError } = await supabase
-                .from('employees')
-                .select('*')
-                .eq('contact_info', email)
-                .single();
-
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                console.error('Error fetching existing employee:', fetchError);
-                return res.status(500).json({ error: fetchError.message });
-            }
-
-            console.log('Existing employee:', existingEmployee);
-
-            // If an entry with the email exists, update it with user_uuid
-            if (existingEmployee) {
-                const { error: updateError } = await supabase
-                    .from('employees')
-                    .update({ user_uuid, name: first_name })
-                    .eq('contact_info', email);
-
-                if (updateError) {
-                    console.error('Error updating employee:', updateError);
-                    return res.status(500).json({ error: updateError.message });
-                }
-
-                return res.status(200).json({ message: 'User updated successfully for existing employee' });
-            }
-
-            // If no entry with the email exists, proceed with upsert
             const { data, error } = await supabase
-                .from('employees')
+                .from('profiles')
                 .upsert({
-                    user_uuid,
-                    contact_info: email,
-                    name: first_name,
-                    role: 'user' // Set default role as 'user'
-                }, {
-                    onConflict: 'contact_info'
+                    id: user_uuid,
+                    email,
+                    full_name,
+                    avatar_url,
+                    role: 'customer'
                 });
 
             if (error) {
-                console.error('Error updating or creating employee:', error);
+                console.error('Error updating or creating profile:', error);
                 return res.status(500).json({ error: error.message });
             }
 
-            console.log('User created or updated successfully:', data);
+            console.log('Profile created or updated successfully:', data);
 
-            res.status(200).json({ message: 'User created or updated successfully', data });
+            res.status(200).json({ message: 'Profile created or updated successfully', data });
         } catch (error) {
             console.error('Unexpected error:', error);
             res.status(500).json({ error: 'An unexpected error occurred' });

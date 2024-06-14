@@ -21,7 +21,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 const accountComponents = [
   {
     title: "Account Settings",
-    href: "/customer/account",
+    href: "/public/profiles",
     description: "Manage your account settings and preferences.",
   },
   {

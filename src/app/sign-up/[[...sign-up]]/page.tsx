@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +15,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { signup } from "@/lib/auth-actions"; // Import the signup function
 
 // Define the validation schema using Zod
 const schema = z.object({
@@ -46,35 +46,8 @@ export default function SignUp() {
   });
 
   const onSubmit = async (data: FormData) => {
-    const { firstName, lastName, email, password } = data;
-
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            firstName,
-            lastName,
-          },
-        },
-      });
-
-      if (signUpError) throw signUpError;
-
-      // Assign role to the new user
-      const response = await fetch('/api/assignRole', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, role: 'customer' }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
-      }
+      await signup(data); // Call the signup function
 
       toast.success(
         "Account created successfully! G'head & sign in!"
@@ -106,14 +79,14 @@ export default function SignUp() {
           <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="first-name">First name</Label>
+                <Label htmlFor="first_name">First name</Label>
                 <Controller
                   name="firstName"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
-                      id="first-name"
+                      id="first_name"
                       placeholder="Max"
                       required
                     />
@@ -126,14 +99,14 @@ export default function SignUp() {
                 )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="last-name">Last name</Label>
+                <Label htmlFor="last_name">Last name</Label>
                 <Controller
                   name="lastName"
                   control={control}
                   render={({ field }) => (
                     <Input
                       {...field}
-                      id="last-name"
+                      id="last_name"
                       placeholder="Robinson"
                       required
                     />
@@ -192,14 +165,14 @@ export default function SignUp() {
               Create an account
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
-            <Link href="/sign-in" className="underline">
-              Sign in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+            <div className="mt-4 text-center text-sm">
+              Already have an account?{" "}
+              <Link href="/sign-in" className="underline">
+                Sign in
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }

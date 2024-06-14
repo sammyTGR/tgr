@@ -48,7 +48,7 @@ export default function Header() {
         if (roleError || !roleData) {
           // Check the public_customers table if not found in employees table
           const { data: customerData, error: customerError } = await supabase
-            .from("public_customers")
+            .from("profiles")
             .select("role")
             .eq("email", user?.email)
             .single();
