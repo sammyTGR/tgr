@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, FC } from "react";
-import { v4 as uuidv4 } from "uuid";
 import {
   DndContext,
   closestCenter,
@@ -17,24 +16,22 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
 } from "@dnd-kit/sortable";
 
 import SortableLinks from "@/components/SortableLinks";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddNewItem } from "@/components/AddNewItem";
 import { RealtimeChannel } from "@supabase/supabase-js";
-import { useRole } from "@/context/RoleContext"; // Correct import
+import { useRole } from "@/context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
 import { AddNewList } from "@/components/AddNewList";
 import { EditListTitle } from "@/components/EditListTitle";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { EditItem } from "@/components/EditItem";
+import { DragHandleDots2Icon } from "@radix-ui/react-icons";
+import { CSS } from "@dnd-kit/utilities";
 
 // Define the item interface
 interface Item {
@@ -56,8 +53,33 @@ interface HomeProps {
   // You can add any additional props if needed
 }
 
+const SortableCard = ({
+  list,
+  children,
+}: {
+  list: List;
+  children: React.ReactNode;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: list.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {children}
+      <div className="absolute top-2 left-2 cursor-grab" {...listeners}>
+        <DragHandleDots2Icon className="h-5 w-5 text-gray-400" />
+      </div>
+    </div>
+  );
+};
+
 const Todo: React.FC<HomeProps> = () => {
-  const { role, user } = useRole(); // Fetch role and user information from context
+  const { role, user } = useRole();
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -72,7 +94,6 @@ const Todo: React.FC<HomeProps> = () => {
   const [activeItem, setActiveItem] = useState<Item | null>(null);
 
   useEffect(() => {
-    // Fetch lists from Supabase
     const fetchLists = async () => {
       const { data: listData, error: listError } = await supabase
         .from("lists")
@@ -95,7 +116,6 @@ const Todo: React.FC<HomeProps> = () => {
       }
     };
 
-    // Fetch username from employees table
     const fetchUsername = async () => {
       if (user) {
         const { data: userData, error } = await supabase
@@ -201,59 +221,12 @@ const Todo: React.FC<HomeProps> = () => {
 
     if (!over) return;
 
-    const activeContainer = findContainer(active.id);
-    const overContainer = findContainer(over.id);
-
-    if (activeContainer && overContainer && activeContainer !== overContainer) {
+    if (active.id !== over.id) {
       setLists((prevLists) => {
-        const activeList = prevLists.find(
-          (list) => list.id === activeContainer
-        );
-        const overList = prevLists.find((list) => list.id === overContainer);
-        if (!activeList || !overList) return prevLists;
+        const oldIndex = prevLists.findIndex((list) => list.id === active.id);
+        const newIndex = prevLists.findIndex((list) => list.id === over.id);
 
-        const activeIndex = activeList.items.findIndex(
-          (item) => item.id === active.id
-        );
-        const overIndex = overList.items.findIndex(
-          (item) => item.id === over.id
-        );
-
-        if (activeIndex === -1 || overIndex === -1) return prevLists;
-
-        const [movedItem] = activeList.items.splice(activeIndex, 1);
-        overList.items.splice(overIndex, 0, movedItem);
-
-        return prevLists.map((list) =>
-          list.id === activeContainer
-            ? { ...activeList }
-            : list.id === overContainer
-            ? { ...overList }
-            : list
-        );
-      });
-    } else if (activeContainer === overContainer) {
-      setLists((prevLists) => {
-        const activeList = prevLists.find(
-          (list) => list.id === activeContainer
-        );
-        if (!activeList) return prevLists;
-
-        const activeIndex = activeList.items.findIndex(
-          (item) => item.id === active.id
-        );
-        const overIndex = activeList.items.findIndex(
-          (item) => item.id === over.id
-        );
-
-        if (activeIndex !== -1 && overIndex !== -1) {
-          const newItems = arrayMove(activeList.items, activeIndex, overIndex);
-          return prevLists.map((list) =>
-            list.id === activeContainer ? { ...list, items: newItems } : list
-          );
-        }
-
-        return prevLists;
+        return arrayMove(prevLists, oldIndex, newIndex);
       });
     }
   };
@@ -328,7 +301,7 @@ const Todo: React.FC<HomeProps> = () => {
     const { data, error } = await supabase
       .from("lists")
       .insert([newListData])
-      .select("id"); // Explicitly select the id
+      .select("id");
 
     if (error) {
       console.error("Error adding list:", error);
@@ -389,7 +362,7 @@ const Todo: React.FC<HomeProps> = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <main className="flex grid cols-4 justify-center mt-10h-screen px-2 mx-auto select-none">
+      <main className="flex grid-cols-4 justify-center mt-10 h-screen px-2 mx-auto select-none">
         <div className="flex justify-start p-4 mb-4">
           <AddNewList addNewList={addNewList} />
         </div>
@@ -401,54 +374,59 @@ const Todo: React.FC<HomeProps> = () => {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              {lists.map((list) => (
-                <Card
-                  key={list.id}
-                  className="w-full min-w-[325px] md:max-w-lg"
-                >
-                  <CardHeader className="space-y-1 ">
-                    <CardTitle className="text-2xl flex justify-between">
-                      {list.title}
-                      <EditListTitle
-                        list={list}
-                        updateListTitle={updateListTitle}
-                        deleteList={deleteList}
-                      />
-                    </CardTitle>
-                    {/* <CardDescription>List All Of Your Projects</CardDescription> */}
-                  </CardHeader>
-                  <CardContent className="grid gap-4">
-                    <SortableContext
-                      items={list.items.map((item) => item.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {list.items.map((item) => (
-                        <div className="relative group" key={item.id}>
-                          <SortableLinks
-                            item={item}
-                            onDelete={(id: number | string) =>
-                              handleDelete(list.id, id as number)
-                            }
-                            updateItem={updateItem}
+              <SortableContext
+                items={lists.map((list) => list.id)}
+                strategy={rectSortingStrategy}
+              >
+                {lists.map((list) => (
+                  <SortableCard key={list.id} list={list}>
+                    <Card className="w-full min-w-[325px] md:max-w-lg">
+                      <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl flex justify-between">
+                          {list.title}
+                          <EditListTitle
+                            list={list}
+                            updateListTitle={updateListTitle}
+                            deleteList={deleteList}
                           />
-                          <div className="absolute top-2 right-2 hidden group-hover:flex">
-                            <EditItem
-                              item={item}
-                              updateItem={updateItem}
-                              deleteItem={() => handleDelete(list.id, item.id)}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </SortableContext>
-                    <AddNewItem
-                      addNewItem={(newItem: string) =>
-                        addNewItem(list.id, newItem)
-                      }
-                    />
-                  </CardContent>
-                </Card>
-              ))}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-4">
+                        <SortableContext
+                          items={list.items.map((item) => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {list.items.map((item) => (
+                            <div className="relative group" key={item.id}>
+                              <SortableLinks
+                                item={item}
+                                onDelete={(id: number | string) =>
+                                  handleDelete(list.id, id as number)
+                                }
+                                updateItem={updateItem}
+                              />
+                              <div className="absolute top-2 right-2 hidden group-hover:flex">
+                                <EditItem
+                                  item={item}
+                                  updateItem={updateItem}
+                                  deleteItem={() =>
+                                    handleDelete(list.id, item.id)
+                                  }
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </SortableContext>
+                        <AddNewItem
+                          addNewItem={(newItem: string) =>
+                            addNewItem(list.id, newItem)
+                          }
+                        />
+                      </CardContent>
+                    </Card>
+                  </SortableCard>
+                ))}
+              </SortableContext>
               <DragOverlay>
                 {activeId ? (
                   <SortableLinks

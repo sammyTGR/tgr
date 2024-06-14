@@ -53,7 +53,7 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
 
   if ("name" in item) {
     return (
-      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <div ref={setNodeRef} style={style}>
         <Card className="p-4 relative flex justify-between items-center gap-2 group">
           <div>{item.name}</div>
           <div className="hidden group-hover:flex absolute top-2 right-2">
@@ -68,7 +68,7 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
     );
   } else {
     return (
-      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <div ref={setNodeRef} style={style}>
         <Card className="w-full min-w-[325px] md:max-w-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl flex justify-between">
