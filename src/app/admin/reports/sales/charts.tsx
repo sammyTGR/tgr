@@ -28,14 +28,14 @@ const SalesDonutChart = () => {
   }, []);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col justify-center items-center">
       <Card className="p-6">
         <Title>Sales by Category</Title>
         <Text className="mb-4">
           Total sales price multiplied by quantity sold
         </Text>
-        <div className="flex justify-center">
-          <div style={{ width: "400px", maxWidth: "800px", height: "600px" }}>
+        <div className="flex flex-col items-center justify-center">
+          <div style={{ width: "100%", maxWidth: "400px", height: "400px" }}>
             <DonutChart
               data={chartData}
               category="value"

@@ -5,7 +5,12 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChatBubbleIcon, HomeIcon, CalendarIcon, FileTextIcon } from "@radix-ui/react-icons";
+import {
+  ChatBubbleIcon,
+  HomeIcon,
+  CalendarIcon,
+  FileTextIcon,
+} from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -293,7 +298,7 @@ const HeaderSuperAdmin = React.memo(() => {
           {user ? (
             <>
               <Button
-                variant="outline"
+                variant="linkHover2"
                 className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
                 size="sm"
                 onClick={handleSignOut}
@@ -303,18 +308,18 @@ const HeaderSuperAdmin = React.memo(() => {
             </>
           ) : (
             <Link href="/TGR/crew/login">
-              <Button>Sign In</Button>
+              <Button variant="linkHover2">Sign In</Button>
             </Link>
           )}
           <Link href="/TGR/crew/chat">
-            <Button variant="ghost" size="icon">
+            <Button variant="linkHover2" size="icon">
               <ChatBubbleIcon />
               {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
             </Button>
           </Link>
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
-              <Button variant="ghost" size="icon">
+              <Button variant="linkHover1" size="icon">
                 <FileTextIcon />
                 <span className="badge">{unreadOrderCount}</span>
               </Button>
@@ -322,14 +327,14 @@ const HeaderSuperAdmin = React.memo(() => {
           )}
           {unreadTimeOffCount > 0 && (
             <Link href="/admin/timeoffreview">
-              <Button variant="ghost" size="icon">
+              <Button variant="linkHover1" size="icon">
                 <CalendarIcon />
                 <span className="badge">{unreadTimeOffCount}</span>
               </Button>
             </Link>
           )}
           <Link href="/">
-            <Button variant="ghost" size="icon">
+            <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>
           </Link>

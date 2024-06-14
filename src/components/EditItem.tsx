@@ -38,10 +38,14 @@ export function EditItem({
     updateItem(item.id, { name });
   };
 
+  const handleIconClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="linkHover2" size="icon">
+        <Button variant="ghost" size="icon" onClick={handleIconClick}>
           <Pencil1Icon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
