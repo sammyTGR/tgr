@@ -66,6 +66,11 @@ const formComps = [
     description: "Submit ALL Range Repairs",
   },
   {
+    title: "Range Walk Reports",
+    href: "/TGR/rangewalk/report",
+    description: "View All Range Walks",
+  },
+  {
     title: "Points Submissions",
     href: "/TGR/crew/points",
     description: "Report All Submitted Points",
@@ -133,7 +138,7 @@ const HeaderUser = React.memo(() => {
               </NavigationMenuContent>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
+              <NavigationMenuTrigger>Forms & Reports</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {formComps.map((component) => (

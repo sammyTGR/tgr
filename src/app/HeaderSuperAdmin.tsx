@@ -138,9 +138,19 @@ const reportsComps = [
     description: "Build Charts",
   },
   {
+    title: "Range Walks",
+    href: "/TGR/rangewalk/report",
+    description: "View All Range Walks",
+  },
+  {
     title: "Certifications",
     href: "/TGR/certifications",
     description: "View All Certifications",
+  },
+  {
+    title: "Review Orders",
+    href: "/sales/orderreview",
+    description: "View Submitted Orders",
   },
 ];
 

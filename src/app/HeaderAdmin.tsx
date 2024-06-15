@@ -106,10 +106,28 @@ const formComps = [
     href: "/TGR/crew/points",
     description: "Report All Submitted Points",
   },
+];
+
+const reportsComps = [
+  {
+    title: "Daily Sales",
+    href: "/admin/reports/sales",
+    description: "Set Categories & View Sales",
+  },
+  {
+    title: "Range Walk Reports",
+    href: "/TGR/rangewalk/report",
+    description: "View All Range Walks",
+  },
   {
     title: "Certifications",
     href: "/TGR/certifications",
     description: "View All Certifications",
+  },
+  {
+    title: "Review Orders",
+    href: "/sales/orderreview",
+    description: "View Submitted Orders",
   },
 ];
 
@@ -191,6 +209,22 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {formComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Reporting</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {reportsComps.map((component) => (
                     <ListItem
                       key={component.title}
                       title={component.title}
