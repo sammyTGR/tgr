@@ -1,3 +1,4 @@
+// src/app/admin/reports/sales/data-table.tsx
 import * as React from "react";
 import { flexRender, Table as TableType } from "@tanstack/react-table";
 import {
@@ -17,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { SalesDataTablePagination } from "./data-table-pagination"; // Ensure the correct import path
+import { SalesDataTablePagination } from "./data-table-pagination";
 
 interface DataTableProps<TData> {
   table: TableType<TData>;

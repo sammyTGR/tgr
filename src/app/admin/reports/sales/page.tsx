@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Papa, { ParseResult } from "papaparse";
 import SalesDonutChart from "../charts/DonutChart";
+import StackedBarChart from "../charts/StackedBarChart";
+import EmployeeSalesStackedBarChart from "../charts/EmployeeSalesStackedBarChart";
 
 const title = "Sales Report";
 
@@ -167,20 +169,25 @@ const SalesPage = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <div className="container">
-        <div className="flex max-w-md justify-start mb-4 px-4 md:px-6">
-          <SalesDonutChart />
-        </div>
-        <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
-          <TextGenerateEffect words={title} />
-        </h1>
-        <SalesDataTable />
-        <div className="mt-4">
-          <input type="file" accept=".csv" onChange={handleFileChange} />
-          <Button variant="linkHover1" onClick={handleSubmit} className="mt-4">
-            Upload and Process
-          </Button>
-        </div>
+      <div className="flex grid grid-cols-4 max-w-full">
+        <SalesDonutChart />
+      </div>
+      <div className="flex grid grid-cols-1 max-w-full">
+        <StackedBarChart />
+      </div>
+      <div className="flex grid grid-col-1 ml-4 my-4 max-w-8xl p-4">
+        <EmployeeSalesStackedBarChart />
+      </div>
+      <div className="flex max-w-md justify-start mb-4 px-4 md:px-6"></div>
+      <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
+        <TextGenerateEffect words={title} />
+      </h1>
+      <SalesDataTable />
+      <div className="mt-4">
+        <input type="file" accept=".csv" onChange={handleFileChange} />
+        <Button variant="linkHover1" onClick={handleSubmit} className="mt-4">
+          Upload and Process
+        </Button>
       </div>
     </RoleBasedWrapper>
   );

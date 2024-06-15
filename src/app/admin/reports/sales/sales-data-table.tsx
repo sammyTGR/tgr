@@ -1,3 +1,4 @@
+// src/app/admin/reports/sales/sales-data-table.tsx
 import React, { useEffect, useState } from "react";
 import {
   useReactTable,
@@ -8,11 +9,11 @@ import {
   ColumnDef,
   SortingState,
 } from "@tanstack/react-table";
-import { supabase } from "@/utils/supabase/client";
 import { DataTable } from "./data-table";
 import { SalesTableToolbar } from "./sales-table-toolbar";
 import { salesColumns } from "./columns";
 import { toast } from "sonner";
+import { supabase } from "@/utils/supabase/client";
 
 interface SalesData {
   id: number;
@@ -58,41 +59,51 @@ const SalesDataTable = () => {
     filters: any[],
     sorting: SortingState
   ) => {
-    const response = await fetch("/api/fetch-sales-data", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ pageIndex, pageSize, filters, sorting }),
-    });
+    try {
+      const response = await fetch("/api/fetch-sales-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ pageIndex, pageSize, filters, sorting }),
+      });
 
-    const { data, count, error } = await response.json();
+      const { data, count, error } = await response.json();
 
-    if (error) {
-      console.error("Error fetching sales data:", error);
-    } else {
-      setSales(data);
-      if (count !== undefined) {
-        setPageCount(Math.ceil(count / pageSize));
+      if (error) {
+        console.error("Error fetching sales data:", error);
+        toast.error("Failed to fetch sales data.");
+      } else {
+        setSales(data);
+        if (count !== undefined) {
+          setPageCount(Math.ceil(count / pageSize));
+        }
       }
+    } catch (error) {
+      console.error("Failed to fetch sales data:", error);
+      toast.error("Failed to fetch sales data.");
     }
   };
 
   const fetchTotalDROS = async (filters: any[]) => {
-    const response = await fetch("/api/calculate-total-dros", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ filters }),
-    });
+    try {
+      const response = await fetch("/api/calculate-total-dros", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filters }),
+      });
 
-    const { totalDROS, error } = await response.json();
+      const { totalDROS, error } = await response.json();
 
-    if (error) {
-      console.error("Error fetching total DROS:", error);
-    } else {
-      setTotalDROS(totalDROS);
+      if (error) {
+        console.error("Error fetching total DROS:", error);
+      } else {
+        setTotalDROS(totalDROS);
+      }
+    } catch (error) {
+      console.error("Failed to fetch total DROS:", error);
     }
   };
 

@@ -16,27 +16,21 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
     console.log('Request body:', req.body);
 
-    let query = supabase
-      .from('sales_data')
-      .select('*', { count: 'exact' });
-
-    if (filters && filters.length > 0) {
-      filters.forEach((filter: { id: string, value: string }) => {
-        query = query.ilike(filter.id, `%${filter.value}%`);
+    const { data, error } = await supabase
+      .rpc('fetch_sales_data', {
+        page_index: pageIndex,
+        page_size: pageSize,
+        filters: JSON.stringify(filters),
+        sorting: JSON.stringify(sorting)
       });
+
+    if (error) {
+      console.error('Supabase RPC error:', error);
+      res.status(500).json({ error: 'Failed to fetch filtered sales data' });
+      return;
     }
 
-    if (sorting && sorting.length > 0) {
-      sorting.forEach((sort: { id: string; desc: boolean }) => {
-        query = query.order(sort.id, { ascending: !sort.desc });
-      });
-    } else {
-      query = query.order('Date', { ascending: false });  // Ensure data is sorted by Date
-    }
-
-    const { data, count, error } = await query.range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
-
-    if (error) throw error;
+    const count = data.length > 0 ? data[0].total_count : 0;
 
     console.log('Fetched data:', data);
 
