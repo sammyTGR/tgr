@@ -1,9 +1,10 @@
-// src/app/admin/reports/charts/EmployeeSalesStackedBarChart.tsx
+// src/app/admin/reports/charts/CurrentWeekSalesStackedBarChart.tsx
 "use client";
 
 import { EventProps } from "@tremor/react";
 import React, { useEffect, useState } from "react";
 import { BarChart } from "@/components/BarChart"; // Import your custom BarChart
+import { useTheme } from "next-themes";
 
 interface ChartData {
   Lanid: string;
@@ -12,21 +13,25 @@ interface ChartData {
 }
 
 const fetchData = async () => {
-  const response = await fetch("/api/fetch-sales-data-by-employee");
+  const response = await fetch("/api/fetch-current-week-sales-data");
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
   const data = await response.json();
-  // console.log("Fetched data from API:", data.length, "records"); // Log fetched data length
-  // console.log("Fetched data sample:", data.slice(0, 5)); // Log a sample of the fetched data
-  return data;
+  //   console.log("Fetched Data:", data); // Log fetched data
+  return Array.isArray(data) ? data : [];
 };
 
 const processData = (data: any[]) => {
   const processedData: ChartData[] = [];
   const categories: Set<string> = new Set();
 
+  //   console.log("Processing Data:", data); // Log the data being processed
+
   data.forEach((item) => {
     const lanid = item.Lanid;
     const category = item.category_label;
-    const value = item.total_sales;
+    const value = item.SoldPrice * item.SoldQty;
 
     let existingEntry = processedData.find((d) => d.Lanid === lanid);
     if (!existingEntry) {
@@ -38,17 +43,21 @@ const processData = (data: any[]) => {
     categories.add(category);
   });
 
-  // console.log("Processed Data:", processedData); // Log processed data
+  //   console.log("Processed Data:", processedData); // Log the processed data
+  //   console.log("Categories:", categories); // Log the categories
+
   return { processedData, categories: Array.from(categories) };
 };
 
-const EmployeeSalesStackedBarChart = () => {
+const CurrentWeekSalesStackedBarChart = () => {
+  const { theme } = useTheme();
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
     start: "",
     end: "",
   });
+  const [value, setValue] = React.useState<EventProps>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -69,11 +78,6 @@ const EmployeeSalesStackedBarChart = () => {
               start: start.toISOString().split("T")[0],
               end: end.toISOString().split("T")[0],
             });
-
-            console.log("Date Range:", {
-              start: start.toISOString().split("T")[0],
-              end: end.toISOString().split("T")[0],
-            }); // Log date range
           }
         }
 
@@ -94,32 +98,24 @@ const EmployeeSalesStackedBarChart = () => {
   return (
     <div className="flex flex-col gap-4">
       <p className="mx-auto text-sm font-medium">
-        Sales By Employee and Category
+        Sales By Employee and Category for Current Week
       </p>
       <p className="mx-auto text-sm font-medium">
         {dateRange.start} to {dateRange.end}
       </p>
       <div className="overflow-x-auto">
-        <div style={{ minWidth: chartData.length * 100 }}>
-          <BarChart
-            data={chartData}
-            index="Lanid"
-            categories={categories}
-            type="stacked"
-            showLegend={true}
-            showTooltip={true}
-            className="h-96"
-            xAxisProps={{
-              interval: 0,
-              angle: -45,
-              textAnchor: "end",
-              height: 60,
-            }}
-          />
-        </div>
+        <BarChart
+          data={chartData}
+          index="Lanid"
+          categories={categories}
+          type="stacked"
+          showLegend={true}
+          showTooltip={true}
+          className="h-96"
+        />
       </div>
     </div>
   );
 };
 
-export default EmployeeSalesStackedBarChart;
+export default CurrentWeekSalesStackedBarChart;

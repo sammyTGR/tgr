@@ -18,14 +18,14 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
     if (error) throw error;
 
-    console.log('Fetched Aggregated Data:', data);
+    // console.log('Fetched Aggregated Data:', data);
 
     const result = data.map((row: { category_label: string, total_sales: number }) => ({
       name: row.category_label || 'Unknown',
       value: row.total_sales,
     }));
 
-    console.log('Aggregated Result:', result);
+    // console.log('Aggregated Result:', result);
 
     res.status(200).json(result);
   } catch (error) {

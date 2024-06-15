@@ -133,6 +133,11 @@ const reportsComps = [
     description: "Set Categories & View Sales",
   },
   {
+    title: "Test Charts",
+    href: "/admin/reports/charts",
+    description: "Build Charts",
+  },
+  {
     title: "Certifications",
     href: "/TGR/certifications",
     description: "View All Certifications",

@@ -169,12 +169,6 @@ const SalesPage = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      {/* <div className="flex grid grid-cols-4 max-w-full">
-        <SalesDonutChart />
-      </div> */}
-      {/* <div className="flex grid grid-cols-1 max-w-full">
-        <StackedBarChart />
-      </div> */}
       <div className="flex grid grid-cols-1 max-w-8xl ml-4 my-4 overflow-x-auto">
         <EmployeeSalesStackedBarChart />
       </div>
