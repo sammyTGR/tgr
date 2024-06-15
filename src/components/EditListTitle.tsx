@@ -10,12 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
-import {
-  HobbyKnifeIcon,
-  Pencil1Icon,
-  Pencil2Icon,
-  TrashIcon,
-} from "@radix-ui/react-icons";
+import { Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
 
 interface List {
   id: string;

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Papa, { ParseResult } from "papaparse";
-import SalesDonutChart from "./charts";
+import SalesDonutChart from "../charts/DonutChart";
 
 const title = "Sales Report";
 
@@ -167,8 +167,8 @@ const SalesPage = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <div>
-        <div className="container min-w-full min-h-[100vh] px-4 md:px-6">
+      <div className="container">
+        <div className="flex max-w-md justify-start mb-4 px-4 md:px-6">
           <SalesDonutChart />
         </div>
         <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">

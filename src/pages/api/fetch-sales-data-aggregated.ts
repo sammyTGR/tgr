@@ -2,12 +2,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
 
-interface SalesDataRow {
-  category_label: string;
-  SoldPrice: number;
-  SoldQty: number;
-}
-
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'OPTIONS') {
     res.status(200).json({ message: 'CORS preflight request success' });
@@ -16,28 +10,22 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+  res.setHeader('Cache-Control', 'no-store');
 
   try {
     const { data, error } = await supabase
-      .from('sales_data')
-      .select('category_label, SoldPrice, SoldQty');
+      .rpc('fetch_aggregated_sales_data');
 
     if (error) throw error;
 
-    const aggregatedData: Record<string, number> = data.reduce((acc: Record<string, number>, row: SalesDataRow) => {
-      const category = row.category_label || 'Unknown';
-      const value = row.SoldPrice * row.SoldQty;
-      if (!acc[category]) {
-        acc[category] = 0;
-      }
-      acc[category] += value;
-      return acc;
-    }, {});
+    console.log('Fetched Aggregated Data:', data);
 
-    const result = Object.keys(aggregatedData).map((key) => ({
-      name: key,
-      value: aggregatedData[key],
+    const result = data.map((row: { category_label: string, total_sales: number }) => ({
+      name: row.category_label || 'Unknown',
+      value: row.total_sales,
     }));
+
+    console.log('Aggregated Result:', result);
 
     res.status(200).json(result);
   } catch (error) {

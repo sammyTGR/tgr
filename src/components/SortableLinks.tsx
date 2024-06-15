@@ -47,13 +47,13 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
     useSortable({ id: item.id });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     transition,
   };
 
   if ("name" in item) {
     return (
-      <div ref={setNodeRef} style={style}>
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card className="p-4 relative flex justify-between items-center gap-2 group">
           <div>{item.name}</div>
           <div className="hidden group-hover:flex absolute top-2 right-2">
@@ -68,7 +68,7 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
     );
   } else {
     return (
-      <div ref={setNodeRef} style={style}>
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card className="w-full min-w-[325px] md:max-w-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl flex justify-between">
