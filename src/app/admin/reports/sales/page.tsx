@@ -169,13 +169,13 @@ const SalesPage = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <div className="flex grid grid-cols-4 max-w-full">
+      {/* <div className="flex grid grid-cols-4 max-w-full">
         <SalesDonutChart />
-      </div>
-      <div className="flex grid grid-cols-1 max-w-full">
+      </div> */}
+      {/* <div className="flex grid grid-cols-1 max-w-full">
         <StackedBarChart />
-      </div>
-      <div className="flex grid grid-col-1 ml-4 my-4 max-w-8xl p-4">
+      </div> */}
+      <div className="flex grid grid-cols-1 max-w-8xl ml-4 my-4 overflow-x-auto">
         <EmployeeSalesStackedBarChart />
       </div>
       <div className="flex max-w-md justify-start mb-4 px-4 md:px-6"></div>
