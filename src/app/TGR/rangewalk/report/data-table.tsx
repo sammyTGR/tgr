@@ -28,17 +28,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { DataTablePagination } from "./pagination"; // Update the import path
-import { ColumnDef, RangeWalkData } from "./columns"; // Import the extended type and RangeWalkData type
+import { DataTablePagination } from "./pagination";
+import { ColumnDef, RangeWalkData } from "./columns";
+import { DataTableRowActions } from "./data-table-row-actions";
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends RangeWalkData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  userRole: string;
+  userUuid: string;
+  onStatusChange: (id: number, status: string | null) => void;
+  onNotesChange: (id: number, notes: string, userName: string) => void;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RangeWalkData, TValue>({
   columns,
   data,
+  userRole,
+  userUuid,
+  onStatusChange,
+  onNotesChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -62,8 +71,8 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: false, // Set based on your data handling strategy
-    manualSorting: false, // Set based on your data handling strategy
+    manualPagination: false,
+    manualSorting: false,
   });
 
   return (
@@ -82,6 +91,14 @@ export function DataTable<TData, TValue>({
           value={table.getColumn("lanes")?.getFilterValue() as string}
           onChange={(event) =>
             table.getColumn("lanes")?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm w-full ml-2"
+        />
+        <Input
+          placeholder="Filter By Status..."
+          value={table.getColumn("status")?.getFilterValue() as string}
+          onChange={(event) =>
+            table.getColumn("status")?.setFilterValue(event.target.value)
           }
           className="max-w-sm w-full ml-2"
         />
@@ -112,8 +129,8 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden rounded-md border w-full sm:w-full md:w-full lg:min-w-[1850px] lg:max-w-[3068px]">
-        <div className="h-[calc(100vh-200px)] overflow-auto">
+      <div className="flex-1 overflow-hidden rounded-md border w-full">
+        <div className="h-[300px] overflow-y-auto">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -127,7 +144,7 @@ export function DataTable<TData, TValue>({
                     return (
                       <TableHead
                         key={header.id}
-                        style={metaStyle} // Apply the fixed width style
+                        style={metaStyle}
                       >
                         {header.isPlaceholder
                           ? null
@@ -157,7 +174,7 @@ export function DataTable<TData, TValue>({
                       return (
                         <TableCell
                           key={cell.id}
-                          style={metaStyle} // Apply the fixed width style
+                          style={metaStyle}
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -166,6 +183,15 @@ export function DataTable<TData, TValue>({
                         </TableCell>
                       );
                     })}
+                    <TableCell>
+                      <DataTableRowActions
+                        row={row}
+                        userRole={userRole}
+                        userUuid={userUuid}
+                        onStatusChange={onStatusChange}
+                        onNotesChange={onNotesChange}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (

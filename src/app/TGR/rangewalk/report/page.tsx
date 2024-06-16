@@ -11,6 +11,46 @@ const words = "Range Walk Reports";
 export default function RangeWalkReport() {
   const [data, setData] = useState<RangeWalkData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userUuid, setUserUuid] = useState<string | null>(null);
+
+  const fetchUserRoleAndUuid = useCallback(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Error fetching user:", userError.message);
+      return;
+    }
+
+    const user = userData.user;
+    setUserUuid(user?.id || "");
+
+    const { data: roleData, error: roleError } = await supabase
+      .from("employees")
+      .select("role")
+      .eq("user_uuid", user?.id)
+      .single();
+
+    if (roleError || !roleData) {
+      const { data: customerData, error: customerError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("email", user?.email)
+        .single();
+
+      if (customerError || !customerData) {
+        console.error("Error fetching role:", roleError?.message || customerError?.message);
+        return;
+      }
+
+      setUserRole(customerData.role);
+    } else {
+      setUserRole(roleData.role);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUserRoleAndUuid();
+  }, [fetchUserRoleAndUuid]);
 
   const fetchRangeWalkData = useCallback(async () => {
     const { data, error } = await supabase
@@ -41,6 +81,22 @@ export default function RangeWalkReport() {
     fetchData();
   }, [fetchData]);
 
+  const handleStatusChange = (id: number, status: string | null) => {
+    setData(prevData =>
+      prevData.map(item =>
+        item.id === id ? { ...item, status: status as string | undefined } : item
+      )
+    );
+  };
+
+  const handleNotesChange = (id: number, notes: string, userName: string) => {
+    setData(prevData =>
+      prevData.map(item =>
+        item.id === id ? { ...item, repair_notes: notes, repair_notes_user: userName } : item
+      )
+    );
+  };
+
   useEffect(() => {
     const RangeWalkTableSubscription = supabase
       .channel("custom-all-range-walk-reports-channel")
@@ -66,31 +122,38 @@ export default function RangeWalkReport() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
-      <>
-        <div className="h-screen flex flex-col">
-          <section className="flex-1 flex flex-col space-y-4 p-4">
-            <div className="flex items-center justify-between space-y-2">
-              <div>
-                <h2 className="text-2xl font-bold">
-                  <TextGenerateEffect words={words} />
-                </h2>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <div className="h-screen flex flex-col">
+        <section className="flex-1 flex flex-col space-y-4 p-4">
+          <div className="flex items-center justify-between space-y-2">
+            <div>
+              <h2 className="text-2xl font-bold">
+                <TextGenerateEffect words={words} />
+              </h2>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col space-y-4">
+            <div className="rounded-md border flex-1 flex flex-col">
+              <div className="relative w-full h-full overflow-auto">
+                {loading ? (
+                  <p>Loading...</p>
+                ) : (
+                  userRole && userUuid && (
+                    <DataTable
+                      columns={columns}
+                      data={data}
+                      userRole={userRole}
+                      userUuid={userUuid}
+                      onStatusChange={handleStatusChange}
+                      onNotesChange={handleNotesChange}
+                    />
+                  )
+                )}
               </div>
             </div>
-            <div className="flex-1 flex flex-col space-y-4">
-              <div className="rounded-md border flex-1 flex flex-col">
-                <div className="relative w-full h-full overflow-auto flex-1">
-                  {loading ? (
-                    <p>Loading...</p>
-                  ) : (
-                    <DataTable columns={columns} data={data} />
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </>
+          </div>
+        </section>
+      </div>
     </RoleBasedWrapper>
   );
 }
