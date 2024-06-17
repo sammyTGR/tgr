@@ -50,11 +50,8 @@ export function DataTable<TData extends RangeWalkData, TValue>({
   onNotesChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -130,7 +127,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
         </DropdownMenu>
       </div>
       <div className="flex-1 overflow-hidden rounded-md border w-full">
-        <div className="h-[300px] overflow-y-auto">
+        <div className="h-full overflow-y-auto">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (

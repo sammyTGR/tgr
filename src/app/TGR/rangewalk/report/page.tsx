@@ -104,11 +104,17 @@ export default function RangeWalkReport() {
         "postgres_changes",
         { event: "*", schema: "public", table: "range_walk_reports" },
         (payload) => {
-          if (payload.new) {
+          if (payload.eventType === "INSERT") {
             setData((currentData) => [
               payload.new as RangeWalkData,
               ...currentData,
             ]);
+          } else if (payload.eventType === "UPDATE") {
+            setData((currentData) =>
+              currentData.map((item) =>
+                item.id === payload.new.id ? payload.new as RangeWalkData : item
+              )
+            );
           } else {
             fetchData();
           }
