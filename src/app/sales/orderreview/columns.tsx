@@ -89,7 +89,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Phone" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "180px" },
     },
   },
   {
