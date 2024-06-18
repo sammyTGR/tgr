@@ -1,10 +1,7 @@
-// src/app/admin/reports/charts/CurrentWeekSalesStackedBarChart.tsx
 "use client";
 
-import { EventProps } from "@tremor/react";
 import React, { useEffect, useState } from "react";
 import { BarChart } from "@/components/BarChart"; // Import your custom BarChart
-import { useTheme } from "next-themes";
 import { ResponsiveContainer } from "recharts";
 
 interface ChartData {
@@ -14,20 +11,17 @@ interface ChartData {
 }
 
 const fetchData = async () => {
-  const response = await fetch("/api/fetch-current-week-sales-data");
+  const response = await fetch("/api/fetch-all-time-sales-data");
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
-  //   console.log("Fetched Data:", data); // Log fetched data
   return Array.isArray(data) ? data : [];
 };
 
 const processData = (data: any[]) => {
   const processedData: ChartData[] = [];
   const categories: Set<string> = new Set();
-
-  //   console.log("Processing Data:", data); // Log the data being processed
 
   data.forEach((item) => {
     const lanid = item.Lanid;
@@ -44,21 +38,16 @@ const processData = (data: any[]) => {
     categories.add(category);
   });
 
-  //   console.log("Processed Data:", processedData); // Log the processed data
-  //   console.log("Categories:", categories); // Log the categories
-
   return { processedData, categories: Array.from(categories) };
 };
 
-const CurrentWeekSalesStackedBarChart = () => {
-  const { theme } = useTheme();
+const AllTimeSalesStackedBarChart = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
     start: "",
     end: "",
   });
-  const [value, setValue] = React.useState<EventProps>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -97,30 +86,34 @@ const CurrentWeekSalesStackedBarChart = () => {
   }, []);
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <div className="flex flex-col gap-4">
-        <p className="mx-auto text-sm font-medium">
-          Sales By Employee and Category for Current Week
-        </p>
-        <p className="mx-auto text-sm font-medium">
-          {dateRange.start} to {dateRange.end}
-        </p>
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: chartData.length * 100 }}>
-            <BarChart
-              data={chartData}
-              index="Lanid"
-              categories={categories}
-              type="stacked"
-              showLegend={true}
-              showTooltip={true}
-              className="h-96"
-            />
-          </div>
+    <div className="flex flex-col gap-4">
+      <p className="mx-auto text-sm font-medium">
+        Sales By Employee and Category for All Time
+      </p>
+      <p className="mx-auto text-sm font-medium">
+        {dateRange.start} to {dateRange.end}
+      </p>
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: chartData.length * 100 }}>
+          <BarChart
+            data={chartData}
+            index="Lanid"
+            categories={categories}
+            type="stacked"
+            showLegend={true}
+            showTooltip={true}
+            className="h-96"
+            xAxisProps={{
+              interval: 0,
+              angle: -45,
+              textAnchor: "end",
+              height: 60,
+            }}
+          />
         </div>
       </div>
-    </ResponsiveContainer>
+    </div>
   );
 };
 
-export default CurrentWeekSalesStackedBarChart;
+export default AllTimeSalesStackedBarChart;

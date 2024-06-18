@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Papa, { ParseResult } from "papaparse";
-import SalesDonutChart from "../charts/DonutChart";
-import StackedBarChart from "../charts/StackedBarChart";
-import EmployeeSalesStackedBarChart from "../charts/EmployeeSalesStackedBarChart";
+import SalesRangeStackedBarChart from "../charts/SalesRangeStackedBarChart";
+import { CustomCalendar } from "@/components/ui/calendar"; // Import CustomCalendar
 
 const title = "Sales Report";
 
@@ -22,6 +21,10 @@ const convertDateFormat = (date: string) => {
 
 const SalesPage = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [selectedRange, setSelectedRange] = useState<{
+    start: Date | undefined;
+    end: Date | undefined;
+  }>({ start: undefined, end: undefined });
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -167,15 +170,31 @@ const SalesPage = () => {
     }
   };
 
+  const handleRangeChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedRange({ start: date, end: date });
+    }
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <div className="flex grid grid-cols-1 max-w-8xl ml-4 my-4 overflow-x-auto">
-        <EmployeeSalesStackedBarChart />
-      </div>
-      <div className="flex max-w-md justify-start mb-4 px-4 md:px-6"></div>
       <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
         <TextGenerateEffect words={title} />
       </h1>
+      <div className="flex mb-4 justify-center items-center">
+        <div className="mr-4 my-16">
+          <CustomCalendar
+            selectedDate={selectedRange.start ?? new Date()}
+            onDateChange={handleRangeChange}
+            disabledDays={() => false}
+          />
+          <h1 className="flex justify-center items-center">Select A Date</h1>
+        </div>
+        <div className="flex-1 overflow-x-auto max-w-6xl ml-4">
+          <SalesRangeStackedBarChart selectedRange={selectedRange} />
+        </div>
+      </div>
+      <div className="flex max-w-md justify-start mb-4 px-4 md:px-6"></div>
       <SalesDataTable />
       <div className="mt-4">
         <input type="file" accept=".csv" onChange={handleFileChange} />

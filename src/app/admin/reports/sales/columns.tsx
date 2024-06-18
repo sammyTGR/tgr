@@ -133,33 +133,33 @@ export const salesColumns = (
       return formattedDate.includes(filterValue);
     },
   },
-  {
-    accessorKey: "Disc",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Disc" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
-  {
-    accessorKey: "Type",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
-  {
-    accessorKey: "Spiff",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Spiff" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
+  // {
+  //   accessorKey: "Disc",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Disc" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
+  // {
+  //   accessorKey: "Type",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Type" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
+  // {
+  //   accessorKey: "Spiff",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Spiff" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
   {
     accessorKey: "Last",
     header: ({ column }) => (
@@ -178,42 +178,42 @@ export const salesColumns = (
       style: { width: "150px" },
     },
   },
-  {
-    accessorKey: "Legacy",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Legacy" />
-    ),
-    meta: {
-      style: { width: "150px" },
-    },
-  },
-  {
-    accessorKey: "Stloc",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Stloc" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
-  {
-    accessorKey: "Cat",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Cat" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
-  {
-    accessorKey: "Sub",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sub" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
+  // {
+  //   accessorKey: "Legacy",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Legacy" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  // },
+  // {
+  //   accessorKey: "Stloc",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Stloc" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
+  // {
+  //   accessorKey: "Cat",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Cat" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
+  // {
+  //   accessorKey: "Sub",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Sub" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
   {
     accessorKey: "Mfg",
     header: ({ column }) => (

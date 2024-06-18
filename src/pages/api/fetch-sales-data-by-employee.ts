@@ -12,13 +12,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       console.error("Supabase error:", error);
       throw error;
     }
-
-    if (!data) {
-      console.error("No data fetched from Supabase");
-    } else {
-      console.log("Fetched data:", data.length, "records"); // Log data length for verification
-      console.log("Fetched data sample:", data.slice(0, 5)); // Log a sample of the data
-    }
+    // console.log("Fetched data from Supabase:", data.length, "records"); // Log data length for verification
+    // console.log("Fetched data sample:", data.slice(0, 5)); // Log a sample of the data
     
     type AggregatedData = {
       [key: string]: {
@@ -40,6 +35,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     }, {});
 
     const responseData = Object.values(aggregatedData);
+    // console.log("Aggregated data length:", responseData.length); // Log the length of the aggregated data
     res.status(200).json(responseData);
   } catch (error) {
     console.error("Error fetching sales data:", error);

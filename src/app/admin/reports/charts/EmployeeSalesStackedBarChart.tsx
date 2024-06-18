@@ -4,6 +4,7 @@
 import { EventProps } from "@tremor/react";
 import React, { useEffect, useState } from "react";
 import { BarChart } from "@/components/BarChart"; // Import your custom BarChart
+import { ResponsiveContainer } from "recharts";
 
 interface ChartData {
   Lanid: string;
@@ -22,6 +23,7 @@ const fetchData = async () => {
 const processData = (data: any[]) => {
   const processedData: ChartData[] = [];
   const categories: Set<string> = new Set();
+  const lanidSet: Set<string> = new Set();
 
   data.forEach((item) => {
     const lanid = item.Lanid;
@@ -36,9 +38,12 @@ const processData = (data: any[]) => {
 
     existingEntry[category] = value;
     categories.add(category);
+    lanidSet.add(lanid);
   });
 
   // console.log("Processed Data:", processedData); // Log processed data
+  // console.log("Unique Lanid values:", Array.from(lanidSet)); // Log unique Lanid values
+
   return { processedData, categories: Array.from(categories) };
 };
 
@@ -70,10 +75,10 @@ const EmployeeSalesStackedBarChart = () => {
               end: end.toISOString().split("T")[0],
             });
 
-            console.log("Date Range:", {
-              start: start.toISOString().split("T")[0],
-              end: end.toISOString().split("T")[0],
-            }); // Log date range
+            // console.log("Date Range:", {
+            //   start: start.toISOString().split("T")[0],
+            //   end: end.toISOString().split("T")[0],
+            // }); // Log date range
           }
         }
 
@@ -92,33 +97,35 @@ const EmployeeSalesStackedBarChart = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="mx-auto text-sm font-medium">
-        Sales By Employee and Category
-      </p>
-      <p className="mx-auto text-sm font-medium">
-        {dateRange.start} to {dateRange.end}
-      </p>
-      <div className="overflow-x-auto">
-        <div style={{ minWidth: chartData.length * 100 }}>
-          <BarChart
-            data={chartData}
-            index="Lanid"
-            categories={categories}
-            type="stacked"
-            showLegend={true}
-            showTooltip={true}
-            className="h-96"
-            xAxisProps={{
-              interval: 0,
-              angle: -45,
-              textAnchor: "end",
-              height: 60,
-            }}
-          />
+    <ResponsiveContainer width="100%" height={400}>
+      <div className="flex flex-col gap-4">
+        <p className="mx-auto text-sm font-medium">
+          Sales By Employee and Category
+        </p>
+        <p className="mx-auto text-sm font-medium">
+          {dateRange.start} to {dateRange.end}
+        </p>
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: chartData.length * 100 }}>
+            <BarChart
+              data={chartData}
+              index="Lanid"
+              categories={categories}
+              type="stacked"
+              showLegend={true}
+              showTooltip={true}
+              className="h-96"
+              xAxisProps={{
+                interval: 0,
+                angle: -45,
+                textAnchor: "end",
+                height: 60,
+              }}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </ResponsiveContainer>
   );
 };
 

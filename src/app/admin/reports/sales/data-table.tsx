@@ -27,7 +27,7 @@ interface DataTableProps<TData> {
 export function DataTable<TData>({ table }: DataTableProps<TData>) {
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="flex flex-row items-center justify-between mx-2 my-2">
+      <div className="flex flex-row items-center justify-between mx-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
@@ -119,7 +119,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
           </Table>
         </div>
       </div>
-      <div className="flex-none mt-4">
+      <div className="flex-none ">
         <SalesDataTablePagination table={table} />
       </div>
     </div>

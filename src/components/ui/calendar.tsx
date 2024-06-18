@@ -6,7 +6,7 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({
   className,
@@ -58,11 +58,11 @@ function Calendar({
       }}
       {...props}
     />
-  )
+  );
 }
-Calendar.displayName = "Calendar"
+Calendar.displayName = "Calendar";
 
-export { Calendar }
+export { Calendar };
 
 export type CustomCalendarProps = {
   selectedDate: Date | undefined;
@@ -73,18 +73,18 @@ export type CustomCalendarProps = {
   className?: string;
 };
 
-function CustomCalendar({ 
+function CustomCalendar({
   className,
   classNames,
   showOutsideDays = true,
-  selectedDate, 
-  onDateChange, 
-  disabledDays, 
-  ...props 
+  selectedDate,
+  onDateChange,
+  disabledDays,
+  ...props
 }: CustomCalendarProps) {
   return (
     <DayPicker
-    showOutsideDays={showOutsideDays}
+      showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -125,11 +125,15 @@ function CustomCalendar({
       onSelect={onDateChange}
       mode="single"
       modifiers={{
-        disabled: disabledDays
+        disabled: disabledDays,
       }}
       footer={
         <div className="flex justify-between px-2 py-1">
-          <button type="button" onClick={() => onDateChange(new Date())} className="text-sm text-primary-500">
+          <button
+            type="button"
+            onClick={() => onDateChange(new Date())}
+            className="text-sm text-primary-500"
+          >
             Today
           </button>
         </div>
@@ -141,5 +145,5 @@ function CustomCalendar({
       {...props}
     />
   );
-};
-export { CustomCalendar }
+}
+export { CustomCalendar };

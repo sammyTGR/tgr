@@ -1,4 +1,4 @@
-// src/app/admin/reports/charts/CurrentWeekSalesStackedBarChart.tsx
+// src/app/admin/reports/charts/PreviousDaySalesStackedBarChart.tsx
 "use client";
 
 import { EventProps } from "@tremor/react";
@@ -14,20 +14,29 @@ interface ChartData {
 }
 
 const fetchData = async () => {
-  const response = await fetch("/api/fetch-current-week-sales-data");
+  const response = await fetch("/api/fetch-previous-day-sales-data");
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
-  //   console.log("Fetched Data:", data); // Log fetched data
   return Array.isArray(data) ? data : [];
 };
 
 const processData = (data: any[]) => {
   const processedData: ChartData[] = [];
   const categories: Set<string> = new Set();
+  let totalSales = 0;
+  let totalMinusFirearms = 0;
 
-  //   console.log("Processing Data:", data); // Log the data being processed
+  const excludeCategories = [
+    "Pistol",
+    "Rifle",
+    "Revolver",
+    "Shotgun",
+    "Receiver",
+    "CA Tax Gun Transfer",
+    "CA Tax Adjust",
+  ];
 
   data.forEach((item) => {
     const lanid = item.Lanid;
@@ -41,30 +50,35 @@ const processData = (data: any[]) => {
     }
 
     existingEntry[category] = value;
+    totalSales += value;
+    if (!excludeCategories.includes(category)) {
+      totalMinusFirearms += value;
+    }
     categories.add(category);
   });
 
-  //   console.log("Processed Data:", processedData); // Log the processed data
-  //   console.log("Categories:", categories); // Log the categories
-
-  return { processedData, categories: Array.from(categories) };
+  return {
+    processedData,
+    categories: Array.from(categories),
+    totalSales,
+    totalMinusFirearms,
+  };
 };
 
-const CurrentWeekSalesStackedBarChart = () => {
+const PreviousDaySalesStackedBarChart = () => {
   const { theme } = useTheme();
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
-    start: "",
-    end: "",
-  });
-  const [value, setValue] = React.useState<EventProps>(null);
+  const [date, setDate] = useState<string>("");
+  const [totalSales, setTotalSales] = useState<number>(0);
+  const [totalMinusFirearms, setTotalMinusFirearms] = useState<number>(0);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const data = await fetchData();
-        const { processedData, categories } = processData(data);
+        const { processedData, categories, totalSales, totalMinusFirearms } =
+          processData(data);
 
         if (processedData.length > 0) {
           const dates = processedData
@@ -72,18 +86,17 @@ const CurrentWeekSalesStackedBarChart = () => {
             .filter((date) => !isNaN(date.getTime()));
 
           if (dates.length > 0) {
-            const start = new Date(Math.min(...dates.map((d) => d.getTime())));
-            const end = new Date(Math.max(...dates.map((d) => d.getTime())));
-
-            setDateRange({
-              start: start.toISOString().split("T")[0],
-              end: end.toISOString().split("T")[0],
-            });
+            const previousDay = new Date(
+              Math.max(...dates.map((d) => d.getTime()))
+            );
+            setDate(previousDay.toISOString().split("T")[0]);
           }
         }
 
         setChartData(processedData);
         setCategories(categories);
+        setTotalSales(totalSales);
+        setTotalMinusFirearms(totalMinusFirearms);
       } catch (error) {
         if (error instanceof Error) {
           console.error("Error fetching chart data:", error.message);
@@ -97,14 +110,18 @@ const CurrentWeekSalesStackedBarChart = () => {
   }, []);
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={400}>
       <div className="flex flex-col gap-4">
         <p className="mx-auto text-sm font-medium">
-          Sales By Employee and Category for Current Week
+          Sales By Employee and Category for Previous Day
         </p>
-        <p className="mx-auto text-sm font-medium">
-          {dateRange.start} to {dateRange.end}
+        <p className="mx-auto text-lg font-bold">
+          Total Sales: ${totalSales.toFixed(2)}
         </p>
+        <p className="mx-auto text-lg font-bold">
+          Total - Firearms & Transfer Tax: ${totalMinusFirearms.toFixed(2)}
+        </p>
+        <p className="mx-auto text-sm font-medium">{date}</p>
         <div className="overflow-x-auto">
           <div style={{ minWidth: chartData.length * 100 }}>
             <BarChart
@@ -123,4 +140,4 @@ const CurrentWeekSalesStackedBarChart = () => {
   );
 };
 
-export default CurrentWeekSalesStackedBarChart;
+export default PreviousDaySalesStackedBarChart;
