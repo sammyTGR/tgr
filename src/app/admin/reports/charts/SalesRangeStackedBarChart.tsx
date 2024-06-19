@@ -35,21 +35,21 @@ const processData = (data: any[]) => {
     ...excludeCategoriesFromChart,
   ];
 
-  let totalSales = 0;
-  let totalSalesMinusExclusions = 0;
-  let totalCost = 0;
+  let totalGross = 0;
+  let totalGrossMinusExclusions = 0;
+  let totalNet = 0;
 
   data.forEach((item) => {
     const lanid = item.Lanid;
     const category = item.category_label;
-    const value = (item.SoldPrice ?? 0) * (item.SoldQty ?? 0);
-    const costValue = (item.Cost ?? 0) * (item.SoldQty ?? 0);
+    const grossValue = item.total_gross ?? 0;
+    const netValue = item.total_net ?? 0;
 
-    totalSales += value;
-    totalCost += costValue;
+    totalGross += grossValue;
+    totalNet += netValue;
 
     if (!excludeCategoriesFromTotalFirearms.includes(category)) {
-      totalSalesMinusExclusions += value;
+      totalGrossMinusExclusions += grossValue;
     }
 
     if (!excludeCategoriesFromChart.includes(category)) {
@@ -64,23 +64,21 @@ const processData = (data: any[]) => {
         processedData.push(existingEntry);
       }
 
-      existingEntry[category] = value;
-      existingEntry.Total += value;
+      existingEntry[category] = grossValue;
+      existingEntry.Total += grossValue;
       if (!excludeCategoriesFromTotalFirearms.includes(category)) {
-        existingEntry.TotalMinusExclusions += value;
+        existingEntry.TotalMinusExclusions += grossValue;
       }
       categories.add(category);
     }
   });
 
-  const totalNetSales = totalSales - totalCost;
-
   return {
     processedData,
     categories: Array.from(categories),
-    totalSales,
-    totalSalesMinusExclusions,
-    totalNetSales,
+    totalGross,
+    totalGrossMinusExclusions,
+    totalNet,
   };
 };
 
@@ -94,10 +92,10 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
   const { theme } = useTheme();
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [totalSales, setTotalSales] = useState<number>(0);
-  const [totalSalesMinusExclusions, setTotalSalesMinusExclusions] =
+  const [totalGross, setTotalGross] = useState<number>(0);
+  const [totalGrossMinusExclusions, setTotalGrossMinusExclusions] =
     useState<number>(0);
-  const [totalNetSales, setTotalNetSales] = useState<number>(0);
+  const [totalNet, setTotalNet] = useState<number>(0);
 
   useEffect(() => {
     if (selectedRange.start && selectedRange.end) {
@@ -110,16 +108,16 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
           const {
             processedData,
             categories,
-            totalSales,
-            totalSalesMinusExclusions,
-            totalNetSales,
+            totalGross,
+            totalGrossMinusExclusions,
+            totalNet,
           } = processData(data);
 
           setChartData(processedData);
           setCategories(categories);
-          setTotalSales(totalSales);
-          setTotalSalesMinusExclusions(totalSalesMinusExclusions);
-          setTotalNetSales(totalNetSales);
+          setTotalGross(totalGross);
+          setTotalGrossMinusExclusions(totalGrossMinusExclusions);
+          setTotalNet(totalNet);
         } catch (error) {
           if (error instanceof Error) {
             console.error("Error fetching chart data:", error.message);
@@ -137,13 +135,13 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col justify-start">
         <p className="text-sm font-medium">
-          Total Gross Sales: ${totalSales.toFixed(2)}
+          Total Gross Sales: ${totalGross.toFixed(2)}
         </p>
         <p className="text-sm font-medium">
-          Total Net Sales: ${totalNetSales.toFixed(2)}
+          Total Net Sales: ${totalNet.toFixed(2)}
         </p>
         <p className="text-sm font-medium">
-          Total - Firearms: ${totalSalesMinusExclusions.toFixed(2)}
+          Total - Firearms: ${totalGrossMinusExclusions.toFixed(2)}
         </p>
       </div>
       <ResponsiveContainer width="100%" height="100%">
