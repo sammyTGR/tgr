@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useRole } from "@/context/RoleContext"; // Import useRole
+import { useRole } from "@/context/RoleContext";
 import { TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
@@ -18,24 +18,45 @@ interface ChatMessage {
   message: string;
   created_at: string;
   user_id: string;
-  is_read: boolean; // Add is_read to the ChatMessage interface
+  is_read: boolean;
+}
+
+interface DirectMessage {
+  id: number;
+  sender_id: string;
+  receiver_id: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+}
+
+interface User {
+  id: string;
+  name: string;
+  is_online: boolean;
 }
 
 export default function ChatClient() {
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const { user, role, loading } = useRole(); // Use useRole hook
+  const [users, setUsers] = useState<User[]>([]);
+  const { user, role, loading } = useRole();
   const [username, setUsername] = useState<string>("");
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editingMessage, setEditingMessage] = useState<string>("");
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  const supabase = useRef(
+    createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  );
   const channel = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase.current;
 
     const fetchUsername = async () => {
       if (user) {
@@ -60,7 +81,6 @@ export default function ChatClient() {
       if (data) {
         setMessages(data);
 
-        // Mark unread messages as read for the current user
         const unreadMessages = data.filter(
           (msg) => msg.user_id === user.id && !msg.is_read
         );
@@ -81,44 +101,65 @@ export default function ChatClient() {
       }
     };
 
+    const fetchUsers = async () => {
+      const { data, error } = await client
+        .from("employees")
+        .select("user_uuid as id, name");
+
+      if (data) {
+        setUsers(
+          (data as unknown as { id: string; name: string }[]).map((user) => ({
+            ...user,
+            is_online: false,
+          }))
+        );
+      } else {
+        console.error("Error fetching users:", error?.message);
+      }
+    };
+
     fetchUsername();
     fetchMessages();
+    fetchUsers();
 
     if (!channel.current) {
-      channel.current = client.channel("chat-room", {
+      channel.current = client.channel("presence", {
         config: {
-          broadcast: {
-            self: true,
+          presence: {
+            key: user?.id || "anonymous",
           },
         },
       });
+
       channel.current
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new]);
+        .on("presence", { event: "sync" }, () => {
+          const newState = channel.current?.presenceState();
+          setUsers((prevUsers) =>
+            prevUsers.map((u) => ({
+              ...u,
+              is_online: Boolean(newState?.[u.id]),
+            }))
+          );
+        })
+        .on("presence", { event: "join" }, ({ key, newPresences }) => {
+          setUsers((prevUsers) =>
+            prevUsers.map((u) => (u.id === key ? { ...u, is_online: true } : u))
+          );
+        })
+        .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+          setUsers((prevUsers) =>
+            prevUsers.map((u) =>
+              u.id === key ? { ...u, is_online: false } : u
+            )
+          );
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await channel.current?.track({
+              online_at: new Date().toISOString(),
+            });
           }
-        )
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "DELETE", schema: "public", table: "chat_messages" },
-          (payload) => {
-            setMessages((prev) =>
-              prev.filter((msg) => msg.id !== payload.old.id)
-            );
-          }
-        )
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "chat_messages" },
-          (payload) => {
-            setMessages((prev) =>
-              prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
-            );
-          }
-        )
-        .subscribe();
+        });
     }
 
     return () => {
@@ -141,17 +182,14 @@ export default function ChatClient() {
       return;
     }
 
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase.current;
 
     const newMessage = {
       user_name: username,
       message,
       user_id: user.id,
       created_at: new Date().toISOString(),
-      is_read: false, // Set is_read to false for new messages
+      is_read: false,
     };
 
     const { error } = await client.from("chat_messages").insert([newMessage]);
@@ -165,10 +203,7 @@ export default function ChatClient() {
   };
 
   const onDelete = async (id: number) => {
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase.current;
 
     const { error } = await client.from("chat_messages").delete().eq("id", id);
 
@@ -186,10 +221,7 @@ export default function ChatClient() {
   const onUpdate = async () => {
     if (!editingMessageId) return;
 
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase.current;
 
     const { error } = await client
       .from("chat_messages")
@@ -203,6 +235,47 @@ export default function ChatClient() {
 
     setEditingMessageId(null);
     setEditingMessage("");
+  };
+
+  const onSendDirectMessage = async (receiverId: string) => {
+    if (message.trim().length === 0) return;
+
+    const client = supabase.current;
+
+    const newMessage = {
+      sender_id: user.id,
+      receiver_id: receiverId,
+      message,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+
+    const { error } = await client.from("direct_messages").insert([newMessage]);
+
+    if (error) {
+      console.error("Error inserting direct message:", error.message);
+      return;
+    }
+
+    setMessage("");
+  };
+
+  const onSelectUser = async (userId: string) => {
+    const client = supabase.current;
+
+    const { data, error } = await client
+      .from("direct_messages")
+      .select("*")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      setDirectMessages(data);
+      setSelectedUser(users.find((u) => u.id === userId) || null);
+    } else {
+      console.error("Error fetching direct messages:", error?.message);
+    }
   };
 
   if (loading) {
@@ -286,6 +359,67 @@ export default function ChatClient() {
             </Button>
           </div>
         </Card>
+        <div className="mt-8">
+          <h2>Online Users</h2>
+          <ul>
+            {users
+              .filter((u) => u.is_online)
+              .map((u) => (
+                <li key={u.id}>
+                  {u.name}
+                  <Button onClick={() => onSelectUser(u.id)}>Message</Button>
+                </li>
+              ))}
+          </ul>
+        </div>
+        {selectedUser && (
+          <Card className="mt-8">
+            <CardTitle>Chat with {selectedUser.name}</CardTitle>
+            <div className="mt-5 flex flex-col flex-grow space-y-2 p-2 overflow-y-auto">
+              {directMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`p-2 rounded-md text-lg ${
+                    msg.sender_id === user.id
+                      ? "bg-blue-600 text-black dark:bg-blue-800 dark:text-white text-end self-end"
+                      : "bg-muted text-black dark:bg-muted dark:text-white self-start"
+                  } message-container`}
+                >
+                  {msg.sender_id !== user.id && (
+                    <span className="font-bold">
+                      {users.find((u) => u.id === msg.sender_id)?.name}:{" "}
+                    </span>
+                  )}
+                  {msg.message}
+                </div>
+              ))}
+            </div>
+            <div className="flex space-x-4 p-2 min-w-full ">
+              <Textarea
+                placeholder="Message"
+                value={message}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setMessage(e.target.value)
+                }
+                onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    onSendDirectMessage(selectedUser.id);
+                  }
+                }}
+                className="flex-grow text-lg"
+                rows={1}
+              />
+              <Button
+                variant="linkHover2"
+                onClick={() => onSendDirectMessage(selectedUser.id)}
+                className="flex-shrink-0"
+              >
+                Send
+              </Button>
+            </div>
+          </Card>
+        )}
       </>
     </RoleBasedWrapper>
   );

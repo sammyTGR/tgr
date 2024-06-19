@@ -90,13 +90,118 @@ export default function ApproveRequestsPage() {
 
       const result = await response.json();
 
+      // Check reference schedules before updating the status
+      const { employee_id, start_date, end_date } = result;
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
+      const dates = [];
+      for (
+        let d = new Date(startDate);
+        d <= endDate;
+        d.setDate(d.getDate() + 1)
+      ) {
+        dates.push(new Date(d));
+      }
+
+      for (const date of dates) {
+        const formattedDate = date.toISOString().split("T")[0];
+        const dayOfWeek = date.getUTCDay(); // Get the day of the week (0-6)
+        const daysOfWeek = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const dayName = daysOfWeek[dayOfWeek];
+
+        // Fetch the reference schedule
+        const { data: refSchedules, error: refError } = await supabase
+          .from("reference_schedules")
+          .select("start_time, end_time")
+          .eq("employee_id", employee_id)
+          .eq("day_of_week", dayName)
+          .single();
+
+        if (refError) {
+          console.error(
+            `Error fetching reference schedule for ${dayName}:`,
+            refError
+          );
+          continue;
+        }
+
+        // Check if start_time and end_time are null
+        if (
+          refSchedules.start_time === null &&
+          refSchedules.end_time === null
+        ) {
+          console.log(
+            `Skipping custom status update for ${dayName}, scheduled day off.`
+          );
+          continue;
+        }
+
+        // Update or insert the schedule
+        let { data: scheduleData, error: scheduleFetchError } = await supabase
+          .from("schedules")
+          .select("*")
+          .eq("employee_id", employee_id)
+          .eq("schedule_date", formattedDate)
+          .single();
+
+        if (scheduleFetchError) {
+          console.error(
+            `Error fetching schedule for date ${formattedDate}:`,
+            scheduleFetchError
+          );
+        }
+
+        if (!scheduleData) {
+          console.log(`Inserting new schedule for date ${formattedDate}`);
+          const { error: scheduleInsertError } = await supabase
+            .from("schedules")
+            .insert({
+              employee_id,
+              schedule_date: formattedDate,
+              day_of_week: dayName,
+              status: action,
+            });
+
+          if (scheduleInsertError) {
+            console.error(
+              `Error inserting schedule for date ${formattedDate}:`,
+              scheduleInsertError
+            );
+            // Handle error appropriately in the client-side context, e.g., show a notification
+          }
+        } else {
+          console.log(`Updating existing schedule for date ${formattedDate}`);
+          const { error: scheduleUpdateError } = await supabase
+            .from("schedules")
+            .update({ status: action })
+            .eq("employee_id", employee_id)
+            .eq("schedule_date", formattedDate);
+
+          if (scheduleUpdateError) {
+            console.error(
+              `Error updating schedule for date ${formattedDate}:`,
+              scheduleUpdateError
+            );
+            // Handle error appropriately in the client-side context, e.g., show a notification
+          }
+        }
+      }
+
       // Update the is_read field if the status changes
       if (action !== "pending") {
         const { error: updateError } = await supabase
           .from("time_off_requests")
           .update({ is_read: true })
           .eq("request_id", request_id);
-        
+
         if (updateError) {
           throw new Error(updateError.message);
         }
@@ -109,6 +214,7 @@ export default function ApproveRequestsPage() {
       setRequests(updatedRequests);
     } catch (error: any) {
       console.error("Failed to handle request:", error.message);
+      // Handle error appropriately in the client-side context, e.g., show a notification
     }
   };
 
