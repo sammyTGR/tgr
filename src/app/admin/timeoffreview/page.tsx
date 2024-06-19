@@ -122,8 +122,7 @@ export default function ApproveRequestsPage() {
           .from("reference_schedules")
           .select("start_time, end_time")
           .eq("employee_id", employee_id)
-          .eq("day_of_week", dayName)
-          .single();
+          .eq("day_of_week", dayName);
 
         if (refError) {
           console.error(
@@ -133,10 +132,14 @@ export default function ApproveRequestsPage() {
           continue;
         }
 
-        // Check if start_time and end_time are null
+        // Log the reference schedule data
+        console.log(`Reference schedule for ${dayName}:`, refSchedules);
+
+        // Check if the reference schedule is empty or start_time and end_time are null
         if (
-          refSchedules.start_time === null &&
-          refSchedules.end_time === null
+          refSchedules.length === 0 ||
+          (refSchedules[0].start_time === null &&
+            refSchedules[0].end_time === null)
         ) {
           console.log(
             `Skipping custom status update for ${dayName}, scheduled day off.`
@@ -145,18 +148,19 @@ export default function ApproveRequestsPage() {
         }
 
         // Update or insert the schedule
-        let { data: scheduleData, error: scheduleFetchError } = await supabase
+        const { data: scheduleData, error: scheduleFetchError } = await supabase
           .from("schedules")
           .select("*")
           .eq("employee_id", employee_id)
           .eq("schedule_date", formattedDate)
           .single();
 
-        if (scheduleFetchError) {
+        if (scheduleFetchError && scheduleFetchError.code !== "PGRST116") {
           console.error(
             `Error fetching schedule for date ${formattedDate}:`,
             scheduleFetchError
           );
+          continue;
         }
 
         if (!scheduleData) {
