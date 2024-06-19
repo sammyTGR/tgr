@@ -10,7 +10,7 @@ const fetchSalesDataByRange = async (req: NextApiRequest, res: NextApiResponse) 
 
     const { data, error } = await supabase
       .from('sales_data')
-      .select('Lanid, category_label, SoldPrice, SoldQty, Cost, Date')
+      .select('Lanid, category_label, SoldPrice, SoldQty, Cost, Date, total_gross, total_net')
       .gte('Date', start)
       .lte('Date', end);
 

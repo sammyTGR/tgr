@@ -29,6 +29,8 @@ export interface SalesData {
   category_label: string;
   subcategory_label: string;
   status: string;
+  total_gross: number;
+  total_net: number;
 }
 
 export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
@@ -270,4 +272,22 @@ export const salesColumns = (
   //     style: { width: "100px" },
   //   },
   // },
+  {
+    accessorKey: "total_gross",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total Gross" />
+    ),
+    meta: {
+      style: { width: "150px" },
+    },
+  },
+  {
+    accessorKey: "total_net",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total Net" />
+    ),
+    meta: {
+      style: { width: "150px" },
+    },
+  },
 ];

@@ -40,6 +40,8 @@ interface SalesData {
   category_label: string;
   subcategory_label: string;
   status: string;
+  total_gross: number; // new column
+  total_net: number; // new column
 }
 
 const SalesDataTable = () => {

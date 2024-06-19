@@ -25,14 +25,14 @@ const fetchData = async (startDate: string, endDate: string) => {
 const processData = (data: any[]) => {
   const processedData: ChartData[] = [];
   const categories: Set<string> = new Set();
-  const excludeCategories = [
+  const excludeCategoriesFromChart = ["CA Tax Gun Transfer", "CA Tax Adjust"];
+  const excludeCategoriesFromTotalFirearms = [
     "Pistol",
     "Rifle",
     "Revolver",
     "Shotgun",
     "Receiver",
-    "CA Tax Gun Transfer",
-    "CA Tax Adjust",
+    ...excludeCategoriesFromChart,
   ];
 
   let totalSales = 0;
@@ -48,34 +48,32 @@ const processData = (data: any[]) => {
     totalSales += value;
     totalCost += costValue;
 
-    if (!excludeCategories.includes(category)) {
+    if (!excludeCategoriesFromTotalFirearms.includes(category)) {
       totalSalesMinusExclusions += value;
     }
 
-    let existingEntry = processedData.find((d) => d.Lanid === lanid);
-    if (!existingEntry) {
-      existingEntry = {
-        Lanid: lanid,
-        Date: item.Date,
-        Total: 0,
-        TotalMinusExclusions: 0,
-      };
-      processedData.push(existingEntry);
-    }
+    if (!excludeCategoriesFromChart.includes(category)) {
+      let existingEntry = processedData.find((d) => d.Lanid === lanid);
+      if (!existingEntry) {
+        existingEntry = {
+          Lanid: lanid,
+          Date: item.Date,
+          Total: 0,
+          TotalMinusExclusions: 0,
+        };
+        processedData.push(existingEntry);
+      }
 
-    existingEntry[category] = value;
-    existingEntry.Total += value;
-    if (!excludeCategories.includes(category)) {
-      existingEntry.TotalMinusExclusions += value;
+      existingEntry[category] = value;
+      existingEntry.Total += value;
+      if (!excludeCategoriesFromTotalFirearms.includes(category)) {
+        existingEntry.TotalMinusExclusions += value;
+      }
+      categories.add(category);
     }
-    categories.add(category);
   });
 
   const totalNetSales = totalSales - totalCost;
-
-  // console.log("Total Gross Sales:", totalSales);
-  // console.log("Total Cost:", totalCost);
-  // console.log("Total Net Sales:", totalNetSales);
 
   return {
     processedData,
@@ -137,26 +135,16 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col  justify-start">
-        <p className=" text-sm font-medium">
+      <div className="flex flex-col justify-start">
+        <p className="text-sm font-medium">
           Total Gross Sales: ${totalSales.toFixed(2)}
         </p>
-        <p className=" text-sm font-medium">
+        <p className="text-sm font-medium">
           Total Net Sales: ${totalNetSales.toFixed(2)}
         </p>
-        <p className=" text-sm font-medium">
+        <p className="text-sm font-medium">
           Total - Firearms: ${totalSalesMinusExclusions.toFixed(2)}
         </p>
-        {/* {selectedRange.start && selectedRange.end ? (
-          <p className=" text-sm font-medium">
-            {selectedRange.start?.toISOString().split("T")[0]} to{" "}
-            {selectedRange.end?.toISOString().split("T")[0]}
-          </p>
-        ) : (
-          <p className=" text-sm font-medium">
-            Select A Date To View Chart
-          </p>
-        )} */}
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <div className="overflow-x-auto">
@@ -168,10 +156,10 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
               type="stacked"
               showLegend={true}
               showTooltip={true}
-              className="h-96"
+              className="h-96 mb-4"
               xAxisProps={{
                 interval: 0,
-                angle: -45,
+                angle: -30,
                 textAnchor: "end",
                 height: 60,
               }}

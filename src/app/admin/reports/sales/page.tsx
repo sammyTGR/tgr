@@ -7,9 +7,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Papa, { ParseResult } from "papaparse";
+import * as XLSX from "xlsx";
 import SalesRangeStackedBarChart from "../charts/SalesRangeStackedBarChart";
 import { CustomCalendar } from "@/components/ui/calendar"; // Import CustomCalendar
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
@@ -94,8 +99,9 @@ const SalesPage = () => {
           const categoryLabel = categoryMap.get(row.Cat) || "";
           const subcategoryKey = `${row.Cat}-${row.Sub}`;
           const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+          const { total_gross, total_net, ...filteredRow } = row; // Exclude generated columns
           return {
-            ...row,
+            ...filteredRow,
             category_label: categoryLabel,
             subcategory_label: subcategoryLabel,
           };
@@ -121,35 +127,67 @@ const SalesPage = () => {
 
   const handleFileUpload = async (file: File) => {
     return new Promise<void>((resolve, reject) => {
-      Papa.parse(file, {
-        header: true,
-        complete: async (results: ParseResult<any>) => {
-          const data = results.data.map((row: any) => {
-            const categoryLabel = categoryMap.get(row.Cat) || "";
-            const subcategoryKey = `${row.Cat}-${row.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
-            return {
-              ...row,
-              Date: convertDateFormat(row.Date),
-              category_label: categoryLabel,
-              subcategory_label: subcategoryLabel,
-            };
+      const fileExtension = file.name.split(".").pop()?.toLowerCase();
+
+      const processData = async (data: any[]) => {
+        const formattedData = data.map((row: any) => {
+          const categoryLabel = categoryMap.get(row.Cat) || "";
+          const subcategoryKey = `${row.Cat}-${row.Sub}`;
+          const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+          const { total_gross, total_net, ...filteredRow } = row; // Exclude generated columns
+          return {
+            ...filteredRow,
+            Date: convertDateFormat(row.Date),
+            category_label: categoryLabel,
+            subcategory_label: subcategoryLabel,
+          };
+        });
+
+        const { data: insertedData, error } = await supabase
+          .from("sales_data")
+          .insert(formattedData);
+
+        if (error) {
+          console.error("Error inserting data:", error);
+          reject(error);
+        } else {
+          console.log("Data successfully inserted:", insertedData);
+          resolve();
+        }
+      };
+
+      if (fileExtension === "csv") {
+        Papa.parse(file, {
+          header: true,
+          complete: async (results: ParseResult<any>) => {
+            processData(results.data);
+          },
+          skipEmptyLines: true,
+        });
+      } else if (fileExtension === "xlsx") {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          const keys = jsonData[0] as string[];
+          const formattedData = jsonData.slice(1).map((row: any) => {
+            const rowData: any = {};
+            keys.forEach((key, index) => {
+              rowData[key] = row[index];
+            });
+            return rowData;
           });
 
-          const { data: insertedData, error } = await supabase
-            .from("sales_data")
-            .insert(data);
-
-          if (error) {
-            console.error("Error inserting data:", error);
-            reject(error);
-          } else {
-            console.log("Data successfully inserted:", insertedData);
-            resolve();
-          }
-        },
-        skipEmptyLines: true,
-      });
+          processData(formattedData);
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        reject(new Error("Unsupported file type"));
+      }
     });
   };
 
@@ -188,7 +226,10 @@ const SalesPage = () => {
         <div className="mr-6 mb-auto">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[240px] pl-3 text-left font-normal">
+              <Button
+                variant="outline"
+                className="w-[240px] pl-3 text-left font-normal"
+              >
                 {selectedRange.start ? (
                   format(selectedRange.start, "PPP")
                 ) : (
@@ -207,15 +248,15 @@ const SalesPage = () => {
           </Popover>
           <h1 className="flex my-2 p-2">Select A Date</h1>
         </div>
-        <div className="flex-1 overflow-x-auto max-w-full ml-4 border border-gray-300 rounded-md p-4 ">
+        <div className="flex-1 overflow-x-auto max-w-full ml-4 border border-gray-300 rounded-md p-4">
           <SalesRangeStackedBarChart selectedRange={selectedRange} />
         </div>
       </div>
       <div className="flex max-w-6xl w-full justify-start mb-4 px-4 md:px-6">
-      <SalesDataTable />
+        <SalesDataTable />
       </div>
       <div className="mt-4">
-        <input type="file" accept=".csv" onChange={handleFileChange} />
+        <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
         <Button variant="linkHover1" onClick={handleSubmit} className="mt-4">
           Upload and Process
         </Button>
