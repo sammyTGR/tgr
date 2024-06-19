@@ -1,5 +1,13 @@
 "use client";
-import React, { useState, Dispatch, SetStateAction, DragEvent, FormEvent, useEffect, useRef } from "react";
+import React, {
+  useState,
+  Dispatch,
+  SetStateAction,
+  DragEvent,
+  FormEvent,
+  useEffect,
+  useRef,
+} from "react";
 import { PlusIcon, TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { motion } from "framer-motion";
 import { LinkBreak2Icon } from "@radix-ui/react-icons";
@@ -18,7 +26,7 @@ type CardType = {
 
 const CustomKanban = () => {
   return (
-    <div className="h-screen w-full bg-neutral-900 text-neutral-50">
+    <div className="h-screen w-full">
       <Board />
     </div>
   );
@@ -30,7 +38,9 @@ export default function Board() {
   const channel = useRef(null);
 
   const fetchColumns = async () => {
-    const { data, error } = await supabase.from("weekly_agenda_columns").select("*");
+    const { data, error } = await supabase
+      .from("weekly_agenda_columns")
+      .select("*");
     if (error) {
       console.error("Error fetching columns:", error);
     } else {
@@ -116,7 +126,10 @@ export default function Board() {
   };
 
   const deleteCard = async (id: string) => {
-    const { error } = await supabase.from("weekly_agenda").delete().eq("id", id);
+    const { error } = await supabase
+      .from("weekly_agenda")
+      .delete()
+      .eq("id", id);
     if (error) {
       console.error("Error deleting card:", error);
     } else {
@@ -149,40 +162,47 @@ export default function Board() {
   };
 
   const deleteColumn = async (id: string) => {
-    const { error } = await supabase.from("weekly_agenda_columns").delete().eq("id", id);
+    const { error } = await supabase
+      .from("weekly_agenda_columns")
+      .delete()
+      .eq("id", id);
     if (error) {
       console.error("Error deleting column:", error);
     } else {
-      setColumns((prevColumns) => prevColumns.filter((column) => column.id !== id));
+      setColumns((prevColumns) =>
+        prevColumns.filter((column) => column.id !== id)
+      );
     }
   };
 
   return (
-    <div className="flex flex-col h-full w-full gap-3 overflow-scroll p-12">
-      <div className="flex justify-between mb-4">
+    <>
+      <div className="flex flex-col space-y-4 mb-4 p-4">
         <h1 className="text-2xl font-bold">Weekly Agenda</h1>
         <AddColumn handleAddColumn={addColumn} />
       </div>
-      <div className="flex gap-3">
-        {columns.map((column) => (
-          <Column
-            key={column.id}
-            title={column.title}
-            column={column}
-            headingColor="text-neutral-500"
-            cards={cards.filter((card) => card.column_name === column.title)}
-            setCards={setCards}
-            updateCardColumn={updateCardColumn}
-            updateCardTitle={updateCardTitle}
-            addCard={addCard}
-            deleteCard={deleteCard}
-            updateColumnTitle={updateColumnTitle}
-            deleteColumn={deleteColumn}
-          />
-        ))}
-        <BurnBarrel setCards={setCards} />
+      <div className="flex grid grid-cols-3 h-full w-full gap-3 ">
+        <div className="flex gap-3 p-4">
+          {columns.map((column) => (
+            <Column
+              key={column.id}
+              title={column.title}
+              column={column}
+              headingColor="text-neutral-500"
+              cards={cards.filter((card) => card.column_name === column.title)}
+              setCards={setCards}
+              updateCardColumn={updateCardColumn}
+              updateCardTitle={updateCardTitle}
+              addCard={addCard}
+              deleteCard={deleteCard}
+              updateColumnTitle={updateColumnTitle}
+              deleteColumn={deleteColumn}
+            />
+          ))}
+          <BurnBarrel setCards={setCards} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -200,7 +220,19 @@ type ColumnProps = {
   deleteColumn: (id: string) => void;
 };
 
-const Column = ({ title, headingColor, cards, column, setCards, updateCardColumn, updateCardTitle, addCard, deleteCard, updateColumnTitle, deleteColumn }: ColumnProps) => {
+const Column = ({
+  title,
+  headingColor,
+  cards,
+  column,
+  setCards,
+  updateCardColumn,
+  updateCardTitle,
+  addCard,
+  deleteCard,
+  updateColumnTitle,
+  deleteColumn,
+}: ColumnProps) => {
   const [active, setActive] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
@@ -269,7 +301,9 @@ const Column = ({ title, headingColor, cards, column, setCards, updateCardColumn
 
   const getIndicators = () => {
     return Array.from(
-      document.querySelectorAll(`[data-column="${column.title}"]`) as unknown as HTMLElement[]
+      document.querySelectorAll(
+        `[data-column="${column.title}"]`
+      ) as unknown as HTMLElement[]
     );
   };
 
@@ -312,7 +346,10 @@ const Column = ({ title, headingColor, cards, column, setCards, updateCardColumn
               className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm text-neutral-50 focus:outline-0"
             />
             <div className="mt-1.5 flex items-center justify-end gap-1.5">
-              <button type="submit" className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300">
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+              >
                 <span>Save</span>
               </button>
             </div>
@@ -324,7 +361,10 @@ const Column = ({ title, headingColor, cards, column, setCards, updateCardColumn
               <button onClick={handleEditColumn} className="text-yellow-500">
                 <Pencil1Icon />
               </button>
-              <button onClick={() => deleteColumn(column.id)} className="text-red-500">
+              <button
+                onClick={() => deleteColumn(column.id)}
+                className="text-red-500"
+              >
                 <TrashIcon />
               </button>
             </div>
@@ -335,10 +375,18 @@ const Column = ({ title, headingColor, cards, column, setCards, updateCardColumn
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`h-full w-full transition-colors ${active ? "bg-neutral-800/50" : "bg-neutral-800/0"}`}
+        className={`h-full w-full transition-colors ${
+          active ? "bg-neutral-800/50" : "bg-neutral-800/0"
+        }`}
       >
         {cards.map((c) => (
-          <Card key={c.id} {...c} handleDragStart={handleDragStart} handleDeleteCard={handleDeleteCard} updateCardTitle={updateCardTitle} />
+          <Card
+            key={c.id}
+            {...c}
+            handleDragStart={handleDragStart}
+            handleDeleteCard={handleDeleteCard}
+            updateCardTitle={updateCardTitle}
+          />
         ))}
         <DropIndicator beforeId={null} column_name={column.title} />
         <AddCard column_name={column.title} handleAddCard={handleAddCard} />
@@ -353,7 +401,14 @@ type CardProps = CardType & {
   updateCardTitle: (id: string, title: string) => void;
 };
 
-const Card = ({ title, id, column_name, handleDragStart, handleDeleteCard, updateCardTitle }: CardProps) => {
+const Card = ({
+  title,
+  id,
+  column_name,
+  handleDragStart,
+  handleDeleteCard,
+  updateCardTitle,
+}: CardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
 
@@ -390,7 +445,10 @@ const Card = ({ title, id, column_name, handleDragStart, handleDeleteCard, updat
               className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm text-neutral-50 focus:outline-0"
             />
             <div className="mt-1.5 flex items-center justify-end gap-1.5">
-              <button type="submit" className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300">
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+              >
                 <span>Save</span>
               </button>
             </div>
@@ -402,7 +460,10 @@ const Card = ({ title, id, column_name, handleDragStart, handleDeleteCard, updat
               <button onClick={handleEdit} className="text-yellow-500">
                 <Pencil1Icon />
               </button>
-              <button onClick={() => handleDeleteCard(id)} className="text-red-500">
+              <button
+                onClick={() => handleDeleteCard(id)}
+                className="text-red-500"
+              >
                 <TrashIcon />
               </button>
             </div>
@@ -428,7 +489,11 @@ const DropIndicator = ({ beforeId, column_name }: DropIndicatorProps) => {
   );
 };
 
-const BurnBarrel = ({ setCards }: { setCards: Dispatch<SetStateAction<CardType[]>> }) => {
+const BurnBarrel = ({
+  setCards,
+}: {
+  setCards: Dispatch<SetStateAction<CardType[]>>;
+}) => {
   const [active, setActive] = useState(false);
 
   const handleDragOver = (e: DragEvent) => {
@@ -452,7 +517,9 @@ const BurnBarrel = ({ setCards }: { setCards: Dispatch<SetStateAction<CardType[]
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       className={`mt-10 grid h-56 w-56 shrink-0 place-content-center rounded border text-3xl ${
-        active ? "border-red-800 bg-red-800/20 text-red-500" : "border-neutral-500 bg-neutral-500/20 text-neutral-500"
+        active
+          ? "border-red-800 bg-red-800/20 text-red-500"
+          : "border-neutral-500 bg-neutral-500/20 text-neutral-500"
       }`}
     >
       {active ? <LinkBreak2Icon className="animate-bounce" /> : <TrashIcon />}
@@ -487,17 +554,27 @@ const AddCard = ({ column_name, handleAddCard }: AddCardProps) => {
             className="w-full rounded border border-violet-400 bg-violet-400/20 p-3 text-sm text-neutral-50 placeholder-violet-300 focus:outline-0"
           />
           <div className="mt-1.5 flex items-center justify-end gap-1.5">
-            <button onClick={() => setAdding(false)} className="px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50">
+            <button
+              onClick={() => setAdding(false)}
+              className="px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
+            >
               Close
             </button>
-            <button type="submit" className="flex items-center gap-1.5 rounded bg-neutral-50 px-3 py-1.5 text-xs text-neutral-950 transition-colors hover:bg-neutral-300">
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 rounded bg-neutral-50 px-3 py-1.5 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+            >
               <span>Add</span>
               <PlusIcon />
             </button>
           </div>
         </motion.form>
       ) : (
-        <motion.button layout onClick={() => setAdding(true)} className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50">
+        <motion.button
+          layout
+          onClick={() => setAdding(true)}
+          className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
+        >
           <span>Add card</span>
           <PlusIcon />
         </motion.button>
@@ -524,7 +601,11 @@ const AddColumn = ({ handleAddColumn }: AddColumnProps) => {
   return (
     <>
       {adding ? (
-        <motion.form layout onSubmit={handleSubmit} className="flex items-center gap-2">
+        <motion.form
+          layout
+          onSubmit={handleSubmit}
+          className="flex items-center gap-2"
+        >
           <input
             onChange={(e) => setText(e.target.value)}
             autoFocus
@@ -532,17 +613,27 @@ const AddColumn = ({ handleAddColumn }: AddColumnProps) => {
             className="rounded border border-violet-400 bg-violet-400/20 p-1 text-sm text-neutral-50 focus:outline-0"
           />
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setAdding(false)} className="px-2 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50">
+            <button
+              onClick={() => setAdding(false)}
+              className="px-2 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
+            >
               Close
             </button>
-            <button type="submit" className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300">
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+            >
               <span>Add</span>
               <PlusIcon />
             </button>
           </div>
         </motion.form>
       ) : (
-        <motion.button layout onClick={() => setAdding(true)} className="flex items-center gap-1.5 px-3 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50">
+        <motion.button
+          layout
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 px-3 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
+        >
           <span>Add column</span>
           <PlusIcon />
         </motion.button>
