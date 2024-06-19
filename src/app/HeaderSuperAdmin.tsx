@@ -96,11 +96,11 @@ const formComps = [
     href: "/TGR/rangewalk",
     description: "Submit Daily Range Walks",
   },
-  {
-    title: "Range Repairs",
-    href: "/TGR/rangerepairs",
-    description: "Submit ALL Range Repairs",
-  },
+  // {
+  //   title: "Range Repairs",
+  //   href: "/TGR/rangerepairs",
+  //   description: "Submit ALL Range Repairs",
+  // },
   {
     title: "Daily Deposits",
     href: "/TGR/deposits",
@@ -138,9 +138,9 @@ const reportsComps = [
     description: "Build Charts",
   },
   {
-    title: "Range Walks",
+    title: "Range Walks & Repairs",
     href: "/TGR/rangewalk/report",
-    description: "View All Range Walks",
+    description: "View All Range Walks & Repairs",
   },
   {
     title: "Certifications",
