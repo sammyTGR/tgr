@@ -9,6 +9,9 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Papa, { ParseResult } from "papaparse";
 import SalesRangeStackedBarChart from "../charts/SalesRangeStackedBarChart";
 import { CustomCalendar } from "@/components/ui/calendar"; // Import CustomCalendar
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 const title = "Sales Report";
 
@@ -181,21 +184,36 @@ const SalesPage = () => {
       <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
         <TextGenerateEffect words={title} />
       </h1>
-      <div className="flex mb-4 justify-center items-center">
-        <div className="mr-4 my-16">
-          <CustomCalendar
-            selectedDate={selectedRange.start ?? new Date()}
-            onDateChange={handleRangeChange}
-            disabledDays={() => false}
-          />
-          <h1 className="flex justify-center items-center">Select A Date</h1>
+      <div className="flex max-w-8xl justify-start items-start p-4 mb-4">
+        <div className="mr-6 mb-auto">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[240px] pl-3 text-left font-normal">
+                {selectedRange.start ? (
+                  format(selectedRange.start, "PPP")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CustomCalendar
+                selectedDate={selectedRange.start ?? new Date()}
+                onDateChange={handleRangeChange}
+                disabledDays={() => false}
+              />
+            </PopoverContent>
+          </Popover>
+          <h1 className="flex my-2 p-2">Select A Date</h1>
         </div>
-        <div className="flex-1 overflow-x-auto max-w-6xl ml-4">
+        <div className="flex-1 overflow-x-auto max-w-full ml-4 border border-gray-300 rounded-md p-4 ">
           <SalesRangeStackedBarChart selectedRange={selectedRange} />
         </div>
       </div>
-      <div className="flex max-w-md justify-start mb-4 px-4 md:px-6"></div>
+      <div className="flex max-w-6xl w-full justify-start mb-4 px-4 md:px-6">
       <SalesDataTable />
+      </div>
       <div className="mt-4">
         <input type="file" accept=".csv" onChange={handleFileChange} />
         <Button variant="linkHover1" onClick={handleSubmit} className="mt-4">

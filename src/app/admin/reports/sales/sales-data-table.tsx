@@ -173,11 +173,11 @@ const SalesDataTable = () => {
 
   return (
     <div>
-      <SalesTableToolbar
+      {/* <SalesTableToolbar
         table={table}
         totalDROS={totalDROS}
         onFilterChange={handleFilterChange}
-      />
+      /> */}
       <DataTable table={table} />
     </div>
   );

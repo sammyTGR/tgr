@@ -137,26 +137,26 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col items-center justify-center">
-        <p className="mx-auto text-sm font-medium">
+      <div className="flex flex-col  justify-start">
+        <p className=" text-sm font-medium">
           Total Gross Sales: ${totalSales.toFixed(2)}
         </p>
-        <p className="mx-auto text-sm font-medium">
+        <p className=" text-sm font-medium">
           Total Net Sales: ${totalNetSales.toFixed(2)}
         </p>
-        <p className="mx-auto text-sm font-medium">
+        <p className=" text-sm font-medium">
           Total - Firearms: ${totalSalesMinusExclusions.toFixed(2)}
         </p>
-        {selectedRange.start && selectedRange.end ? (
-          <p className="mx-auto text-sm font-medium">
+        {/* {selectedRange.start && selectedRange.end ? (
+          <p className=" text-sm font-medium">
             {selectedRange.start?.toISOString().split("T")[0]} to{" "}
             {selectedRange.end?.toISOString().split("T")[0]}
           </p>
         ) : (
-          <p className="mx-auto text-sm font-medium">
+          <p className=" text-sm font-medium">
             Select A Date To View Chart
           </p>
-        )}
+        )} */}
       </div>
       <ResponsiveContainer width="100%" height="100%">
         <div className="overflow-x-auto">

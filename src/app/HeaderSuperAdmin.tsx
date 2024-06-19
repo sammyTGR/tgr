@@ -161,6 +161,11 @@ const profileComps = [
     description: "All Kinda Notes",
   },
   {
+    title: "Weekly Agenda",
+    href: "/admin/weeklyagenda",
+    description: "Weekly Agenda Topics",
+  },
+  {
     title: "Staff Profiles",
     href: "/admin/dashboard",
     description: "All Profiles",

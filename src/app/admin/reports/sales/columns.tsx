@@ -250,24 +250,24 @@ export const salesColumns = (
       style: { width: "150px" },
     },
   },
-  {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-    filterFn: includesArrayString, // Use the custom filter function
-  },
-  {
-    accessorKey: "actions",
-    header: "Actions",
-    cell: ({ row }) => (
-      <SalesTableRowActions sale={row.original} onUpdate={onUpdate} />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
+  // {
+  //   accessorKey: "status",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Status" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  //   filterFn: includesArrayString, // Use the custom filter function
+  // },
+  // {
+  //   accessorKey: "actions",
+  //   header: "Actions",
+  //   cell: ({ row }) => (
+  //     <SalesTableRowActions sale={row.original} onUpdate={onUpdate} />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
 ];
