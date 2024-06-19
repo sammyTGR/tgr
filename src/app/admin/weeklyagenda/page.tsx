@@ -188,7 +188,7 @@ export default function Board() {
               key={column.id}
               title={column.title}
               column={column}
-              headingColor="text-neutral-500"
+              headingColor="text-black dark:text-white"
               cards={cards.filter((card) => card.column_name === column.title)}
               setCards={setCards}
               updateCardColumn={updateCardColumn}
