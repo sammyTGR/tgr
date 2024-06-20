@@ -13,7 +13,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { rangeWalkDataSchema, RangeWalkData } from "./data-schema";
 import { supabase } from "@/utils/supabase/client";
@@ -77,7 +85,9 @@ export function DataTableRowActions({
     }
   };
 
-  const canEditNotes = ["admin", "super admin"].includes(userRole) || userUuid === task.user_uuid;
+  const canEditNotes =
+    ["user", "admin", "super admin"].includes(userRole) ||
+    userUuid === task.user_uuid;
 
   return (
     <>
@@ -104,7 +114,9 @@ export function DataTableRowActions({
               <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
                 Repaired
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleStatusChange("Under Repair")}>
+              <DropdownMenuItem
+                onSelect={() => handleStatusChange("Under Repair")}
+              >
                 Under Repair
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
