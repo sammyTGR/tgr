@@ -202,7 +202,7 @@ const EmployeeProfile = () => {
           <div className="flex items-center gap-4">
             <Avatar>
               <img
-                src={employee.avatar_url || "/placeholder.svg"}
+                src={employee.avatar_url || "/Banner.png"}
                 alt="Employee Avatar"
               />
               <AvatarFallback>{employee.name[0]}</AvatarFallback>
