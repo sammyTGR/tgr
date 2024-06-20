@@ -1,14 +1,31 @@
 "use client";
+
 import { useEffect, useState, useRef } from "react";
 import { createClient, RealtimeChannel } from "@supabase/supabase-js";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { useRole } from "@/context/RoleContext"; // Import useRole
-import { TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
+import {
+  TrashIcon,
+  Pencil1Icon,
+  PlusIcon,
+  ArrowUpIcon,
+  DotFilledIcon,
+} from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import Link from "next/link";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { supabase } from "@/utils/supabase/client";
 
 const title = "TGR Ops Chat";
 
@@ -18,18 +35,27 @@ interface ChatMessage {
   message: string;
   created_at: string;
   user_id: string;
-  is_read: boolean; // Add is_read to the ChatMessage interface
+  is_read: boolean;
+}
+
+interface User {
+  id: string;
+  name: string;
+  is_online: boolean;
 }
 
 export default function ChatClient() {
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const { user, role, loading } = useRole(); // Use useRole hook
+  const [users, setUsers] = useState<User[]>([]);
+  const { user, role, loading } = useRole();
   const [username, setUsername] = useState<string>("");
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editingMessage, setEditingMessage] = useState<string>("");
+  const [showUserList, setShowUserList] = useState(false);
 
   const channel = useRef<RealtimeChannel | null>(null);
+  const presenceChannel = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     const client = createClient(
@@ -81,8 +107,25 @@ export default function ChatClient() {
       }
     };
 
+    const fetchUsers = async () => {
+      const { data, error } = await client
+        .from("employees")
+        .select("user_uuid as id, name");
+      if (data) {
+        setUsers(
+          (data as unknown as { id: string; name: string }[]).map((user) => ({
+            ...user,
+            is_online: false,
+          }))
+        );
+      } else {
+        console.error("Error fetching users:", error?.message);
+      }
+    };
+
     fetchUsername();
     fetchMessages();
+    fetchUsers();
 
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
@@ -121,9 +164,51 @@ export default function ChatClient() {
         .subscribe();
     }
 
+    if (!presenceChannel.current) {
+      presenceChannel.current = client.channel("online-users", {
+        config: {
+          presence: {
+            key: user?.id,
+          },
+        },
+      });
+
+      presenceChannel.current
+        .on("presence", { event: "sync" }, () => {
+          const newState = presenceChannel.current?.presenceState();
+          console.log("sync", newState);
+          // Update the online status of users
+          setUsers((prev) =>
+            prev.map((u) => ({
+              ...u,
+              is_online: !!newState?.[u.id],
+            }))
+          );
+        })
+        .on("presence", { event: "join" }, ({ key, newPresences }) => {
+          console.log("join", key, newPresences);
+        })
+        .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+          console.log("leave", key, leftPresences);
+        })
+        .subscribe(async (status) => {
+          if (status !== "SUBSCRIBED") {
+            return;
+          }
+
+          const presenceTrackStatus = await presenceChannel.current?.track({
+            user: user?.id,
+            online_at: new Date().toISOString(),
+          });
+          console.log(presenceTrackStatus);
+        });
+    }
+
     return () => {
       channel.current?.unsubscribe();
       channel.current = null;
+      presenceChannel.current?.unsubscribe();
+      presenceChannel.current = null;
     };
   }, [user]);
 
@@ -141,10 +226,7 @@ export default function ChatClient() {
       return;
     }
 
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase;
 
     const newMessage = {
       user_name: username,
@@ -154,11 +236,18 @@ export default function ChatClient() {
       is_read: false, // Set is_read to false for new messages
     };
 
-    const { error } = await client.from("chat_messages").insert([newMessage]);
+    const { data, error } = await client
+      .from("chat_messages")
+      .insert([newMessage]);
 
     if (error) {
       console.error("Error inserting message:", error.message);
       return;
+    }
+
+    if (data) {
+      const newMessages = Array.isArray(data) ? data : [data];
+      setMessages((prev) => [...prev, ...newMessages]);
     }
 
     setMessage("");
@@ -211,82 +300,152 @@ export default function ChatClient() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <>
-        <h1 className="lg:leading-tighter text-2xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[2.6rem] 2xl:text-[3rem]"></h1>
-        <Card className="flex flex-col justify-between h-full max-w-xl mx-auto my-12">
-          <CardTitle className="text-3xl ml-2">
-            <TextGenerateEffect words={title} />
-          </CardTitle>
-
-          <div className="mt-5 flex flex-col flex-grow space-y-2 p-2 overflow-y-auto">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`p-2 rounded-md text-lg ${
-                  msg.user_id === user.id
-                    ? "bg-blue-600 text-black dark:bg-blue-800 dark:text-white text-end self-end"
-                    : "bg-muted text-black dark:bg-muted dark:text-white self-start"
-                } message-container`}
-              >
-                {msg.user_id !== user.id && (
-                  <span className="font-bold">{msg.user_name}: </span>
-                )}
-                {editingMessageId === msg.id ? (
-                  <>
-                    <Textarea
-                      value={editingMessage}
-                      onChange={(e) => setEditingMessage(e.target.value)}
-                      className="mb-2"
-                    />
-                    <Button onClick={onUpdate} className="mb-2">
-                      Update
-                    </Button>
-                  </>
-                ) : (
-                  <>{msg.message}</>
-                )}
-                {msg.user_id === user.id && (
-                  <div className="message-actions">
-                    <Button
-                      onClick={() => onEdit(msg.id, msg.message)}
-                      variant="ghost"
-                    >
-                      <Pencil1Icon />
-                    </Button>
-                    <Button onClick={() => onDelete(msg.id)} variant="ghost">
-                      <TrashIcon />
-                    </Button>
-                  </div>
-                )}
+      <Card className="flex flex-col h-[80vh] max-h-[80vh]">
+        <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
+          <TextGenerateEffect words={title} />
+        </CardTitle>
+        <CardContent className="flex flex-1 p-0">
+          <div className="flex h-full">
+            <div className="flex flex-col w-80 border-r border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-lg font-semibold">DM's</h2>
+                <Button variant="ghost" onClick={() => setShowUserList(true)}>
+                  <PlusIcon className="w-5 h-5" />
+                </Button>
               </div>
+              <div className="flex-1 overflow-auto">
+                <nav className="space-y-1 p-4">
+                  {users.map((u) => (
+                    <Link
+                      key={u.id}
+                      href="#"
+                      className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800"
+                      prefetch={false}
+                    >
+                      <DotFilledIcon className="w-4 h-4" />
+                      <span className="flex-1 truncate">{u.name}</span>
+                      {u.is_online && (
+                        <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
+                          Online
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 overflow-auto p-6">
+                <div className="space-y-6">
+                  {messages.map((msg, i) => (
+                    <div key={i} className="flex items-start gap-4">
+                      <Avatar className="border w-10 h-10">
+                        <AvatarImage src="/placeholder-user.jpg" />
+                        <AvatarFallback>
+                          {msg.user_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid gap-1 flex-1">
+                        <div className="font-bold">{msg.user_name}</div>
+                        <div className="prose prose-stone">
+                          {editingMessageId === msg.id ? (
+                            <>
+                              <Textarea
+                                value={editingMessage}
+                                onChange={(e) =>
+                                  setEditingMessage(e.target.value)
+                                }
+                                className="mb-2"
+                              />
+                              <Button onClick={onUpdate} className="mb-2">
+                                Update
+                              </Button>
+                            </>
+                          ) : (
+                            <p>{msg.message}</p>
+                          )}
+                        </div>
+                      </div>
+                      {msg.user_id === user.id && !editingMessageId && (
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => onEdit(msg.id, msg.message)}
+                            variant="ghost"
+                            size="icon"
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            onClick={() => onDelete(msg.id)}
+                            variant="ghost"
+                            size="icon"
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+                <div className="relative">
+                  <Textarea
+                    placeholder="Type your message..."
+                    name="message"
+                    id="message"
+                    rows={1}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        onSend();
+                      }
+                    }}
+                    className="min-h-[48px] rounded-2xl resize-none p-4 border border-gray-200 dark:border-gray-800 pr-16"
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="absolute top-3 right-3 w-8 h-8"
+                    onClick={onSend}
+                  >
+                    <ArrowUpIcon className="w-4 h-4" />
+                    <span className="sr-only">Send</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Dialog open={showUserList} onOpenChange={setShowUserList}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start a Direct Message</DialogTitle>
+            <DialogDescription>
+              Select a user to start a conversation with.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {users.map((u) => (
+              <Button
+                key={u.id}
+                variant="outline"
+                onClick={() => setShowUserList(false)}
+              >
+                {u.name}
+              </Button>
             ))}
           </div>
-          <div className="flex space-x-4 p-2 min-w-full ">
-            <Textarea
-              placeholder="Message"
-              value={message}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                setMessage(e.target.value)
-              }
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  onSend();
-                }
-              }}
-              className="flex-grow text-lg"
-              rows={1}
-            />
-            <Button
-              variant="linkHover2"
-              onClick={onSend}
-              className="flex-shrink-0"
-            >
-              Send
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowUserList(false)}>
+              Cancel
             </Button>
-          </div>
-        </Card>
-      </>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </RoleBasedWrapper>
   );
 }
