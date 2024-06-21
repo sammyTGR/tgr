@@ -5,13 +5,14 @@ import { createClient, RealtimeChannel } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useRole } from "@/context/RoleContext"; // Import useRole
+import { useRole } from "@/context/RoleContext";
 import {
   TrashIcon,
   Pencil1Icon,
   PlusIcon,
   ArrowUpIcon,
   DotFilledIcon,
+  ChatBubbleIcon,
 } from "@radix-ui/react-icons";
 import { Textarea } from "@/components/ui/textarea";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
@@ -36,6 +37,8 @@ interface ChatMessage {
   created_at: string;
   user_id: string;
   is_read: boolean;
+  receiver_id?: string;
+  sender_id?: string;
 }
 
 interface User {
@@ -48,6 +51,8 @@ export default function ChatClient() {
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [dmUsers, setDmUsers] = useState<User[]>([]);
+  const [selectedChat, setSelectedChat] = useState<string>("Admin Chat");
   const { user, role, loading } = useRole();
   const [username, setUsername] = useState<string>("");
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
@@ -85,23 +90,6 @@ export default function ChatClient() {
         .order("created_at", { ascending: true });
       if (data) {
         setMessages(data);
-
-        // Mark unread messages as read for the current user
-        const unreadMessages = data.filter(
-          (msg) => msg.user_id === user.id && !msg.is_read
-        );
-        const messageIds = unreadMessages.map((msg) => msg.id);
-
-        if (messageIds.length > 0) {
-          const { error: updateError } = await client
-            .from("chat_messages")
-            .update({ is_read: true })
-            .in("id", messageIds);
-
-          if (updateError) {
-            console.error("Error marking messages as read:", updateError);
-          }
-        }
       } else {
         console.error("Error fetching messages:", error?.message);
       }
@@ -109,12 +97,14 @@ export default function ChatClient() {
 
     const fetchUsers = async () => {
       const { data, error } = await client
-        .from("employees")
-        .select("user_uuid as id, name");
+        .from("profiles")
+        .select("id, full_name")
+        .or("role.eq.admin,role.eq.super admin");
       if (data) {
         setUsers(
-          (data as unknown as { id: string; name: string }[]).map((user) => ({
-            ...user,
+          (data as unknown as { id: string; full_name: string }[]).map((user) => ({
+            id: user.id,
+            name: user.full_name,
             is_online: false,
           }))
         );
@@ -123,9 +113,37 @@ export default function ChatClient() {
       }
     };
 
+    const fetchDmUsers = async () => {
+      const { data, error } = await client
+        .from("direct_messages")
+        .select("sender_id, receiver_id")
+        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`);
+      if (data) {
+        const userIds = data
+          .map((dm) => (dm.sender_id === user.id ? dm.receiver_id : dm.sender_id))
+          .filter((id) => id !== user.id);
+        const { data: usersData, error: usersError } = await client
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", userIds);
+        if (usersData) {
+          setDmUsers(usersData.map((user) => ({
+            id: user.id,
+            is_online: false,
+            name: user.full_name,
+          })));
+        } else {
+          console.error("Error fetching direct message users:", usersError?.message);
+        }
+      } else {
+        console.error("Error fetching direct messages:", error?.message);
+      }
+    };
+
     fetchUsername();
     fetchMessages();
     fetchUsers();
+    fetchDmUsers();
 
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
@@ -233,7 +251,9 @@ export default function ChatClient() {
       message,
       user_id: user.id,
       created_at: new Date().toISOString(),
-      is_read: false, // Set is_read to false for new messages
+      is_read: false,
+      receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
+      sender_id: user.id,
     };
 
     const { data, error } = await client
@@ -254,10 +274,7 @@ export default function ChatClient() {
   };
 
   const onDelete = async (id: number) => {
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase;
 
     const { error } = await client.from("chat_messages").delete().eq("id", id);
 
@@ -275,10 +292,7 @@ export default function ChatClient() {
   const onUpdate = async () => {
     if (!editingMessageId) return;
 
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase;
 
     const { error } = await client
       .from("chat_messages")
@@ -294,50 +308,154 @@ export default function ChatClient() {
     setEditingMessage("");
   };
 
+  const deleteAdminChat = async () => {
+    const client = supabase;
+
+    const { error } = await client.from("chat_messages").delete().is("receiver_id", null);
+
+    if (error) {
+      console.error("Error deleting Admin Chat messages:", error.message);
+      return;
+    }
+  };
+
+  const startDirectMessage = async (receiver: User) => {
+    setDmUsers((prev) => [...prev, receiver]);
+    setSelectedChat(receiver.id);
+    setShowUserList(false);
+
+    const { error } = await supabase
+      .from("direct_messages")
+      .insert([{ sender_id: user.id, receiver_id: receiver.id }]);
+
+    if (error) {
+      console.error("Error inserting direct message user:", error.message);
+    }
+  };
+
+  const deleteDirectMessage = async (userId: string) => {
+    setDmUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
+    if (selectedChat === userId) {
+      setSelectedChat("Admin Chat");
+    }
+
+    const { error } = await supabase
+      .from("direct_messages")
+      .delete()
+      .eq("sender_id", user.id)
+      .eq("receiver_id", userId);
+
+    if (error) {
+      console.error("Error deleting direct message user:", error.message);
+    }
+  };
+
+  const filteredMessages = messages.filter((msg) => {
+    if (selectedChat === "Admin Chat") {
+      return !msg.receiver_id;
+    }
+    return (
+      (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
+      (msg.sender_id === selectedChat && msg.receiver_id === user.id)
+    );
+  });
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <Card className="flex flex-col h-[80vh] max-h-[80vh]">
+      <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4">
         <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
           <TextGenerateEffect words={title} />
         </CardTitle>
-        <CardContent className="flex flex-1 p-0">
+        <CardContent className="flex flex-1 p-0 max-w-full">
           <div className="flex h-full">
-            <div className="flex flex-col w-80 border-r border-gray-200 dark:border-gray-800">
+            <div className="flex-1 flex flex-col max-w-sm w-64 border-r border-gray-200 dark:border-gray-800">  
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                <h2 className="text-lg font-semibold">DM&apos;s</h2>
+                <h2 className="text-lg font-semibold">Messages</h2>
                 <Button variant="ghost" onClick={() => setShowUserList(true)}>
                   <PlusIcon className="w-5 h-5" />
                 </Button>
               </div>
               <div className="flex-1 overflow-auto">
                 <nav className="space-y-1 p-4">
-                  {users.map((u) => (
+                  <div
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                      selectedChat === "Admin Chat"
+                        ? "bg-gray-200 dark:bg-neutral-800"
+                        : ""
+                    }`}
+                  >
                     <Link
-                      key={u.id}
                       href="#"
-                      className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800"
+                      onClick={() => setSelectedChat("Admin Chat")}
                       prefetch={false}
+                      className="flex-1 flex items-center gap-3"
                     >
                       <DotFilledIcon className="w-4 h-4" />
-                      <span className="flex-1 truncate">{u.name}</span>
-                      {u.is_online && (
-                        <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
-                          Online
-                        </span>
-                      )}
+                      <span className="flex-1 truncate">Admin Chat</span>
                     </Link>
+                    {role === "super admin" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={deleteAdminChat}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    )}
+                  </div>
+                  {dmUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                        selectedChat === u.id
+                          ? "bg-gray-200 dark:bg-neutral-800"
+                          : ""
+                      }`}
+                    >
+                      <Link
+                        href="#"
+                        onClick={() => setSelectedChat(u.id)}
+                        prefetch={false}
+                        className="flex-1 flex items-center gap-3"
+                      >
+                        <DotFilledIcon className="w-4 h-4" />
+                        <span className="flex-1 truncate relative group">
+                          {u.name}
+                          {/* <Button
+                            className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteDirectMessage(u.id)}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button> */}
+                        </span>
+                        {u.is_online && (
+                          <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
+                            Online
+                          </span>
+                        )}
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteDirectMessage(u.id)}
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </Button>
+                    </div>
                   ))}
                 </nav>
               </div>
             </div>
             <div className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-auto p-6">
+              <div className="flex-1 flex flex-col max-h-[62vh] overflow-auto p-6">
                 <div className="space-y-6">
-                  {messages.map((msg, i) => (
+                  {filteredMessages.map((msg, i) => (
                     <div key={i} className="flex items-start gap-4">
                       <Avatar className="border w-10 h-10">
                         <AvatarImage src="/placeholder-user.jpg" />
@@ -346,7 +464,25 @@ export default function ChatClient() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid gap-1 flex-1">
-                        <div className="font-bold">{msg.user_name}</div>
+                        <div className="font-bold relative group">
+                          {msg.user_name}
+                          {msg.user_id !== user.id && !msg.receiver_id && (
+                            <Button
+                              className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                startDirectMessage({
+                                  id: msg.user_id,
+                                  name: msg.user_name,
+                                  is_online: false,
+                                })
+                              }
+                            >
+                              <ChatBubbleIcon />
+                            </Button>
+                          )}
+                        </div>
                         <div className="prose prose-stone">
                           {editingMessageId === msg.id ? (
                             <>
@@ -366,7 +502,7 @@ export default function ChatClient() {
                           )}
                         </div>
                       </div>
-                      {msg.user_id === user.id && !editingMessageId && (
+                      {role === "super admin" || msg.user_id === user.id ? (
                         <div className="flex space-x-2">
                           <Button
                             onClick={() => onEdit(msg.id, msg.message)}
@@ -383,7 +519,7 @@ export default function ChatClient() {
                             <TrashIcon />
                           </Button>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -433,7 +569,7 @@ export default function ChatClient() {
               <Button
                 key={u.id}
                 variant="outline"
-                onClick={() => setShowUserList(false)}
+                onClick={() => startDirectMessage(u)}
               >
                 {u.name}
               </Button>
