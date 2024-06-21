@@ -178,6 +178,14 @@ export default function ChatClient() {
         )
         .on<ChatMessage>(
           "postgres_changes",
+          { event: "INSERT", schema: "public", table: "direct_messages" },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new]);
+            fetchDmUsers(); // Update the direct messages list
+          }
+        )
+        .on<ChatMessage>(
+          "postgres_changes",
           { event: "DELETE", schema: "public", table: "chat_messages" },
           (payload) => {
             setMessages((prev) =>
@@ -237,23 +245,11 @@ export default function ChatClient() {
         });
     }
 
-    const directMessageChannel = client
-      .channel("direct-messages")
-      .on<ChatMessage>(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages" },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
-        }
-      )
-      .subscribe();
-
     return () => {
       channel.current?.unsubscribe();
       channel.current = null;
       presenceChannel.current?.unsubscribe();
       presenceChannel.current = null;
-      directMessageChannel?.unsubscribe();
     };
   }, [user]);
 
@@ -290,7 +286,6 @@ export default function ChatClient() {
       created_at: new Date().toISOString(),
       is_read: false,
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
-      ...(selectedChat === "Admin Chat" && { user_id: user.id }), // Conditionally add user_id for chat_messages
     };
 
     const { data, error } = await client
