@@ -124,13 +124,24 @@ export default function ChatClient() {
     };
 
     const fetchDmUsers = async () => {
+      if (!user?.id) {
+        console.error("User ID is undefined");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("direct_messages")
         .select("receiver_id, sender_id, user_name")
-        .or(`receiver_id.eq.${user?.id},sender_id.eq.${user?.id}`);
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
+
+      if (error) {
+        console.error("Error fetching direct messages:", error.message);
+        return;
+      }
+
       if (data) {
         const userIds = data.map((dm) =>
-          dm.receiver_id === user?.id ? dm.sender_id : dm.receiver_id
+          dm.receiver_id === user.id ? dm.sender_id : dm.receiver_id
         );
         const { data: usersData, error: usersError } = await supabase
           .from("profiles")
@@ -150,15 +161,17 @@ export default function ChatClient() {
             usersError?.message
           );
         }
-      } else {
-        console.error("Error fetching direct messages:", error?.message);
       }
     };
 
-    fetchUsername();
-    fetchMessages();
-    fetchUsers();
-    fetchDmUsers();
+    const fetchInitialData = async () => {
+      await fetchUsername();
+      await fetchMessages();
+      await fetchUsers();
+      await fetchDmUsers();
+    };
+
+    fetchInitialData();
 
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
@@ -349,12 +362,13 @@ export default function ChatClient() {
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
     };
 
-    // If it's an admin chat message
-    if (selectedChat === "Admin Chat") {
-      newMessage.receiver_id = null; // Ensure receiver_id is null for admin chat messages
+    console.log("New message:", newMessage); // Add this line
+
+    if (selectedChat !== "Admin Chat" && !newMessage.receiver_id) {
+      console.error("Receiver ID is missing for direct message.");
+      return;
     }
 
-    // Insert into the appropriate table based on chat type
     const { data, error } = await client
       .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
       .insert([newMessage]);
@@ -425,8 +439,9 @@ export default function ChatClient() {
   };
 
   const startDirectMessage = async (receiver: User) => {
+    console.log("Starting direct message with receiver:", receiver); // Add this line
     setDmUsers((prev) => [...prev, receiver]);
-    setSelectedChat(receiver.id);
+    setSelectedChat(receiver.id); // Set selectedChat to receiver's ID
     setShowUserList(false);
 
     const { error } = await supabase.from("direct_messages").insert([
@@ -435,7 +450,7 @@ export default function ChatClient() {
         receiver_id: receiver.id,
         message: "",
         is_read: false,
-        user_name: receiver.name, // Ensure this is included
+        user_name: username, // Use username of the sender
       },
     ]);
 
