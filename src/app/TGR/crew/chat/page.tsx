@@ -448,7 +448,7 @@ export default function ChatClient() {
       {
         sender_id: user.id,
         receiver_id: receiver.id,
-        message: "",
+        message: "", // Initial empty message to create the chat window
         is_read: false,
         user_name: username, // Use username of the sender
       },
