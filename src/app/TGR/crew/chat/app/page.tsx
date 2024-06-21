@@ -305,7 +305,7 @@ export default function ChatClient() {
           <div className="flex h-full">
             <div className="flex flex-col w-80 border-r border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                <h2 className="text-lg font-semibold">DM's</h2>
+                <h2 className="text-lg font-semibold">DM&apos;s</h2>
                 <Button variant="ghost" onClick={() => setShowUserList(true)}>
                   <PlusIcon className="w-5 h-5" />
                 </Button>
