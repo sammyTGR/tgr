@@ -349,6 +349,12 @@ export default function ChatClient() {
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
     };
 
+    // If it's an admin chat message
+    if (selectedChat === "Admin Chat") {
+      newMessage.receiver_id = null; // Ensure receiver_id is null for admin chat messages
+    }
+
+    // Insert into the appropriate table based on chat type
     const { data, error } = await client
       .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
       .insert([newMessage]);
