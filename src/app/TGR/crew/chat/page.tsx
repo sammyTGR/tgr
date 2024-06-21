@@ -124,24 +124,13 @@ export default function ChatClient() {
     };
 
     const fetchDmUsers = async () => {
-      if (!user?.id) {
-        console.error("User ID is undefined");
-        return;
-      }
-
       const { data, error } = await supabase
         .from("direct_messages")
         .select("receiver_id, sender_id, user_name")
-        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-
-      if (error) {
-        console.error("Error fetching direct messages:", error.message);
-        return;
-      }
-
+        .or(`receiver_id.eq.${user?.id},sender_id.eq.${user?.id}`);
       if (data) {
         const userIds = data.map((dm) =>
-          dm.receiver_id === user.id ? dm.sender_id : dm.receiver_id
+          dm.receiver_id === user?.id ? dm.sender_id : dm.receiver_id
         );
         const { data: usersData, error: usersError } = await supabase
           .from("profiles")
@@ -161,17 +150,15 @@ export default function ChatClient() {
             usersError?.message
           );
         }
+      } else {
+        console.error("Error fetching direct messages:", error?.message);
       }
     };
 
-    const fetchInitialData = async () => {
-      await fetchUsername();
-      await fetchMessages();
-      await fetchUsers();
-      await fetchDmUsers();
-    };
-
-    fetchInitialData();
+    fetchUsername();
+    fetchMessages();
+    fetchUsers();
+    fetchDmUsers();
 
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
@@ -187,6 +174,14 @@ export default function ChatClient() {
           { event: "INSERT", schema: "public", table: "chat_messages" },
           (payload) => {
             setMessages((prev) => [...prev, payload.new]);
+          }
+        )
+        .on<ChatMessage>(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "direct_messages" },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new]);
+            fetchDmUsers(); // Update the direct messages list
           }
         )
         .on<ChatMessage>(
@@ -250,75 +245,6 @@ export default function ChatClient() {
         });
     }
 
-    if (!channel.current) {
-      channel.current = client.channel("direct-messages", {
-        config: {
-          broadcast: {
-            self: true,
-          },
-        },
-      });
-
-      channel.current
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "direct_messages" },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new]);
-
-            const senderId = payload.new.sender_id;
-            const receiverId = payload.new.receiver_id;
-
-            if (
-              receiverId === user.id &&
-              !dmUsers.some((u) => u.id === senderId)
-            ) {
-              const fetchSender = async () => {
-                const { data: senderData, error: senderError } = await client
-                  .from("profiles")
-                  .select("id, full_name")
-                  .eq("id", senderId)
-                  .single();
-                if (senderData) {
-                  setDmUsers((prev) => [
-                    ...prev,
-                    {
-                      id: senderData.id,
-                      name: senderData.full_name,
-                      is_online: false,
-                    },
-                  ]);
-                  setSelectedChat(senderData.id);
-                } else {
-                  console.error("Error fetching sender:", senderError?.message);
-                }
-              };
-
-              fetchSender();
-            }
-          }
-        )
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "DELETE", schema: "public", table: "direct_messages" },
-          (payload) => {
-            setMessages((prev) =>
-              prev.filter((msg) => msg.id !== payload.old.id)
-            );
-          }
-        )
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "direct_messages" },
-          (payload) => {
-            setMessages((prev) =>
-              prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
-            );
-          }
-        )
-        .subscribe();
-    }
-
     return () => {
       channel.current?.unsubscribe();
       channel.current = null;
@@ -361,13 +287,6 @@ export default function ChatClient() {
       is_read: false,
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
     };
-
-    console.log("New message:", newMessage); // Add this line
-
-    if (selectedChat !== "Admin Chat" && !newMessage.receiver_id) {
-      console.error("Receiver ID is missing for direct message.");
-      return;
-    }
 
     const { data, error } = await client
       .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
@@ -439,18 +358,17 @@ export default function ChatClient() {
   };
 
   const startDirectMessage = async (receiver: User) => {
-    console.log("Starting direct message with receiver:", receiver); // Add this line
     setDmUsers((prev) => [...prev, receiver]);
-    setSelectedChat(receiver.id); // Set selectedChat to receiver's ID
+    setSelectedChat(receiver.id);
     setShowUserList(false);
 
     const { error } = await supabase.from("direct_messages").insert([
       {
         sender_id: user.id,
         receiver_id: receiver.id,
-        message: "", // Initial empty message to create the chat window
+        message: "",
         is_read: false,
-        user_name: username, // Use username of the sender
+        user_name: username,
       },
     ]);
 
@@ -593,14 +511,14 @@ export default function ChatClient() {
                         <DotFilledIcon className="w-4 h-4" />
                         <span className="flex-1 truncate relative group">
                           {u.name}
-                          <Button
+                          {/* <Button
                             className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             variant="ghost"
                             size="icon"
                             onClick={() => deleteDirectMessage(u.id)}
                           >
                             <TrashIcon className="w-4 h-4" />
-                          </Button>
+                          </Button> */}
                         </span>
                         {u.is_online && (
                           <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
