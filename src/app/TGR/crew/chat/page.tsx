@@ -35,7 +35,7 @@ interface ChatMessage {
   user_name: string;
   message: string;
   created_at: string;
-  user_id: string;
+  user_id?: string;
   is_read: boolean;
   receiver_id?: string;
   sender_id?: string;
@@ -279,7 +279,7 @@ export default function ChatClient() {
 
     const client = supabase;
 
-    const newMessage = {
+    const commonMessageData = {
       message,
       sender_id: user.id,
       user_name: username,
@@ -288,9 +288,21 @@ export default function ChatClient() {
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
     };
 
-    const { data, error } = await client
-      .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
-      .insert([newMessage]);
+    let insertData;
+    let tableName;
+
+    if (selectedChat === "Admin Chat") {
+      insertData = {
+        ...commonMessageData,
+        user_id: user.id, // Only include user_id for chat_messages
+      };
+      tableName = "chat_messages";
+    } else {
+      insertData = commonMessageData;
+      tableName = "direct_messages";
+    }
+
+    const { data, error } = await client.from(tableName).insert([insertData]);
 
     if (error) {
       console.error("Error inserting message:", error.message);
@@ -304,7 +316,6 @@ export default function ChatClient() {
 
     setMessage("");
   };
-
   const onDelete = async (id: number) => {
     const client = supabase;
 
