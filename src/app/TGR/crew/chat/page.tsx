@@ -58,6 +58,8 @@ export default function ChatClient() {
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editingMessage, setEditingMessage] = useState<string>("");
   const [showUserList, setShowUserList] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const channel = useRef<RealtimeChannel | null>(null);
   const presenceChannel = useRef<RealtimeChannel | null>(null);
@@ -84,14 +86,20 @@ export default function ChatClient() {
     };
 
     const fetchMessages = async () => {
-      const { data, error } = await client
+      const { data: chatMessages, error: chatError } = await client
         .from("chat_messages")
         .select("*")
         .order("created_at", { ascending: true });
-      if (data) {
-        setMessages(data);
+
+      const { data: directMessages, error: directError } = await client
+        .from("direct_messages")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (chatMessages && directMessages) {
+        setMessages([...chatMessages, ...directMessages]);
       } else {
-        console.error("Error fetching messages:", error?.message);
+        console.error("Error fetching messages:", chatError || directError);
       }
     };
 
@@ -102,11 +110,13 @@ export default function ChatClient() {
         .or("role.eq.admin,role.eq.super admin");
       if (data) {
         setUsers(
-          (data as unknown as { id: string; full_name: string }[]).map((user) => ({
-            id: user.id,
-            name: user.full_name,
-            is_online: false,
-          }))
+          (data as unknown as { id: string; full_name: string }[]).map(
+            (user) => ({
+              id: user.id,
+              name: user.full_name,
+              is_online: false,
+            })
+          )
         );
       } else {
         console.error("Error fetching users:", error?.message);
@@ -114,26 +124,31 @@ export default function ChatClient() {
     };
 
     const fetchDmUsers = async () => {
-      const { data, error } = await client
+      const { data, error } = await supabase
         .from("direct_messages")
-        .select("sender_id, receiver_id")
-        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`);
+        .select("receiver_id, sender_id, user_name")
+        .or(`receiver_id.eq.${user?.id},sender_id.eq.${user?.id}`);
       if (data) {
-        const userIds = data
-          .map((dm) => (dm.sender_id === user.id ? dm.receiver_id : dm.sender_id))
-          .filter((id) => id !== user.id);
-        const { data: usersData, error: usersError } = await client
+        const userIds = data.map((dm) =>
+          dm.receiver_id === user?.id ? dm.sender_id : dm.receiver_id
+        );
+        const { data: usersData, error: usersError } = await supabase
           .from("profiles")
           .select("id, full_name")
           .in("id", userIds);
         if (usersData) {
-          setDmUsers(usersData.map((user) => ({
-            id: user.id,
-            is_online: false,
-            name: user.full_name,
-          })));
+          setDmUsers(
+            usersData.map((user) => ({
+              id: user.id,
+              is_online: false,
+              name: user.full_name,
+            }))
+          );
         } else {
-          console.error("Error fetching direct message users:", usersError?.message);
+          console.error(
+            "Error fetching direct message users:",
+            usersError?.message
+          );
         }
       } else {
         console.error("Error fetching direct messages:", error?.message);
@@ -222,13 +237,35 @@ export default function ChatClient() {
         });
     }
 
+    const directMessageChannel = client
+      .channel("direct-messages")
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages" },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
     return () => {
       channel.current?.unsubscribe();
       channel.current = null;
       presenceChannel.current?.unsubscribe();
       presenceChannel.current = null;
+      directMessageChannel?.unsubscribe();
     };
   }, [user]);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const onSend = async () => {
     if (
@@ -247,17 +284,17 @@ export default function ChatClient() {
     const client = supabase;
 
     const newMessage = {
-      user_name: username,
       message,
-      user_id: user.id,
+      sender_id: user.id,
+      user_name: username,
       created_at: new Date().toISOString(),
       is_read: false,
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
-      sender_id: user.id,
+      ...(selectedChat === "Admin Chat" && { user_id: user.id }), // Conditionally add user_id for chat_messages
     };
 
     const { data, error } = await client
-      .from("chat_messages")
+      .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
       .insert([newMessage]);
 
     if (error) {
@@ -276,7 +313,10 @@ export default function ChatClient() {
   const onDelete = async (id: number) => {
     const client = supabase;
 
-    const { error } = await client.from("chat_messages").delete().eq("id", id);
+    const { error } = await client
+      .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
+      .delete()
+      .eq("id", id);
 
     if (error) {
       console.error("Error deleting message:", error.message);
@@ -295,7 +335,7 @@ export default function ChatClient() {
     const client = supabase;
 
     const { error } = await client
-      .from("chat_messages")
+      .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
       .update({ message: editingMessage })
       .eq("id", editingMessageId);
 
@@ -311,7 +351,10 @@ export default function ChatClient() {
   const deleteAdminChat = async () => {
     const client = supabase;
 
-    const { error } = await client.from("chat_messages").delete().is("receiver_id", null);
+    const { error } = await client
+      .from("chat_messages")
+      .delete()
+      .is("receiver_id", null);
 
     if (error) {
       console.error("Error deleting Admin Chat messages:", error.message);
@@ -324,9 +367,15 @@ export default function ChatClient() {
     setSelectedChat(receiver.id);
     setShowUserList(false);
 
-    const { error } = await supabase
-      .from("direct_messages")
-      .insert([{ sender_id: user.id, receiver_id: receiver.id }]);
+    const { error } = await supabase.from("direct_messages").insert([
+      {
+        sender_id: user.id,
+        receiver_id: receiver.id,
+        message: "",
+        is_read: false,
+        user_name: username,
+      },
+    ]);
 
     if (error) {
       console.error("Error inserting direct message user:", error.message);
@@ -360,19 +409,61 @@ export default function ChatClient() {
     );
   });
 
+  useEffect(() => {
+    const fetchUnreadCounts = async () => {
+      const { data, error } = await supabase
+        .from("direct_messages")
+        .select("receiver_id, is_read");
+
+      if (error) {
+        console.error("Error fetching unread counts:", error.message);
+      } else {
+        const unreadMessages = data.filter(
+          (msg: { is_read: boolean }) => !msg.is_read
+        );
+        const counts = unreadMessages.reduce(
+          (acc: { [key: string]: number }, curr: { receiver_id: string }) => {
+            acc[curr.receiver_id] = (acc[curr.receiver_id] || 0) + 1;
+            return acc;
+          },
+          {}
+        );
+        setUnreadCounts(counts);
+      }
+    };
+
+    fetchUnreadCounts();
+  }, [messages]);
+
+  const handleChatClick = (chatId: string) => {
+    setSelectedChat(chatId);
+    if (unreadCounts[chatId]) {
+      const updatedUnreadCounts = { ...unreadCounts };
+      delete updatedUnreadCounts[chatId];
+      setUnreadCounts(updatedUnreadCounts);
+
+      // Mark messages as read in the database
+      supabase
+        .from("direct_messages")
+        .update({ is_read: true })
+        .eq("receiver_id", user.id)
+        .eq("sender_id", chatId);
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4">
+      <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4 overflow-hidden">
         <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
           <TextGenerateEffect words={title} />
         </CardTitle>
-        <CardContent className="flex flex-1 p-0 max-w-full">
-          <div className="flex h-full">
-            <div className="flex-1 flex flex-col max-w-sm w-64 border-r border-gray-200 dark:border-gray-800">  
+        <CardContent className="flex flex-1 p-0 max-w-full overflow-hidden">
+          <div className="flex h-full w-full overflow-hidden">
+            <div className="flex-1 flex flex-col max-w-sm w-64 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                 <h2 className="text-lg font-semibold">Messages</h2>
                 <Button variant="ghost" onClick={() => setShowUserList(true)}>
@@ -418,7 +509,7 @@ export default function ChatClient() {
                     >
                       <Link
                         href="#"
-                        onClick={() => setSelectedChat(u.id)}
+                        onClick={() => handleChatClick(u.id)}
                         prefetch={false}
                         className="flex-1 flex items-center gap-3"
                       >
@@ -460,21 +551,21 @@ export default function ChatClient() {
                       <Avatar className="border w-10 h-10">
                         <AvatarImage src="/placeholder-user.jpg" />
                         <AvatarFallback>
-                          {msg.user_name.charAt(0)}
+                          {msg.user_name?.charAt(0) || msg.sender_id?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid gap-1 flex-1">
                         <div className="font-bold relative group">
-                          {msg.user_name}
-                          {msg.user_id !== user.id && !msg.receiver_id && (
+                          {msg.user_name || msg.sender_id}
+                          {msg.sender_id !== user.id && !msg.receiver_id && (
                             <Button
                               className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               variant="ghost"
                               size="icon"
                               onClick={() =>
                                 startDirectMessage({
-                                  id: msg.user_id,
-                                  name: msg.user_name,
+                                  id: msg.sender_id!,
+                                  name: msg.user_name || msg.sender_id!,
                                   is_online: false,
                                 })
                               }
@@ -502,7 +593,7 @@ export default function ChatClient() {
                           )}
                         </div>
                       </div>
-                      {role === "super admin" || msg.user_id === user.id ? (
+                      {role === "super admin" || msg.sender_id === user.id ? (
                         <div className="flex space-x-2">
                           <Button
                             onClick={() => onEdit(msg.id, msg.message)}
@@ -522,6 +613,7 @@ export default function ChatClient() {
                       ) : null}
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
               <div className="border-t border-gray-200 dark:border-gray-800 p-4">
