@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { createClient, RealtimeChannel } from "@supabase/supabase-js";
+import { RealtimeChannel } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
@@ -67,22 +67,28 @@ export default function ChatClient() {
 
   useEffect(() => {
     const client = supabase;
-
+    
     const fetchUsername = async () => {
-      if (user) {
-        const { data: userData, error } = await client
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (userData && userData.user) {
+        const { data, error } = await supabase
           .from("employees")
           .select("name")
-          .eq("user_uuid", user.id)
+          .eq("user_uuid", userData.user.id)
           .single();
-        if (userData) {
-          setUsername(userData.name);
+        if (data) {
+          setUsername(data.name);
+          // Set user as online
+          await supabase
+            .from("employees")
+            .update({ is_online: true })
+            .eq("user_uuid", userData.user.id);
         } else {
           console.error("Error fetching username:", error?.message);
         }
       }
     };
-
+    
     const fetchMessages = async () => {
       const { data: chatMessages, error: chatError } = await client
         .from("chat_messages")
@@ -102,7 +108,7 @@ export default function ChatClient() {
     };
 
     const fetchUsers = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("employees")
         .select("user_uuid, name, is_online")
         .or("role.eq.admin,role.eq.super admin");
@@ -118,38 +124,38 @@ export default function ChatClient() {
         console.error("Error fetching users:", error?.message);
       }
     };
-    
+
     const fetchDmUsers = async () => {
       if (!user?.id) {
         console.error("User ID is undefined");
         return;
       }
-    
-      const { data, error } = await supabase
+
+      const { data, error } = await client
         .from("direct_messages")
         .select("receiver_id, sender_id, user_name")
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-    
+
       if (error) {
         console.error("Error fetching direct messages:", error.message);
         return;
       }
-    
+
       if (data) {
         const userIds = data.map((dm) =>
           dm.receiver_id === user.id ? dm.sender_id : dm.receiver_id
         );
-        const { data: usersData, error: usersError } = await supabase
-          .from("profiles")
-          .select("id, full_name, is_online")
-          .in("id", userIds);
-    
+        const { data: usersData, error: usersError } = await client
+          .from("employees")
+          .select("user_uuid, name, is_online")
+          .in("user_uuid", userIds);
+
         if (usersData) {
           setDmUsers(
             usersData.map((user) => ({
-              id: user.id,
+              id: user.user_uuid,
               is_online: user.is_online,
-              name: user.full_name,
+              name: user.name,
             }))
           );
         } else {
@@ -160,7 +166,7 @@ export default function ChatClient() {
         }
       }
     };
-    
+
     const fetchInitialData = async () => {
       await fetchUsername();
       await fetchMessages();
@@ -178,7 +184,7 @@ export default function ChatClient() {
           },
         },
       });
-  
+
       channel.current
         .on<ChatMessage>(
           "postgres_changes",
@@ -210,89 +216,104 @@ export default function ChatClient() {
 
     const fetchSender = async (senderId: string) => {
       const { data: senderData, error: senderError } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("id", senderId)
+        .from("employees")
+        .select("user_uuid, name, is_online")
+        .eq("user_uuid", senderId)
         .single();
       if (senderData) {
         setDmUsers((prev) => {
-          if (!prev.some((user) => user.id === senderData.id)) {
+          if (!prev.some((user) => user.id === senderData.user_uuid)) {
             return [
               ...prev,
               {
-                id: senderData.id,
-                name: senderData.full_name,
-                is_online: false,
+                id: senderData.user_uuid,
+                name: senderData.name,
+                is_online: senderData.is_online,
               },
             ];
           }
           return prev;
         });
-        setSelectedChat(senderData.id);
       } else {
         console.error("Error fetching sender:", senderError?.message);
       }
     };
-    
-  const directMessageChannel = client
-  .channel("direct-messages", {
-    config: {
-      broadcast: {
-        self: true,
-      },
-    },
-  })
-  .on<ChatMessage>(
-    "postgres_changes",
-    { event: "INSERT", schema: "public", table: "direct_messages" },
-    (payload) => {
-      setMessages((prev) => [...prev, payload.new]);
 
-      if (payload.new.receiver_id === user?.id && selectedChat !== payload.new.sender_id) {
-        const senderId = payload.new.sender_id;
+    const directMessageChannel = client
+      .channel("direct-messages", {
+        config: {
+          broadcast: {
+            self: true,
+          },
+        },
+      })
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages" },
+        async (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
 
-        if (typeof senderId === 'string') {
-          setUnreadStatus((prevStatus) => ({
-            ...prevStatus,
-            [senderId]: true,
-          }));
+          if (payload.new.receiver_id === user?.id) {
+            const senderId = payload.new.sender_id;
 
-          if (!dmUsers.some((u) => u.id === senderId)) {
-            fetchSender(senderId);
+            if (typeof senderId === "string") {
+              setUnreadStatus((prevStatus) => ({
+                ...prevStatus,
+                [senderId]: true,
+              }));
+
+              if (!dmUsers.some((u) => u.id === senderId)) {
+                await fetchSender(senderId);
+              }
+            } else {
+              console.error("sender_id is not a string", senderId);
+            }
           }
-        } else {
-          console.error("sender_id is not a string", senderId);
         }
-      }
-    }
-  )
-  .on<ChatMessage>(
-    "postgres_changes",
-    { event: "DELETE", schema: "public", table: "direct_messages" },
-    (payload) => {
-      setMessages((prev) =>
-        prev.filter((msg) => msg.id !== payload.old.id)
-      );
-    }
-  )
-  .on<ChatMessage>(
-    "postgres_changes",
-    { event: "UPDATE", schema: "public", table: "direct_messages" },
-    (payload) => {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
-      );
-    }
-  )
-  .subscribe();
+      )
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== payload.old.id)
+          );
+        }
+      )
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
+          );
+        }
+      )
+      .subscribe();
 
-    return () => {
-      channel.current?.unsubscribe();
-      channel.current = null;
-      presenceChannel.current?.unsubscribe();
-      presenceChannel.current = null;
-      directMessageChannel?.unsubscribe();
-    };
+      const authListener = client.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          await client
+            .from("employees")
+            .update({ is_online: true })
+            .eq("user_uuid", session.user.id);
+        } else if (event === "SIGNED_OUT" && session) {
+          await client
+            .from("employees")
+            .update({ is_online: false })
+            .eq("user_uuid", session.user.id);
+        }
+      });
+      
+      return () => {
+        authListener.data.subscription.unsubscribe();
+        channel.current?.unsubscribe();
+        channel.current = null;
+        presenceChannel.current?.unsubscribe();
+        presenceChannel.current = null;
+        directMessageChannel?.unsubscribe();
+      };
+      
   }, [user, selectedChat]);
 
   const scrollToBottom = () => {
@@ -382,12 +403,19 @@ export default function ChatClient() {
           const { error: updateError } = await client
             .from(tableName)
             .update({
-              read_by: [...(existingMessages.find(msg => msg.id === messageId)?.read_by || []), user.id],
+              read_by: [
+                ...(existingMessages.find((msg) => msg.id === messageId)
+                  ?.read_by || []),
+                user.id,
+              ],
             })
             .eq("id", messageId);
 
           if (updateError) {
-            console.error("Error updating messages as read:", updateError.message);
+            console.error(
+              "Error updating messages as read:",
+              updateError.message
+            );
           }
         }
       }
@@ -454,11 +482,11 @@ export default function ChatClient() {
       setShowUserList(false); // Close the dialog
       return;
     }
-  
+
     setDmUsers((prev) => [...prev, receiver]);
     setSelectedChat(receiver.id);
     setShowUserList(false); // Close the dialog
-  
+
     const { error } = await supabase.from("direct_messages").insert([
       {
         sender_id: user.id,
@@ -468,12 +496,12 @@ export default function ChatClient() {
         user_name: username, // Use username of the sender
       },
     ]);
-  
+
     if (error) {
       console.error("Error inserting direct message user:", error.message);
     }
-  };  
-  
+  };
+
   const deleteDirectMessage = async (userId: string) => {
     setDmUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
     if (selectedChat === userId) {
@@ -529,45 +557,74 @@ export default function ChatClient() {
 
   const handleChatClick = async (chatId: string) => {
     setSelectedChat(chatId);
-
+  
     // Reset unread status for the selected chat
     if (unreadStatus[chatId]) {
       setUnreadStatus((prevStatus) => ({
         ...prevStatus,
         [chatId]: false,
       }));
-
+  
       // Mark messages as read in the database
       const { data: messagesToUpdate, error: fetchError } = await supabase
         .from("direct_messages")
         .select("id, read_by")
         .or(`receiver_id.eq.${chatId},sender_id.eq.${user.id}`);
-
+  
       if (fetchError) {
         console.error("Error fetching messages to update:", fetchError.message);
         return;
       }
-
+  
       const messageIdsToUpdate = messagesToUpdate
         .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
         .map((msg) => msg.id);
-
+  
       if (messageIdsToUpdate.length > 0) {
         for (const messageId of messageIdsToUpdate) {
           const { error: updateError } = await supabase
             .from("direct_messages")
             .update({
-              read_by: [...(messagesToUpdate.find(msg => msg.id === messageId)?.read_by || []), user.id],
+              read_by: [
+                ...(messagesToUpdate.find((msg) => msg.id === messageId)
+                  ?.read_by || []),
+                user.id,
+              ],
             })
             .eq("id", messageId);
-
+  
           if (updateError) {
-            console.error("Error updating messages as read:", updateError.message);
+            console.error(
+              "Error updating messages as read:",
+              updateError.message
+            );
           }
         }
       }
     }
-  };
+  
+    // Ensure the receiver's nav list updates to show the new DM
+    if (!dmUsers.some((u) => u.id === chatId)) {
+      const { data: userData, error: userError } = await supabase
+        .from("employees")
+        .select("user_uuid, name, is_online")
+        .eq("user_uuid", chatId)
+        .single();
+  
+      if (userData) {
+        setDmUsers((prev) => [
+          ...prev,
+          {
+            id: userData.user_uuid,
+            name: userData.name,
+            is_online: userData.is_online,
+          },
+        ]);
+      } else {
+        console.error("Error fetching user:", userError?.message);
+      }
+    }
+  };  
 
   if (loading) {
     return <div>Loading...</div>;
@@ -589,73 +646,74 @@ export default function ChatClient() {
                 </Button>
               </div>
               <div className="flex-1 overflow-auto">
-              <nav className="space-y-1 p-4">
-  <div
-    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-      selectedChat === "Admin Chat"
-        ? "bg-gray-200 dark:bg-neutral-800"
-        : ""
-    }`}
-  >
-    <Link
-      href="#"
-      onClick={() => setSelectedChat("Admin Chat")}
-      prefetch={false}
-      className="flex-1 flex items-center gap-3"
-    >
-      <DotFilledIcon className="w-4 h-4" />
-      <span className="flex-1 truncate"># Admins</span>
-    </Link>
-    {role === "super admin" && (
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={deleteAdminChat}
-      >
-        <CrossCircledIcon />
-      </Button>
-    )}
-  </div>
+                <nav className="space-y-1 p-4">
+                  <div
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                      selectedChat === "Admin Chat"
+                        ? "bg-gray-200 dark:bg-neutral-800"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      href="#"
+                      onClick={() => setSelectedChat("Admin Chat")}
+                      prefetch={false}
+                      className="flex-1 flex items-center gap-3"
+                    >
+                      <DotFilledIcon className="w-4 h-4" />
+                      <span className="flex-1 truncate"># Admins</span>
+                    </Link>
+                    {role === "super admin" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={deleteAdminChat}
+                      >
+                        <CrossCircledIcon />
+                      </Button>
+                    )}
+                  </div>
 
-  {dmUsers.map((u) => (
-    <div
-      key={u.id}
-      className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-        selectedChat === u.id ? "bg-gray-200 dark:bg-neutral-800" : ""
-      }`}
-    >
-      <Link
-        href="#"
-        onClick={() => handleChatClick(u.id)}
-        prefetch={false}
-        className="flex-1 flex items-center gap-3"
-      >
-        {u.is_online && <DotFilledIcon className="text-green-600" />}
-        <span className="flex-1 truncate">
-          {u.name}
-        </span>
-        {unreadStatus[u.id] && (
-          <span className="ml-2">
-            <DotFilledIcon className="w-4 h-4 text-red-600" />
-          </span>
-        )}
-        {u.is_online && (
-          <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
-            Online
-          </span>
-        )}
-      </Link>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => deleteDirectMessage(u.id)}
-      >
-        <CrossCircledIcon className="w-4 h-4" />
-      </Button>
-    </div>
-  ))}
-</nav>
-
+                  {dmUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                        selectedChat === u.id
+                          ? "bg-gray-200 dark:bg-neutral-800"
+                          : ""
+                      }`}
+                    >
+                      <Link
+                        href="#"
+                        onClick={() => handleChatClick(u.id)}
+                        prefetch={false}
+                        className="flex-1 flex items-center gap-3"
+                      >
+                        {u.is_online && (
+                          <DotFilledIcon className="text-green-600" />
+                        )}
+                        <span className="flex-1 truncate">{u.name}</span>
+                        {unreadStatus[u.id] && (
+                          <span className="ml-2">
+                            <DotFilledIcon className="w-4 h-4 text-red-600" />
+                          </span>
+                        )}
+                        {u.is_online && (
+                          <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
+                            Online
+                          </span>
+                        )}
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteDirectMessage(u.id)}
+                      >
+                        <CrossCircledIcon className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </nav>
               </div>
             </div>
             <div className="flex-1 flex flex-col">
@@ -764,33 +822,37 @@ export default function ChatClient() {
         </CardContent>
       </Card>
       <Dialog open={showUserList} onOpenChange={setShowUserList}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Start a Direct Message</DialogTitle>
-      <DialogDescription>
-        Select a user to start a conversation with.
-      </DialogDescription>
-    </DialogHeader>
-    <div className="space-y-2">
-      {users.map((u) => (
-        <Button
-          key={u.id}
-          variant="linkHover1"
-          onClick={() => startDirectMessage(u)}
-          className="flex items-center gap-2"
-        >
-          {u.is_online && <DotFilledIcon className="text-green-600" />}
-          {u.name}
-        </Button>
-      ))}
-    </div>
-    <DialogFooter>
-      <Button variant="ghost" onClick={() => setShowUserList(false)}>
-        Cancel
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start a Direct Message</DialogTitle>
+            <DialogDescription>
+              Select a user to start a conversation with.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {users.map((u) => (
+              <Button
+                key={u.id}
+                variant="linkHover1"
+                onClick={() => startDirectMessage(u)}
+                className="flex items-center gap-2"
+              >
+                {u.is_online && <DotFilledIcon className="text-green-600" />}
+                {u.name}
+              </Button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowUserList(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </RoleBasedWrapper>
   );
 }
+function fetchSender(senderId: string) {
+  throw new Error("Function not implemented.");
+}
+
