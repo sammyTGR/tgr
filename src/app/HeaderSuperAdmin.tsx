@@ -10,6 +10,7 @@ import {
   HomeIcon,
   CalendarIcon,
   FileTextIcon,
+  DotFilledIcon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
@@ -334,7 +335,11 @@ const HeaderSuperAdmin = React.memo(() => {
           <Link href="/TGR/crew/chat">
             <Button variant="linkHover2" size="icon">
               <ChatBubbleIcon />
-              {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+              {unreadCount > 0 && (
+                <span className="">
+                  <DotFilledIcon className="w-4 h-4 text-red-600" />
+                </span>
+              )}
             </Button>
           </Link>
           {unreadOrderCount > 0 && (
