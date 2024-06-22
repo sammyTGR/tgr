@@ -364,14 +364,12 @@ const HeaderSuperAdmin = React.memo(() => {
               <Button variant="linkHover2">Sign In</Button>
             </Link>
           )}
-          <Link href="/TGR/crew/chat" onClick={handleChatClick}>
-            <Button variant="linkHover2" size="icon">
-              <ChatBubbleIcon />
-              {unreadCount > 0 && (
-                <DotFilledIcon className="w-4 h-4 text-red-600" />
-              )}
-            </Button>
-          </Link>
+          <Button variant="linkHover2" size="icon" onClick={handleChatClick}>
+            <ChatBubbleIcon />
+            {unreadCount > 0 && (
+              <DotFilledIcon className="w-4 h-4 text-red-600" />
+            )}
+          </Button>
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
               <Button variant="linkHover1" size="icon">
