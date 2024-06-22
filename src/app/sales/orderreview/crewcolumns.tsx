@@ -118,14 +118,14 @@ export const createColumns = (): ColumnDef<Order>[] => [
       style: { width: "150px" },
     },
   },
-  {
-    accessorKey: "contacted",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Contacted" />
-    ),
-    cell: ({ row }) => (row.original.contacted ? "Yes" : "No"),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
+  // {
+  //   accessorKey: "contacted",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Contacted" />
+  //   ),
+  //   cell: ({ row }) => (row.original.contacted ? "Yes" : "No"),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
 ];
