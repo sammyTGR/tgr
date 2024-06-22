@@ -65,10 +65,7 @@ export default function ChatClient() {
   const presenceChannel = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const client = supabase;
   
     const fetchUsername = async () => {
       if (user) {
