@@ -124,30 +124,31 @@ export default function ChatClient() {
         console.error("User ID is undefined");
         return;
       }
-
+    
       const { data, error } = await supabase
         .from("direct_messages")
         .select("receiver_id, sender_id, user_name")
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-
+    
       if (error) {
         console.error("Error fetching direct messages:", error.message);
         return;
       }
-
+    
       if (data) {
         const userIds = data.map((dm) =>
           dm.receiver_id === user.id ? dm.sender_id : dm.receiver_id
         );
         const { data: usersData, error: usersError } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, is_online")
           .in("id", userIds);
+    
         if (usersData) {
           setDmUsers(
             usersData.map((user) => ({
               id: user.id,
-              is_online: false,
+              is_online: user.is_online,
               name: user.full_name,
             }))
           );
@@ -159,7 +160,7 @@ export default function ChatClient() {
         }
       }
     };
-
+    
     const fetchInitialData = async () => {
       await fetchUsername();
       await fetchMessages();
@@ -471,7 +472,7 @@ export default function ChatClient() {
     if (error) {
       console.error("Error inserting direct message user:", error.message);
     }
-  };
+  };  
   
   const deleteDirectMessage = async (userId: string) => {
     setDmUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
@@ -588,70 +589,73 @@ export default function ChatClient() {
                 </Button>
               </div>
               <div className="flex-1 overflow-auto">
-                <nav className="space-y-1 p-4">
-                  <div
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                      selectedChat === "Admin Chat"
-                        ? "bg-gray-200 dark:bg-neutral-800"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      href="#"
-                      onClick={() => setSelectedChat("Admin Chat")}
-                      prefetch={false}
-                      className="flex-1 flex items-center gap-3"
-                    >
-                      <DotFilledIcon className="w-4 h-4" />
-                      <span className="flex-1 truncate"># Admins</span>
-                    </Link>
-                    {role === "super admin" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={deleteAdminChat}
-                      >
-                        <CrossCircledIcon />
-                      </Button>
-                    )}
-                  </div>
-
-{dmUsers.map((u) => (
+              <nav className="space-y-1 p-4">
   <div
-    key={u.id}
-    className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-      selectedChat === u.id ? "bg-gray-200 dark:bg-neutral-800" : ""
+    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+      selectedChat === "Admin Chat"
+        ? "bg-gray-200 dark:bg-neutral-800"
+        : ""
     }`}
   >
     <Link
       href="#"
-      onClick={() => handleChatClick(u.id)}
+      onClick={() => setSelectedChat("Admin Chat")}
       prefetch={false}
       className="flex-1 flex items-center gap-3"
     >
-      {unreadStatus[u.id] && (
-        <DotFilledIcon className="w-4 h-4 text-red-600" />
-      )}
-      <span className="flex-1 truncate">
-        {u.name}
-      </span>
-      {u.is_online && (
-        <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
-          Online
-        </span>
-      )}
+      <DotFilledIcon className="w-4 h-4" />
+      <span className="flex-1 truncate"># Admins</span>
     </Link>
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => deleteDirectMessage(u.id)}
-    >
-      <CrossCircledIcon className="w-4 h-4" />
-    </Button>
+    {role === "super admin" && (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={deleteAdminChat}
+      >
+        <CrossCircledIcon />
+      </Button>
+    )}
   </div>
-))}
 
-                </nav>
+  {dmUsers.map((u) => (
+    <div
+      key={u.id}
+      className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+        selectedChat === u.id ? "bg-gray-200 dark:bg-neutral-800" : ""
+      }`}
+    >
+      <Link
+        href="#"
+        onClick={() => handleChatClick(u.id)}
+        prefetch={false}
+        className="flex-1 flex items-center gap-3"
+      >
+        {u.is_online && <DotFilledIcon className="text-green-600" />}
+        <span className="flex-1 truncate">
+          {u.name}
+        </span>
+        {unreadStatus[u.id] && (
+          <span className="ml-2">
+            <DotFilledIcon className="w-4 h-4 text-red-600" />
+          </span>
+        )}
+        {u.is_online && (
+          <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
+            Online
+          </span>
+        )}
+      </Link>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => deleteDirectMessage(u.id)}
+      >
+        <CrossCircledIcon className="w-4 h-4" />
+      </Button>
+    </div>
+  ))}
+</nav>
+
               </div>
             </div>
             <div className="flex-1 flex flex-col">
