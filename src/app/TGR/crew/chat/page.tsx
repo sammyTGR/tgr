@@ -126,17 +126,17 @@ export default function ChatClient() {
         console.error("User ID is undefined");
         return;
       }
-
+    
       const { data, error } = await supabase
         .from("direct_messages")
         .select("receiver_id, sender_id, user_name")
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-
+    
       if (error) {
         console.error("Error fetching direct messages:", error.message);
         return;
       }
-
+    
       if (data) {
         const userIds = data.map((dm) =>
           dm.receiver_id === user.id ? dm.sender_id : dm.receiver_id
@@ -145,6 +145,7 @@ export default function ChatClient() {
           .from("profiles")
           .select("id, full_name")
           .in("id", userIds);
+    
         if (usersData) {
           setDmUsers(
             usersData.map((user) => ({
@@ -161,7 +162,7 @@ export default function ChatClient() {
         }
       }
     };
-
+    
     const fetchInitialData = async () => {
       await fetchUsername();
       await fetchMessages();
@@ -209,31 +210,31 @@ export default function ChatClient() {
         .subscribe();
     }
 
-  const fetchSender = async (senderId: string) => {
-    const { data: senderData, error: senderError } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("id", senderId)
-      .single();
-    if (senderData) {
-      setDmUsers((prev) => {
-        if (!prev.some((user) => user.id === senderData.id)) {
-          return [
-            ...prev,
-            {
-              id: senderData.id,
-              name: senderData.full_name,
-              is_online: false,
-            },
-          ];
-        }
-        return prev;
-      });
-      setSelectedChat(senderData.id);
-    } else {
-      console.error("Error fetching sender:", senderError?.message);
-    }
-  };
+    const fetchSender = async (senderId: string) => {
+      const { data: senderData, error: senderError } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("id", senderId)
+        .single();
+      if (senderData) {
+        setDmUsers((prev) => {
+          if (!prev.some((user) => user.id === senderData.id)) {
+            return [
+              ...prev,
+              {
+                id: senderData.id,
+                name: senderData.full_name,
+                is_online: false,
+              },
+            ];
+          }
+          return prev;
+        });
+        setSelectedChat(senderData.id);
+      } else {
+        console.error("Error fetching sender:", senderError?.message);
+      }
+    };
     
   const directMessageChannel = client
   .channel("direct-messages", {
@@ -455,11 +456,11 @@ export default function ChatClient() {
       setSelectedChat(receiver.id);
       return;
     }
-
+  
     setDmUsers((prev) => [...prev, receiver]);
     setSelectedChat(receiver.id);
     setShowUserList(false);
-
+  
     const { error } = await supabase.from("direct_messages").insert([
       {
         sender_id: user.id,
@@ -469,12 +470,12 @@ export default function ChatClient() {
         user_name: username, // Use username of the sender
       },
     ]);
-
+  
     if (error) {
       console.error("Error inserting direct message user:", error.message);
     }
   };
-
+  
   const deleteDirectMessage = async (userId: string) => {
     setDmUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
     if (selectedChat === userId) {
@@ -614,7 +615,7 @@ export default function ChatClient() {
                         size="icon"
                         onClick={deleteAdminChat}
                       >
-                        <TrashIcon />
+                        <CrossCircledIcon />
                       </Button>
                     )}
                   </div>

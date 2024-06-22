@@ -26,6 +26,7 @@ import useUnreadMessages from "@/pages/api/fetch-unread"; // Import the hook
 import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
 import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { useRouter } from "next/navigation";
 
 const auditComponents = [
   {
@@ -97,11 +98,6 @@ const formComps = [
     href: "/TGR/rangewalk",
     description: "Submit Daily Range Walks",
   },
-  // {
-  //   title: "Range Repairs",
-  //   href: "/TGR/rangerepairs",
-  //   description: "Submit ALL Range Repairs",
-  // },
   {
     title: "Daily Deposits",
     href: "/TGR/deposits",
@@ -175,10 +171,14 @@ const profileComps = [
 
 const HeaderSuperAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+  const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
+  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
+  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
       if (data) {
         setUser(data.user);
       }
@@ -186,14 +186,46 @@ const HeaderSuperAdmin = React.memo(() => {
     fetchUser();
   }, []);
 
-  const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
-  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
-  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     window.location.href = "/"; // Redirect to sign-in page after sign-out
+  };
+
+  const handleChatClick = async () => {
+    if (user) {
+      const { data: messagesToUpdate, error: fetchError } = await supabase
+        .from("direct_messages")
+        .select("id, read_by")
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
+
+      if (fetchError) {
+        console.error("Error fetching messages to update:", fetchError.message);
+        return;
+      }
+
+      const messageIdsToUpdate = messagesToUpdate
+        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
+        .map((msg) => msg.id);
+
+      if (messageIdsToUpdate.length > 0) {
+        for (const messageId of messageIdsToUpdate) {
+          const { error: updateError } = await supabase
+            .from("direct_messages")
+            .update({
+              read_by: [...(messagesToUpdate.find(msg => msg.id === messageId)?.read_by || []), user.id],
+            })
+            .eq("id", messageId);
+
+          if (updateError) {
+            console.error("Error updating messages as read:", updateError.message);
+          }
+        }
+      }
+
+      // Navigate to the chat page
+      router.push('/TGR/crew/chat');
+    }
   };
 
   return (
@@ -332,13 +364,11 @@ const HeaderSuperAdmin = React.memo(() => {
               <Button variant="linkHover2">Sign In</Button>
             </Link>
           )}
-          <Link href="/TGR/crew/chat">
+          <Link href="/TGR/crew/chat" onClick={handleChatClick}>
             <Button variant="linkHover2" size="icon">
               <ChatBubbleIcon />
               {unreadCount > 0 && (
-                <span className="">
-                  <DotFilledIcon className="w-4 h-4 text-red-600" />
-                </span>
+                <DotFilledIcon className="w-4 h-4 text-red-600" />
               )}
             </Button>
           </Link>
