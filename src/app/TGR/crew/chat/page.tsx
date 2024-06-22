@@ -69,7 +69,7 @@ export default function ChatClient() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
-
+  
     const fetchUsername = async () => {
       if (user) {
         const { data: userData, error } = await client
@@ -84,25 +84,25 @@ export default function ChatClient() {
         }
       }
     };
-
+  
     const fetchMessages = async () => {
       const { data: chatMessages, error: chatError } = await client
         .from("chat_messages")
         .select("*")
         .order("created_at", { ascending: true });
-
+    
       const { data: directMessages, error: directError } = await client
         .from("direct_messages")
         .select("*")
         .order("created_at", { ascending: true });
-
+    
       if (chatMessages && directMessages) {
         setMessages([...chatMessages, ...directMessages]);
       } else {
         console.error("Error fetching messages:", chatError || directError);
       }
     };
-
+    
     const fetchUsers = async () => {
       const { data, error } = await client
         .from("profiles")
@@ -122,7 +122,7 @@ export default function ChatClient() {
         console.error("Error fetching users:", error?.message);
       }
     };
-
+  
     const fetchDmUsers = async () => {
       const { data, error } = await supabase
         .from("direct_messages")
@@ -154,12 +154,12 @@ export default function ChatClient() {
         console.error("Error fetching direct messages:", error?.message);
       }
     };
-
+  
     fetchUsername();
     fetchMessages();
     fetchUsers();
     fetchDmUsers();
-
+  
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
         config: {
@@ -174,14 +174,6 @@ export default function ChatClient() {
           { event: "INSERT", schema: "public", table: "chat_messages" },
           (payload) => {
             setMessages((prev) => [...prev, payload.new]);
-          }
-        )
-        .on<ChatMessage>(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "direct_messages" },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new]);
-            fetchDmUsers(); // Update the direct messages list
           }
         )
         .on<ChatMessage>(
@@ -204,7 +196,7 @@ export default function ChatClient() {
         )
         .subscribe();
     }
-
+  
     if (!presenceChannel.current) {
       presenceChannel.current = client.channel("online-users", {
         config: {
@@ -213,7 +205,7 @@ export default function ChatClient() {
           },
         },
       });
-
+  
       presenceChannel.current
         .on("presence", { event: "sync" }, () => {
           const newState = presenceChannel.current?.presenceState();
@@ -236,7 +228,7 @@ export default function ChatClient() {
           if (status !== "SUBSCRIBED") {
             return;
           }
-
+  
           const presenceTrackStatus = await presenceChannel.current?.track({
             user: user?.id,
             online_at: new Date().toISOString(),
@@ -244,14 +236,27 @@ export default function ChatClient() {
           console.log(presenceTrackStatus);
         });
     }
-
+  
+    const directMessageChannel = client
+      .channel("direct-messages")
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages" },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+  
     return () => {
       channel.current?.unsubscribe();
       channel.current = null;
       presenceChannel.current?.unsubscribe();
       presenceChannel.current = null;
+      directMessageChannel?.unsubscribe();
     };
   }, [user]);
+  
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -276,10 +281,10 @@ export default function ChatClient() {
       });
       return;
     }
-
+  
     const client = supabase;
-
-    const newMessage = {
+  
+    const commonMessageData = {
       message,
       sender_id: user.id,
       user_name: username,
@@ -287,24 +292,38 @@ export default function ChatClient() {
       is_read: false,
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
     };
-
+  
+    let insertData;
+    let tableName;
+  
+    if (selectedChat === "Admin Chat") {
+      insertData = {
+        ...commonMessageData,
+        user_id: user.id, // Only include user_id for chat_messages
+      };
+      tableName = "chat_messages";
+    } else {
+      insertData = commonMessageData;
+      tableName = "direct_messages";
+    }
+  
     const { data, error } = await client
-      .from(selectedChat === "Admin Chat" ? "chat_messages" : "direct_messages")
-      .insert([newMessage]);
-
+      .from(tableName)
+      .insert([insertData]);
+  
     if (error) {
       console.error("Error inserting message:", error.message);
       return;
     }
-
+  
     if (data) {
       const newMessages = Array.isArray(data) ? data : [data];
       setMessages((prev) => [...prev, ...newMessages]);
     }
-
+  
     setMessage("");
   };
-
+  
   const onDelete = async (id: number) => {
     const client = supabase;
 
@@ -361,22 +380,22 @@ export default function ChatClient() {
     setDmUsers((prev) => [...prev, receiver]);
     setSelectedChat(receiver.id);
     setShowUserList(false);
-
+  
     const { error } = await supabase.from("direct_messages").insert([
       {
         sender_id: user.id,
         receiver_id: receiver.id,
         message: "",
         is_read: false,
-        user_name: username,
+        user_name: receiver.name, // Ensure this is included
       },
     ]);
-
+  
     if (error) {
       console.error("Error inserting direct message user:", error.message);
     }
   };
-
+  
   const deleteDirectMessage = async (userId: string) => {
     setDmUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
     if (selectedChat === userId) {
@@ -511,14 +530,14 @@ export default function ChatClient() {
                         <DotFilledIcon className="w-4 h-4" />
                         <span className="flex-1 truncate relative group">
                           {u.name}
-                          {/* <Button
+                          <Button
                             className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             variant="ghost"
                             size="icon"
                             onClick={() => deleteDirectMessage(u.id)}
                           >
                             <TrashIcon className="w-4 h-4" />
-                          </Button> */}
+                          </Button>
                         </span>
                         {u.is_online && (
                           <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
