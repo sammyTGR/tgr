@@ -20,9 +20,13 @@ function ProofDocs({ className }: { className?: string }) {
             Accepted Proof Of Residence Docs
           </CardTitle>
           <CardDescription>
-            Don&apos;t Forget To Check For Valid CA DL | ID Along With Either
-            Their FSC, Or One Of The Many Exemptions, Such As Their Officer ID,
-            CCW, Etc. Along With One Of The Following From Below:
+            <span className="text-amber-500">
+              CA DL | IDs With P.O. Boxes Are{" "}
+              <span className="text-red-500">NOT ACCEPTABLE</span> As An
+              Address, Even If It Is A REAL ID. The Customer Must Also Present
+              An Acceptable Address Correction Doc, IN ADDITION TO One Of The
+              Docs Below:
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent>

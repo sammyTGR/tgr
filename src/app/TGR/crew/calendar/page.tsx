@@ -1,7 +1,11 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CaretUpIcon,
+} from "@radix-ui/react-icons";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { supabase } from "../../../../utils/supabase/client";
 import {
@@ -13,8 +17,13 @@ import {
   Table,
 } from "@/components/ui/table";
 import { useRole } from "../../../../context/RoleContext";
-import { Card, CardContent } from "@/components/ui/card"; // Import Card components
+import { Card, CardContent } from "@/components/ui/card";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 const title = "TGR Crew Calendar";
 
@@ -24,9 +33,11 @@ interface CalendarEvent {
   end_time: string | null;
   schedule_date: string;
   status?: string;
+  employee_id: number; // Ensure this is part of the event
 }
 
 interface EmployeeCalendar {
+  employee_id: number; // Ensure this is part of the employee
   name: string;
   events: CalendarEvent[];
 }
@@ -68,7 +79,7 @@ export default function Component() {
   });
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
-  const role = useRole();
+  const role = useRole().role; // Access the role property directly
 
   const fetchCalendarData = useCallback(async (): Promise<
     EmployeeCalendar[]
@@ -92,6 +103,7 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data: EmployeeCalendar[] = await response.json();
+      console.log("Fetched Calendar Data:", data); // Log the fetched data to verify
 
       const dates = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(startOfWeek);
@@ -122,13 +134,11 @@ export default function Component() {
         fetchEmployeeNames(),
       ]);
 
-      // Map employee names to their ranks
       const employeeRanks = employeeData.reduce((acc, employee) => {
         acc[employee.name] = employee.rank;
         return acc;
       }, {} as { [key: string]: number });
 
-      // Sort calendar data based on employee ranks
       calendarData.sort(
         (a, b) => employeeRanks[a.name] - employeeRanks[b.name]
       );
@@ -214,6 +224,44 @@ export default function Component() {
       .replace(" ", "");
   };
 
+  const updateScheduleStatus = async (
+    employee_id: number,
+    schedule_date: string,
+    status: string
+  ) => {
+    try {
+      const formattedDate = new Date(schedule_date).toISOString().split("T")[0]; // Ensure the date is formatted correctly
+      console.log("Payload:", {
+        employee_id,
+        schedule_date: formattedDate,
+        status,
+      }); // Log the payload for debugging
+
+      const response = await fetch("/api/update_schedule_status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_id,
+          schedule_date: formattedDate,
+          status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await fetchCalendarData();
+    } catch (error) {
+      console.error(
+        "Failed to update schedule status:",
+        (error as Error).message
+      );
+    }
+  };
+
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
@@ -223,71 +271,93 @@ export default function Component() {
     });
 
     return (
-      <TableRow key={employee.name}>
+      <TableRow key={employee.employee_id}>
         <TableCell className="font-medium">{employee.name}</TableCell>
         {daysOfWeek.map((day) => (
-          <TableCell key={day} className="text-left">
-            {eventsByDay[day].map((event, index) => {
-              if (event.status === "time_off") {
-                return (
-                  <div
-                    key={index}
-                    className="text-purple-500 dark:text-purple-400"
-                  >
+          <TableCell key={day} className="text-left relative group">
+            {eventsByDay[day].map((event, index) => (
+              <div key={index} className="relative">
+                {event.status === "time_off" ? (
+                  <div className="text-purple-500 dark:text-purple-400">
                     Approved Time Off
                   </div>
-                );
-              } else if (event.status === "called_out") {
-                return (
-                  <div key={index} className="text-red-500 dark:text-red-400">
+                ) : event.status === "called_out" ? (
+                  <div className="text-red-500 dark:text-red-400">
                     Called Out
                   </div>
-                );
-              } else if (event.status === "left_early") {
-                return (
-                  <div
-                    key={index}
-                    className="text-orange-500 dark:text-orange-400"
-                  >
+                ) : event.status === "left_early" ? (
+                  <div className="text-orange-500 dark:text-orange-400">
                     Left Early
                   </div>
-                );
-              } else if (event.status && event.status.startsWith("Custom:")) {
-                return (
+                ) : event.status === "Custom:Off" ? (
+                  <div className="text-gray-800 dark:text-gray-300">Off</div>
+                ) : event.start_time === null || event.end_time === null ? (
+                  <div className="text-gray-800 dark:text-gray-300">Off</div>
+                ) : (
                   <div
-                    key={index}
-                    className="text-green-500 dark:text-green-400"
+                    className={
+                      new Date(`1970-01-01T${event.start_time}Z`) <=
+                      new Date("1970-01-01T11:30:00Z")
+                        ? "text-amber-500 dark:text-amber-400"
+                        : "text-blue-500 dark:text-blue-400"
+                    }
                   >
-                    {event.status.replace("Custom: ", "")}
+                    {`${formatTime(event.start_time)} - ${formatTime(
+                      event.end_time
+                    )}`}
                   </div>
-                );
-              }
-
-              if (event.start_time === null || event.end_time === null) {
-                return (
-                  <div key={index} className="text-gray-800 dark:text-gray-300">
-                    Off
+                )}
+                {(role === "admin" || role === "super admin") && (
+                  <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="linkHover1">
+                          <CaretUpIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Button
+                          variant="linkHover2"
+                          onClick={() =>
+                            updateScheduleStatus(
+                              event.employee_id, // Use employee_id here
+                              event.schedule_date,
+                              "called_out"
+                            )
+                          }
+                        >
+                          Called Out
+                        </Button>
+                        <Button
+                          variant="linkHover2"
+                          onClick={() =>
+                            updateScheduleStatus(
+                              event.employee_id, // Use employee_id here
+                              event.schedule_date,
+                              "left_early"
+                            )
+                          }
+                        >
+                          Left Early
+                        </Button>
+                        <Button
+                          variant="linkHover2"
+                          onClick={() =>
+                            updateScheduleStatus(
+                              event.employee_id, // Use employee_id here
+                              event.schedule_date,
+                              "Custom:Off"
+                            )
+                          }
+                        >
+                          Off
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                );
-              }
-
-              const [startHours, startMinutes] = event.start_time.split(":");
-              const startTime = new Date();
-              startTime.setHours(Number(startHours), Number(startMinutes));
-              const compareTime = new Date();
-              compareTime.setHours(11, 30);
-              const textColor =
-                startTime <= compareTime
-                  ? "text-amber-500 dark:text-amber-400"
-                  : "text-blue-500 dark:text-blue-400";
-              return (
-                <div key={index} className={textColor}>
-                  {`${formatTime(event.start_time)}  ${formatTime(
-                    event.end_time
-                  )}`}
-                </div>
-              );
-            })}
+                )}
+              </div>
+            ))}
           </TableCell>
         ))}
       </TableRow>
@@ -296,12 +366,12 @@ export default function Component() {
 
   return (
     <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
-      <div className="flex flex-col items-center space-y-4 p-4">
+      <div className="flex flex-col items-center space-y-4 p-4  overflow-hidden">
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />
         </h1>
-        <Card className="w-full max-w-6xl">
-          <CardContent>
+        <Card className="flex-1 flex flex-col w-full max-w-6xl overflow-hidden">
+          <CardContent className=" h-full overflow-hidden">
             <div className="flex justify-between w-full mb-4">
               <Button variant="linkHover2" onClick={handlePreviousWeek}>
                 <ChevronLeftIcon className="h-4 w-4" />
@@ -312,31 +382,25 @@ export default function Component() {
                 <ChevronRightIcon className="h-4 w-4" />
               </Button>
             </div>
-            <div className="overflow-x-auto">
-              {" "}
-              {/* Added this div to make table horizontally scrollable */}
-              <Table className="min-w-full">
-                {" "}
-                {/* Added min-w-full to make the table take full width */}
-                <TableHeader>
-                  <TableRow>
-                    <TableHead />
-                    {daysOfWeek.map((day) => (
-                      <TableHead key={day}>
-                        {day}
-                        <br />
-                        {weekDates[day]}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.calendarData.map((employee) =>
-                    renderEmployeeRow(employee)
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <Table className="min-w-full overflow-hidden">
+              <TableHeader>
+                <TableRow>
+                  <TableHead />
+                  {daysOfWeek.map((day) => (
+                    <TableHead key={day}>
+                      {day}
+                      <br />
+                      {weekDates[day]}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.calendarData.map((employee) =>
+                  renderEmployeeRow(employee)
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

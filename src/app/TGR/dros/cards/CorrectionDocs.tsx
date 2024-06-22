@@ -31,10 +31,9 @@ function CorrectionDocs({ className }: { className?: string }) {
         <CardContent>
           <div className="max-w-full">
             <h2>
-              Any ONE Of The Following Docs Below Will Suffice For A Handgun
-              Purchase:
+              Customer Must Have A Valid FSC Card OR Valid CA CCW Permit In
+              Addition To:
             </h2>
-            <p>Customer Must Have A Valid FSC Card OR Valid CA CCW Permit</p>
             <ul className="list-disc pl-4">
               <li>
                 Valid CA Registration With The Current Physical Address For Any
