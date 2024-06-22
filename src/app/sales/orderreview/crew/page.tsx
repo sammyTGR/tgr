@@ -4,7 +4,7 @@ import { supabase } from "@/utils/supabase/client";
 import { Order, createColumns } from "../crewcolumns";
 import { DataTable } from "../crew-data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { OrderTableToolbar } from "../crew-order-table-toolbar";
+import { OrderTableToolbar } from "../order-table-toolbar";
 import {
   useReactTable,
   getCoreRowModel,
@@ -49,86 +49,7 @@ export default function OrdersReviewPage() {
     fetchData();
   }, [fetchData]);
 
-  const markAsRead = async (orderId: number) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ is_read: true })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error marking order as read:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId ? { ...order, is_read: true } : order
-        )
-      );
-    }
-  };
-
-  const markAsContacted = async (orderId: number) => {
-    console.log(`Marking order ${orderId} as contacted`);
-    const { error } = await supabase
-      .from("orders")
-      .update({ contacted: true, is_read: true })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error updating order:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId
-            ? { ...order, contacted: true, is_read: true }
-            : order
-        )
-      );
-    }
-  };
-
-  const undoMarkAsContacted = async (orderId: number) => {
-    console.log(`Undo marking order ${orderId} as contacted`);
-    const { error } = await supabase
-      .from("orders")
-      .update({ contacted: false, is_read: false })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error updating order:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId
-            ? { ...order, contacted: false, is_read: false }
-            : order
-        )
-      );
-    }
-  };
-
-  const setStatus = async (orderId: number, status: string) => {
-    console.log(`Setting status of order ${orderId} to ${status}`);
-    const { error } = await supabase
-      .from("orders")
-      .update({ status, is_read: true })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error updating status:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId ? { ...order, status, is_read: true } : order
-        )
-      );
-    }
-  };
-
-  const columns = createColumns(
-    markAsContacted,
-    undoMarkAsContacted,
-    setStatus
-  );
+  const columns = createColumns(); // No need to pass action handlers
 
   const table = useReactTable({
     data,

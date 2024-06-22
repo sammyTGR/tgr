@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 import { Order, createColumns } from "./columns";
 import { DataTable } from "./data-table";
@@ -13,12 +13,14 @@ import {
   getSortedRowModel,
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 
 const title = "Review Submissions";
 
 export default function OrdersReviewPage() {
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string[]>(["not_contacted"]); // Default filter
 
   const fetchOrderData = useCallback(async () => {
     const { data, error } = await supabase
@@ -49,62 +51,15 @@ export default function OrdersReviewPage() {
     fetchData();
   }, [fetchData]);
 
-  const markAsRead = async (orderId: number) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ is_read: true })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error marking order as read:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId ? { ...order, is_read: true } : order
-        )
-      );
-    }
-  };
-
-  const markAsContacted = async (orderId: number) => {
-    console.log(`Marking order ${orderId} as contacted`);
-    const { error } = await supabase
-      .from("orders")
-      .update({ contacted: true, is_read: true })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error updating order:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId
-            ? { ...order, contacted: true, is_read: true }
-            : order
-        )
-      );
-    }
-  };
-
-  const undoMarkAsContacted = async (orderId: number) => {
-    console.log(`Undo marking order ${orderId} as contacted`);
-    const { error } = await supabase
-      .from("orders")
-      .update({ contacted: false, is_read: false })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error updating order:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId
-            ? { ...order, contacted: false, is_read: false }
-            : order
-        )
-      );
-    }
-  };
+  const filteredData = useMemo(() => {
+    return data.filter((order) => {
+      // If the filter includes "not_contacted" and it's the only filter, exclude "contacted"
+      if (statusFilter.includes("not_contacted") && statusFilter.length === 1) {
+        return order.status !== "contacted";
+      }
+      return statusFilter.includes(order.status);
+    });
+  }, [data, statusFilter]);
 
   const setStatus = async (orderId: number, status: string) => {
     console.log(`Setting status of order ${orderId} to ${status}`);
@@ -124,14 +79,10 @@ export default function OrdersReviewPage() {
     }
   };
 
-  const columns = createColumns(
-    markAsContacted,
-    undoMarkAsContacted,
-    setStatus
-  );
+  const columns = createColumns(setStatus);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -168,6 +119,17 @@ export default function OrdersReviewPage() {
     };
   }, [fetchData]);
 
+  const statusOptions = [
+    { label: "Ordered", value: "ordered" },
+    { label: "Back Ordered", value: "back_ordered" },
+    { label: "Needs Payment", value: "needs_payment" },
+    { label: "Arrived", value: "arrived" },
+    { label: "Cancelled", value: "cancelled" },
+    { label: "Complete", value: "complete" },
+    { label: "Contacted", value: "contacted" },
+    { label: "Not Contacted", value: "not_contacted" },
+  ];
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="h-screen flex flex-col">
@@ -180,7 +142,13 @@ export default function OrdersReviewPage() {
             </div>
           </div>
           <div className="flex-1 flex flex-col space-y-4">
-            <OrderTableToolbar table={table} />
+            <DataTableFacetedFilter
+              column={table.getColumn("status")}
+              title="Status"
+              options={statusOptions}
+              table={table}
+              onFilterChange={setStatusFilter}
+            />
             <div className="rounded-md border flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto flex-1">
                 {loading ? <p>Loading...</p> : <DataTable table={table} />}

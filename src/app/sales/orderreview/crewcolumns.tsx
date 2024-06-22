@@ -1,9 +1,6 @@
-// src/app/sales/orderreview/columns.tsx
-
 "use client";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "../../admin/audits/review/data-table-column-header";
-import { OrderTableRowActions } from "./order-table-row-actions";
 import { statuses } from "./data";
 import { includesArrayString } from "./custom-filter"; // Import the custom filter function
 
@@ -33,11 +30,7 @@ export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
   };
 };
 
-export const createColumns = (
-  markAsContacted: (id: number) => void,
-  undoMarkAsContacted: (id: number) => void,
-  setStatus: (id: number, status: string) => void
-): ColumnDef<Order>[] => [
+export const createColumns = (): ColumnDef<Order>[] => [
   {
     accessorKey: "employee",
     header: ({ column }) => (
@@ -74,7 +67,6 @@ export const createColumns = (
     meta: {
       style: { width: "150px" },
     },
-    filterFn: includesArrayString, // Use the custom filter function
   },
   {
     accessorKey: "manufacturer",
@@ -84,7 +76,6 @@ export const createColumns = (
     meta: {
       style: { width: "150px" },
     },
-    filterFn: includesArrayString, // Use the custom filter function
   },
   {
     accessorKey: "item",
@@ -94,7 +85,6 @@ export const createColumns = (
     meta: {
       style: { width: "150px" },
     },
-    filterFn: includesArrayString, // Use the custom filter function
   },
   {
     accessorKey: "details",
@@ -127,7 +117,6 @@ export const createColumns = (
     meta: {
       style: { width: "150px" },
     },
-    filterFn: includesArrayString, // Use the custom filter function
   },
   {
     accessorKey: "contacted",

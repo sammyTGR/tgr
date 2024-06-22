@@ -1,11 +1,9 @@
-// src/app/sales/orderreview/columns.tsx
-
 "use client";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "../../admin/audits/review/data-table-column-header";
 import { OrderTableRowActions } from "./order-table-row-actions";
 import { statuses } from "./data";
-import { includesArrayString } from "./custom-filter"; // Import the custom filter function
+import { includesArrayString } from "./custom-filter";
 
 export type Order = {
   is_read: any;
@@ -21,7 +19,7 @@ export type Order = {
   details: string;
   contacted: boolean;
   created_at: string;
-  status: string; // New status column
+  status: string;
 };
 
 export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
@@ -34,8 +32,6 @@ export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
 };
 
 export const createColumns = (
-  markAsContacted: (id: number) => void,
-  undoMarkAsContacted: (id: number) => void,
   setStatus: (id: number, status: string) => void
 ): ColumnDef<Order>[] => [
   {
@@ -141,17 +137,7 @@ export const createColumns = (
     meta: {
       style: { width: "150px" },
     },
-    filterFn: includesArrayString, // Use the custom filter function
-  },
-  {
-    accessorKey: "contacted",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Contacted" />
-    ),
-    cell: ({ row }) => (row.original.contacted ? "Yes" : "No"),
-    meta: {
-      style: { width: "100px" },
-    },
+    filterFn: includesArrayString,
   },
   {
     accessorKey: "action",
@@ -159,8 +145,8 @@ export const createColumns = (
     cell: ({ row }) => (
       <OrderTableRowActions
         row={row}
-        markAsContacted={markAsContacted}
-        undoMarkAsContacted={undoMarkAsContacted}
+        markAsContacted={(id) => setStatus(id, "contacted")}
+        undoMarkAsContacted={(id) => setStatus(id, "not_contacted")}
         setStatus={setStatus}
       />
     ),
