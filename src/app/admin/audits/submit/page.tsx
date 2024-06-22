@@ -60,22 +60,16 @@ type OptionType = {
 };
 
 const formSchema = z.object({
-  drosNumber: z.string(),
-  salesRep: z.string(),
+  drosNumber: z.string().nonempty("Gotsta Put A Numba"),
+  salesRep: z.string().nonempty("Sales Rep is required"),
   transDate: z.date(),
-  auditDate: z.date().optional(),
+  auditDate: z.date(),
   drosCancel: z.boolean(),
   audits: z.array(
     z.object({
-      auditType: z
-        .array(z.string())
-        .min(1, "Audit type must have at least one entry."),
-      errorLocation: z
-        .array(z.string())
-        .min(1, "Error location must have at least one entry."),
-      errorDetails: z
-        .array(z.string())
-        .min(1, "Error details must have at least one entry."),
+      auditType: z.string().nonempty("Audit type is required."),
+      errorLocation: z.string().nonempty("Error location is required."),
+      errorDetails: z.string().nonempty("Error details are required."),
       errorNotes: z.string().optional(),
     })
   ),
@@ -114,7 +108,7 @@ export default function SubmitAudits() {
       auditDate: new Date(),
       drosCancel: false,
       audits: [
-        { auditType: [], errorLocation: [], errorDetails: [], errorNotes: "" },
+        { auditType: "", errorLocation: "", errorDetails: "", errorNotes: "" },
       ],
     },
   });
@@ -270,6 +264,11 @@ export default function SubmitAudits() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); // Prevent the default form submission behavior
+    const isValid = await methods.trigger(); // Validate the form
+    if (!isValid) {
+      toast.error("Please correct the errors in the form before submitting.");
+      return;
+    }
     const formData = methods.getValues(); // Get the form data using react-hook-form
     await submitFormData(formData); // Now call submitFormData with the form data
   };
@@ -409,6 +408,7 @@ export default function SubmitAudits() {
                       <FormDescription>
                         Enter DROS | Acquisition | Invoice #
                       </FormDescription>
+                      <FormMessage>{errors.drosNumber?.message}</FormMessage>
                     </FormItem>
                   )}
                 />
@@ -425,7 +425,7 @@ export default function SubmitAudits() {
                         placeholder="Select A Sales Rep"
                       />
                       <FormDescription>Who Dun Messed Up</FormDescription>
-                      <FormMessage />
+                      <FormMessage>{errors.salesRep?.message}</FormMessage>
                     </FormItem>
                   )}
                 />
@@ -530,7 +530,9 @@ export default function SubmitAudits() {
                             options={auditTypeOptions}
                             placeholder="Select Audit Type"
                           />
-                          <FormMessage />
+                          <FormMessage>
+                            {errors.audits?.[index]?.auditType?.message}
+                          </FormMessage>
                         </FormItem>
                       )}
                     />
@@ -545,7 +547,9 @@ export default function SubmitAudits() {
                             options={errorLocationOptions}
                             placeholder="Where Was The Error"
                           />
-                          <FormMessage />
+                          <FormMessage>
+                            {errors.audits?.[index]?.errorLocation?.message}
+                          </FormMessage>
                         </FormItem>
                       )}
                     />
@@ -560,7 +564,9 @@ export default function SubmitAudits() {
                             options={errorDetailsOptions}
                             placeholder="Select The Details"
                           />
-                          <FormMessage />
+                          <FormMessage>
+                            {errors.audits?.[index]?.errorDetails?.message}
+                          </FormMessage>
                         </FormItem>
                       )}
                     />
@@ -568,21 +574,10 @@ export default function SubmitAudits() {
                   <FormField
                     name={`audits.${index}.errorNotes`}
                     control={control}
-                    render={({ field }) => {
-                      // console.log(`Error Notes for audit ${index}:`, field.value); // Ensure this logs correct values
-                      return (
-                        <Textarea
-                          {...field}
-                          placeholder="Error Notes"
-                          onChange={(e) => {
-                            field.onChange(e); // Ensure the change handler is correctly invoked
-                            // console.log(`Updated Error Notes for audit ${index}:`, e.target.value);
-                          }}
-                        />
-                      );
-                    }}
+                    render={({ field }) => (
+                      <Textarea {...field} placeholder="Error Notes" />
+                    )}
                   />
-
                   <div className="flex justify-between mb-4 mt-4">
                     <Button variant="linkHover2" onClick={() => remove(index)}>
                       Remove
@@ -590,15 +585,16 @@ export default function SubmitAudits() {
                   </div>
                 </div>
               ))}
+
               <div className="flex justify-between mb-4 mt-4">
                 <Button
                   variant="linkHover2"
                   type="button"
                   onClick={() =>
                     append({
-                      auditType: [],
-                      errorLocation: [],
-                      errorDetails: [],
+                      auditType: "",
+                      errorLocation: "",
+                      errorDetails: "",
                       errorNotes: "",
                     })
                   }
