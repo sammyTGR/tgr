@@ -161,103 +161,55 @@ export default function ChatClient() {
       }
     };
 
-
-    
-      const fetchInitialData = async () => {
-        await fetchUsername();
-        await fetchMessages();
-        await fetchUsers();
-        await fetchDmUsers();
-      };
-    
-      fetchInitialData();
-    
-      if (!channel.current) {
-        channel.current = client.channel("chat-room", {
-          config: {
-            broadcast: {
-              self: true,
-            },
+    const fetchSender = async (senderId: string) => {
+      const { data: senderData, error: senderError } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("id", senderId)
+        .single();
+      if (senderData) {
+        setDmUsers((prev) => [
+          ...prev,
+          {
+            id: senderData.id,
+            name: senderData.full_name,
+            is_online: false,
           },
-        });
-        channel.current
-          .on<ChatMessage>(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_messages" },
-            (payload) => {
-              setMessages((prev) => [...prev, payload.new]);
-            }
-          )
-          .on<ChatMessage>(
-            "postgres_changes",
-            { event: "DELETE", schema: "public", table: "chat_messages" },
-            (payload) => {
-              setMessages((prev) =>
-                prev.filter((msg) => msg.id !== payload.old.id)
-              );
-            }
-          )
-          .on<ChatMessage>(
-            "postgres_changes",
-            { event: "UPDATE", schema: "public", table: "chat_messages" },
-            (payload) => {
-              setMessages((prev) =>
-                prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
-              );
-            }
-          )
-          .subscribe();
+        ]);
+        setSelectedChat(senderData.id);
+      } else {
+        console.error("Error fetching sender:", senderError?.message);
       }
-    
-      const directMessageChannel = client
-        .channel("direct-messages", {
-          config: {
-            broadcast: {
-              self: true,
-            },
+    };
+
+    const fetchInitialData = async () => {
+      await fetchUsername();
+      await fetchMessages();
+      await fetchUsers();
+      await fetchDmUsers();
+    };
+
+    fetchInitialData();
+
+    if (!channel.current) {
+      channel.current = client.channel("chat-room", {
+        config: {
+          broadcast: {
+            self: true,
           },
-        })
+        },
+      });
+      channel.current
         .on<ChatMessage>(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "direct_messages" },
+          { event: "INSERT", schema: "public", table: "chat_messages" },
           (payload) => {
             setMessages((prev) => [...prev, payload.new]);
-    
-            const senderId = payload.new.sender_id;
-            const receiverId = payload.new.receiver_id;
-    
-            if (
-              receiverId === user.id &&
-              !dmUsers.some((u) => u.id === senderId)
-            ) {
-              const fetchSender = async () => {
-                const { data: senderData, error: senderError } = await client
-                  .from("profiles")
-                  .select("id, full_name")
-                  .eq("id", senderId)
-                  .single();
-                if (senderData) {
-                  setDmUsers((prev) => [
-                    ...prev,
-                    {
-                      id: senderData.id,
-                      name: senderData.full_name,
-                      is_online: false,
-                    },
-                  ]);
-                  setSelectedChat(senderData.id);
-                } else {
-                  console.error("Error fetching sender:", senderError?.message);
-                }
-              };
-    
-              fetchSender();
-            }
           }
         )
         .on<ChatMessage>(
           "postgres_changes",
-          { event: "DELETE", schema: "public", table: "direct_messages" },
+          { event: "DELETE", schema: "public", table: "chat_messages" },
           (payload) => {
             setMessages((prev) =>
               prev.filter((msg) => msg.id !== payload.old.id)
@@ -266,7 +218,7 @@ export default function ChatClient() {
         )
         .on<ChatMessage>(
           "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "direct_messages" },
+          { event: "UPDATE", schema: "public", table: "chat_messages" },
           (payload) => {
             setMessages((prev) =>
               prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
@@ -274,16 +226,62 @@ export default function ChatClient() {
           }
         )
         .subscribe();
-    
-      return () => {
-        channel.current?.unsubscribe();
-        channel.current = null;
-        presenceChannel.current?.unsubscribe();
-        presenceChannel.current = null;
-        directMessageChannel?.unsubscribe();
-      };
-    }, [user]);
-    
+    }
+
+    const directMessageChannel = client
+      .channel("direct-messages", {
+        config: {
+          broadcast: {
+            self: true,
+          },
+        },
+      })
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "direct_messages" },
+        async (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+
+          if (payload.new.receiver_id === user?.id) {
+            setUnreadCounts((prevCounts) => ({
+              ...prevCounts,
+              [payload.new.sender_id as string]: (prevCounts[payload.new.sender_id as string] || 0) + 1,
+            }));
+
+            if (!dmUsers.some((u) => u.id === payload.new.sender_id)) {
+              await fetchSender(payload.new.sender_id as string);
+            }
+          }
+        }
+      )
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== payload.old.id)
+          );
+        }
+      )
+      .on<ChatMessage>(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "direct_messages" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.current?.unsubscribe();
+      channel.current = null;
+      presenceChannel.current?.unsubscribe();
+      presenceChannel.current = null;
+      directMessageChannel?.unsubscribe();
+    };
+  }, [user]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -308,9 +306,9 @@ export default function ChatClient() {
       });
       return;
     }
-  
+
     const client = supabase;
-  
+
     const commonMessageData = {
       message,
       sender_id: user.id,
@@ -319,10 +317,10 @@ export default function ChatClient() {
       is_read: false,
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
     };
-  
+
     let insertData;
     let tableName;
-  
+
     if (selectedChat === "Admin Chat") {
       insertData = {
         ...commonMessageData,
@@ -333,24 +331,23 @@ export default function ChatClient() {
       insertData = commonMessageData;
       tableName = "direct_messages";
     }
-  
+
     const { data, error } = await client
       .from(tableName)
       .insert([insertData]);
-  
+
     if (error) {
       console.error("Error inserting message:", error.message);
       return;
     }
-  
+
     if (data) {
       const newMessages = Array.isArray(data) ? data : [data];
       setMessages((prev) => [...prev, ...newMessages]);
     }
-  
+
     setMessage("");
   };
-  
 
   const onDelete = async (id: number) => {
     const client = supabase;
@@ -429,17 +426,17 @@ export default function ChatClient() {
     if (selectedChat === userId) {
       setSelectedChat("Admin Chat");
     }
-  
+
     const { error } = await supabase
       .from("direct_messages")
       .delete()
       .eq("sender_id", user.id)
       .eq("receiver_id", userId);
-  
+
     if (error) {
       console.error("Error deleting direct message user:", error.message);
     }
-  };  
+  };
 
   const filteredMessages = messages.filter((msg) => {
     if (selectedChat === "Admin Chat") {
@@ -558,14 +555,11 @@ export default function ChatClient() {
                         <DotFilledIcon className="w-4 h-4" />
                         <span className="flex-1 truncate relative group">
                           {u.name}
-                          <Button
-                            className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteDirectMessage(u.id)}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
+                          {unreadCounts[u.id] && (
+                            <span className="ml-2 text-sm text-red-600">
+                              {unreadCounts[u.id]}
+                            </span>
+                          )}
                         </span>
                         {u.is_online && (
                           <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs">
