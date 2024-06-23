@@ -143,6 +143,12 @@ export default function DailyDepositsPage() {
     return overallTotal >= 300 ? (overallTotal - 300).toFixed(2) : "";
   };
 
+  const calculateRemainingBalance = (registerIndex: number) => {
+    const overallTotal = parseFloat(calculateOverallTotal(registerIndex));
+    const totalToDeposit = parseFloat(calculateTotalToDeposit(registerIndex));
+    return overallTotal >= 300 ? (overallTotal - totalToDeposit).toFixed(2) : "";
+  };
+
   const clearForm = (registerIndex: number) => {
     const newQuantities = [...quantities];
     newQuantities[registerIndex] = Array(denominations.length).fill(0);
@@ -212,11 +218,11 @@ export default function DailyDepositsPage() {
       if (aimGenerated === totalToDeposit) {
         message = "No Discrepancies";
       } else if (aimGenerated > totalToDeposit) {
-        message = `Register Is Over By $${(
+        message = `Register Is Short By $${(
           aimGenerated - totalToDeposit
         ).toFixed(2)}`;
       } else if (aimGenerated < totalToDeposit) {
-        message = `Register Is Short By $${(
+        message = `Register Is Over By $${(
           totalToDeposit - aimGenerated
         ).toFixed(2)}`;
       }
@@ -235,6 +241,14 @@ export default function DailyDepositsPage() {
 
     const employee_name = user.user_metadata?.full_name || "Unknown";
     const user_uuid = user.id || "";
+
+    for (let i = 0; i < registers.length; i++) {
+      const remainingBalance = parseFloat(calculateRemainingBalance(i));
+      if (remainingBalance !== 300) {
+        toast.error(`Count Register ${i + 1} Again`);
+        return;
+      }
+    }
 
     const deposits = registers.map((register, index) => ({
       register,
@@ -311,7 +325,7 @@ export default function DailyDepositsPage() {
 
   return (
     <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
-      <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-6xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-4xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center space-x-2">
             <TabsList>
@@ -335,21 +349,21 @@ export default function DailyDepositsPage() {
 
           {registers.map((register, registerIndex) => (
             <TabsContent key={registerIndex} value={`reg${registerIndex + 1}`}>
-              <Card className="mb-4">
+              <Card className="mb-4 ">
                 <CardHeader>
                   <CardTitle>{register}</CardTitle>
                 </CardHeader>
-                <CardContent className="w-full">
-                  <div className="border p-4">
+                <CardContent className="flex-1 flex flex-col w-full">
+                  <div className="flex-1 flex flex-col border p-4">
                     {denominations.map((denomination, denominationIndex) => (
                       <div
-                        className="grid grid-cols-4 gap-4 mb-4"
+                        className="flex grid grid-cols-3 gap-4 mb-3"
                         key={denominationIndex}
                       >
                         <div>{denomination.name}</div>
                         <Input
                           id={`input-${registerIndex}-${denominationIndex}`}
-                          className="col-span-2"
+                          className="col-span-1 text-center"
                           type="number"
                           inputMode="numeric"
                           ref={(el) => {
@@ -383,28 +397,28 @@ export default function DailyDepositsPage() {
                         </div>
                       </div>
                     ))}
-                    <div className="grid grid-cols-4 gap-4 mb-4">
-                      <div className="col-span-3 text-left">
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="col-span-1 text-left">
                         Total In Drawer
                       </div>
-                      <div className="text-right">
+                      <div className="col-span-2 text-right">
                         ${calculateOverallTotal(registerIndex)}
                       </div>
                     </div>
                     {!isSecondCount && (
                       <>
-                        <div className="grid grid-cols-4 gap-4 mb-4">
-                          <div className="col-span-3 text-left">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div className="col-span-2 text-left">
                             Total To Deposit
                           </div>
-                          <div className="text-right">
-                            {calculateTotalToDeposit(registerIndex)}
+                          <div className="col-span-1 text-right">
+                            ${calculateTotalToDeposit(registerIndex)}
                           </div>
                         </div>
                         <div className="grid grid-cols-6 gap-4 mb-4">
                           <Input
                             className="col-span-2"
-                            placeholder="AIM Generated Total"
+                            placeholder="AIM Cash Clearing Total"
                             value={aimGeneratedTotals[registerIndex]}
                             onChange={(e) =>
                               handleAimGeneratedTotalChange(
@@ -428,6 +442,16 @@ export default function DailyDepositsPage() {
                             }
                           />
                         </div>
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div className="col-span-2 text-left">
+                            Remaining Balance In Register After $
+                            {calculateTotalToDeposit(registerIndex)} Is
+                            Deposited
+                          </div>
+                          <div className="col-span-1 text-right">
+                            ${calculateRemainingBalance(registerIndex)}
+                          </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -435,7 +459,7 @@ export default function DailyDepositsPage() {
                 <CardFooter>
                   <div className="flex justify-between items-center w-full">
                     <Button
-                      variant="outline"
+                      variant="linkHover2"
                       onClick={() => clearForm(registerIndex)}
                       className="mr-4"
                     >
@@ -448,6 +472,7 @@ export default function DailyDepositsPage() {
           ))}
           {!isSecondCount && (
             <Button
+              variant="linkHover1"
               className="flex justify-between ml-auto mt-4"
               onClick={handleSubmit}
             >
