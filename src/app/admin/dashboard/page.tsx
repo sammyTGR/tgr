@@ -54,7 +54,7 @@ const Dashboard = () => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <section className="w-full py-12 md:py-12">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">

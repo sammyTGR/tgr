@@ -28,6 +28,18 @@ interface Absence {
   status: string;
 }
 
+interface Audit {
+  dros_number: string;
+  salesreps: string;
+  audit_type: string;
+  trans_date: string;
+  audit_date: string;
+  error_location: string;
+  error_details: string;
+  error_notes: string;
+  dros_cancel: string;
+}
+
 const EmployeeProfile = () => {
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
@@ -39,6 +51,7 @@ const EmployeeProfile = () => {
   const [activeTab, setActiveTab] = useState("notes");
   const [notes, setNotes] = useState<Note[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
+  const [audits, setAudits] = useState<Audit[]>([]); // New state for audits
   const [newNote, setNewNote] = useState("");
   const [newReview, setNewReview] = useState("");
   const [newAbsence, setNewAbsence] = useState("");
@@ -54,6 +67,12 @@ const EmployeeProfile = () => {
       subscribeToNoteChanges();
     }
   }, [user, employeeId]);
+
+  useEffect(() => {
+    if (employee && employee.lanid) {
+      fetchAudits(employee.lanid);
+    }
+  }, [employee]);
 
   const fetchEmployeeData = async () => {
     if (!employeeId) return;
@@ -103,6 +122,20 @@ const EmployeeProfile = () => {
         status: absence.status === "called_out" ? "Called Out" : "Left Early",
       }));
       setAbsences(formattedAbsences);
+    }
+  };
+
+  const fetchAudits = async (lanid: string) => {
+    const { data, error } = await supabase
+      .from("Auditsinput")
+      .select("*")
+      .eq("salesreps", lanid)
+      .order("audit_date", { ascending: false }); // Fetch audits by lanid and sort by audit_date in descending order
+
+    if (error) {
+      console.error("Error fetching audits:", error);
+    } else {
+      setAudits(data as Audit[]);
     }
   };
 
@@ -214,7 +247,7 @@ const EmployeeProfile = () => {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="section w-full">
-        <Card className="h-full max-w-4xl mx-auto my-12">
+        <Card className="h-full max-w-8xl mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-4">
               <Avatar>
@@ -249,6 +282,7 @@ const EmployeeProfile = () => {
                 <TabsTrigger value="absences">Absences</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
+                <TabsTrigger value="audits">Audits</TabsTrigger>
               </TabsList>
               <TabsContent value="notes">
                 <div className="p-6 space-y-4">
@@ -478,6 +512,40 @@ const EmployeeProfile = () => {
                         </div>
                       ))}
                   </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="audits">
+                <div className="p-6 space-y-4">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr>
+                        <th className="py-2 w-36 text-left">DROS #</th>
+                        <th className="py-2 w-24 text-left">Sales Rep</th>
+                        <th className="py-2 w-24 text-left">Audit Type</th>
+                        <th className="py-2 w-32 text-left">Trans Date</th>
+                        <th className="py-2 w-32 text-left">Audit Date</th>
+                        <th className="py-2 w-38 text-left">Location</th>
+                        <th className="py-2 w-58 text-left">Details</th>
+                        <th className="py-2 w-64 text-left">Notes</th>
+                        <th className="py-2 w-12 text-left">Cancelled?</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {audits.map((audit, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="py-2 w-36">{audit.dros_number}</td>
+                          <td className="py-2 w-24">{audit.salesreps}</td>
+                          <td className="py-2 w-24">{audit.audit_type}</td>
+                          <td className="py-2 w-30">{audit.trans_date}</td>
+                          <td className="py-2 w-30">{audit.audit_date}</td>
+                          <td className="py-2 w-38">{audit.error_location}</td>
+                          <td className="py-2 w-58">{audit.error_details}</td>
+                          <td className="py-2 w-64">{audit.error_notes}</td>
+                          <td className="py-2 w-12">{audit.dros_cancel}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </TabsContent>
             </Tabs>

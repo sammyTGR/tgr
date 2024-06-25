@@ -145,6 +145,14 @@ const sopComps = [
   },
 ];
 
+const profileComps = [
+  {
+    title: "Staff Profiles",
+    href: "/admin/dashboard",
+    description: "All Profiles",
+  },
+];
+
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
 
@@ -226,6 +234,22 @@ const HeaderAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {reportsComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {profileComps.map((component) => (
                     <ListItem
                       key={component.title}
                       title={component.title}
@@ -327,7 +351,7 @@ const HeaderAdmin = React.memo(() => {
         </div>
       </header>
     </RoleBasedWrapper>
-  );  
+  );
 });
 
 HeaderAdmin.displayName = "HeaderAdmin";
