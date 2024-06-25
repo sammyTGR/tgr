@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/utils/supabase/client";
+import { cycleFirearms } from "@/utils/cycleFirearms"; // Import the cycleFirearms function
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
@@ -11,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const { error } = await supabase
           .from("firearms_maintenance")
-          .update({ maintenance_notes, status, last_maintenance_date: new Date() })
+          .update({ maintenance_notes, status: status !== null ? status : "", last_maintenance_date: new Date() })
           .eq("id", id);
 
         if (error) {
@@ -31,19 +32,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           throw error;
         }
 
-        // Sort firearms by maintenance frequency and date of last maintenance
-        const sortedFirearms = firearmsData
+        // Filter and sort firearms by type, frequency, and date of last maintenance
+        const handguns = firearmsData
+          .filter((firearm) => firearm.firearm_type === "handgun")
           .sort((a, b) => {
             const frequencyA = a.maintenance_frequency || 1;
             const frequencyB = b.maintenance_frequency || 1;
             const lastMaintenanceDateA = new Date(a.last_maintenance_date || 0);
             const lastMaintenanceDateB = new Date(b.last_maintenance_date || 0);
             return (lastMaintenanceDateA.getTime() / frequencyA) - (lastMaintenanceDateB.getTime() / frequencyB);
-          })
-          .slice(0, 26);
+          });
 
-        // Assign firearms to the gunsmith
-        const updatedFirearms = sortedFirearms.map(firearm => ({
+        const longGuns = firearmsData
+          .filter((firearm) => firearm.firearm_type === "long gun")
+          .sort((a, b) => {
+            const frequencyA = a.maintenance_frequency || 1;
+            const frequencyB = b.maintenance_frequency || 1;
+            const lastMaintenanceDateA = new Date(a.last_maintenance_date || 0);
+            const lastMaintenanceDateB = new Date(b.last_maintenance_date || 0);
+            return (lastMaintenanceDateA.getTime() / frequencyA) - (lastMaintenanceDateB.getTime() / frequencyB);
+          });
+
+        // Cycle firearms to ensure there are exactly 13 of each type
+        const updatedHandguns = cycleFirearms(handguns, 13);
+        const updatedLongGuns = cycleFirearms(longGuns, 13);
+
+        const updatedFirearms = [...updatedHandguns, ...updatedLongGuns].map(firearm => ({
           ...firearm,
           assigned_to: userUuid,
           status: "Assigned",

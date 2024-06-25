@@ -1,8 +1,10 @@
 // src/pages/api/fetch-unread.ts
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
+import { corsHeaders } from '@/utils/cors';
 
 const useUnreadMessages = (userId: string) => {
+  
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadMessages = async () => {

@@ -13,10 +13,6 @@ export interface FirearmsMaintenanceData {
 
 export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
   {
-    accessorKey: "firearm_type",
-    header: "Firearm Type",
-  },
-  {
     accessorKey: "firearm_name",
     header: "Firearm Name",
   },
@@ -36,6 +32,14 @@ export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
     accessorKey: "status",
     header: "Status",
   },
+];
+
+export const maintenanceFrequencies = [
+  { label: "Weekly", value: 7 },
+  { label: "Bi-weekly", value: 14 },
+  { label: "Monthly", value: 30 },
+  { label: "Every other month", value: 60 },
+  { label: "Every quarter", value: 90 },
 ];
 
 export type { ColumnDef };

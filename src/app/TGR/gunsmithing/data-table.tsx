@@ -39,6 +39,7 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   userUuid: string;
   onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
+  onUpdateFrequency: (id: number, frequency: number) => void;
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -48,10 +49,14 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   userUuid,
   onStatusChange,
   onNotesChange,
+  onUpdateFrequency, // Add this line
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -60,6 +65,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
+      pagination: { pageIndex: 0, pageSize: 30 }, // Set default pagination state here
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -73,7 +79,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   });
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full max-h-[80vh]">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <Input
           placeholder="Filter By Firearm Name..."
@@ -131,10 +137,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                       }
                     )?.style;
                     return (
-                      <TableHead
-                        key={header.id}
-                        style={metaStyle}
-                      >
+                      <TableHead key={header.id} style={metaStyle}>
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -161,10 +164,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         }
                       )?.style;
                       return (
-                        <TableCell
-                          key={cell.id}
-                          style={metaStyle}
-                        >
+                        <TableCell key={cell.id} style={metaStyle}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -179,6 +179,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         userUuid={userUuid}
                         onStatusChange={onStatusChange}
                         onNotesChange={onNotesChange}
+                        onUpdateFrequency={onUpdateFrequency} // Pass this prop
                       />
                     </TableCell>
                   </TableRow>

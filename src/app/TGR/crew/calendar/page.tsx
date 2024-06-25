@@ -103,7 +103,7 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data: EmployeeCalendar[] = await response.json();
-      console.log("Fetched Calendar Data:", data); // Log the fetched data to verify
+      // console.log("Fetched Calendar Data:", data); // Log the fetched data to verify
 
       const dates = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(startOfWeek);
@@ -231,11 +231,11 @@ export default function Component() {
   ) => {
     try {
       const formattedDate = new Date(schedule_date).toISOString().split("T")[0]; // Ensure the date is formatted correctly
-      console.log("Payload:", {
-        employee_id,
-        schedule_date: formattedDate,
-        status,
-      }); // Log the payload for debugging
+      // console.log("Payload:", {
+      //   employee_id,
+      //   schedule_date: formattedDate,
+      //   status,
+      // }); // Log the payload for debugging
 
       const response = await fetch("/api/update_schedule_status", {
         method: "POST",

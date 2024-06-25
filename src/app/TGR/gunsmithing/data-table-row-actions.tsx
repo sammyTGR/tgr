@@ -13,18 +13,19 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/utils/supabase/client";
+import { FirearmsMaintenanceData } from "./columns";
+import { maintenanceFrequencies } from "./columns"; // Import frequency options
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { FirearmsMaintenanceData } from "./columns";
-import { supabase } from "@/utils/supabase/client";
 
 interface DataTableRowActionsProps {
   row: Row<FirearmsMaintenanceData>;
@@ -32,6 +33,7 @@ interface DataTableRowActionsProps {
   userUuid: string;
   onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
+  onUpdateFrequency: (id: number, frequency: number) => void;
 }
 
 export function DataTableRowActions({
@@ -40,10 +42,13 @@ export function DataTableRowActions({
   userUuid,
   onStatusChange,
   onNotesChange,
+  onUpdateFrequency,
 }: DataTableRowActionsProps) {
   const task = row.original;
   const [open, setOpen] = useState(false);
-  const [maintenanceNotes, setMaintenanceNotes] = useState(task.maintenance_notes || "");
+  const [maintenanceNotes, setMaintenanceNotes] = useState(
+    task.maintenance_notes || ""
+  );
 
   const handleStatusChange = async (status: string | null) => {
     const { error } = await supabase
@@ -59,19 +64,6 @@ export function DataTableRowActions({
   };
 
   const handleSaveNotes = async () => {
-    const { data: userData, error: userError } = await supabase
-      .from("profiles")
-      .select("name")
-      .eq("id", userUuid)
-      .single();
-
-    if (userError) {
-      console.error("Error fetching user name:", userError.message);
-      return;
-    }
-
-    const userName = userData?.name || "Unknown";
-
     const { error } = await supabase
       .from("firearms_maintenance")
       .update({ maintenance_notes: maintenanceNotes })
@@ -85,9 +77,20 @@ export function DataTableRowActions({
     }
   };
 
-  const canEditNotes =
-    ["gunsmith", "admin", "super admin"].includes(userRole) ||
-    userUuid === task.assigned_to;
+  const handleFrequencyChange = async (frequency: number) => {
+    const { error } = await supabase
+      .from("firearms_maintenance")
+      .update({ maintenance_frequency: frequency })
+      .eq("id", task.id);
+
+    if (error) {
+      console.error("Error updating frequency:", error.message);
+    } else {
+      onUpdateFrequency(task.id, frequency);
+    }
+  };
+
+  const canEditNotes = ["gunsmith", "admin", "super admin"].includes(userRole);
 
   return (
     <>
@@ -109,15 +112,29 @@ export function DataTableRowActions({
           )}
           <DropdownMenuSeparator />
           <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Frequency</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {maintenanceFrequencies.map(({ label, value }) => (
+                <DropdownMenuItem
+                  key={value}
+                  onSelect={() => handleFrequencyChange(value)}
+                >
+                  {label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          <DropdownMenuSub>
             <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem onSelect={() => handleStatusChange("Completed")}>
-                Completed
+              <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
+                Repaired
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() => handleStatusChange("In Progress")}
+                onSelect={() => handleStatusChange("Under Repair")}
               >
-                In Progress
+                Under Repair
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
                 Clear Status

@@ -5,6 +5,8 @@ import { FirearmsMaintenanceData, columns } from "./columns";
 import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import MaintenanceFrequencyForm from "./MaintenanceFrequencyForm";
+import { cycleFirearms } from "@/utils/cycleFirearms"; // Import the utility function
 
 const words = "Gunsmithing Maintenance";
 
@@ -24,18 +26,25 @@ export default function GunsmithingMaintenance() {
     const user = userData.user;
     setUserUuid(user?.id || "");
 
-    const { data: roleData, error: roleError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user?.id)
-      .single();
+    try {
+      const { data: roleData, error: roleError } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("user_uuid", user?.id)
+        .single();
 
-    if (roleError || !roleData) {
-      console.error("Error fetching role:", roleError?.message);
-      return;
+      if (roleError || !roleData) {
+        console.error(
+          "Error fetching role:",
+          roleError?.message || "No role found"
+        );
+        return;
+      }
+
+      setUserRole(roleData.role);
+    } catch (error) {
+      console.error("Unexpected error fetching role:", error);
     }
-
-    setUserRole(roleData.role);
   }, []);
 
   useEffect(() => {
@@ -45,14 +54,26 @@ export default function GunsmithingMaintenance() {
   const fetchFirearmsMaintenanceData = useCallback(async () => {
     const { data, error } = await supabase
       .from("firearms_maintenance")
-      .select("*")
-      .order("last_maintenance_date", { ascending: false });
+      .select("*");
 
     if (error) {
       console.error("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
-    return data as FirearmsMaintenanceData[];
+
+    // Separate handguns and long guns
+    const handguns = data.filter(
+      (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
+    );
+    const longGuns = data.filter(
+      (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
+    );
+
+    // Cycle through the lists to get 13 of each
+    const cycledHandguns = cycleFirearms(handguns, 13);
+    const cycledLongGuns = cycleFirearms(longGuns, 13);
+
+    return [...cycledHandguns, ...cycledLongGuns];
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -72,17 +93,27 @@ export default function GunsmithingMaintenance() {
   }, [fetchData]);
 
   const handleStatusChange = (id: number, status: string | null) => {
-    setData(prevData =>
-        prevData.map(item =>
-          item.id === id ? { ...item, status: status ?? item.status } : item
-        )
-      );
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === id
+          ? { ...item, status: status !== null ? status : "" }
+          : item
+      )
+    );
   };
 
   const handleNotesChange = (id: number, notes: string) => {
-    setData(prevData =>
-      prevData.map(item =>
+    setData((prevData) =>
+      prevData.map((item) =>
         item.id === id ? { ...item, maintenance_notes: notes } : item
+      )
+    );
+  };
+
+  const handleUpdateFrequency = (id: number, frequency: number) => {
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === id ? { ...item, maintenance_frequency: frequency } : item
       )
     );
   };
@@ -102,7 +133,9 @@ export default function GunsmithingMaintenance() {
           } else if (payload.eventType === "UPDATE") {
             setData((currentData) =>
               currentData.map((item) =>
-                item.id === payload.new.id ? payload.new as FirearmsMaintenanceData : item
+                item.id === payload.new.id
+                  ? (payload.new as FirearmsMaintenanceData)
+                  : item
               )
             );
           } else {
@@ -123,7 +156,10 @@ export default function GunsmithingMaintenance() {
       for (const firearm of data) {
         await supabase
           .from("firearms_maintenance")
-          .update({ maintenance_notes: firearm.maintenance_notes, status: "Completed" })
+          .update({
+            maintenance_notes: firearm.maintenance_notes,
+            status: "Completed",
+          })
           .eq("id", firearm.id);
       }
 
@@ -164,15 +200,19 @@ export default function GunsmithingMaintenance() {
                 {loading ? (
                   <p>Loading...</p>
                 ) : (
-                  userRole && userUuid && (
-                    <DataTable
-                      columns={columns}
-                      data={data}
-                      userRole={userRole}
-                      userUuid={userUuid}
-                      onStatusChange={handleStatusChange}
-                      onNotesChange={handleNotesChange}
-                    />
+                  userRole &&
+                  userUuid && (
+                    <>
+                      <DataTable
+                        columns={columns}
+                        data={data}
+                        userRole={userRole}
+                        userUuid={userUuid}
+                        onStatusChange={handleStatusChange}
+                        onNotesChange={handleNotesChange}
+                        onUpdateFrequency={handleUpdateFrequency}
+                      />
+                    </>
                   )
                 )}
               </div>
