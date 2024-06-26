@@ -26,6 +26,7 @@ import { supabase } from "@/utils/supabase/client";
 import useUnreadMessages from "@/pages/api/fetch-unread";
 import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
 import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
+import { useRouter } from "next/navigation"; // Import useRouter
 
 const auditComponents = [
   {
@@ -92,11 +93,6 @@ const formComps = [
     href: "/TGR/rangewalk",
     description: "Submit Daily Range Walks",
   },
-  // {
-  //   title: "Range Repairs",
-  //   href: "/TGR/rangerepairs",
-  //   description: "Submit ALL Range Repairs",
-  // },
   {
     title: "Daily Deposits",
     href: "/TGR/deposits",
@@ -160,6 +156,7 @@ const profileComps = [
 
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
+  const router = useRouter(); // Instantiate useRouter
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -179,6 +176,49 @@ const HeaderAdmin = React.memo(() => {
     await supabase.auth.signOut();
     setUser(null);
     window.location.href = "/"; // Redirect to sign-in page after sign-out
+  };
+
+  const handleChatClick = async () => {
+    if (user) {
+      const { data: messagesToUpdate, error: fetchError } = await supabase
+        .from("direct_messages")
+        .select("id, read_by")
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
+
+      if (fetchError) {
+        console.error("Error fetching messages to update:", fetchError.message);
+        return;
+      }
+
+      const messageIdsToUpdate = messagesToUpdate
+        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
+        .map((msg) => msg.id);
+
+      if (messageIdsToUpdate.length > 0) {
+        for (const messageId of messageIdsToUpdate) {
+          const { error: updateError } = await supabase
+            .from("direct_messages")
+            .update({
+              read_by: [
+                ...(messagesToUpdate.find((msg) => msg.id === messageId)
+                  ?.read_by || []),
+                user.id,
+              ],
+            })
+            .eq("id", messageId);
+
+          if (updateError) {
+            console.error(
+              "Error updating messages as read:",
+              updateError.message
+            );
+          }
+        }
+      }
+
+      // Navigate to the chat page
+      router.push("/TGR/crew/chat");
+    }
   };
 
   return (
@@ -317,23 +357,17 @@ const HeaderAdmin = React.memo(() => {
               <Button variant="linkHover2">Sign In</Button>
             </Link>
           )}
-          <Link href="/TGR/crew/chat">
-            <Button variant="linkHover2" size="icon">
-              <ChatBubbleIcon />
-              {unreadCount > 0 && (
-                <span className="">
-                  <DotFilledIcon className="w-4 h-4 text-red-600" />
-                </span>
-              )}
-            </Button>
-          </Link>
+          <Button variant="linkHover2" size="icon" onClick={handleChatClick}>
+            <ChatBubbleIcon />
+            {unreadCount > 0 && (
+              <DotFilledIcon className="w-4 h-4 text-red-600" />
+            )}
+          </Button>
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
               <Button variant="linkHover1" size="icon">
                 <FileTextIcon />
-                {unreadOrderCount > 0 && (
-                  <span className="badge">{unreadOrderCount}</span>
-                )}
+                <span className="badge">{unreadOrderCount}</span>
               </Button>
             </Link>
           )}
@@ -341,9 +375,7 @@ const HeaderAdmin = React.memo(() => {
             <Link href="/admin/timeoffreview">
               <Button variant="linkHover1" size="icon">
                 <CalendarIcon />
-                {unreadTimeOffCount > 0 && (
-                  <span className="badge">{unreadTimeOffCount}</span>
-                )}
+                <span className="badge">{unreadTimeOffCount}</span>
               </Button>
             </Link>
           )}

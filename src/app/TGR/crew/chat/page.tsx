@@ -67,7 +67,7 @@ export default function ChatClient() {
 
   useEffect(() => {
     const client = supabase;
-    
+
     const fetchUsername = async () => {
       const { data: userData, error } = await supabase.auth.getUser();
       if (userData && userData.user) {
@@ -88,7 +88,7 @@ export default function ChatClient() {
         }
       }
     };
-    
+
     const fetchMessages = async () => {
       const { data: chatMessages, error: chatError } = await client
         .from("chat_messages")
@@ -291,7 +291,8 @@ export default function ChatClient() {
       )
       .subscribe();
 
-      const authListener = client.auth.onAuthStateChange(async (event, session) => {
+    const authListener = client.auth.onAuthStateChange(
+      async (event, session) => {
         if (event === "SIGNED_IN" && session) {
           await client
             .from("employees")
@@ -303,17 +304,17 @@ export default function ChatClient() {
             .update({ is_online: false })
             .eq("user_uuid", session.user.id);
         }
-      });
-      
-      return () => {
-        authListener.data.subscription.unsubscribe();
-        channel.current?.unsubscribe();
-        channel.current = null;
-        presenceChannel.current?.unsubscribe();
-        presenceChannel.current = null;
-        directMessageChannel?.unsubscribe();
-      };
-      
+      }
+    );
+
+    return () => {
+      authListener.data.subscription.unsubscribe();
+      channel.current?.unsubscribe();
+      channel.current = null;
+      presenceChannel.current?.unsubscribe();
+      presenceChannel.current = null;
+      directMessageChannel?.unsubscribe();
+    };
   }, [user, selectedChat]);
 
   const scrollToBottom = () => {
@@ -557,29 +558,29 @@ export default function ChatClient() {
 
   const handleChatClick = async (chatId: string) => {
     setSelectedChat(chatId);
-  
+
     // Reset unread status for the selected chat
     if (unreadStatus[chatId]) {
       setUnreadStatus((prevStatus) => ({
         ...prevStatus,
         [chatId]: false,
       }));
-  
+
       // Mark messages as read in the database
       const { data: messagesToUpdate, error: fetchError } = await supabase
         .from("direct_messages")
         .select("id, read_by")
         .or(`receiver_id.eq.${chatId},sender_id.eq.${user.id}`);
-  
+
       if (fetchError) {
         console.error("Error fetching messages to update:", fetchError.message);
         return;
       }
-  
+
       const messageIdsToUpdate = messagesToUpdate
         .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
         .map((msg) => msg.id);
-  
+
       if (messageIdsToUpdate.length > 0) {
         for (const messageId of messageIdsToUpdate) {
           const { error: updateError } = await supabase
@@ -592,7 +593,7 @@ export default function ChatClient() {
               ],
             })
             .eq("id", messageId);
-  
+
           if (updateError) {
             console.error(
               "Error updating messages as read:",
@@ -602,7 +603,7 @@ export default function ChatClient() {
         }
       }
     }
-  
+
     // Ensure the receiver's nav list updates to show the new DM
     if (!dmUsers.some((u) => u.id === chatId)) {
       const { data: userData, error: userError } = await supabase
@@ -610,7 +611,7 @@ export default function ChatClient() {
         .select("user_uuid, name, is_online")
         .eq("user_uuid", chatId)
         .single();
-  
+
       if (userData) {
         setDmUsers((prev) => [
           ...prev,
@@ -624,7 +625,7 @@ export default function ChatClient() {
         console.error("Error fetching user:", userError?.message);
       }
     }
-  };  
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -852,7 +853,3 @@ export default function ChatClient() {
     </RoleBasedWrapper>
   );
 }
-function fetchSender(senderId: string) {
-  throw new Error("Function not implemented.");
-}
-

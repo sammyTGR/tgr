@@ -218,18 +218,25 @@ const HeaderSuperAdmin = React.memo(() => {
           const { error: updateError } = await supabase
             .from("direct_messages")
             .update({
-              read_by: [...(messagesToUpdate.find(msg => msg.id === messageId)?.read_by || []), user.id],
+              read_by: [
+                ...(messagesToUpdate.find((msg) => msg.id === messageId)
+                  ?.read_by || []),
+                user.id,
+              ],
             })
             .eq("id", messageId);
 
           if (updateError) {
-            console.error("Error updating messages as read:", updateError.message);
+            console.error(
+              "Error updating messages as read:",
+              updateError.message
+            );
           }
         }
       }
 
       // Navigate to the chat page
-      router.push('/TGR/crew/chat');
+      router.push("/TGR/crew/chat");
     }
   };
 
