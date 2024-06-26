@@ -112,15 +112,25 @@ const EmployeeProfile = () => {
       .from("schedules")
       .select("schedule_date, status")
       .eq("employee_id", employeeId)
-      .in("status", ["called_out", "left_early"]);
+      .or("status.eq.called_out,status.eq.left_early,status.ilike.%late%");
 
     if (error) {
       console.error("Error fetching absences:", error);
     } else {
-      const formattedAbsences = data.map((absence) => ({
-        schedule_date: absence.schedule_date,
-        status: absence.status === "called_out" ? "Called Out" : "Left Early",
-      }));
+      const formattedAbsences = data.map((absence) => {
+        let status = absence.status;
+        if (status === "called_out") {
+          status = "Called Out";
+        } else if (status === "left_early") {
+          status = "Left Early";
+        } else if (status.toLowerCase().includes("late")) {
+          status = status.replace(/^Custom:\s*/i, "").trim();
+        }
+        return {
+          schedule_date: absence.schedule_date,
+          status: status,
+        };
+      });
       setAbsences(formattedAbsences);
     }
   };
