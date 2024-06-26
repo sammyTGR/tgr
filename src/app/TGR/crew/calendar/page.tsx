@@ -365,7 +365,7 @@ export default function Component() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["gunsmith", "user", "admin", "super admin"]}>
       <div className="flex flex-col items-center space-y-4 p-4  overflow-hidden">
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />

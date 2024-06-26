@@ -181,11 +181,10 @@ export default function Board() {
         <h1 className="text-2xl font-bold">Weekly Agenda</h1>
         <AddColumn handleAddColumn={addColumn} />
       </div>
-      <div className="flex grid grid-cols-3 h-full w-full gap-3 ">
-        <div className="flex gap-3 p-4">
-          {columns.map((column) => (
+      <div className="flex flex-wrap gap-3 p-4">
+        {columns.map((column) => (
+          <div key={column.id} className="w-1/3"> {/* Adjust width here */}
             <Column
-              key={column.id}
               title={column.title}
               column={column}
               headingColor="text-black dark:text-white"
@@ -198,12 +197,12 @@ export default function Board() {
               updateColumnTitle={updateColumnTitle}
               deleteColumn={deleteColumn}
             />
-          ))}
-          <BurnBarrel setCards={setCards} />
-        </div>
+          </div>
+        ))}
+        <BurnBarrel setCards={setCards} />
       </div>
     </>
-  );
+  );  
 }
 
 type ColumnProps = {
@@ -516,13 +515,13 @@ const BurnBarrel = ({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      className={`mt-10 grid h-56 w-56 shrink-0 place-content-center rounded border text-3xl ${
-        active
-          ? "border-red-800 bg-red-800/20 text-red-500"
-          : "border-neutral-500 bg-neutral-500/20 text-neutral-500"
-      }`}
+      // className={`mt-10 grid h-56 w-56 shrink-0 place-content-center rounded border text-3xl ${
+      //   active
+      //     ? "border-red-800 bg-red-800/20 text-red-500"
+      //     : "border-neutral-500 bg-neutral-500/20 text-neutral-500"
+      // }`}
     >
-      {active ? <LinkBreak2Icon className="animate-bounce" /> : <TrashIcon />}
+      {/* {active ? <LinkBreak2Icon className="animate-bounce" /> : <TrashIcon />} */}
     </div>
   );
 };

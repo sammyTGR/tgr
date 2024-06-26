@@ -6,13 +6,10 @@ import { supabase } from "@/utils/supabase/client";
 
 const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
 const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
-const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), {
-  ssr: false,
-});
+const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), { ssr: false });
 const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
-const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), {
-  ssr: false,
-});
+const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), { ssr: false });
+const HeaderGunsmith = dynamic(() => import("./HeaderGunsmith"), { ssr: false }); // Add this line
 
 export default function Header() {
   const [role, setRole] = useState<string | null>(null);
@@ -28,8 +25,7 @@ export default function Header() {
         setRole(roleHeader);
         setLoading(false);
       } else {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) {
           console.error("Error fetching user:", userError.message);
           setLoading(false);
@@ -92,6 +88,10 @@ export default function Header() {
 
   if (role === "customer") {
     return <HeaderCustomer />;
+  }
+
+  if (role === "gunsmith") {
+    return <HeaderGunsmith />;
   }
 
   return <HeaderUser />;

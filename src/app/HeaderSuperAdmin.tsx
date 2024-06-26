@@ -149,6 +149,11 @@ const reportsComps = [
     href: "/sales/orderreview",
     description: "View Submitted Orders",
   },
+  {
+    title: "Gunsmithing",
+    href: "/TGR/gunsmithing",
+    description: "Weekly Gunsmithing Maintenance",
+  },
 ];
 
 const profileComps = [

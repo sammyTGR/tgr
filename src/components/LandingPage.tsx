@@ -8,7 +8,8 @@ const LandingPageUser = dynamic(() => import("./LandingPageUser"));
 const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
 const LandingPageSuperAdmin = dynamic(() => import("./LandingPageSuperAdmin"));
 const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
-const LandingPageCustomer = dynamic(() => import("./LandingPageCustomer")); // Import LandingPageCustomer
+const LandingPageCustomer = dynamic(() => import("./LandingPageCustomer"));
+const LandingPageGunsmith = dynamic(() => import("./LandingPageGunsmith")); // Add this line
 
 const LandingPage: React.FC = () => {
   const [role, setRole] = useState<string | null>(null);
@@ -24,8 +25,7 @@ const LandingPage: React.FC = () => {
         setRole(roleHeader);
         setLoading(false);
       } else {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) {
           console.error("Error fetching user:", userError.message);
           setLoading(false);
@@ -88,6 +88,10 @@ const LandingPage: React.FC = () => {
 
   if (role === "customer") {
     return <LandingPageCustomer />;
+  }
+
+  if (role === "gunsmith") {
+    return <LandingPageGunsmith />;
   }
 
   return <LandingPageUser />;

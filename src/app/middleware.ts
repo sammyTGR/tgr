@@ -53,6 +53,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/landing-page/admin", request.url));
     } else if (userRole === "super admin") {
       return NextResponse.redirect(new URL("/landing-page/super-admin", request.url));
+    } else if (userRole === "gunsmith") {
+      return NextResponse.redirect(new URL("/landing-page/gunsmith", request.url));
     } else {
       return NextResponse.redirect(new URL("/landing-page/user", request.url));
     }

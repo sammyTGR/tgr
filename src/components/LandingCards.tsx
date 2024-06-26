@@ -8,6 +8,7 @@ import {
   CalendarIcon,
   ClockIcon,
   CodeIcon,
+  CookieIcon,
   EyeOpenIcon,
   FileTextIcon,
   InputIcon,
@@ -353,6 +354,24 @@ export const CrewOrdersCard = () => (
         <CardContent>
           <p className="text-gray-500 dark:text-gray-400 text-center">
             Check On Orders Submitted By The Crew.
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </>
+);
+
+export const GunsmithingCard = () => (
+  <>
+    <Link className="group" href="/TGR/gunsmithing">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <CookieIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          <CardTitle>Gunsmithing</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 dark:text-gray-400 text-center">
+            Weekly Firearms Maintenance.
           </p>
         </CardContent>
       </Card>

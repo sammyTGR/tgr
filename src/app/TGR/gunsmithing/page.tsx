@@ -5,8 +5,9 @@ import { FirearmsMaintenanceData, columns } from "./columns";
 import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import MaintenanceFrequencyForm from "./MaintenanceFrequencyForm";
-import { cycleFirearms } from "@/utils/cycleFirearms"; // Import the utility function
+import { cycleFirearms } from "@/utils/cycleFirearms";
+import { Button } from "@/components/ui/button";
+import AddFirearmForm from "./AddFirearmForm";
 
 const words = "Gunsmithing Maintenance";
 
@@ -118,6 +119,48 @@ export default function GunsmithingMaintenance() {
     );
   };
 
+  const handleAddFirearm = async (firearm: {
+    firearm_type: string;
+    firearm_name: string;
+    last_maintenance_date: string;
+    maintenance_frequency: number;
+    maintenance_notes: string;
+    status: string;
+    assigned_to: string | null;
+  }) => {
+    try {
+      const { data, error } = await supabase
+        .from("firearms_maintenance")
+        .insert([firearm])
+        .select(); // To return the newly inserted row
+
+      if (error) {
+        throw error;
+      }
+
+      setData((prevData) => [...prevData, data[0]]);
+    } catch (error) {
+      console.error("Error adding firearm:", error);
+    }
+  };
+
+  const handleDeleteFirearm = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      setData((prevData) => prevData.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Error deleting firearm:", error);
+    }
+  };
+
   useEffect(() => {
     const FirearmsMaintenanceTableSubscription = supabase
       .channel("custom-all-firearms-maintenance-channel")
@@ -137,6 +180,10 @@ export default function GunsmithingMaintenance() {
                   ? (payload.new as FirearmsMaintenanceData)
                   : item
               )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setData((currentData) =>
+              currentData.filter((item) => item.id !== payload.old.id)
             );
           } else {
             fetchData();
@@ -184,7 +231,7 @@ export default function GunsmithingMaintenance() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin", "inventory manager"]}>
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">
@@ -193,6 +240,9 @@ export default function GunsmithingMaintenance() {
                 <TextGenerateEffect words={words} />
               </h2>
             </div>
+            {["admin", "super admin"].includes(userRole || "") && (
+              <AddFirearmForm onAdd={handleAddFirearm} />
+            )}
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <div className="rounded-md border flex-1 flex flex-col">
@@ -211,18 +261,16 @@ export default function GunsmithingMaintenance() {
                         onStatusChange={handleStatusChange}
                         onNotesChange={handleNotesChange}
                         onUpdateFrequency={handleUpdateFrequency}
+                        onDeleteFirearm={handleDeleteFirearm} // Pass this prop
                       />
                     </>
                   )
                 )}
               </div>
             </div>
-            <button
-              onClick={handleSubmit}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md"
-            >
+            <Button onClick={handleSubmit} variant="ringHover">
               Submit Maintenance List
-            </button>
+            </Button>
           </div>
         </section>
       </div>

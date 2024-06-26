@@ -16,7 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/utils/supabase/client";
 import { FirearmsMaintenanceData } from "./columns";
-import { maintenanceFrequencies } from "./columns"; // Import frequency options
+import { maintenanceFrequencies } from "./columns";
 import {
   Dialog,
   DialogClose,
@@ -34,6 +34,7 @@ interface DataTableRowActionsProps {
   onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
   onUpdateFrequency: (id: number, frequency: number) => void;
+  onDeleteFirearm: (id: number) => void;
 }
 
 export function DataTableRowActions({
@@ -43,6 +44,7 @@ export function DataTableRowActions({
   onStatusChange,
   onNotesChange,
   onUpdateFrequency,
+  onDeleteFirearm,
 }: DataTableRowActionsProps) {
   const task = row.original;
   const [open, setOpen] = useState(false);
@@ -91,6 +93,7 @@ export function DataTableRowActions({
   };
 
   const canEditNotes = ["gunsmith", "admin", "super admin"].includes(userRole);
+  const canDelete = ["admin", "super admin"].includes(userRole);
 
   return (
     <>
@@ -141,6 +144,17 @@ export function DataTableRowActions({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onSelect={() => onDeleteFirearm(task.id)}
+              >
+                Delete Firearm
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog open={open} onOpenChange={setOpen}>
