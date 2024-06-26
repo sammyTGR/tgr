@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/utils/supabase/client";
-import { cycleFirearms } from "@/utils/cycleFirearms"; // Import the cycleFirearms function
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
@@ -32,49 +31,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           throw error;
         }
 
-        // Filter and sort firearms by type, frequency, and date of last maintenance
-        const handguns = firearmsData
-          .filter((firearm) => firearm.firearm_type === "handgun")
-          .sort((a, b) => {
-            const frequencyA = a.maintenance_frequency || 1;
-            const frequencyB = b.maintenance_frequency || 1;
-            const lastMaintenanceDateA = new Date(a.last_maintenance_date || 0);
-            const lastMaintenanceDateB = new Date(b.last_maintenance_date || 0);
-            return (lastMaintenanceDateA.getTime() / frequencyA) - (lastMaintenanceDateB.getTime() / frequencyB);
-          });
+        // Separate firearms by type
+        const handguns = firearmsData.filter(firearm => firearm.firearm_type === "handgun");
+        const longGuns = firearmsData.filter(firearm => firearm.firearm_type === "long gun");
 
-        const longGuns = firearmsData
-          .filter((firearm) => firearm.firearm_type === "long gun")
-          .sort((a, b) => {
-            const frequencyA = a.maintenance_frequency || 1;
-            const frequencyB = b.maintenance_frequency || 1;
-            const lastMaintenanceDateA = new Date(a.last_maintenance_date || 0);
-            const lastMaintenanceDateB = new Date(b.last_maintenance_date || 0);
-            return (lastMaintenanceDateA.getTime() / frequencyA) - (lastMaintenanceDateB.getTime() / frequencyB);
-          });
+        // Sort firearms by last maintenance date
+        handguns.sort((a, b) => new Date(a.last_maintenance_date).getTime() - new Date(b.last_maintenance_date).getTime());
+longGuns.sort((a, b) => new Date(a.last_maintenance_date).getTime() - new Date(b.last_maintenance_date).getTime());
 
-        // Cycle firearms to ensure there are exactly 13 of each type
-        const updatedHandguns = cycleFirearms(handguns, 13);
-        const updatedLongGuns = cycleFirearms(longGuns, 13);
+        // Get the firearms to assign
+        const assignedHandguns = handguns.slice(0, 13);
+        const assignedLongGuns = longGuns.slice(0, 13);
 
-        const updatedFirearms = [...updatedHandguns, ...updatedLongGuns].map(firearm => ({
-          ...firearm,
-          assigned_to: userUuid,
-          status: "Assigned",
-        }));
-
-        // Update the database
-        for (const firearm of updatedFirearms) {
-          const { id, assigned_to, status } = firearm;
-          const { error: updateError } = await supabase
-            .from("firearms_maintenance")
-            .update({ assigned_to, status })
-            .eq("id", id);
-
-          if (updateError) {
-            throw updateError;
-          }
-        }
+        // Mark the selected firearms as "Assigned"
+        const updatedFirearms = [...assignedHandguns, ...assignedLongGuns];
 
         res.status(200).json({ message: "New list generated successfully", firearms: updatedFirearms });
       } else {

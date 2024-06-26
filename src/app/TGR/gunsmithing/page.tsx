@@ -7,7 +7,6 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { cycleFirearms } from "@/utils/cycleFirearms";
 import { Button } from "@/components/ui/button";
-import AddFirearmForm from "./AddFirearmForm";
 
 const words = "Gunsmithing Maintenance";
 
@@ -56,12 +55,12 @@ export default function GunsmithingMaintenance() {
     const { data, error } = await supabase
       .from("firearms_maintenance")
       .select("*");
-
+  
     if (error) {
       console.error("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
-
+  
     // Separate handguns and long guns
     const handguns = data.filter(
       (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
@@ -69,14 +68,14 @@ export default function GunsmithingMaintenance() {
     const longGuns = data.filter(
       (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
     );
-
+  
     // Cycle through the lists to get 13 of each
     const cycledHandguns = cycleFirearms(handguns, 13);
     const cycledLongGuns = cycleFirearms(longGuns, 13);
-
+  
     return [...cycledHandguns, ...cycledLongGuns];
   }, []);
-
+  
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -93,16 +92,29 @@ export default function GunsmithingMaintenance() {
     fetchData();
   }, [fetchData]);
 
-  const handleStatusChange = (id: number, status: string | null) => {
-    setData((prevData) =>
-      prevData.map((item) =>
-        item.id === id
-          ? { ...item, status: status !== null ? status : "" }
-          : item
-      )
-    );
+  const handleStatusChange = async (id: number, status: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({ status })
+        .eq("id", id);
+  
+      if (error) {
+        throw error;
+      }
+  
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === id
+            ? { ...item, status: status !== null ? status : "" }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
   };
-
+  
   const handleNotesChange = (id: number, notes: string) => {
     setData((prevData) =>
       prevData.map((item) =>
@@ -131,14 +143,13 @@ export default function GunsmithingMaintenance() {
     try {
       const { data, error } = await supabase
         .from("firearms_maintenance")
-        .insert([firearm])
-        .select(); // To return the newly inserted row
+        .insert([firearm]);
 
       if (error) {
         throw error;
       }
 
-      setData((prevData) => [...prevData, data[0]]);
+      setData((prevData) => [...prevData, data![0]]);
     } catch (error) {
       console.error("Error adding firearm:", error);
     }
@@ -198,18 +209,29 @@ export default function GunsmithingMaintenance() {
   }, [fetchData]);
 
   const handleSubmit = async () => {
+    // Check if all firearms have notes and status
+    const incompleteFirearms = data.filter(
+      (firearm) => !firearm.maintenance_notes || !firearm.status
+    );
+  
+    if (incompleteFirearms.length > 0) {
+      alert("Please ensure all firearms have detailed notes and a status before submitting.");
+      return;
+    }
+  
     try {
-      // Update the maintenance notes and status in the database
+      // Update the maintenance notes, status, and last maintenance date in the database
       for (const firearm of data) {
         await supabase
           .from("firearms_maintenance")
           .update({
             maintenance_notes: firearm.maintenance_notes,
-            status: "Completed",
+            status: firearm.status,
+            last_maintenance_date: new Date().toISOString(),
           })
           .eq("id", firearm.id);
       }
-
+  
       // Generate the new list
       const response = await fetch("/api/firearms-maintenance", {
         method: "POST",
@@ -218,20 +240,20 @@ export default function GunsmithingMaintenance() {
         },
         body: JSON.stringify({ action: "generateNewList", data: { userUuid } }),
       });
-
+  
       if (!response.ok) {
         throw new Error("Failed to generate new list");
       }
-
+  
       // Reload the page to show the new list
       location.reload();
     } catch (error) {
       console.error("Failed to submit maintenance list:", error);
     }
   };
-
+  
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin", "inventory manager"]}>
+    <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">
@@ -241,7 +263,24 @@ export default function GunsmithingMaintenance() {
               </h2>
             </div>
             {["admin", "super admin"].includes(userRole || "") && (
-              <AddFirearmForm onAdd={handleAddFirearm} />
+              <div>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    handleAddFirearm({
+                      firearm_type: "handgun", // Example data
+                      firearm_name: "New Firearm", // Example data
+                      last_maintenance_date: new Date().toISOString(),
+                      maintenance_frequency: 30,
+                      maintenance_notes: "",
+                      status: "New",
+                      assigned_to: null,
+                    })
+                  }
+                >
+                  Add Firearm
+                </Button>
+              </div>
             )}
           </div>
           <div className="flex-1 flex flex-col space-y-4">
@@ -268,7 +307,10 @@ export default function GunsmithingMaintenance() {
                 )}
               </div>
             </div>
-            <Button onClick={handleSubmit} variant="ringHover">
+            <Button
+              onClick={handleSubmit}
+              variant="ringHover"
+            >
               Submit Maintenance List
             </Button>
           </div>

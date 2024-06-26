@@ -1,5 +1,3 @@
-// src/app/TGR/gunsmithing/data-table.tsx
-
 import * as React from "react";
 import {
   ColumnFiltersState,
@@ -42,7 +40,7 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
   onUpdateFrequency: (id: number, frequency: number) => void;
-  onDeleteFirearm: (id: number) => void; // Add this line
+  onDeleteFirearm: (id: number) => void;
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -52,7 +50,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   userUuid,
   onStatusChange,
   onNotesChange,
-  onUpdateFrequency,
+  onUpdateFrequency, // Add this line
   onDeleteFirearm, // Add this line
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -183,7 +181,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         userUuid={userUuid}
                         onStatusChange={onStatusChange}
                         onNotesChange={onNotesChange}
-                        onUpdateFrequency={onUpdateFrequency}
+                        onUpdateFrequency={onUpdateFrequency} // Pass this prop
                         onDeleteFirearm={onDeleteFirearm} // Pass this prop
                       />
                     </TableCell>

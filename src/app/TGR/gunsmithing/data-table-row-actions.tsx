@@ -16,7 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/utils/supabase/client";
 import { FirearmsMaintenanceData } from "./columns";
-import { maintenanceFrequencies } from "./columns";
+import { maintenanceFrequencies } from "./columns"; // Import frequency options
 import {
   Dialog,
   DialogClose,
@@ -93,7 +93,7 @@ export function DataTableRowActions({
   };
 
   const canEditNotes = ["gunsmith", "admin", "super admin"].includes(userRole);
-  const canDelete = ["admin", "super admin"].includes(userRole);
+  const canDeleteFirearm = ["admin", "super admin"].includes(userRole);
 
   return (
     <>
@@ -131,26 +131,34 @@ export function DataTableRowActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
-                Repaired
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Under Repair")}
-              >
-                Under Repair
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
-                Clear Status
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
+  <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
+    Repaired
+  </DropdownMenuItem>
+  <DropdownMenuItem onSelect={() => handleStatusChange("Under Repair")}>
+    Under Repair
+  </DropdownMenuItem>
+  <DropdownMenuItem onSelect={() => handleStatusChange("Maintenance Completed")}>
+    Maintenance Completed
+  </DropdownMenuItem>
+  <DropdownMenuItem onSelect={() => handleStatusChange("Had To Send Out")}>
+    Had To Send Out
+  </DropdownMenuItem>
+  <DropdownMenuItem onSelect={() => handleStatusChange("Waiting For Parts")}>
+    Waiting For Parts
+  </DropdownMenuItem>
+  <DropdownMenuItem onSelect={() => handleStatusChange("Prepping For Sale")}>
+    Prepping For Sale
+  </DropdownMenuItem>
+  <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
+    Clear Status
+  </DropdownMenuItem>
+</DropdownMenuSubContent>
+
           </DropdownMenuSub>
-          {canDelete && (
+          {canDeleteFirearm && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600"
-                onSelect={() => onDeleteFirearm(task.id)}
-              >
+              <DropdownMenuItem onSelect={() => onDeleteFirearm(task.id)}>
                 Delete Firearm
               </DropdownMenuItem>
             </>
