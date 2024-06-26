@@ -65,6 +65,15 @@ export function DataTableRowActions({
     }
   };
 
+  const newStatusOptions = [
+    "Repaired",
+    "Under Repair",
+    "Had To Send Out",
+    "Waiting For Parts",
+    "Prepping For Sale",
+    null, // Clear status
+  ];
+
   const handleSaveNotes = async () => {
     const { error } = await supabase
       .from("firearms_maintenance")
@@ -131,29 +140,38 @@ export function DataTableRowActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-  <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
-    Repaired
-  </DropdownMenuItem>
-  <DropdownMenuItem onSelect={() => handleStatusChange("Under Repair")}>
-    Under Repair
-  </DropdownMenuItem>
-  <DropdownMenuItem onSelect={() => handleStatusChange("Maintenance Completed")}>
-    Maintenance Completed
-  </DropdownMenuItem>
-  <DropdownMenuItem onSelect={() => handleStatusChange("Had To Send Out")}>
-    Had To Send Out
-  </DropdownMenuItem>
-  <DropdownMenuItem onSelect={() => handleStatusChange("Waiting For Parts")}>
-    Waiting For Parts
-  </DropdownMenuItem>
-  <DropdownMenuItem onSelect={() => handleStatusChange("Prepping For Sale")}>
-    Prepping For Sale
-  </DropdownMenuItem>
-  <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
-    Clear Status
-  </DropdownMenuItem>
-</DropdownMenuSubContent>
-
+              <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
+                Repaired
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => handleStatusChange("Under Repair")}
+              >
+                Under Repair
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => handleStatusChange("Maintenance Completed")}
+              >
+                Maintenance Completed
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => handleStatusChange("Had To Send Out")}
+              >
+                Had To Send Out
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => handleStatusChange("Waiting For Parts")}
+              >
+                Waiting For Parts
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => handleStatusChange("Prepping For Sale")}
+              >
+                Prepping For Sale
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
+                Clear Status
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
           </DropdownMenuSub>
           {canDeleteFirearm && (
             <>

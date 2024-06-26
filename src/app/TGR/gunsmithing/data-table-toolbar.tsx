@@ -36,7 +36,7 @@ export function DataTableToolbar<TData>({
         <Input
           placeholder="Filter by Firearm Name..."
           value={
-            (table.getColumn("firearm_name")?.getFilterValue() as string) ?? ""
+            (table.getColumn("firearm_name")?.getFilterValue() as string) || ""
           }
           onChange={(event) =>
             table.getColumn("firearm_name")?.setFilterValue(event.target.value)

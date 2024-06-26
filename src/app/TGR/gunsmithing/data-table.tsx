@@ -60,6 +60,11 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 30,
+  });
+
   const table = useReactTable({
     data,
     columns,
@@ -67,18 +72,22 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
-      pagination: { pageIndex: 0, pageSize: 30 }, // Set default pagination state here
+      pagination,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: false,
-    manualSorting: false,
   });
+
+  // Add useEffect to reset pagination state when data changes
+  React.useEffect(() => {
+    table.setPageIndex(0);
+  }, [data, table]);
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
