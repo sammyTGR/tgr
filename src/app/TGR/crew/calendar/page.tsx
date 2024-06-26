@@ -20,6 +20,14 @@ import { useRole } from "../../../../context/RoleContext";
 import { Card, CardContent } from "@/components/ui/card";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogClose,
+} from "@radix-ui/react-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Popover,
   PopoverTrigger,
   PopoverContent,
@@ -80,6 +88,9 @@ export default function Component() {
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const role = useRole().role; // Access the role property directly
+  const [customStatus, setCustomStatus] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentEvent, setCurrentEvent] = useState<CalendarEvent | null>(null);
 
   const fetchCalendarData = useCallback(async (): Promise<
     EmployeeCalendar[]
@@ -89,38 +100,50 @@ export default function Component() {
     endOfWeek.setDate(endOfWeek.getDate() + 6);
 
     try {
-      const response = await fetch("/api/calendar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          start_date: startOfWeek.toISOString(),
-          end_date: endOfWeek.toISOString(),
-        }),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: EmployeeCalendar[] = await response.json();
-      // console.log("Fetched Calendar Data:", data); // Log the fetched data to verify
+      const { data, error } = await supabase
+        .from("schedules")
+        .select(
+          `
+        schedule_date,
+        start_time,
+        end_time,
+        day_of_week,
+        status,
+        employee_id,
+        employees:employee_id (
+          name
+        )
+      `
+        )
+        .gte("schedule_date", startOfWeek.toISOString().split("T")[0])
+        .lte("schedule_date", endOfWeek.toISOString().split("T")[0]);
 
-      const dates = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(startOfWeek);
-        date.setDate(date.getDate() + i);
-        return date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
+      if (error) {
+        throw error;
+      }
+
+      const groupedData: { [key: number]: EmployeeCalendar } = {};
+
+      data.forEach((item: any) => {
+        if (!groupedData[item.employee_id]) {
+          groupedData[item.employee_id] = {
+            employee_id: item.employee_id,
+            name: item.employees.name,
+            events: [],
+          };
+        }
+
+        groupedData[item.employee_id].events.push({
+          day_of_week: item.day_of_week,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          schedule_date: item.schedule_date,
+          status: item.status,
+          employee_id: item.employee_id,
         });
       });
 
-      const datesMap = daysOfWeek.reduce((acc, day, index) => {
-        acc[day] = dates[index];
-        return acc;
-      }, {} as { [key: string]: string });
-
-      setWeekDates(datesMap);
-      return data;
+      return Object.values(groupedData);
     } catch (error) {
       console.error("Failed to fetch calendar data:", (error as Error).message);
       return [];
@@ -230,13 +253,7 @@ export default function Component() {
     status: string
   ) => {
     try {
-      const formattedDate = new Date(schedule_date).toISOString().split("T")[0]; // Ensure the date is formatted correctly
-      // console.log("Payload:", {
-      //   employee_id,
-      //   schedule_date: formattedDate,
-      //   status,
-      // }); // Log the payload for debugging
-
+      const formattedDate = new Date(schedule_date).toISOString().split("T")[0];
       const response = await fetch("/api/update_schedule_status", {
         method: "POST",
         headers: {
@@ -259,6 +276,18 @@ export default function Component() {
         "Failed to update schedule status:",
         (error as Error).message
       );
+    }
+  };
+
+  const handleCustomStatusSubmit = () => {
+    if (currentEvent) {
+      updateScheduleStatus(
+        currentEvent.employee_id,
+        currentEvent.schedule_date,
+        `Custom:${customStatus}`
+      );
+      setDialogOpen(false);
+      setCustomStatus("");
     }
   };
 
@@ -289,8 +318,10 @@ export default function Component() {
                   <div className="text-orange-500 dark:text-orange-400">
                     Left Early
                   </div>
-                ) : event.status === "Custom:Off" ? (
-                  <div className="text-gray-800 dark:text-gray-300">Off</div>
+                ) : event.status && event.status.startsWith("Custom:") ? (
+                  <div className="text-green-500 dark:text-green-400">
+                    {event.status.replace("Custom:", "").trim()}
+                  </div>
                 ) : event.start_time === null || event.end_time === null ? (
                   <div className="text-gray-800 dark:text-gray-300">Off</div>
                 ) : (
@@ -320,7 +351,7 @@ export default function Component() {
                           variant="linkHover2"
                           onClick={() =>
                             updateScheduleStatus(
-                              event.employee_id, // Use employee_id here
+                              event.employee_id,
                               event.schedule_date,
                               "called_out"
                             )
@@ -332,7 +363,7 @@ export default function Component() {
                           variant="linkHover2"
                           onClick={() =>
                             updateScheduleStatus(
-                              event.employee_id, // Use employee_id here
+                              event.employee_id,
                               event.schedule_date,
                               "left_early"
                             )
@@ -344,7 +375,7 @@ export default function Component() {
                           variant="linkHover2"
                           onClick={() =>
                             updateScheduleStatus(
-                              event.employee_id, // Use employee_id here
+                              event.employee_id,
                               event.schedule_date,
                               "Custom:Off"
                             )
@@ -352,6 +383,39 @@ export default function Component() {
                         >
                           Off
                         </Button>
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              className="p-4"
+                              variant="linkHover2"
+                              onClick={() => {
+                                setCurrentEvent(event);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              Custom Status
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogTitle className="p-4">
+                              Enter Custom Status
+                            </DialogTitle>
+                            <Textarea
+                              value={customStatus}
+                              onChange={(e) => setCustomStatus(e.target.value)}
+                              placeholder="Enter custom status"
+                            />
+                            <Button
+                              variant="linkHover1"
+                              onClick={handleCustomStatusSubmit}
+                            >
+                              Submit
+                            </Button>
+                            <DialogClose asChild>
+                              <Button variant="linkHover2">Cancel</Button>
+                            </DialogClose>
+                          </DialogContent>
+                        </Dialog>
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -365,7 +429,9 @@ export default function Component() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith", "user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["gunsmith", "user", "admin", "super admin"]}
+    >
       <div className="flex flex-col items-center space-y-4 p-4  overflow-hidden">
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />
