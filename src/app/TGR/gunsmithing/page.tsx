@@ -25,9 +25,6 @@ export default function GunsmithingMaintenance() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userUuid, setUserUuid] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isTableVisible, setIsTableVisible] = useState(false);
-  const [fullData, setFullData] = useState<FirearmsMaintenanceData[]>([]);
-
   const [newFirearm, setNewFirearm] = useState({
     firearm_type: "handgun",
     firearm_name: "",
@@ -83,38 +80,31 @@ export default function GunsmithingMaintenance() {
       throw new Error(error.message);
     }
 
-    // Separate handguns and long guns
-    const handguns = data.filter(
-      (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
-    );
-    const longGuns = data.filter(
-      (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
-    );
-
-    // Cycle through the lists to get 13 of each if the user is not admin or super admin
     if (role === "gunsmith") {
+      // Separate handguns and long guns
+      const handguns = data.filter(
+        (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
+      );
+      const longGuns = data.filter(
+        (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
+      );
+
+      // Cycle through the lists to get 13 of each
       const cycledHandguns = cycleFirearms(handguns, 13);
       const cycledLongGuns = cycleFirearms(longGuns, 13);
-      return {
-        filteredData: [...cycledHandguns, ...cycledLongGuns],
-        fullData: data,
-      };
+
+      return [...cycledHandguns, ...cycledLongGuns];
     }
 
-    return {
-      filteredData: data,
-      fullData: data,
-    };
+    // For admin and super admin, return full data
+    return data;
   }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { filteredData, fullData } = await fetchFirearmsMaintenanceData(
-        userRole || ""
-      );
-      setData(filteredData);
-      setFullData(fullData); // Set the full data
+      const fetchedData = await fetchFirearmsMaintenanceData(userRole || "");
+      setData(fetchedData);
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -123,8 +113,10 @@ export default function GunsmithingMaintenance() {
   }, [fetchFirearmsMaintenanceData, userRole]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (userRole) {
+      fetchData();
+    }
+  }, [fetchData, userRole]);
 
   const handleStatusChange = async (id: number, status: string | null) => {
     try {
@@ -307,20 +299,6 @@ export default function GunsmithingMaintenance() {
     }
   };
 
-  const handlePrint = () => {
-    const printableArea = document.getElementById("printableArea");
-    if (printableArea) {
-      const printContents = printableArea.innerHTML;
-      const originalContents = document.body.innerHTML;
-      document.body.innerHTML = printContents;
-      window.print();
-      document.body.innerHTML = originalContents;
-      window.location.reload(); // Reload to reset the page after printing
-    } else {
-      console.error("Element with id 'printableArea' not found");
-    }
-  };
-
   return (
     <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
@@ -332,43 +310,30 @@ export default function GunsmithingMaintenance() {
               </h2>
             </div>
             {["admin", "super admin"].includes(userRole || "") && (
-              <div className="flex space-x-4">
-                <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
-                  Add Firearm
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsTableVisible((prev) => !prev)}
-                >
-                  {isTableVisible ? "Hide" : "Show"} Full Inventory
-                </Button>
-                <Button variant="outline" onClick={handlePrint}>
-                  Print List
-                </Button>
-              </div>
+              <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
+                Add Firearm
+              </Button>
             )}
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <div className="rounded-md border flex-1 flex flex-col">
-              <div className="relative w-full h-full overflow-auto print-container">
+              <div className="relative w-full h-full overflow-auto">
                 {loading ? (
                   <p>Loading...</p>
                 ) : (
                   userRole &&
                   userUuid && (
                     <>
-                      <div id="printableArea">
-                        <DataTable
-                          columns={columns}
-                          data={isTableVisible ? fullData : data} // Conditionally render full data or filtered data
-                          userRole={userRole}
-                          userUuid={userUuid}
-                          onStatusChange={handleStatusChange}
-                          onNotesChange={handleNotesChange}
-                          onUpdateFrequency={handleUpdateFrequency}
-                          onDeleteFirearm={handleDeleteFirearm} // Pass this prop
-                        />
-                      </div>
+                      <DataTable
+                        columns={columns}
+                        data={data}
+                        userRole={userRole}
+                        userUuid={userUuid}
+                        onStatusChange={handleStatusChange}
+                        onNotesChange={handleNotesChange}
+                        onUpdateFrequency={handleUpdateFrequency}
+                        onDeleteFirearm={handleDeleteFirearm} // Pass this prop
+                      />
                     </>
                   )
                 )}
