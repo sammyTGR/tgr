@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Toaster, toast } from "sonner";
 
 const words = "Gunsmithing Maintenance";
 
@@ -347,16 +348,21 @@ export default function GunsmithingMaintenance() {
         throw new Error("Failed to generate new list");
       }
 
+      // Show a toast notification
+      toast.success("Maintenance list submitted successfully!");
+
       // Reload the page to show the new list
       location.reload();
     } catch (error) {
       console.error("Failed to submit maintenance list:", error);
+      toast.error("Failed to submit maintenance list.");
     }
   };
 
   return (
     <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
+        <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">
             <div>
