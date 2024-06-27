@@ -104,5 +104,51 @@
       background-color: rgba(0, 0, 0, 0.1);
     }
     
+    /* Ensure no conflicting print styles */
+    @media print {
+      @page {
+        size: landscape;
+        margin: 10mm;
+      }
+    
+      body {
+        font-size: 10pt;
+        line-height: 1.2;
+      }
+    
+      .print-container {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: space-between;
+        height: 100vh;
+      }
+    
+      #printableArea {
+        display: flex;
+        flex-direction: column;
+        column-count: 2;
+        column-gap: 20px;
+        width: 100%;
+      }
+    
+      .firearm-list {
+        break-inside: avoid;
+      }
+    
+      .firearm-item {
+        margin-bottom: 4px;
+        padding-right: 20px; /* Space for X or GS */
+      }
+    
+      .print-heading {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+    }
+    
+    
+
     
   }

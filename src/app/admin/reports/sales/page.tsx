@@ -33,6 +33,7 @@ const SalesPage = () => {
     start: Date | undefined;
     end: Date | undefined;
   }>({ start: undefined, end: undefined });
+  const [loading, setLoading] = useState(false); // New state variable for loading
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -199,12 +200,15 @@ const SalesPage = () => {
 
   const handleSubmit = async () => {
     if (file) {
+      setLoading(true); // Set loading state to true
       try {
         await handleFileUpload(file);
         await handleUpdateLabels();
         toast.success("File uploaded and processed successfully!");
       } catch (error) {
         toast.error("Failed to upload and process file.");
+      } finally {
+        setLoading(false); // Reset loading state to false
       }
     } else {
       toast.error("No file selected.");
@@ -257,8 +261,13 @@ const SalesPage = () => {
       </div>
       <div className="mt-4">
         <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
-        <Button variant="linkHover1" onClick={handleSubmit} className="mt-4">
-          Upload and Process
+        <Button
+          variant="linkHover1"
+          onClick={handleSubmit}
+          className="mt-4"
+          disabled={loading} // Disable button when loading
+        >
+          {loading ? "Uploading..." : "Upload and Process"}
         </Button>
       </div>
     </RoleBasedWrapper>
