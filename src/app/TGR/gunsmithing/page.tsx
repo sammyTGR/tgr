@@ -100,23 +100,64 @@ export default function GunsmithingMaintenance() {
     return data;
   }, []);
 
+  const fetchPersistedData = useCallback(async (userUuid: string) => {
+    const { data, error } = await supabase
+      .from("persisted_firearms_list")
+      .select("*")
+      .eq("user_uuid", userUuid)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      console.error("Error fetching persisted data:", error.message);
+      throw new Error(error.message);
+    }
+
+    return data;
+  }, []);
+
+  const persistData = useCallback(
+    async (userUuid: string, firearmsList: FirearmsMaintenanceData[]) => {
+      const { error } = await supabase
+        .from("persisted_firearms_list")
+        .upsert({ user_uuid: userUuid, firearms_list: firearmsList });
+
+      if (error) {
+        console.error("Error persisting data:", error.message);
+        throw new Error(error.message);
+      }
+    },
+    []
+  );
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const fetchedData = await fetchFirearmsMaintenanceData(userRole || "");
-      setData(fetchedData);
+      const persistedData = await fetchPersistedData(userUuid || "");
+      if (persistedData) {
+        setData(persistedData.firearms_list);
+      } else {
+        const fetchedData = await fetchFirearmsMaintenanceData(userRole || "");
+        setData(fetchedData);
+        await persistData(userUuid || "", fetchedData);
+      }
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch data:", error);
       setLoading(false);
     }
-  }, [fetchFirearmsMaintenanceData, userRole]);
+  }, [
+    fetchFirearmsMaintenanceData,
+    fetchPersistedData,
+    persistData,
+    userRole,
+    userUuid,
+  ]);
 
   useEffect(() => {
-    if (userRole) {
+    if (userRole && userUuid) {
       fetchData();
     }
-  }, [fetchData, userRole]);
+  }, [fetchData, userRole, userUuid]);
 
   const handleStatusChange = async (id: number, status: string | null) => {
     try {
@@ -169,7 +210,11 @@ export default function GunsmithingMaintenance() {
       }
 
       if (data && data.length > 0) {
-        setData((prevData) => [...prevData, data[0]]);
+        setData((prevData) => {
+          const updatedData = [...prevData, data[0]];
+          persistData(userUuid || "", updatedData);
+          return updatedData;
+        });
       } else {
         throw new Error("No data returned from insert operation");
       }
@@ -211,7 +256,9 @@ export default function GunsmithingMaintenance() {
         throw error;
       }
 
-      setData((prevData) => prevData.filter((item) => item.id !== id));
+      const updatedData = data.filter((item) => item.id !== id);
+      setData(updatedData);
+      await persistData(userUuid || "", updatedData);
     } catch (error) {
       console.error("Error deleting firearm:", error);
     }
@@ -225,24 +272,26 @@ export default function GunsmithingMaintenance() {
         { event: "*", schema: "public", table: "firearms_maintenance" },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setData((currentData) => [
+            const updatedData = [
               payload.new as FirearmsMaintenanceData,
-              ...currentData,
-            ]);
+              ...data,
+            ];
+            setData(updatedData);
+            persistData(userUuid || "", updatedData);
           } else if (payload.eventType === "UPDATE") {
-            setData((currentData) =>
-              currentData.map((item) =>
-                item.id === payload.new.id
-                  ? (payload.new as FirearmsMaintenanceData)
-                  : item
-              )
+            const updatedData = data.map((item) =>
+              item.id === payload.new.id
+                ? (payload.new as FirearmsMaintenanceData)
+                : item
             );
+            setData(updatedData);
+            persistData(userUuid || "", updatedData);
           } else if (payload.eventType === "DELETE") {
-            setData((currentData) =>
-              currentData.filter((item) => item.id !== payload.old.id)
+            const updatedData = data.filter(
+              (item) => item.id !== payload.old.id
             );
-          } else {
-            fetchData();
+            setData(updatedData);
+            persistData(userUuid || "", updatedData);
           }
         }
       )
@@ -251,7 +300,7 @@ export default function GunsmithingMaintenance() {
     return () => {
       supabase.removeChannel(FirearmsMaintenanceTableSubscription);
     };
-  }, [fetchData]);
+  }, [data, persistData, userUuid]);
 
   const handleSubmit = async () => {
     // Check if all firearms have notes and status
@@ -278,6 +327,12 @@ export default function GunsmithingMaintenance() {
           })
           .eq("id", firearm.id);
       }
+
+      // Clear persisted list after submission
+      await supabase
+        .from("persisted_firearms_list")
+        .delete()
+        .eq("user_uuid", userUuid);
 
       // Generate the new list
       const response = await fetch("/api/firearms-maintenance", {

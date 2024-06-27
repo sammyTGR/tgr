@@ -22,31 +22,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else if (action === "generateNewList") {
         const { userUuid } = data;
 
-        // Fetch all firearms data
-        const { data: firearmsData, error } = await supabase
-          .from("firearms_maintenance")
-          .select("*");
+        // Check if a persisted list already exists for the user
+        const { data: existingList, error: existingListError } = await supabase
+          .from("persisted_firearms_list")
+          .select("*")
+          .eq("user_uuid", userUuid)
+          .single();
 
-        if (error) {
-          throw error;
+        if (existingListError && existingListError.code !== "PGRST116") {
+          throw existingListError;
         }
 
-        // Separate firearms by type
-        const handguns = firearmsData.filter(firearm => firearm.firearm_type === "handgun");
-        const longGuns = firearmsData.filter(firearm => firearm.firearm_type === "long gun");
+        if (existingList) {
+          // If a list exists, use the existing list
+          res.status(200).json({ message: "Existing list retrieved successfully", firearms: existingList.firearms_list });
+        } else {
+          // Fetch all firearms data
+          const { data: firearmsData, error: firearmsError } = await supabase
+            .from("firearms_maintenance")
+            .select("*");
 
-        // Sort firearms by last maintenance date
-        handguns.sort((a, b) => new Date(a.last_maintenance_date).getTime() - new Date(b.last_maintenance_date).getTime());
-longGuns.sort((a, b) => new Date(a.last_maintenance_date).getTime() - new Date(b.last_maintenance_date).getTime());
+          if (firearmsError) {
+            throw firearmsError;
+          }
 
-        // Get the firearms to assign
-        const assignedHandguns = handguns.slice(0, 13);
-        const assignedLongGuns = longGuns.slice(0, 13);
+          // Separate firearms by type
+          const handguns = firearmsData.filter(firearm => firearm.firearm_type === "handgun");
+          const longGuns = firearmsData.filter(firearm => firearm.firearm_type === "long gun");
 
-        // Mark the selected firearms as "Assigned"
-        const updatedFirearms = [...assignedHandguns, ...assignedLongGuns];
+          // Sort firearms by last maintenance date
+          handguns.sort((a, b) => new Date(a.last_maintenance_date).getTime() - new Date(b.last_maintenance_date).getTime());
+          longGuns.sort((a, b) => new Date(a.last_maintenance_date).getTime() - new Date(b.last_maintenance_date).getTime());
 
-        res.status(200).json({ message: "New list generated successfully", firearms: updatedFirearms });
+          // Get the firearms to assign
+          const assignedHandguns = handguns.slice(0, 13);
+          const assignedLongGuns = longGuns.slice(0, 13);
+
+          // Mark the selected firearms as "Assigned"
+          const updatedFirearms = [...assignedHandguns, ...assignedLongGuns];
+
+          // Persist the new list in the persisted_firearms_list table
+          const { error: persistError } = await supabase
+            .from("persisted_firearms_list")
+            .insert({ user_uuid: userUuid, firearms_list: updatedFirearms });
+
+          if (persistError) {
+            throw persistError;
+          }
+
+          res.status(200).json({ message: "New list generated successfully", firearms: updatedFirearms });
+        }
       } else {
         res.status(400).json({ message: "Invalid action" });
       }
