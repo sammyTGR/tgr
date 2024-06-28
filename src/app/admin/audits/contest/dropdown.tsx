@@ -24,13 +24,13 @@ const RenderDropdown: React.FC<RenderDropdownProps> = ({
 
   return (
     <div className="flex flex-col mb-4 w-full">
-      <input
+      {/* <input
         type="text"
         className="border border-gray-300 rounded-md p-2 mb-2"
         placeholder={`Search ${placeholder}`}
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
-      />
+      /> */}
       <select
         {...field}
         className="border border-gray-300 rounded-md p-2"

@@ -104,16 +104,14 @@ export default function Component() {
         .from("schedules")
         .select(
           `
-        schedule_date,
-        start_time,
-        end_time,
-        day_of_week,
-        status,
-        employee_id,
-        employees:employee_id (
-          name
-        )
-      `
+          schedule_date,
+          start_time,
+          end_time,
+          day_of_week,
+          status,
+          employee_id,
+          employees:employee_id (name)
+        `
         )
         .gte("schedule_date", startOfWeek.toISOString().split("T")[0])
         .lte("schedule_date", endOfWeek.toISOString().split("T")[0]);
@@ -209,6 +207,17 @@ export default function Component() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const startOfWeek = getStartOfWeek(currentDate);
+    const weekDatesTemp: { [key: string]: string } = {};
+    daysOfWeek.forEach((day, index) => {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + index);
+      weekDatesTemp[day] = `${date.getMonth() + 1}/${date.getDate()}`;
+    });
+    setWeekDates(weekDatesTemp);
+  }, [currentDate]);
 
   const getStartOfWeek = (date: Date) => {
     const start = new Date(date);
@@ -432,12 +441,12 @@ export default function Component() {
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "admin", "super admin"]}
     >
-      <div className="flex flex-col items-center space-y-4 p-4  overflow-hidden">
+      <div className="flex flex-col items-center space-y-4 p-4 overflow-hidden">
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />
         </h1>
         <Card className="flex-1 flex flex-col w-full max-w-6xl overflow-hidden">
-          <CardContent className=" h-full overflow-hidden">
+          <CardContent className="h-full overflow-hidden">
             <div className="flex justify-between w-full mb-4">
               <Button variant="linkHover2" onClick={handlePreviousWeek}>
                 <ChevronLeftIcon className="h-4 w-4" />

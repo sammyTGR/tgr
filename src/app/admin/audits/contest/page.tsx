@@ -5,6 +5,7 @@ import { supabase } from "@/utils/supabase/client";
 import { CustomCalendar } from "@/components/ui/calendar";
 import { DataTable } from "./data-table";
 import { RenderDropdown } from "./dropdown";
+import { Card } from "@/components/ui/card";
 
 interface Employee {
   lanid: string;
@@ -22,7 +23,7 @@ interface AuditInput {
   id: string;
   salesreps: string;
   error_location: string;
-  category: string;
+  audit_date: string; // Ensure this is included
   dros_cancel: string | null;
   // other fields
 }
@@ -46,6 +47,7 @@ const ContestPage = () => {
     PointsCalculation[]
   >([]);
   const [totalPoints, setTotalPoints] = useState<number>(300);
+  const [summaryData, setSummaryData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -75,29 +77,50 @@ const ContestPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (selectedLanid && selectedMonth) {
+        // Format the date to YYYY-MM-DD for the database query
+        const startDate = new Date(
+          selectedMonth.getFullYear(),
+          selectedMonth.getMonth(),
+          1
+        )
+          .toISOString()
+          .split("T")[0];
+        const endDate = new Date(
+          selectedMonth.getFullYear(),
+          selectedMonth.getMonth() + 1,
+          0
+        )
+          .toISOString()
+          .split("T")[0];
+
+        console.log(
+          "Fetching sales data for Lanid:",
+          selectedLanid,
+          "and month:",
+          startDate,
+          "to",
+          endDate
+        );
+
         const { data: salesData, error: salesError } = await supabase
           .from("sales_data")
           .select("*")
           .eq("Lanid", selectedLanid)
+          .gte("Date", startDate)
+          .lte("Date", endDate)
           .not("subcategory_label", "is", null)
           .not("subcategory_label", "eq", "");
+
+        console.log("Sales data:", salesData);
 
         const { data: auditData, error: auditError } = await supabase
           .from("Auditsinput")
           .select("*")
           .eq("salesreps", selectedLanid)
-          .gte(
-            "audit_date",
-            new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1)
-          )
-          .lte(
-            "audit_date",
-            new Date(
-              selectedMonth.getFullYear(),
-              selectedMonth.getMonth() + 1,
-              0
-            )
-          );
+          .gte("audit_date", startDate)
+          .lte("audit_date", endDate);
+
+        console.log("Audit data:", auditData);
 
         if (salesError || auditError) {
           console.error(salesError || auditError);
@@ -105,81 +128,130 @@ const ContestPage = () => {
           setSalesData(salesData);
           setAuditData(auditData);
 
-          // Calculate points
-          let totalPoints = 300;
-
-          // Check sales data for DROS cancellations
-          salesData.forEach((sale: SalesData) => {
-            if (sale.dros_cancel === "Yes") {
-              totalPoints -= 5;
-            }
-          });
-
-          // Check audit data for points deductions
-          auditData.forEach((audit: AuditInput) => {
-            pointsCalculation.forEach((point: PointsCalculation) => {
-              if (
-                audit.category === point.category &&
-                audit.error_location === point.error_location
-              ) {
-                totalPoints -= point.points_deducted;
-              } else if (
-                point.error_location === "dros_cancel_field" &&
-                audit.dros_cancel === "Yes"
-              ) {
-                totalPoints -= point.points_deducted;
-              }
-            });
-          });
-
-          setTotalPoints(totalPoints);
+          // Calculate summary data
+          calculateSummary(salesData, auditData, selectedMonth);
         }
       }
     };
 
     fetchData();
+
+    const salesSubscription = supabase
+      .channel("custom-all-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sales_data" },
+        (payload) => {
+          console.log("Sales data changed:", payload);
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const auditsSubscription = supabase
+      .channel("custom-all-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Auditsinput" },
+        (payload) => {
+          console.log("Audit data changed:", payload);
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesSubscription);
+      supabase.removeChannel(auditsSubscription);
+    };
   }, [selectedLanid, selectedMonth, pointsCalculation]);
 
+  const calculateSummary = (
+    salesData: SalesData[],
+    auditData: AuditInput[],
+    selectedMonth: Date
+  ) => {
+    const totalDros = salesData.filter((sale) => sale.subcategory_label).length;
+    let pointsDeducted = 0;
+
+    console.log("Calculating points deducted...");
+    salesData.forEach((sale: SalesData) => {
+      if (sale.dros_cancel === "Yes") {
+        console.log(
+          `DROS canceled for sale id ${sale.id}. Deducting 5 points.`
+        );
+        pointsDeducted += 5;
+      }
+    });
+
+    auditData.forEach((audit: AuditInput) => {
+      const auditDate = new Date(audit.audit_date);
+      if (auditDate <= selectedMonth) {
+        pointsCalculation.forEach((point: PointsCalculation) => {
+          if (audit.error_location === point.error_location) {
+            console.log(
+              `Deducting ${point.points_deducted} points for error location ${audit.error_location} for audit id ${audit.id}.`
+            );
+            pointsDeducted += point.points_deducted;
+          } else if (
+            point.error_location === "dros_cancel_field" &&
+            audit.dros_cancel === "Yes"
+          ) {
+            console.log(
+              `Deducting ${point.points_deducted} points for DROS cancellation for audit id ${audit.id}.`
+            );
+            pointsDeducted += point.points_deducted;
+          }
+        });
+      }
+    });
+
+    console.log("Points deducted:", pointsDeducted);
+
+    const totalPoints = 300 - pointsDeducted;
+    setTotalPoints(totalPoints);
+
+    setSummaryData([
+      {
+        Lanid: selectedLanid,
+        TotalDros: totalDros,
+        PointsDeducted: pointsDeducted,
+        TotalPoints: totalPoints,
+      },
+    ]);
+  };
+
   return (
-    <div>
+    <Card className="w-full max-w-6xl mx-auto p-4 my-8">
       <div className="flex space-x-4 mb-4">
-        <RenderDropdown
-          field={{ onChange: setSelectedLanid }}
-          options={employees.map((emp) => ({
-            value: emp.lanid,
-            label: emp.lanid,
-          }))}
-          placeholder="Select Employee"
-        />
+        <div className="w-full">
+          <RenderDropdown
+            field={{ onChange: setSelectedLanid }}
+            options={employees.map((emp) => ({
+              value: emp.lanid,
+              label: emp.lanid,
+            }))}
+            placeholder="Select Employee"
+          />
+        </div>
         <CustomCalendar
           selectedDate={selectedMonth}
           onDateChange={(date: Date | undefined) => setSelectedMonth(date)}
           disabledDays={() => false} // Adjust this if needed
         />
       </div>
-      <DataTable
-        columns={[
-          { Header: "Sales Data", accessor: "Lanid" },
-          { Header: "Subcategory", accessor: "subcategory_label" },
-          { Header: "DROS Cancel", accessor: "dros_cancel" },
-          // other sales data columns
-        ]}
-        data={salesData}
-      />
-      <DataTable
-        columns={[
-          { Header: "Audit Data", accessor: "salesreps" },
-          { Header: "Error Location", accessor: "error_location" },
-          { Header: "Category", accessor: "category" },
-          // other audit data columns
-        ]}
-        data={auditData}
-      />
-      <div>
-        <h3>Points Calculation</h3>
-        <p>Total Points: {totalPoints}</p>
+      <div className="text-left">
+        <DataTable
+          columns={[
+            { Header: "Lanid", accessor: "Lanid" },
+            { Header: "Total DROS", accessor: "TotalDros" },
+            { Header: "Points Deducted", accessor: "PointsDeducted" },
+            { Header: "Total Points", accessor: "TotalPoints" },
+          ]}
+          data={summaryData}
+        />
       </div>
-    </div>
+    </Card>
   );
 };
 
