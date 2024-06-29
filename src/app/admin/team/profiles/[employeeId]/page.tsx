@@ -13,6 +13,10 @@ import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Link from "next/link";
+import { CustomCalendar } from "@/components/ui/calendar";
+import { DataTable } from "../../../audits/contest/data-table";
+import { RenderDropdown } from "../../../audits/contest/dropdown";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 interface Note {
   id: number;
@@ -40,6 +44,33 @@ interface Audit {
   dros_cancel: string;
 }
 
+interface Employee {
+  lanid: string;
+}
+
+interface SalesData {
+  id: number;
+  Lanid: string;
+  subcategory_label: string;
+  dros_cancel: string | null;
+  // other fields
+}
+
+interface AuditInput {
+  id: string;
+  salesreps: string;
+  error_location: string;
+  audit_date: string; // Ensure this is included
+  dros_cancel: string | null;
+  // other fields
+}
+
+interface PointsCalculation {
+  category: string;
+  error_location: string;
+  points_deducted: number;
+}
+
 const EmployeeProfile = () => {
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
@@ -58,6 +89,19 @@ const EmployeeProfile = () => {
   const [newGrowth, setNewGrowth] = useState("");
   const [employee, setEmployee] = useState<any>(null);
   const { user } = useRole();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedLanid, setSelectedLanid] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(
+    undefined
+  );
+  const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [auditData, setAuditData] = useState<AuditInput[]>([]);
+  const [pointsCalculation, setPointsCalculation] = useState<
+    PointsCalculation[]
+  >([]);
+  const [totalPoints, setTotalPoints] = useState<number>(300);
+  const [summaryData, setSummaryData] = useState<any[]>([]);
+  const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
 
   useEffect(() => {
     if (user && employeeId) {
@@ -73,6 +117,109 @@ const EmployeeProfile = () => {
       fetchAudits(employee.lanid);
     }
   }, [employee]);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const { data, error } = await supabase.from("employees").select("lanid");
+      if (error) {
+        console.error(error);
+      } else {
+        setEmployees(data);
+      }
+    };
+
+    const fetchPointsCalculation = async () => {
+      const { data, error } = await supabase
+        .from("points_calculation")
+        .select("*");
+      if (error) {
+        console.error(error);
+      } else {
+        setPointsCalculation(data);
+      }
+    };
+
+    fetchEmployees();
+    fetchPointsCalculation();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (selectedMonth && employee) {
+        const startDate = new Date(
+          selectedMonth.getFullYear(),
+          selectedMonth.getMonth(),
+          1
+        )
+          .toISOString()
+          .split("T")[0];
+        const endDate = new Date(
+          selectedMonth.getFullYear(),
+          selectedMonth.getMonth() + 1,
+          0
+        )
+          .toISOString()
+          .split("T")[0];
+
+        const { data: salesData, error: salesError } = await supabase
+          .from("sales_data")
+          .select("*")
+          .eq("Lanid", employee.lanid)
+          .gte("Date", startDate)
+          .lte("Date", endDate)
+          .not("subcategory_label", "is", null)
+          .not("subcategory_label", "eq", "");
+
+        const { data: auditData, error: auditError } = await supabase
+          .from("Auditsinput")
+          .select("*")
+          .eq("salesreps", employee.lanid)
+          .gte("audit_date", startDate)
+          .lte("audit_date", endDate);
+
+        if (salesError || auditError) {
+          console.error(salesError || auditError);
+        } else {
+          setSalesData(salesData);
+          setAuditData(auditData);
+          calculateSummary(salesData, auditData, selectedMonth, [
+            employee.lanid,
+          ]);
+        }
+      }
+    };
+
+    fetchData();
+
+    const salesSubscription = supabase
+      .channel("custom-all-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sales_data" },
+        (payload) => {
+          // console.log("Sales data changed:", payload);
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const auditsSubscription = supabase
+      .channel("custom-all-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Auditsinput" },
+        (payload) => {
+          // console.log("Audit data changed:", payload);
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesSubscription);
+      supabase.removeChannel(auditsSubscription);
+    };
+  }, [employee, selectedMonth, pointsCalculation]);
 
   const fetchEmployeeData = async () => {
     if (!employeeId) return;
@@ -101,6 +248,7 @@ const EmployeeProfile = () => {
     if (error) {
       console.error("Error fetching notes:", error);
     } else {
+      // console.log("Fetched notes:", data);
       setNotes(data as Note[]);
     }
   };
@@ -158,7 +306,14 @@ const EmployeeProfile = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "employee_profile_notes" },
         (payload) => {
-          fetchNotes();
+          // console.log("Realtime payload received:", payload);
+          if (payload.new) {
+            setNotes((prevNotes) => [...prevNotes, payload.new as Note]);
+          } else if (payload.old) {
+            setNotes((prevNotes) =>
+              prevNotes.filter((note) => note.id !== (payload.old as Note).id)
+            );
+          }
         }
       )
       .subscribe();
@@ -198,11 +353,14 @@ const EmployeeProfile = () => {
           note: noteContent,
           type,
         },
-      ]);
+      ])
+      .select(); // Ensure we get the inserted data back
 
     if (error) {
       console.error("Error adding note:", error);
     } else if (data) {
+      // console.log("Note added successfully:", data);
+      setNotes((prevNotes) => [...prevNotes, ...data]);
       switch (type) {
         case "notes":
           setNewNote("");
@@ -252,6 +410,61 @@ const EmployeeProfile = () => {
     }
   };
 
+  const calculateSummary = (
+    salesData: SalesData[],
+    auditData: AuditInput[],
+    selectedMonth: Date,
+    lanids: string[]
+  ) => {
+    let summary = lanids.map((lanid) => {
+      const employeeSalesData = salesData.filter(
+        (sale) => sale.Lanid === lanid
+      );
+      const employeeAuditData = auditData.filter(
+        (audit) => audit.salesreps === lanid
+      );
+
+      const totalDros = employeeSalesData.filter(
+        (sale) => sale.subcategory_label
+      ).length;
+      let pointsDeducted = 0;
+
+      employeeSalesData.forEach((sale: SalesData) => {
+        if (sale.dros_cancel === "Yes") {
+          pointsDeducted += 5;
+        }
+      });
+
+      employeeAuditData.forEach((audit: AuditInput) => {
+        const auditDate = new Date(audit.audit_date);
+        if (auditDate <= selectedMonth) {
+          pointsCalculation.forEach((point: PointsCalculation) => {
+            if (audit.error_location === point.error_location) {
+              pointsDeducted += point.points_deducted;
+            } else if (
+              point.error_location === "dros_cancel_field" &&
+              audit.dros_cancel === "Yes"
+            ) {
+              pointsDeducted += point.points_deducted;
+            }
+          });
+        }
+      });
+
+      const totalPoints = 300 - pointsDeducted;
+
+      return {
+        Lanid: lanid,
+        TotalDros: totalDros,
+        PointsDeducted: pointsDeducted,
+        TotalPoints: totalPoints,
+      };
+    });
+
+    summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
+    setSummaryData(summary);
+  };
+
   if (!employee) return <div>Loading...</div>;
 
   return (
@@ -293,6 +506,9 @@ const EmployeeProfile = () => {
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
                 <TabsTrigger value="audits">Audits</TabsTrigger>
+                <TabsTrigger value="performance">
+                  Monthly Performance
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="notes">
                 <div className="p-6 space-y-4">
@@ -348,6 +564,7 @@ const EmployeeProfile = () => {
                   </div>
                 </div>
               </TabsContent>
+
               <TabsContent value="absences">
                 <div className="p-6 space-y-4">
                   <div className="grid gap-1.5">
@@ -414,6 +631,7 @@ const EmployeeProfile = () => {
                   </div>
                 </div>
               </TabsContent>
+
               <TabsContent value="reviews">
                 <div className="p-6 space-y-4">
                   <div className="grid gap-1.5">
@@ -556,6 +774,33 @@ const EmployeeProfile = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </TabsContent>
+              <TabsContent value="performance">
+                <div className="p-6 space-y-4">
+                  <div className="w-full mb-4">
+                    <CustomCalendar
+                      selectedDate={selectedMonth}
+                      onDateChange={(date: Date | undefined) =>
+                        setSelectedMonth(date)
+                      }
+                      disabledDays={() => false} // Adjust this if needed
+                    />
+                  </div>
+                  <div className="text-left">
+                    <DataTable
+                      columns={[
+                        { Header: "Lanid", accessor: "Lanid" },
+                        { Header: "Total DROS", accessor: "TotalDros" },
+                        {
+                          Header: "Points Deducted",
+                          accessor: "PointsDeducted",
+                        },
+                        { Header: "Total Points", accessor: "TotalPoints" },
+                      ]}
+                      data={summaryData}
+                    />
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
