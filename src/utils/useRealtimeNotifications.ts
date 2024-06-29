@@ -10,6 +10,7 @@ const useRealtimeNotifications = () => {
   const { user } = useRole();
   const pathname = usePathname();
   const router = useRouter();
+
   useEffect(() => {
     if (!user) return;
 
@@ -91,7 +92,7 @@ const useRealtimeNotifications = () => {
     return () => {
       directMessageChannel?.unsubscribe();
     };
-  }, [user, pathname]);
+  }, [user, pathname, router]);
 };
 
 export default useRealtimeNotifications;
