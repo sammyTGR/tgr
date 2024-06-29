@@ -10,7 +10,6 @@ const useRealtimeNotifications = () => {
   const { user } = useRole();
   const pathname = usePathname();
   const router = useRouter();
-  
   useEffect(() => {
     if (!user) return;
 
