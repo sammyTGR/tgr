@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
@@ -656,6 +656,7 @@ return (
   <>
     <Toaster />
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <Suspense fallback={<div>Loading...</div>}>
       <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4 overflow-hidden">
         <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
           <TextGenerateEffect words={title} />
@@ -871,6 +872,7 @@ return (
     </DialogFooter>
   </DialogContent>
 </Dialog>
+</Suspense>
 </RoleBasedWrapper>
 </>
 );
