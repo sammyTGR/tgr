@@ -4,12 +4,13 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const useRealtimeNotifications = () => {
   const { user } = useRole();
   const pathname = usePathname();
-
+  const router = useRouter();
+  
   useEffect(() => {
     if (!user) return;
 
@@ -65,7 +66,7 @@ const useRealtimeNotifications = () => {
                   action: {
                     label: "Okay",
                     onClick: () => {
-                      // Acknowledge action
+                      router.push(`/TGR/crew/chat?dm=${payload.new.sender_id}`);
                     },
                   },
                 });

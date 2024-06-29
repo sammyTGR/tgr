@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
@@ -28,7 +29,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/utils/supabase/client";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 const title = "TGR Ops Chat";
 
@@ -65,6 +66,11 @@ export default function ChatClient() {
   const [unreadStatus, setUnreadStatus] = useState<Record<string, boolean>>({});
   const channel = useRef<RealtimeChannel | null>(null);
   const presenceChannel = useRef<RealtimeChannel | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dm = searchParams ? searchParams.get("dm") : null;
+  const pathname = usePathname();
 
   useEffect(() => {
     const client = supabase;
@@ -177,6 +183,10 @@ export default function ChatClient() {
 
     fetchInitialData();
 
+    if (dm) {
+      setSelectedChat(dm);
+    }
+
     if (!channel.current) {
       channel.current = client.channel("chat-room", {
         config: {
@@ -266,6 +276,31 @@ export default function ChatClient() {
               if (!dmUsers.some((u) => u.id === senderId)) {
                 await fetchSender(senderId);
               }
+
+              const isOnChatPage = pathname === "/TGR/crew/chat";
+              const currentChat = localStorage.getItem("currentChat");
+
+              if (
+                !isOnChatPage ||
+                document.hidden ||
+                currentChat !== payload.new.sender_id
+              ) {
+                toast(`New message from ${senderId}`, {
+                  description: payload.new.message,
+                  action: {
+                    label: "Okay",
+                    onClick: () => {
+                      router.push(`/TGR/crew/chat?dm=${payload.new.sender_id}`);
+                    },
+                  },
+                });
+
+                if (Notification.permission === "granted") {
+                  new Notification(`New message from ${senderId}`, {
+                    body: payload.new.message,
+                  });
+                }
+              }
             } else {
               console.error("sender_id is not a string", senderId);
             }
@@ -308,15 +343,57 @@ export default function ChatClient() {
       }
     );
 
+    const presenceChannel = client
+      .channel("presence-channel")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "employees" },
+        (payload) => {
+          const updatedUser = payload.new;
+          setUsers((prevUsers) =>
+            prevUsers.map((user) =>
+              user.id === updatedUser.user_uuid
+                ? { ...user, is_online: updatedUser.is_online }
+                : user
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "employees" },
+        (payload) => {
+          const newUser = payload.new;
+          setUsers((prevUsers) => [
+            ...prevUsers,
+            {
+              id: newUser.user_uuid,
+              name: newUser.name,
+              is_online: newUser.is_online,
+            },
+          ]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "employees" },
+        (payload) => {
+          const deletedUser = payload.old;
+          setUsers((prevUsers) =>
+            prevUsers.filter((user) => user.id !== deletedUser.user_uuid)
+          );
+        }
+      )
+      .subscribe();
+
     return () => {
       authListener.data.subscription.unsubscribe();
       channel.current?.unsubscribe();
       channel.current = null;
-      presenceChannel.current?.unsubscribe();
-      presenceChannel.current = null;
+      presenceChannel.unsubscribe();
       directMessageChannel?.unsubscribe();
     };
-  }, [user, selectedChat]);
+  }, [user, selectedChat, pathname, router, dm]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -639,7 +716,6 @@ export default function ChatClient() {
   if (loading) {
     return <div>Loading...</div>;
   }
-
   return (
     <>
       <Toaster />
