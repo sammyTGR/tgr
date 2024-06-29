@@ -64,7 +64,7 @@ const useRealtimeNotifications = () => {
                 toast(`New message from ${senderName}`, {
                   description: payload.new.message,
                   action: {
-                    label: "Okay",
+                    label: "Open",
                     onClick: () => {
                       router.push(`/TGR/crew/chat?dm=${payload.new.sender_id}`);
                     },
