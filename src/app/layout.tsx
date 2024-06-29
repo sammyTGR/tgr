@@ -4,7 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import Header from "../app/header";
-import { RoleProvider } from '../context/RoleContext';
+import { RoleProvider } from "../context/RoleContext";
+import NotificationsProvider from "@/components/NotificationsProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,9 +29,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Header />
-            <main>{children}</main>
-            <Toaster />
+            <NotificationsProvider>
+              <Header />
+              <main>{children}</main>
+              <Toaster />
+            </NotificationsProvider>
           </ThemeProvider>
         </body>
       </html>
