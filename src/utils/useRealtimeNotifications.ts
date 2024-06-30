@@ -34,6 +34,46 @@ const useRealtimeNotifications = () => {
       }
     };
 
+    const handleNewMessage = async (payload: any, isAdminChat = false) => {
+      try {
+        if (payload.new.receiver_id === user.id || isAdminChat) {
+          const senderName = await fetchSender(payload.new.sender_id);
+
+          // Check if the user is on the chat page
+          const isOnChatPage = pathname === "/TGR/crew/chat";
+
+          // Fetch the current chat context from localStorage
+          const currentChat = localStorage.getItem("currentChat");
+
+          if (
+            !isOnChatPage ||
+            document.hidden ||
+            (currentChat !== payload.new.sender_id && !isAdminChat)
+          ) {
+            toast(`New message from ${senderName}`, {
+              description: payload.new.message,
+              action: {
+                label: "Open",
+                onClick: () => {
+                  router.push(
+                    `/TGR/crew/chat${isAdminChat ? "" : `?dm=${payload.new.sender_id}`}`
+                  );
+                },
+              },
+            });
+
+            if (Notification.permission === "granted") {
+              new Notification(`New message from ${senderName}`, {
+                body: payload.new.message,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error handling message:", error);
+      }
+    };
+
     const directMessageChannel = client
       .channel("direct-messages", {
         config: {
@@ -46,41 +86,24 @@ const useRealtimeNotifications = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "direct_messages" },
         async (payload) => {
-          try {
-            if (payload.new.receiver_id === user.id) {
-              const senderName = await fetchSender(payload.new.sender_id);
+          handleNewMessage(payload);
+        }
+      )
+      .subscribe();
 
-              // Check if the user is on the chat page
-              const isOnChatPage = pathname === "/TGR/crew/chat";
-
-              // Fetch the current chat context from localStorage
-              const currentChat = localStorage.getItem("currentChat");
-
-              if (
-                !isOnChatPage ||
-                document.hidden ||
-                currentChat !== payload.new.sender_id
-              ) {
-                toast(`New message from ${senderName}`, {
-                  description: payload.new.message,
-                  action: {
-                    label: "Open",
-                    onClick: () => {
-                      router.push(`/TGR/crew/chat?dm=${payload.new.sender_id}`);
-                    },
-                  },
-                });
-
-                if (Notification.permission === "granted") {
-                  new Notification(`New message from ${senderName}`, {
-                    body: payload.new.message,
-                  });
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Error handling direct message:", error);
-          }
+    const adminChatChannel = client
+      .channel("admin-chat", {
+        config: {
+          broadcast: {
+            self: true,
+          },
+        },
+      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        async (payload) => {
+          handleNewMessage(payload, true);
         }
       )
       .subscribe();
@@ -91,6 +114,7 @@ const useRealtimeNotifications = () => {
 
     return () => {
       directMessageChannel?.unsubscribe();
+      adminChatChannel?.unsubscribe();
     };
   }, [user, pathname, router]);
 };
