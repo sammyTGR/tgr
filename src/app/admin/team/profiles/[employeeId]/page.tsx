@@ -25,6 +25,10 @@ interface Note {
   note: string;
   type: string;
   created_at: string;
+  created_by: string;
+  reviewed?: boolean;
+  reviewed_by?: string;
+  reviewed_at?: string;
 }
 
 interface Absence {
@@ -79,14 +83,15 @@ const EmployeeProfile = () => {
     ? parseInt(employeeIdParam[0], 10)
     : parseInt(employeeIdParam, 10);
 
-  const [activeTab, setActiveTab] = useState("notes");
+  const [activeTab, setActiveTab] = useState("daily_briefing");
   const [notes, setNotes] = useState<Note[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
-  const [audits, setAudits] = useState<Audit[]>([]); // New state for audits
+  const [audits, setAudits] = useState<Audit[]>([]);
   const [newNote, setNewNote] = useState("");
   const [newReview, setNewReview] = useState("");
   const [newAbsence, setNewAbsence] = useState("");
   const [newGrowth, setNewGrowth] = useState("");
+  const [newDailyBriefing, setNewDailyBriefing] = useState("");
   const [employee, setEmployee] = useState<any>(null);
   const { user } = useRole();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -119,15 +124,21 @@ const EmployeeProfile = () => {
   }, [employee]);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      const { data, error } = await supabase.from("employees").select("lanid");
+    const fetchEmployeeName = async (user_uuid: string): Promise<string | null> => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("user_uuid", user_uuid)
+        .single();
+    
       if (error) {
-        console.error(error);
-      } else {
-        setEmployees(data);
+        console.error("Error fetching employee name:", error);
+        return null;
       }
+      return data?.name || null;
     };
-
+    
+  
     const fetchPointsCalculation = async () => {
       const { data, error } = await supabase
         .from("points_calculation")
@@ -138,10 +149,10 @@ const EmployeeProfile = () => {
         setPointsCalculation(data);
       }
     };
-
-    fetchEmployees();
+  
     fetchPointsCalculation();
   }, []);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -197,7 +208,6 @@ const EmployeeProfile = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_data" },
         (payload) => {
-          // console.log("Sales data changed:", payload);
           fetchData();
         }
       )
@@ -209,7 +219,6 @@ const EmployeeProfile = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "Auditsinput" },
         (payload) => {
-          // console.log("Audit data changed:", payload);
           fetchData();
         }
       )
@@ -237,6 +246,20 @@ const EmployeeProfile = () => {
     }
   };
 
+  const fetchEmployeeName = async (user_uuid: string): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("name")
+      .eq("user_uuid", user_uuid)
+      .single();
+  
+    if (error) {
+      console.error("Error fetching employee name:", error);
+      return null;
+    }
+    return data?.name || null;
+  };  
+
   const fetchNotes = async () => {
     if (!employeeId) return;
 
@@ -248,7 +271,6 @@ const EmployeeProfile = () => {
     if (error) {
       console.error("Error fetching notes:", error);
     } else {
-      // console.log("Fetched notes:", data);
       setNotes(data as Note[]);
     }
   };
@@ -288,7 +310,7 @@ const EmployeeProfile = () => {
       .from("Auditsinput")
       .select("*")
       .eq("salesreps", lanid)
-      .order("audit_date", { ascending: false }); // Fetch audits by lanid and sort by audit_date in descending order
+      .order("audit_date", { ascending: false });
 
     if (error) {
       console.error("Error fetching audits:", error);
@@ -306,7 +328,6 @@ const EmployeeProfile = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "employee_profile_notes" },
         (payload) => {
-          // console.log("Realtime payload received:", payload);
           if (payload.new) {
             setNotes((prevNotes) => [...prevNotes, payload.new as Note]);
           } else if (payload.old) {
@@ -338,12 +359,18 @@ const EmployeeProfile = () => {
       case "absence":
         noteContent = newAbsence;
         break;
+      case "daily_briefing":
+        noteContent = newDailyBriefing;
+        break;
       default:
         return;
     }
-
+  
     if (!employeeId || noteContent.trim() === "") return;
-
+  
+    const employeeName = await fetchEmployeeName(user.id);
+    if (!employeeName) return;
+  
     const { data, error } = await supabase
       .from("employee_profile_notes")
       .insert([
@@ -352,15 +379,15 @@ const EmployeeProfile = () => {
           employee_id: parseInt(user.id, 10),
           note: noteContent,
           type,
+          created_by: employeeName,
         },
       ])
-      .select(); // Ensure we get the inserted data back
-
+      .select();
+  
     if (error) {
       console.error("Error adding note:", error);
     } else if (data) {
-      // console.log("Note added successfully:", data);
-      setNotes((prevNotes) => [...prevNotes, ...data]);
+      setNotes((prevNotes) => [data[0], ...prevNotes]);
       switch (type) {
         case "notes":
           setNewNote("");
@@ -374,10 +401,13 @@ const EmployeeProfile = () => {
         case "absence":
           setNewAbsence("");
           break;
+        case "daily_briefing":
+          setNewDailyBriefing("");
+          break;
       }
     }
   };
-
+  
   const handleDeleteNote = async (id: number) => {
     const { error } = await supabase
       .from("employee_profile_notes")
@@ -409,6 +439,37 @@ const EmployeeProfile = () => {
       );
     }
   };
+
+  const handleReviewNote = async (id: number, currentReviewedStatus: boolean) => {
+    const newReviewedStatus = !currentReviewedStatus;
+  
+    const { error } = await supabase
+      .from("employee_profile_notes")
+      .update({
+        reviewed: newReviewedStatus,
+        reviewed_by: newReviewedStatus ? user.name : null,
+        reviewed_at: newReviewedStatus ? new Date().toISOString() : null,
+      })
+      .eq("id", id);
+  
+    if (error) {
+      console.error("Error reviewing note:", error);
+    } else {
+      setNotes(
+        notes.map((note) =>
+          note.id === id
+            ? {
+                ...note,
+                reviewed: newReviewedStatus,
+                reviewed_by: newReviewedStatus ? user.name : null,
+                reviewed_at: newReviewedStatus ? new Date().toISOString() : undefined,
+              }
+            : note
+        )
+      );
+    }
+  };
+  
 
   const calculateSummary = (
     salesData: SalesData[],
@@ -495,12 +556,13 @@ const EmployeeProfile = () => {
           </header>
           <div className="flex-1 overflow-auto">
             <Tabs
-              defaultValue="notes"
+              defaultValue="daily_briefing"
               className="w-full"
               value={activeTab}
               onValueChange={setActiveTab}
             >
               <TabsList className="border-b border-gray-200 dark:border-gray-700">
+                <TabsTrigger value="daily_briefing">Daily Briefing</TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
                 <TabsTrigger value="absences">Absences</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
@@ -510,6 +572,139 @@ const EmployeeProfile = () => {
                   Monthly Performance
                 </TabsTrigger>
               </TabsList>
+              <TabsContent value="daily_briefing">
+  <div className="p-6 space-y-4">
+    <div className="grid gap-1.5">
+      <Label htmlFor="new-daily-briefing">Add a new daily briefing</Label>
+      <Textarea
+        id="new-daily-briefing"
+        value={newDailyBriefing}
+        onChange={(e) => setNewDailyBriefing(e.target.value)}
+        placeholder="Type your daily briefing here..."
+        className="min-h-[100px]"
+      />
+      <Button onClick={() => handleAddNote("daily_briefing")}>
+        Add Daily Briefing
+      </Button>
+    </div>
+    <div className="grid gap-4">
+      {notes
+        .filter((note) => note.type === "daily_briefing" && !note.reviewed)
+        .map((note) => (
+          <div key={note.id} className="flex justify-between items-start">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={note.reviewed || false}
+                onChange={() => handleReviewNote(note.id, note.reviewed || false)}
+              />
+              <div>
+                <div
+                  className="text-sm font-medium"
+                  style={{
+                    textDecoration: note.reviewed ? "line-through" : "none",
+                  }}
+                >
+                  {note.note}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  - {note.created_by} on{" "}
+                  {new Date(note.created_at).toLocaleDateString()}
+                </div>
+                {note.reviewed && note.reviewed_by && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Reviewed by {note.reviewed_by} on{" "}
+                    {note.reviewed_at
+                      ? new Date(note.reviewed_at).toLocaleDateString()
+                      : ""}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() =>
+                  handleEditNote(
+                    note.id,
+                    prompt("Edit daily briefing:", note.note) ?? note.note
+                  )
+                }
+              >
+                <Pencil1Icon />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleDeleteNote(note.id)}
+              >
+                <TrashIcon />
+              </Button>
+            </div>
+          </div>
+        ))}
+      {notes
+        .filter((note) => note.type === "daily_briefing" && note.reviewed)
+        .map((note) => (
+          <div key={note.id} className="flex justify-between items-start">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={note.reviewed || false}
+                onChange={() => handleReviewNote(note.id, note.reviewed || false)}
+              />
+              <div>
+                <div
+                  className="text-sm font-medium"
+                  style={{
+                    textDecoration: note.reviewed ? "line-through" : "none",
+                  }}
+                >
+                  {note.note}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  - {note.created_by} on{" "}
+                  {new Date(note.created_at).toLocaleDateString()}
+                </div>
+                {note.reviewed && note.reviewed_by && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Reviewed by {note.reviewed_by} on{" "}
+                    {note.reviewed_at
+                      ? new Date(note.reviewed_at).toLocaleDateString()
+                      : ""}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() =>
+                  handleEditNote(
+                    note.id,
+                    prompt("Edit daily briefing:", note.note) ?? note.note
+                  )
+                }
+              >
+                <Pencil1Icon />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleDeleteNote(note.id)}
+              >
+                <TrashIcon />
+              </Button>
+            </div>
+          </div>
+        ))}
+    </div>
+  </div>
+</TabsContent>
+
+
               <TabsContent value="notes">
                 <div className="p-6 space-y-4">
                   <div className="grid gap-1.5">
