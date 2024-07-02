@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { AvatarIcon, PersonIcon } from "@radix-ui/react-icons";
+import { AvatarIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
+import { useRole } from "@/context/RoleContext";
 
 interface Employee {
   employee_id: number;
@@ -20,14 +21,23 @@ const Dashboard = () => {
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeePosition, setNewEmployeePosition] = useState("");
 
+  const { role, user } = useRole(); // Get role and user from context
+
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [role]); // Add role as a dependency
 
   const fetchEmployees = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("employees")
       .select("employee_id, name, position");
+
+    // If the user's role is 'admin', filter out other 'admin' and 'super admin'
+    if (role === "admin") {
+      query = query.neq("role", "admin").neq("role", "super admin");
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching employees:", error);
