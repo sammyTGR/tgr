@@ -205,6 +205,7 @@ const SalesPage = () => {
         await handleFileUpload(file);
         await handleUpdateLabels();
         toast.success("File uploaded and processed successfully!");
+        setFile(null); // Clear the uploaded file
       } catch (error) {
         toast.error("Failed to upload and process file.");
       } finally {
@@ -260,7 +261,12 @@ const SalesPage = () => {
         <SalesDataTable />
       </div>
       <div className="mt-4">
-        <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
+        <input
+          type="file"
+          accept=".csv,.xlsx"
+          onChange={handleFileChange}
+          key={file ? file.name : ""} // Add key to reset input
+        />
         <Button
           variant="linkHover1"
           onClick={handleSubmit}
