@@ -377,6 +377,7 @@ function ChatContent() {
     scrollToBottom();
   }, [messages]);
 
+  // Update the onSend function to include these changes
   const onSend = async () => {
     if (
       !channel.current ||
@@ -472,7 +473,8 @@ function ChatContent() {
       }
     }
 
-    setMessage("");
+    setMessage(""); // Ensure message input is cleared
+    scrollToBottom(); // Scroll to the bottom after sending a message
   };
 
   const onDelete = async (id: number) => {
@@ -869,6 +871,7 @@ function ChatContent() {
                       className="min-h-[48px] rounded-2xl resize-none p-4 border border-gray-200 dark:border-gray-800 pr-16"
                     />
                     <Button
+                      key={`send-message-${selectedChat}-${message}`} // Add a unique key to force re-render
                       type="submit"
                       size="icon"
                       className="absolute top-3 right-3 w-8 h-8"
