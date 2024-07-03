@@ -285,7 +285,7 @@ const ContestPage = () => {
       <div className="text-left">
         <DataTable
           columns={[
-            { Header: "Lanid", accessor: "Lanid" },
+            { Header: "Sales Rep", accessor: "Lanid" },
             { Header: "Total DROS", accessor: "TotalDros" },
             { Header: "Points Deducted", accessor: "PointsDeducted" },
             { Header: "Total Points", accessor: "TotalPoints" },
