@@ -87,31 +87,8 @@ const SalesDataTable = () => {
     }
   };
 
-  const fetchTotalDROS = async (filters: any[]) => {
-    try {
-      const response = await fetch("/api/calculate-total-dros", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ filters }),
-      });
-
-      const { totalDROS, error } = await response.json();
-
-      if (error) {
-        console.error("Error fetching total DROS:", error);
-      } else {
-        setTotalDROS(totalDROS);
-      }
-    } catch (error) {
-      console.error("Failed to fetch total DROS:", error);
-    }
-  };
-
   useEffect(() => {
     fetchSalesData(pageIndex, pageSize, filters, sorting);
-    fetchTotalDROS(filters);
   }, [pageIndex, pageSize, filters, sorting]);
 
   const onUpdate = async (id: number, updates: Partial<SalesData>) => {
@@ -175,11 +152,6 @@ const SalesDataTable = () => {
 
   return (
     <div>
-      {/* <SalesTableToolbar
-        table={table}
-        totalDROS={totalDROS}
-        onFilterChange={handleFilterChange}
-      /> */}
       <DataTable table={table} />
     </div>
   );
