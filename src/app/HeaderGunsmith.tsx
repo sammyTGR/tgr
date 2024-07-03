@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { HomeIcon } from "@radix-ui/react-icons";
+import { HomeIcon, ChatBubbleIcon, DotFilledIcon } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -45,13 +45,11 @@ const serviceComponents = [
 ];
 
 const formComps = [
-  
   {
     title: "Gunsmithing",
     href: "/TGR/gunsmithing",
     description: "Weekly Firearms Maintenance",
   },
-
   {
     title: "Certifications",
     href: "/TGR/certifications",
@@ -61,6 +59,8 @@ const formComps = [
 
 const HeaderGunsmith = React.memo(() => {
   const [user, setUser] = useState<any>(null);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [isOnline, setIsOnline] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -71,6 +71,50 @@ const HeaderGunsmith = React.memo(() => {
     };
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      const fetchUnreadMessages = async () => {
+        const { count } = await supabase
+          .from("direct_messages")
+          .select("*", { count: "exact" })
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+        setUnreadMessages(count || 0);
+      };
+
+      const fetchIsOnline = async () => {
+        const { data } = await supabase
+          .from("employees")
+          .select("is_online")
+          .eq("user_uuid", user.id)
+          .single();
+        if (data) {
+          setIsOnline(data.is_online);
+        }
+      };
+
+      fetchUnreadMessages();
+      fetchIsOnline();
+
+      const subscription = supabase
+        .channel("direct_messages")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "direct_messages" },
+          (payload) => {
+            if (payload.new.receiver_id === user.id) {
+              setUnreadMessages((prev) => prev + 1);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -83,11 +127,6 @@ const HeaderGunsmith = React.memo(() => {
       <header className="flex justify-between items-center p-2">
         <NavigationMenu>
           <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
-            {/* <NavigationMenuItem>
-              <Link href="/TGR/dros/guide">
-                <Button variant="linkHover1">DROS Guide</Button>
-              </Link>
-            </NavigationMenuItem> */}
             <NavigationMenuItem>
               <Link href="/TGR/sop">
                 <Button variant="linkHover2">TGR SOPs</Button>
@@ -154,6 +193,37 @@ const HeaderGunsmith = React.memo(() => {
               >
                 Sign Out
               </Button>
+              <Link href="/TGR/crew/chat">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    // Reset unread messages count in the state
+                    setUnreadMessages(0);
+
+                    // Update the database to mark messages as read
+                    if (user) {
+                      const { data, error } = await supabase
+                        .from("direct_messages")
+                        .update({ is_read: true })
+                        .eq("receiver_id", user.id)
+                        .eq("is_read", false);
+
+                      if (error) {
+                        console.error(
+                          "Error marking messages as read:",
+                          error.message
+                        );
+                      }
+                    }
+                  }}
+                >
+                  <ChatBubbleIcon className="w-6 h-6" />
+                  {unreadMessages > 0 && (
+                    <span className="text-red-600 ml-1">{unreadMessages}</span>
+                  )}
+                </Button>
+              </Link>
             </>
           ) : (
             <Link href="/TGR/crew/login">

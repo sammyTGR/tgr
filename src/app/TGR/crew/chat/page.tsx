@@ -128,7 +128,7 @@ function ChatContent() {
       const { data, error } = await client
         .from("employees")
         .select("user_uuid, name, is_online")
-        .or("role.eq.admin,role.eq.super admin");
+        .or("role.eq.admin,role.eq.super admin,role.eq.gunsmith");
       if (data) {
         setUsers(
           data.map((user) => ({
@@ -780,7 +780,7 @@ function ChatContent() {
   return (
     <>
       <Toaster />
-      <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
         <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4 overflow-hidden">
           <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
             <TextGenerateEffect words={title} />
@@ -796,32 +796,35 @@ function ChatContent() {
                 </div>
                 <div className="flex-1 overflow-auto">
                   <nav className="space-y-1 p-4">
-                    <div
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                        selectedChat === "Admin Chat"
-                          ? "bg-gray-200 dark:bg-neutral-800"
-                          : ""
-                      }`}
-                    >
-                      <Link
-                        href="#"
-                        onClick={() => setSelectedChat("Admin Chat")}
-                        prefetch={false}
-                        className="flex-1 flex items-center gap-3"
+                    {/* Conditionally render Admin Chat for non-gunsmith roles */}
+                    {(role === "admin" || role === "super admin") && (
+                      <div
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                          selectedChat === "Admin Chat"
+                            ? "bg-gray-200 dark:bg-neutral-800"
+                            : ""
+                        }`}
                       >
-                        <DotFilledIcon className="w-4 h-4" />
-                        <span className="flex-1 truncate"># Admins</span>
-                      </Link>
-                      {role === "super admin" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={deleteAdminChat}
+                        <Link
+                          href="#"
+                          onClick={() => setSelectedChat("Admin Chat")}
+                          prefetch={false}
+                          className="flex-1 flex items-center gap-3"
                         >
-                          <CrossCircledIcon />
-                        </Button>
-                      )}
-                    </div>
+                          <DotFilledIcon className="w-4 h-4" />
+                          <span className="flex-1 truncate"># Admins</span>
+                        </Link>
+                        {role === "super admin" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={deleteAdminChat}
+                          >
+                            <CrossCircledIcon />
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
                     {dmUsers.map((u) => (
                       <div
@@ -1052,7 +1055,6 @@ function ChatContent() {
     </>
   );
 }
-
 export default function ChatClient() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
