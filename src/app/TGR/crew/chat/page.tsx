@@ -30,10 +30,12 @@ import {
 import { supabase } from "@/utils/supabase/client";
 import { Toaster } from "sonner";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const title = "TGR Ops Chat";
 
 interface ChatMessage {
+  group_chat_id?: number; // Add group_chat_id
   id: number;
   user_name: string;
   message: string;
@@ -68,6 +70,17 @@ function ChatContent() {
   const presenceChannel = useRef<RealtimeChannel | null>(null);
   const searchParams = useSearchParams();
   const dm = searchParams ? searchParams.get("dm") : null;
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [groupChatId, setGroupChatId] = useState<number | null>(null);
+
+  // Function to handle user selection
+  const handleUserSelection = (user: User) => {
+    setSelectedUsers((prevSelected) =>
+      prevSelected.some((u) => u.id === user.id)
+        ? prevSelected.filter((u) => u.id !== user.id)
+        : [...prevSelected, user]
+    );
+  };
 
   useEffect(() => {
     const client = supabase;
@@ -175,7 +188,9 @@ function ChatContent() {
       await fetchUsername();
       await fetchMessages();
       await fetchUsers();
-      await fetchDmUsers();
+      if (user?.id) {
+        await fetchDmUsers();
+      }
     };
 
     if (dm) {
@@ -242,6 +257,7 @@ function ChatContent() {
           }
           return prev;
         });
+        return senderData.name; // Return the sender's name
       } else {
         console.error("Error fetching sender:", senderError?.message);
       }
@@ -397,7 +413,6 @@ function ChatContent() {
     const commonMessageData = {
       message,
       sender_id: user.id,
-      user_name: username,
       created_at: new Date().toISOString(),
       is_read: false,
       receiver_id: selectedChat !== "Admin Chat" ? selectedChat : null,
@@ -411,10 +426,20 @@ function ChatContent() {
       insertData = {
         ...commonMessageData,
         user_id: user.id, // Only include user_id for chat_messages
+        user_name: username,
       };
       tableName = "chat_messages";
+    } else if (selectedChat.startsWith("group_")) {
+      insertData = {
+        group_chat_id: parseInt(selectedChat.split("_")[1], 10),
+        ...commonMessageData,
+      };
+      tableName = "group_chat_messages";
     } else {
-      insertData = commonMessageData;
+      insertData = {
+        ...commonMessageData,
+        user_name: username,
+      };
       tableName = "direct_messages";
     }
 
@@ -555,6 +580,62 @@ function ChatContent() {
     }
   };
 
+  const startGroupChat = async (receivers: User[]) => {
+    const receiverIds = receivers.map((u) => u.id);
+    const groupChatName = receivers.map((u) => u.name).join(", ");
+    setShowUserList(false); // Close the dialog
+
+    const { data, error } = await supabase
+      .from("group_chats")
+      .insert([
+        {
+          created_by: user.id,
+          name: `Group chat with ${groupChatName}`,
+          users: [user.id, ...receiverIds],
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("Error creating group chat:", error.message);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const newGroupChat = data[0];
+
+      const { error: messageError } = await supabase
+        .from("group_chat_messages")
+        .insert([
+          {
+            group_chat_id: newGroupChat.id,
+            sender_id: user.id,
+            message: `Group chat started with ${groupChatName}`,
+          },
+        ]);
+
+      if (messageError) {
+        console.error(
+          "Error sending group chat start message:",
+          messageError.message
+        );
+      }
+
+      // Add the new group chat to the state
+      setDmUsers((prev) => [
+        ...prev,
+        {
+          id: `group_${newGroupChat.id}`,
+          name: newGroupChat.name,
+          is_online: true,
+        },
+      ]);
+
+      // Set the newly created group chat as the selected chat
+      setSelectedChat(`group_${newGroupChat.id}`);
+    }
+  };
+
   const deleteDirectMessage = async (userId: string) => {
     setDmUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
     if (selectedChat === userId) {
@@ -576,6 +657,11 @@ function ChatContent() {
     if (selectedChat === "Admin Chat") {
       return !msg.receiver_id;
     }
+
+    if (selectedChat.startsWith("group_")) {
+      return msg.group_chat_id === parseInt(selectedChat.split("_")[1], 10);
+    }
+
     return (
       (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
       (msg.sender_id === selectedChat && msg.receiver_id === user.id)
@@ -776,6 +862,30 @@ function ChatContent() {
                         </Button>
                       </div>
                     ))}
+                    {groupChatId && (
+                      <div
+                        className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                          selectedChat === groupChatId.toString()
+                            ? "bg-gray-200 dark:bg-neutral-800"
+                            : ""
+                        }`}
+                      >
+                        <Link
+                          href="#"
+                          onClick={() =>
+                            handleChatClick(groupChatId.toString())
+                          }
+                          prefetch={false}
+                          className="flex-1 flex items-center gap-3"
+                        >
+                          <DotFilledIcon className="w-4 h-4" />
+                          <span className="flex-1 truncate">
+                            Group Chat:{" "}
+                            {selectedUsers.map((u) => u.name).join(", ")}
+                          </span>
+                        </Link>
+                      </div>
+                    )}
                   </nav>
                 </div>
               </div>
@@ -889,27 +999,51 @@ function ChatContent() {
         <Dialog open={showUserList} onOpenChange={setShowUserList}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Start a Direct Message</DialogTitle>
+              <DialogTitle>Start a Group Chat</DialogTitle>
               <DialogDescription>
-                Select a user to start a conversation with.
+                Select users to start a group conversation with.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
               {users.map((u) => (
-                <Button
-                  key={u.id}
-                  variant="linkHover1"
-                  onClick={() => startDirectMessage(u)}
-                  className="flex items-center gap-2"
-                >
-                  {u.is_online && <DotFilledIcon className="text-green-600" />}
-                  {u.name}
-                </Button>
+                <div key={u.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`user-${u.id}`}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUsers((prev) => [...prev, u]);
+                      } else {
+                        setSelectedUsers((prev) =>
+                          prev.filter((user) => user.id !== u.id)
+                        );
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor={`user-${u.id}`}
+                    className="flex items-center gap-2"
+                  >
+                    {u.is_online && (
+                      <DotFilledIcon className="text-green-600" />
+                    )}
+                    {u.name}
+                  </label>
+                </div>
               ))}
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setShowUserList(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowUserList(false);
+                  setSelectedUsers([]);
+                }}
+              >
                 Cancel
+              </Button>
+              <Button onClick={() => startGroupChat(selectedUsers)}>
+                Start Chat
               </Button>
             </DialogFooter>
           </DialogContent>
