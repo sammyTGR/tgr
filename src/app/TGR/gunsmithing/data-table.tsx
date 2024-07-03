@@ -41,6 +41,8 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   onNotesChange: (id: number, notes: string) => void;
   onUpdateFrequency: (id: number, frequency: number) => void;
   onDeleteFirearm: (id: number) => void;
+  pageIndex: number; // New prop
+  setPageIndex: (pageIndex: number) => void; // New prop
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -52,6 +54,8 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   onNotesChange,
   onUpdateFrequency, // Add this line
   onDeleteFirearm, // Add this line
+  pageIndex,
+  setPageIndex,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -60,11 +64,6 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 30,
-  });
-
   const table = useReactTable({
     data,
     columns,
@@ -72,12 +71,11 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
-      pagination,
+      pagination: { pageIndex, pageSize: 30 }, // Set pagination state
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -86,8 +84,8 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
 
   // Add useEffect to reset pagination state when data changes
   React.useEffect(() => {
-    table.setPageIndex(0);
-  }, [data, table]);
+    table.setPageIndex(pageIndex);
+  }, [data, table, pageIndex]);
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
@@ -211,7 +209,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
         </div>
       </div>
       <div className="flex-none mt-4">
-        <DataTablePagination table={table} />
+        <DataTablePagination table={table} setPageIndex={setPageIndex} />
       </div>
     </div>
   );

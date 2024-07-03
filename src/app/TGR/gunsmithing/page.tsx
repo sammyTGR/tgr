@@ -36,6 +36,9 @@ export default function GunsmithingMaintenance() {
     assigned_to: null,
   });
 
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 30; // Set a fixed page size
+
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) {
@@ -201,7 +204,7 @@ export default function GunsmithingMaintenance() {
 
   const handleAddFirearm = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: newFirearmData, error } = await supabase
         .from("firearms_maintenance")
         .insert([newFirearm])
         .select("*");
@@ -210,10 +213,17 @@ export default function GunsmithingMaintenance() {
         throw error;
       }
 
-      if (data && data.length > 0) {
+      if (newFirearmData && newFirearmData.length > 0) {
         setData((prevData) => {
-          const updatedData = [...prevData, data[0]];
+          const updatedData = [...prevData, newFirearmData[0]];
           persistData(userUuid || "", updatedData);
+
+          // Calculate the new page index based on the total number of items
+          const newPageIndex = Math.floor(updatedData.length / pageSize);
+
+          // Update the pagination state
+          setPageIndex(newPageIndex);
+
           return updatedData;
         });
       } else {
@@ -272,28 +282,34 @@ export default function GunsmithingMaintenance() {
         "postgres_changes",
         { event: "*", schema: "public", table: "firearms_maintenance" },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            const updatedData = [
-              payload.new as FirearmsMaintenanceData,
-              ...data,
-            ];
-            setData(updatedData);
+          setData((prevData) => {
+            let updatedData = [...prevData];
+
+            if (payload.eventType === "INSERT") {
+              const exists = prevData.some(
+                (item) => item.id === payload.new.id
+              );
+              if (!exists) {
+                updatedData = [
+                  payload.new as FirearmsMaintenanceData,
+                  ...prevData,
+                ];
+              }
+            } else if (payload.eventType === "UPDATE") {
+              updatedData = prevData.map((item) =>
+                item.id === payload.new.id
+                  ? (payload.new as FirearmsMaintenanceData)
+                  : item
+              );
+            } else if (payload.eventType === "DELETE") {
+              updatedData = prevData.filter(
+                (item) => item.id !== payload.old.id
+              );
+            }
+
             persistData(userUuid || "", updatedData);
-          } else if (payload.eventType === "UPDATE") {
-            const updatedData = data.map((item) =>
-              item.id === payload.new.id
-                ? (payload.new as FirearmsMaintenanceData)
-                : item
-            );
-            setData(updatedData);
-            persistData(userUuid || "", updatedData);
-          } else if (payload.eventType === "DELETE") {
-            const updatedData = data.filter(
-              (item) => item.id !== payload.old.id
-            );
-            setData(updatedData);
-            persistData(userUuid || "", updatedData);
-          }
+            return updatedData;
+          });
         }
       )
       .subscribe();
@@ -301,7 +317,7 @@ export default function GunsmithingMaintenance() {
     return () => {
       supabase.removeChannel(FirearmsMaintenanceTableSubscription);
     };
-  }, [data, persistData, userUuid]);
+  }, [persistData, userUuid]);
 
   const handleSubmit = async () => {
     // Check if all firearms have notes and status
@@ -394,6 +410,8 @@ export default function GunsmithingMaintenance() {
                         onNotesChange={handleNotesChange}
                         onUpdateFrequency={handleUpdateFrequency}
                         onDeleteFirearm={handleDeleteFirearm} // Pass this prop
+                        pageIndex={pageIndex} // Pass the pageIndex
+                        setPageIndex={setPageIndex} // Pass the setPageIndex
                       />
                     </>
                   )
