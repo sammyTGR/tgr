@@ -62,6 +62,9 @@ const SalesDataTable = () => {
     sorting: SortingState
   ) => {
     try {
+      // console.log(
+      //   `Fetching data for pageIndex: ${pageIndex}, pageSize: ${pageSize}`
+      // );
       const response = await fetch("/api/fetch-sales-data", {
         method: "POST",
         headers: {
@@ -76,6 +79,7 @@ const SalesDataTable = () => {
         console.error("Error fetching sales data:", error);
         toast.error("Failed to fetch sales data.");
       } else {
+        // console.log("Fetched data:", data); // Log the data being fetched
         setSales(data);
         if (count !== undefined) {
           setPageCount(Math.ceil(count / pageSize));

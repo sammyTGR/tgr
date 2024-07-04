@@ -261,20 +261,19 @@ const SalesPage = () => {
         <SalesDataTable />
       </div>
       <div className="mt-4">
-        <input
-          type="file"
-          accept=".csv,.xlsx"
-          onChange={handleFileChange}
-          key={file ? file.name : ""} // Add key to reset input
-        />
-        <Button
-          variant="linkHover1"
-          onClick={handleSubmit}
-          className="mt-4"
-          disabled={loading} // Disable button when loading
-        >
-          {loading ? "Uploading..." : "Upload and Process"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
+          {/* {file && <p className="mt-2">{file.name}</p>}{" "}
+          Display selected file name */}
+          <Button
+            variant="linkHover1"
+            onClick={handleSubmit}
+            className="mt-4"
+            disabled={loading} // Disable button when loading
+          >
+            {loading ? "Uploading..." : "Upload and Process"}
+          </Button>
+        </div>
       </div>
     </RoleBasedWrapper>
   );

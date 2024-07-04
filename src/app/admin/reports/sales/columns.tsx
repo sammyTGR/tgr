@@ -1,3 +1,5 @@
+// src\app\admin\reports\sales\columns.tsx
+
 import { format } from "date-fns";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
@@ -130,38 +132,11 @@ export const salesColumns = (
     filterFn: (row, columnId, filterValue) => {
       const formattedDate = format(
         new Date(row.getValue(columnId)),
-        "MM-dd-yyyy"
+        "yyyy-MM-dd"
       );
       return formattedDate.includes(filterValue);
     },
   },
-  // {
-  //   accessorKey: "Disc",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Disc" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
-  // {
-  //   accessorKey: "Type",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Type" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
-  // {
-  //   accessorKey: "Spiff",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Spiff" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
   {
     accessorKey: "Last",
     header: ({ column }) => (
@@ -180,42 +155,6 @@ export const salesColumns = (
       style: { width: "150px" },
     },
   },
-  // {
-  //   accessorKey: "Legacy",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Legacy" />
-  //   ),
-  //   meta: {
-  //     style: { width: "150px" },
-  //   },
-  // },
-  // {
-  //   accessorKey: "Stloc",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Stloc" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
-  // {
-  //   accessorKey: "Cat",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Cat" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
-  // {
-  //   accessorKey: "Sub",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Sub" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
   {
     accessorKey: "Mfg",
     header: ({ column }) => (
@@ -252,26 +191,6 @@ export const salesColumns = (
       style: { width: "150px" },
     },
   },
-  // {
-  //   accessorKey: "status",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Status" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  //   filterFn: includesArrayString, // Use the custom filter function
-  // },
-  // {
-  //   accessorKey: "actions",
-  //   header: "Actions",
-  //   cell: ({ row }) => (
-  //     <SalesTableRowActions sale={row.original} onUpdate={onUpdate} />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
   {
     accessorKey: "total_gross",
     header: ({ column }) => (
