@@ -1,5 +1,4 @@
 // src/app/TGR/rentals/checklist/data-table-row-actions.tsx
-
 "use client";
 import { useState } from "react";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
@@ -32,38 +31,56 @@ interface DataTableRowActionsProps {
   row: Row<FirearmsMaintenanceData>;
   userRole: string;
   userUuid: string;
-  onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
+  onVerificationComplete: () => void;
 }
 
 export function DataTableRowActions({
   row,
   userRole,
   userUuid,
-  onStatusChange,
   onNotesChange,
+  onVerificationComplete,
 }: DataTableRowActionsProps) {
   const task = row.original;
-  const [open, setOpen] = useState(false);
   const [openVerification, setOpenVerification] = useState(false);
 
-  const handleStatusChange = async (status: string | null) => {
-    const { error } = await supabase
-      .from("firearms_maintenance")
-      .update({ status })
-      .eq("id", task.id);
-
-    if (error) {
-      console.error("Error updating status:", error.message);
-    } else {
-      onStatusChange(task.id, status);
+  const handleSetGunsmithStatus = async (status: string) => {
+    try {
+      if (status === "With Gunsmith") {
+        await supabase.from("firearm_verifications").insert({
+          firearm_id: task.id,
+          verified_by: userUuid,
+          verification_date: new Date().toISOString().split("T")[0],
+          verification_time: "NA",
+          serial_verified: false,
+          condition_verified: false,
+          magazine_attached: false,
+          notes: status,
+        });
+        onNotesChange(task.id, status);
+      } else if (status === "Returned From Gunsmith") {
+        await supabase
+          .from("firearm_verifications")
+          .update({ notes: null })
+          .eq("firearm_id", task.id)
+          .eq("notes", "With Gunsmith");
+        onNotesChange(task.id, "");
+      }
+      onVerificationComplete();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error setting gunsmith status:", error.message);
+      } else {
+        console.error("An unknown error occurred.");
+      }
     }
   };
 
-  const handleVerificationComplete = () => {
+  const handleVerificationComplete = (notes: string) => {
     setOpenVerification(false);
-    // Call a function to update the checked status in the main data
-    onStatusChange(task.id, task.status);
+    onNotesChange(task.id, notes); // Update the notes
+    onVerificationComplete();
   };
 
   return (
@@ -84,33 +101,19 @@ export function DataTableRowActions({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger>Status</DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger>Gunsmithing</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem onSelect={() => handleStatusChange("Repaired")}>
-                Repaired
+              <DropdownMenuItem
+                onSelect={() => handleSetGunsmithStatus("With Gunsmith")}
+              >
+                With Gunsmith
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() => handleStatusChange("Under Repair")}
+                onSelect={() =>
+                  handleSetGunsmithStatus("Returned From Gunsmith")
+                }
               >
-                Under Repair
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Maintenance Completed")}
-              >
-                Maintenance Completed
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Had To Send Out")}
-              >
-                Had To Send Out
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => handleStatusChange("Waiting For Parts")}
-              >
-                Waiting For Parts
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleStatusChange(null)}>
-                Clear Status
+                Returned From Gunsmith
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
@@ -127,13 +130,16 @@ export function DataTableRowActions({
           <VerificationForm
             firearmId={task.id}
             userUuid={userUuid}
-            verificationDate={new Date().toISOString().split('T')[0]}
-            verificationTime={new Date().getHours() < 12 ? 'morning' : 'evening'}
+            verificationDate={new Date().toISOString().split("T")[0]}
+            verificationTime={
+              new Date().getHours() < 14 ? "morning" : "evening"
+            }
             onVerificationComplete={handleVerificationComplete}
+            isWithGunsmith={task.notes === "With Gunsmith"} // Pass this prop to VerificationForm
           />
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="ghost">Cancel</Button>
+              <Button variant="linkHover2">Cancel</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>

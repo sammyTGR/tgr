@@ -1,5 +1,3 @@
-// src/app/TGR/rentals/checklist/page.tsx
-
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
@@ -8,16 +6,28 @@ import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Toaster } from "sonner";
+import { Button } from "@/components/ui/button"; // Import the Button component
 
 const words = "Firearms Checklist";
+
+interface FirearmVerification {
+  firearm_id: number;
+  verified_by: string;
+  verification_date: string;
+  verification_time: string;
+  serial_verified: boolean;
+  condition_verified: boolean;
+  magazine_attached: boolean;
+  notes: string;
+  created_at: string;
+}
 
 export default function FirearmsChecklist() {
   const [data, setData] = useState<FirearmsMaintenanceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userUuid, setUserUuid] = useState<string | null>(null);
-  const [pageIndex, setPageIndex] = useState(0);
-  const pageSize = 30;
+  const [userName, setUserName] = useState<string | null>(null); // Add userName state
 
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -32,7 +42,7 @@ export default function FirearmsChecklist() {
     try {
       const { data: roleData, error: roleError } = await supabase
         .from("employees")
-        .select("role")
+        .select("role, name") // Fetch role and name
         .eq("user_uuid", user?.id)
         .single();
 
@@ -45,6 +55,7 @@ export default function FirearmsChecklist() {
       }
 
       setUserRole(roleData.role);
+      setUserName(roleData.name); // Set userName state
     } catch (error) {
       console.error("Unexpected error fetching role:", error);
     }
@@ -55,16 +66,54 @@ export default function FirearmsChecklist() {
   }, [fetchUserRoleAndUuid]);
 
   const fetchFirearmsMaintenanceData = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data: firearmsData, error: firearmsError } = await supabase
       .from("firearms_maintenance")
       .select("*");
 
-    if (error) {
-      console.error("Error fetching initial data:", error.message);
-      throw new Error(error.message);
+    if (firearmsError) {
+      console.error("Error fetching initial data:", firearmsError.message);
+      throw new Error(firearmsError.message);
     }
 
-    return data;
+    const { data: verificationsData, error: verificationsError } =
+      await supabase
+        .from("firearm_verifications")
+        .select("*")
+        .eq("verification_date", new Date().toISOString().split("T")[0]);
+
+    if (verificationsError) {
+      console.error(
+        "Error fetching verification data:",
+        verificationsError.message
+      );
+      throw new Error(verificationsError.message);
+    }
+
+    const combinedData = firearmsData.map((firearm) => {
+      const latestVerification = verificationsData
+        .filter((verification) => verification.firearm_id === firearm.id)
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0];
+
+      return {
+        ...firearm,
+        notes: latestVerification ? latestVerification.notes : "",
+        morning_checked: verificationsData.some(
+          (verification) =>
+            verification.firearm_id === firearm.id &&
+            verification.verification_time === "morning"
+        ),
+        evening_checked: verificationsData.some(
+          (verification) =>
+            verification.firearm_id === firearm.id &&
+            verification.verification_time === "evening"
+        ),
+      };
+    });
+
+    return combinedData;
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -83,82 +132,73 @@ export default function FirearmsChecklist() {
     fetchData();
   }, [fetchData]);
 
-  const handleStatusChange = async (id: number, status: string | null) => {
-    try {
-      const { error } = await supabase
-        .from("firearms_maintenance")
-        .update({ status })
-        .eq("id", id);
-
-      if (error) {
-        throw error;
-      }
-
-      setData((prevData) =>
-        prevData.map((item) =>
-          item.id === id
-            ? { ...item, status: status !== null ? status : "" }
-            : item
-        )
-      );
-    } catch (error) {
-      console.error("Error updating status:", error);
-    }
-  };
-
-  const handleNotesChange = (id: number, notes: string) => {
-    setData((prevData) =>
-      prevData.map((item) =>
-        item.id === id ? { ...item, notes } : item
-      )
-    );
-  };
-
   useEffect(() => {
-    const FirearmsMaintenanceTableSubscription = supabase
-      .channel("custom-all-firearms-maintenance-channel")
+    const channel = supabase
+      .channel("custom-all-channel")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "firearms_maintenance" },
+        { event: "*", schema: "public", table: "firearm_verifications" },
         (payload) => {
-          setData((prevData) => {
-            let updatedData = [...prevData];
-
-            if (payload.eventType === "INSERT") {
-              const exists = prevData.some(
-                (item) => item.id === payload.new.id
-              );
-              if (!exists) {
-                updatedData = [
-                  payload.new as FirearmsMaintenanceData,
-                  ...prevData,
-                ];
-              }
-            } else if (payload.eventType === "UPDATE") {
-              updatedData = prevData.map((item) =>
-                item.id === payload.new.id
-                  ? (payload.new as FirearmsMaintenanceData)
-                  : item
-              );
-            } else if (payload.eventType === "DELETE") {
-              updatedData = prevData.filter(
-                (item) => item.id !== payload.old.id
-              );
-            }
-
-            return updatedData;
-          });
+          const newVerification = payload.new as FirearmVerification;
+          setData((prevData) =>
+            prevData.map((item) =>
+              item.id === newVerification.firearm_id
+                ? {
+                    ...item,
+                    notes: newVerification.notes,
+                    morning_checked:
+                      newVerification.verification_time === "morning"
+                        ? true
+                        : item.morning_checked,
+                    evening_checked:
+                      newVerification.verification_time === "evening"
+                        ? true
+                        : item.evening_checked,
+                  }
+                : item
+            )
+          );
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(FirearmsMaintenanceTableSubscription);
+      supabase.removeChannel(channel);
     };
   }, []);
 
+  const handleNotesChange = (id: number, notes: string) => {
+    setData((prevData) =>
+      prevData.map((item) => (item.id === id ? { ...item, notes } : item))
+    );
+  };
+
+  const handleSubmitChecklist = async (shift: "morning" | "evening") => {
+    const allVerified = data.every((item) =>
+      shift === "morning" ? item.morning_checked : item.evening_checked
+    );
+
+    if (!allVerified) {
+      alert(`Please verify all firearms for the ${shift} shift.`);
+      return;
+    }
+
+    try {
+      await supabase.from("checklist_submissions").insert({
+        shift,
+        submitted_by: userUuid,
+        submitted_by_name: userName,
+        submission_date: new Date().toISOString(),
+      });
+      alert(`Checklist for ${shift} shift submitted successfully.`);
+    } catch (error) {
+      console.error("Error submitting checklist:", error);
+      alert("Failed to submit checklist.");
+    }
+  };
+
   return (
-    <RoleBasedWrapper allowedRoles={["sales", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
         <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">
@@ -168,9 +208,23 @@ export default function FirearmsChecklist() {
                 <TextGenerateEffect words={words} />
               </h2>
             </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="linkHover1"
+                onClick={() => handleSubmitChecklist("morning")}
+              >
+                Submit Morning Checklist
+              </Button>
+              <Button
+                variant="linkHover1"
+                onClick={() => handleSubmitChecklist("evening")}
+              >
+                Submit Evening Checklist
+              </Button>
+            </div>
           </div>
           <div className="flex-1 flex flex-col space-y-4">
-            <div className="rounded-md border flex-1 flex flex-col">
+            <div className="rounded-md border h-full flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto">
                 {loading ? (
                   <p>Loading...</p>
@@ -183,10 +237,8 @@ export default function FirearmsChecklist() {
                         data={data}
                         userRole={userRole}
                         userUuid={userUuid}
-                        onStatusChange={handleStatusChange}
                         onNotesChange={handleNotesChange}
-                        pageIndex={pageIndex}
-                        setPageIndex={setPageIndex}
+                        onVerificationComplete={() => Promise.resolve()} // Do nothing on verification complete
                       />
                     </>
                   )

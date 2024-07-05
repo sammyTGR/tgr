@@ -186,12 +186,34 @@ export default function GunsmithingMaintenance() {
     }
   };
 
-  const handleNotesChange = (id: number, notes: string) => {
-    setData((prevData) =>
-      prevData.map((item) =>
-        item.id === id ? { ...item, maintenance_notes: notes } : item
-      )
-    );
+  const handleNotesChange = async (id: number, notes: string) => {
+    try {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({
+          maintenance_notes: notes,
+          last_maintenance_date: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                maintenance_notes: notes,
+                last_maintenance_date: new Date().toISOString(),
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error("Error updating maintenance notes:", error);
+    }
   };
 
   const handleUpdateFrequency = (id: number, frequency: number) => {

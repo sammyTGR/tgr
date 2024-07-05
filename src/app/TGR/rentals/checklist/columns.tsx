@@ -1,5 +1,4 @@
 // src/app/TGR/rentals/checklist/columns.tsx
-
 import { ColumnDef } from "@tanstack/react-table";
 
 export interface FirearmsMaintenanceData {
@@ -7,10 +6,12 @@ export interface FirearmsMaintenanceData {
   firearm_type: string;
   firearm_name: string;
   last_maintenance_date: string;
-  gunsmith_notes: string;
-  status: string;
+  maintenance_notes: string;
+  checklist_notes: string;
   assigned_to: string;
-  checked: boolean; // New field to indicate if the firearm has been checked
+  morning_checked: boolean;
+  evening_checked: boolean;
+  notes: string;
 }
 
 export interface FirearmVerificationData {
@@ -35,17 +36,22 @@ export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
     header: "Last Maintenance Date",
   },
   {
-    accessorKey: "gunsmith_notes",
+    accessorKey: "maintenance_notes",
     header: "Gunsmith Notes",
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "notes",
+    header: "Checklist Notes",
   },
   {
-    accessorKey: "checked",
-    header: "Checked",
-    cell: ({ row }) => (row.original.checked ? "Yes" : "No"),
+    accessorKey: "morning_checked",
+    header: "Morning Checked",
+    cell: ({ row }) => (row.original.morning_checked ? "Yes" : ""),
+  },
+  {
+    accessorKey: "evening_checked",
+    header: "Evening Checked",
+    cell: ({ row }) => (row.original.evening_checked ? "Yes" : ""),
   },
 ];
 export type { ColumnDef };

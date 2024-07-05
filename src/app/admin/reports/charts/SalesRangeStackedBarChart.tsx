@@ -25,7 +25,12 @@ const fetchData = async (startDate: string, endDate: string) => {
 const processData = (data: any[]) => {
   const processedData: ChartData[] = [];
   const categories: Set<string> = new Set();
-  const excludeCategoriesFromChart = ["CA Tax Gun Transfer", "CA Tax Adjust"];
+  const excludeCategoriesFromChart = [
+    "CA Tax Gun Transfer",
+    "CA Tax Adjust",
+    "CA Excise Tax",
+    "CA Excise Tax Adjustment",
+  ];
   const excludeCategoriesFromTotalFirearms = [
     "Pistol",
     "Rifle",

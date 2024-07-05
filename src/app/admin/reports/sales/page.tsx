@@ -65,6 +65,8 @@ const SalesPage = () => {
     [168, "CA Tax Adjust"],
     [192, "CA Tax Gun Transfer"],
     [102, "Monthly Storage Fee (Per Firearm)"],
+    [103, "CA Excise Tax"],
+    [104, "CA Excise Tax Adjustment"],
   ]);
 
   const subcategoryMap = new Map<string, string>([

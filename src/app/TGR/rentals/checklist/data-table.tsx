@@ -1,5 +1,4 @@
 // src/app/TGR/rentals/checklist/data-table.tsx
-
 import * as React from "react";
 import {
   ColumnFiltersState,
@@ -8,7 +7,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -30,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { DataTablePagination } from "./pagination";
+import { supabase } from "@/utils/supabase/client";
 import { ColumnDef, FirearmsMaintenanceData, columns } from "./columns";
 import { DataTableRowActions } from "./data-table-row-actions";
 
@@ -39,10 +37,8 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   data: TData[];
   userRole: string;
   userUuid: string;
-  onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
-  pageIndex: number;
-  setPageIndex: (pageIndex: number) => void;
+  onVerificationComplete: () => Promise<void>;
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -50,10 +46,8 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   data,
   userRole,
   userUuid,
-  onStatusChange,
   onNotesChange,
-  pageIndex,
-  setPageIndex,
+  onVerificationComplete,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -69,7 +63,6 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
-      pagination: { pageIndex, pageSize: 30 },
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -77,12 +70,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
   });
-
-  React.useEffect(() => {
-    table.setPageIndex(pageIndex);
-  }, [data, table, pageIndex]);
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
@@ -94,14 +82,6 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
             table.getColumn("firearm_name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm w-full"
-        />
-        <Input
-          placeholder="Filter By Status..."
-          value={table.getColumn("status")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("status")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm w-full ml-2"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -130,7 +110,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden rounded-md border w-full">
+      <div className="flex-1 h-full w-full">
         <div className="h-full overflow-y-auto">
           <Table>
             <TableHeader>
@@ -183,8 +163,8 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         row={row}
                         userRole={userRole}
                         userUuid={userUuid}
-                        onStatusChange={onStatusChange}
-                        onNotesChange={onNotesChange} // Pass this prop
+                        onNotesChange={onNotesChange}
+                        onVerificationComplete={onVerificationComplete} // Fetch data to update the state after verification completion
                       />
                     </TableCell>
                   </TableRow>
@@ -202,9 +182,6 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
             </TableBody>
           </Table>
         </div>
-      </div>
-      <div className="flex-none mt-4">
-        <DataTablePagination table={table} setPageIndex={setPageIndex} />
       </div>
     </div>
   );
