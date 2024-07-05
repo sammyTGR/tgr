@@ -12,6 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+
 import {
   Table,
   TableBody,
@@ -40,8 +41,6 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   userUuid: string;
   onStatusChange: (id: number, status: string | null) => void;
   onNotesChange: (id: number, notes: string) => void;
-  onUpdateFrequency: (id: number, frequency: number) => void;
-  onDeleteFirearm: (id: number) => void;
   pageIndex: number;
   setPageIndex: (pageIndex: number) => void;
 }
@@ -53,8 +52,6 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   userUuid,
   onStatusChange,
   onNotesChange,
-  onUpdateFrequency,
-  onDeleteFirearm,
   pageIndex,
   setPageIndex,
 }: DataTableProps<TData, TValue>) {
@@ -187,9 +184,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         userRole={userRole}
                         userUuid={userUuid}
                         onStatusChange={onStatusChange}
-                        onNotesChange={onNotesChange}
-                        onUpdateFrequency={onUpdateFrequency}
-                        onDeleteFirearm={onDeleteFirearm}
+                        onNotesChange={onNotesChange} // Pass this prop
                       />
                     </TableCell>
                   </TableRow>
