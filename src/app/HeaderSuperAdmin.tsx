@@ -155,6 +155,11 @@ const reportsComps = [
     description: "Weekly Gunsmithing Maintenance",
   },
   {
+    title: "Checklist",
+    href: "/TGR/rentals/checklist",
+    description: "Daily Rental Checklist",
+  },
+  {
     title: "Monthly Contest",
     href: "/admin/audits/contest",
     description: "Monthly Sales Contest",
