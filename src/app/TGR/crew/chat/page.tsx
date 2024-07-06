@@ -71,7 +71,7 @@ function ChatContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [dmUsers, setDmUsers] = useState<User[]>([]);
-  const [selectedChat, setSelectedChat] = useState<string>("Admin Chat");
+  const [selectedChat, setSelectedChat] = useState<string | null>(null); // Change initial state to null
   const { user, role, loading } = useRole();
   const [username, setUsername] = useState<string>("");
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
@@ -651,12 +651,14 @@ function ChatContent() {
     if (
       !channel.current ||
       message.trim().length === 0 ||
-      username.trim().length === 0
+      username.trim().length === 0 ||
+      selectedChat === null
     ) {
       console.warn("Cannot send message:", {
         message,
         username,
         channel: channel.current,
+        selectedChat,
       });
       return;
     }
@@ -929,20 +931,22 @@ function ChatContent() {
     }
   };
 
-  const filteredMessages = messages.filter((msg) => {
-    if (selectedChat === "Admin Chat") {
-      return !msg.receiver_id && !msg.group_chat_id;
-    }
+  const filteredMessages = selectedChat
+    ? messages.filter((msg) => {
+        if (selectedChat === "Admin Chat") {
+          return !msg.receiver_id && !msg.group_chat_id;
+        }
 
-    if (selectedChat.startsWith("group_")) {
-      return msg.group_chat_id === parseInt(selectedChat.split("_")[1], 10);
-    }
+        if (selectedChat.startsWith("group_")) {
+          return msg.group_chat_id === parseInt(selectedChat.split("_")[1], 10);
+        }
 
-    return (
-      (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
-      (msg.sender_id === selectedChat && msg.receiver_id === user.id)
-    );
-  });
+        return (
+          (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
+          (msg.sender_id === selectedChat && msg.receiver_id === user.id)
+        );
+      })
+    : [];
 
   const getUserName = (userId: string | undefined) => {
     if (!userId) return "Unknown User";
@@ -1098,7 +1102,9 @@ function ChatContent() {
 
   // Store the current chat ID in localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("currentChat", selectedChat);
+    if (selectedChat) {
+      localStorage.setItem("currentChat", selectedChat);
+    }
     scrollToBottom();
   }, [selectedChat, messages]);
 
