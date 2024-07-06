@@ -62,11 +62,11 @@ const useRealtimeNotifications = () => {
               },
             });
 
-            if (Notification.permission === "granted") {
-              new Notification(`New message from ${senderName}`, {
-                body: payload.new.message,
-              });
-            }
+            // if (Notification.permission === "granted") {
+            //   new Notification(`New message from ${senderName}`, {
+            //     body: payload.new.message,
+            //   });
+            // }
           }
         }
       } catch (error) {
@@ -108,9 +108,9 @@ const useRealtimeNotifications = () => {
       )
       .subscribe();
 
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
+    // if (Notification.permission !== "granted") {
+    //   Notification.requestPermission();
+    // }
 
     return () => {
       directMessageChannel?.unsubscribe();

@@ -5,7 +5,7 @@ import { FirearmsMaintenanceData, columns } from "./columns";
 import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import { Button } from "@/components/ui/button"; // Import the Button component
 
 const words = "Firearms Checklist";
@@ -179,7 +179,7 @@ export default function FirearmsChecklist() {
     );
 
     if (!allVerified) {
-      alert(`Please verify all firearms for the ${shift} shift.`);
+      toast(`Please verify all firearms for the ${shift} shift.`);
       return;
     }
 
@@ -190,10 +190,10 @@ export default function FirearmsChecklist() {
         submitted_by_name: userName,
         submission_date: new Date().toISOString(),
       });
-      alert(`Checklist for ${shift} shift submitted successfully.`);
+      toast(`Checklist for ${shift} shift submitted successfully.`);
     } catch (error) {
       console.error("Error submitting checklist:", error);
-      alert("Failed to submit checklist.");
+      toast("Failed to submit checklist.");
     }
   };
 

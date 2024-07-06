@@ -28,11 +28,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/utils/supabase/client";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const title = "TGR Ops Chat";
+
+const notify = (message: string) => {
+  toast(message);
+};
 
 interface ChatMessage {
   group_chat_id?: number;
@@ -82,14 +86,24 @@ function ChatContent() {
   const dm = searchParams ? searchParams.get("dm") : null;
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [groupChatId, setGroupChatId] = useState<number | null>(null);
+  const [chatType, setChatType] = useState<"dm" | "group">("dm");
 
-  // Function to handle user selection
+  // Function to handle chat type selection
+  const handleChatTypeSelection = (type: "dm" | "group") => {
+    setChatType(type);
+    setSelectedUsers([]);
+  };
+
   const handleUserSelection = (user: User) => {
-    setSelectedUsers((prevSelected) =>
-      prevSelected.some((u) => u.id === user.id)
-        ? prevSelected.filter((u) => u.id !== user.id)
-        : [...prevSelected, user]
-    );
+    if (chatType === "dm") {
+      setSelectedUsers([user]); // Only allow one user for DM
+    } else {
+      setSelectedUsers((prevSelected) =>
+        prevSelected.some((u) => u.id === user.id)
+          ? prevSelected.filter((u) => u.id !== user.id)
+          : [...prevSelected, user]
+      );
+    }
   };
 
   const handleGroupChatInsert = async (payload: GroupChatPayload) => {
@@ -502,32 +516,6 @@ function ChatContent() {
         .subscribe();
     }
 
-    const fetchSender = async (senderId: string) => {
-      const { data: senderData, error: senderError } = await supabase
-        .from("employees")
-        .select("user_uuid, name, is_online")
-        .eq("user_uuid", senderId)
-        .single();
-      if (senderData) {
-        setDmUsers((prev) => {
-          if (!prev.some((user) => user.id === senderData.user_uuid)) {
-            return [
-              ...prev,
-              {
-                id: senderData.user_uuid,
-                name: senderData.name,
-                is_online: senderData.is_online,
-              },
-            ];
-          }
-          return prev;
-        });
-        return senderData.name; // Return the sender's name
-      } else {
-        console.error("Error fetching sender:", senderError?.message);
-      }
-    };
-
     const directMessageChannel = client
       .channel("direct-messages", {
         config: {
@@ -846,6 +834,11 @@ function ChatContent() {
   };
 
   const startGroupChat = async (receivers: User[]) => {
+    if (receivers.length < 2) {
+      console.error("Group chat requires at least two members.");
+      return;
+    }
+
     const receiverIds = receivers.map((u) => u.id);
     const groupChatName = receivers.map((u) => u.name).join(", ");
     setShowUserList(false); // Close the dialog
@@ -957,6 +950,32 @@ function ChatContent() {
     return user ? user.name : userId;
   };
 
+  const fetchSender = async (senderId: string) => {
+    const { data: senderData, error: senderError } = await supabase
+      .from("employees")
+      .select("user_uuid, name, is_online")
+      .eq("user_uuid", senderId)
+      .single();
+    if (senderData) {
+      setDmUsers((prev) => {
+        if (!prev.some((user) => user.id === senderData.user_uuid)) {
+          return [
+            ...prev,
+            {
+              id: senderData.user_uuid,
+              name: senderData.name,
+              is_online: senderData.is_online,
+            },
+          ];
+        }
+        return prev;
+      });
+      return senderData.name; // Return the sender's name
+    } else {
+      console.error("Error fetching sender:", senderError?.message);
+    }
+  };
+
   useEffect(() => {
     const fetchUnreadCounts = async () => {
       const { data, error } = await supabase
@@ -998,6 +1017,11 @@ function ChatContent() {
         { event: "INSERT", schema: "public", table: "group_chat_messages" },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
+
+          // Show toast to all receivers of the group message except the sender
+          if (payload.new.sender_id !== user?.id) {
+            notify(`New Group Message: ${payload.new.message}`);
+          }
         }
       )
       .on<ChatMessage>(
@@ -1040,9 +1064,8 @@ function ChatContent() {
               if (!dmUsers.some((u) => u.id === senderId)) {
                 await fetchSender(senderId);
               }
-            } else {
-              console.error("sender_id is not a string", senderId);
             }
+            notify(`New Message: ${payload.new.message}`);
           }
         }
       )
@@ -1443,26 +1466,38 @@ function ChatContent() {
         <Dialog open={showUserList} onOpenChange={setShowUserList}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Start a Group Chat</DialogTitle>
+              <DialogTitle>Start a Chat</DialogTitle>
               <DialogDescription>
-                Select users to start a group conversation with.
+                Select chat type and users to start a conversation with.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
+              <div className="flex space-x-2">
+                <Button
+                  variant={chatType === "dm" ? "default" : "linkHover1"}
+                  onClick={() => handleChatTypeSelection("dm")}
+                >
+                  Direct Message
+                </Button>
+                <Button
+                  variant={chatType === "group" ? "default" : "linkHover1"}
+                  onClick={() => handleChatTypeSelection("group")}
+                >
+                  Group Chat
+                </Button>
+              </div>
               {users.map((u) => (
                 <div key={u.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id={`user-${u.id}`}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedUsers((prev) => [...prev, u]);
-                      } else {
-                        setSelectedUsers((prev) =>
-                          prev.filter((user) => user.id !== u.id)
-                        );
-                      }
-                    }}
+                    checked={selectedUsers.some((user) => user.id === u.id)}
+                    onChange={() => handleUserSelection(u)}
+                    disabled={
+                      chatType === "dm" &&
+                      selectedUsers.length > 0 &&
+                      !selectedUsers.some((user) => user.id === u.id)
+                    } // Disable other checkboxes for DM after selecting one user
                   />
                   <label
                     htmlFor={`user-${u.id}`}
@@ -1478,7 +1513,7 @@ function ChatContent() {
             </div>
             <DialogFooter>
               <Button
-                variant="ghost"
+                variant="linkHover1"
                 onClick={() => {
                   setShowUserList(false);
                   setSelectedUsers([]);
@@ -1486,7 +1521,13 @@ function ChatContent() {
               >
                 Cancel
               </Button>
-              <Button onClick={() => startGroupChat(selectedUsers)}>
+              <Button
+                onClick={() =>
+                  chatType === "dm"
+                    ? startDirectMessage(selectedUsers[0])
+                    : startGroupChat(selectedUsers)
+                }
+              >
                 Start Chat
               </Button>
             </DialogFooter>
@@ -1502,7 +1543,4 @@ export default function ChatClient() {
       <ChatContent />
     </Suspense>
   );
-}
-function fetchSender(senderId: string) {
-  throw new Error("Function not implemented.");
 }
