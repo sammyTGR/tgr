@@ -20,6 +20,7 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
   const [firearmType, setFirearmType] = useState<string>("handgun");
   const [firearmName, setFirearmName] = useState<string>("");
   const [maintenanceFrequency, setMaintenanceFrequency] = useState<number>(30);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleAdd = () => {
     const newFirearm = {
@@ -32,10 +33,14 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
       assigned_to: null,
     };
     onAdd(newFirearm);
+    setFirearmType("handgun");
+    setFirearmName("");
+    setMaintenanceFrequency(30);
+    setIsDialogOpen(false); // Close the dialog after adding the firearm
   };
 
   return (
-    <Dialog>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">Add Firearm</Button>
       </DialogTrigger>

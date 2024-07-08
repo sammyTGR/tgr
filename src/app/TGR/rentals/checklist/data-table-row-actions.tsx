@@ -33,6 +33,7 @@ interface DataTableRowActionsProps {
   userUuid: string;
   onNotesChange: (id: number, notes: string) => void;
   onVerificationComplete: () => void;
+  onDeleteFirearm: (id: number) => void; // Add this prop
 }
 
 export function DataTableRowActions({
@@ -41,6 +42,7 @@ export function DataTableRowActions({
   userUuid,
   onNotesChange,
   onVerificationComplete,
+  onDeleteFirearm, // Add this prop
 }: DataTableRowActionsProps) {
   const task = row.original;
   const [openVerification, setOpenVerification] = useState(false);
@@ -71,6 +73,23 @@ export function DataTableRowActions({
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error setting gunsmith status:", error.message);
+      } else {
+        console.error("An unknown error occurred.");
+      }
+    }
+  };
+
+  const handleDeleteFirearm = async () => {
+    try {
+      await supabase
+        .from("firearms_maintenance")
+        .delete()
+        .eq("id", task.id);
+
+      onDeleteFirearm(task.id); // Call the parent handler
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error deleting firearm:", error.message);
       } else {
         console.error("An unknown error occurred.");
       }
@@ -117,6 +136,12 @@ export function DataTableRowActions({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          {["admin", "super admin"].includes(userRole) && (
+            <DropdownMenuItem onSelect={handleDeleteFirearm}>
+              Delete Firearm
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog open={openVerification} onOpenChange={setOpenVerification}>

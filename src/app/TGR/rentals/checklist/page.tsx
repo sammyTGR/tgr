@@ -5,8 +5,9 @@ import { FirearmsMaintenanceData, columns } from "./columns";
 import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { toast, Toaster } from "sonner";
-import { Button } from "@/components/ui/button"; // Import the Button component
+import { Toaster } from "sonner";
+import { Button } from "@/components/ui/button";
+import AddFirearmForm from "@/app/TGR/gunsmithing/AddFirearmForm";
 
 const words = "Firearms Checklist";
 
@@ -27,7 +28,8 @@ export default function FirearmsChecklist() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userUuid, setUserUuid] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null); // Add userName state
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -42,7 +44,7 @@ export default function FirearmsChecklist() {
     try {
       const { data: roleData, error: roleError } = await supabase
         .from("employees")
-        .select("role, name") // Fetch role and name
+        .select("role, name")
         .eq("user_uuid", user?.id)
         .single();
 
@@ -55,7 +57,7 @@ export default function FirearmsChecklist() {
       }
 
       setUserRole(roleData.role);
-      setUserName(roleData.name); // Set userName state
+      setUserName(roleData.name);
     } catch (error) {
       console.error("Unexpected error fetching role:", error);
     }
@@ -113,6 +115,14 @@ export default function FirearmsChecklist() {
       };
     });
 
+    // Sort the data by type (handguns first) and then by firearm name
+    combinedData.sort((a, b) => {
+      if (a.firearm_type === b.firearm_type) {
+        return a.firearm_name.localeCompare(b.firearm_name);
+      }
+      return a.firearm_type === "handgun" ? -1 : 1;
+    });
+
     return combinedData;
   }, []);
 
@@ -167,10 +177,75 @@ export default function FirearmsChecklist() {
     };
   }, []);
 
+  useEffect(() => {
+    const deleteChannel = supabase
+      .channel("custom-delete-channel")
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "firearms_maintenance" },
+        (payload) => {
+          setData((prevData) =>
+            prevData.filter((item) => item.id !== payload.old.id)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(deleteChannel);
+    };
+  }, []);
+
   const handleNotesChange = (id: number, notes: string) => {
     setData((prevData) =>
       prevData.map((item) => (item.id === id ? { ...item, notes } : item))
     );
+  };
+
+  const handleDeleteFirearm = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      setData((prevData) => prevData.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Error deleting firearm:", error);
+    }
+  };
+
+  const handleAddFirearm = async (newFirearm: {
+    firearm_type: string;
+    firearm_name: string;
+    last_maintenance_date: string;
+    maintenance_frequency: number;
+    maintenance_notes: string;
+    status: string;
+    assigned_to: string | null;
+  }) => {
+    try {
+      const { data: newFirearmData, error } = await supabase
+        .from("firearms_maintenance")
+        .insert([newFirearm])
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      if (newFirearmData && newFirearmData.length > 0) {
+        setData((prevData) => [...prevData, newFirearmData[0]]);
+      }
+
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding firearm:", error);
+    }
   };
 
   const handleSubmitChecklist = async (shift: "morning" | "evening") => {
@@ -179,7 +254,7 @@ export default function FirearmsChecklist() {
     );
 
     if (!allVerified) {
-      toast(`Please verify all firearms for the ${shift} shift.`);
+      alert(`Please verify all firearms for the ${shift} shift.`);
       return;
     }
 
@@ -190,10 +265,10 @@ export default function FirearmsChecklist() {
         submitted_by_name: userName,
         submission_date: new Date().toISOString(),
       });
-      toast(`Checklist for ${shift} shift submitted successfully.`);
+      alert(`Checklist for ${shift} shift submitted successfully.`);
     } catch (error) {
       console.error("Error submitting checklist:", error);
-      toast("Failed to submit checklist.");
+      alert("Failed to submit checklist.");
     }
   };
 
@@ -208,20 +283,9 @@ export default function FirearmsChecklist() {
                 <TextGenerateEffect words={words} />
               </h2>
             </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="linkHover1"
-                onClick={() => handleSubmitChecklist("morning")}
-              >
-                Submit Morning Checklist
-              </Button>
-              <Button
-                variant="linkHover1"
-                onClick={() => handleSubmitChecklist("evening")}
-              >
-                Submit Evening Checklist
-              </Button>
-            </div>
+            {["admin", "super admin"].includes(userRole || "") && (
+              <AddFirearmForm onAdd={handleAddFirearm} />
+            )}
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <div className="rounded-md border h-full flex-1 flex flex-col">
@@ -238,7 +302,8 @@ export default function FirearmsChecklist() {
                         userRole={userRole}
                         userUuid={userUuid}
                         onNotesChange={handleNotesChange}
-                        onVerificationComplete={() => Promise.resolve()} // Do nothing on verification complete
+                        onVerificationComplete={fetchData}
+                        onDeleteFirearm={handleDeleteFirearm} // Handle delete firearm
                       />
                     </>
                   )

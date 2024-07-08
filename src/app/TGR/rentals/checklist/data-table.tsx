@@ -1,4 +1,3 @@
-// src/app/TGR/rentals/checklist/data-table.tsx
 import * as React from "react";
 import {
   ColumnFiltersState,
@@ -39,6 +38,7 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   userUuid: string;
   onNotesChange: (id: number, notes: string) => void;
   onVerificationComplete: () => Promise<void>;
+  onDeleteFirearm: (id: number) => void; // Add this prop
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -48,6 +48,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   userUuid,
   onNotesChange,
   onVerificationComplete,
+  onDeleteFirearm, // Add this prop
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -164,7 +165,8 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         userRole={userRole}
                         userUuid={userUuid}
                         onNotesChange={onNotesChange}
-                        onVerificationComplete={onVerificationComplete} // Fetch data to update the state after verification completion
+                        onVerificationComplete={onVerificationComplete}
+                        onDeleteFirearm={onDeleteFirearm} // Pass this prop
                       />
                     </TableCell>
                   </TableRow>
