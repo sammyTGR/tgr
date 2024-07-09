@@ -108,6 +108,11 @@ const formComps = [
     href: "/TGR/crew/points",
     description: "Report All Submitted Points",
   },
+  {
+    title: "Checklist",
+    href: "/TGR/rentals/checklist",
+    description: "Daily Rental Checklist",
+  },
 ];
 
 const sopComps = [
@@ -154,11 +159,7 @@ const reportsComps = [
     href: "/TGR/gunsmithing",
     description: "Weekly Gunsmithing Maintenance",
   },
-  {
-    title: "Checklist",
-    href: "/TGR/rentals/checklist",
-    description: "Daily Rental Checklist",
-  },
+
   {
     title: "Monthly Contest",
     href: "/admin/audits/contest",
