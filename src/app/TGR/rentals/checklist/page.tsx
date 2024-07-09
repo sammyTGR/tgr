@@ -112,6 +112,7 @@ export default function FirearmsChecklist() {
             verification.firearm_id === firearm.id &&
             verification.verification_time === "evening"
         ),
+        maintenance_notes: firearm.maintenance_notes, // Ensure maintenance notes are included
       };
     });
 
