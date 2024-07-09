@@ -7,11 +7,11 @@ export interface FirearmsMaintenanceData {
   firearm_name: string;
   morning_checked: boolean;
   evening_checked: boolean;
-  notes: string;
-  maintenance_notes: string; // Include maintenance_notes
+  notes: string; // This field will contain the checklist notes
+  maintenance_notes: string; // This field contains the gunsmithing notes
 }
 
-// Add the Gunsmithing Notes column
+// Define columns with the correct order
 export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
   {
     accessorKey: "firearm_name",
@@ -21,6 +21,11 @@ export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
     accessorKey: "maintenance_notes",
     header: "Gunsmithing Notes",
     cell: ({ row }) => <span>{row.original.maintenance_notes}</span>,
+  },
+  {
+    accessorKey: "notes",
+    header: "Checklist Notes",
+    cell: ({ row }) => <span>{row.original.notes}</span>,
   },
   {
     accessorKey: "morning_checked",
