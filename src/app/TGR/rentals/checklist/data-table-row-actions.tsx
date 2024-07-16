@@ -49,27 +49,29 @@ export function DataTableRowActions({
 
   const handleSetGunsmithStatus = async (status: string) => {
     try {
-      if (status === "With Gunsmith") {
-        await supabase.from("firearm_verifications").insert({
-          firearm_id: task.id,
-          verified_by: userUuid,
-          verification_date: new Date().toISOString().split("T")[0],
-          verification_time: "NA",
-          serial_verified: false,
-          condition_verified: false,
-          magazine_attached: false,
-          notes: status,
-        });
-        onNotesChange(task.id, status);
-      } else if (status === "Returned From Gunsmith") {
+      const today = new Date().toISOString().split("T")[0];
+      if (status === "Returned From Gunsmith") {
         await supabase
           .from("firearm_verifications")
           .update({ notes: null })
           .eq("firearm_id", task.id)
           .eq("notes", "With Gunsmith");
-        onNotesChange(task.id, "");
+        await supabase
+          .from("firearms_maintenance")
+          .update({ with_gunsmith: false })
+          .eq("id", task.id);
+        // Reset the verification status for both morning and evening
+        await supabase
+          .from("firearm_verifications")
+          .update({
+            serial_verified: false,
+            condition_verified: false,
+            magazine_attached: false,
+          })
+          .eq("firearm_id", task.id)
+          .eq("verification_date", today);
+        onNotesChange(task.id, ""); // Update the local state
       }
-      onVerificationComplete();
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error setting gunsmith status:", error.message);
@@ -81,10 +83,7 @@ export function DataTableRowActions({
 
   const handleDeleteFirearm = async () => {
     try {
-      await supabase
-        .from("firearms_maintenance")
-        .delete()
-        .eq("id", task.id);
+      await supabase.from("firearms_maintenance").delete().eq("id", task.id);
 
       onDeleteFirearm(task.id); // Call the parent handler
     } catch (error) {
@@ -99,7 +98,6 @@ export function DataTableRowActions({
   const handleVerificationComplete = (notes: string) => {
     setOpenVerification(false);
     onNotesChange(task.id, notes); // Update the notes
-    onVerificationComplete();
   };
 
   return (
@@ -122,11 +120,6 @@ export function DataTableRowActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Gunsmithing</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              <DropdownMenuItem
-                onSelect={() => handleSetGunsmithStatus("With Gunsmith")}
-              >
-                With Gunsmith
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() =>
                   handleSetGunsmithStatus("Returned From Gunsmith")

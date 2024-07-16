@@ -68,6 +68,8 @@ export default function FirearmsChecklist() {
   }, [fetchUserRoleAndUuid]);
 
   const fetchFirearmsMaintenanceData = useCallback(async () => {
+    const today = new Date().toISOString().split("T")[0];
+
     const { data: firearmsData, error: firearmsError } = await supabase
       .from("firearms_maintenance")
       .select("*");
@@ -77,11 +79,9 @@ export default function FirearmsChecklist() {
       throw new Error(firearmsError.message);
     }
 
+    // Fetch all verifications (not just for today)
     const { data: verificationsData, error: verificationsError } =
-      await supabase
-        .from("firearm_verifications")
-        .select("*")
-        .eq("verification_date", new Date().toISOString().split("T")[0]);
+      await supabase.from("firearm_verifications").select("*");
 
     if (verificationsError) {
       console.error(
@@ -91,6 +91,7 @@ export default function FirearmsChecklist() {
       throw new Error(verificationsError.message);
     }
 
+    // Combine firearms data with the latest verification data
     const combinedData = firearmsData.map((firearm) => {
       const latestVerification = verificationsData
         .filter((verification) => verification.firearm_id === firearm.id)
@@ -112,7 +113,6 @@ export default function FirearmsChecklist() {
             verification.firearm_id === firearm.id &&
             verification.verification_time === "evening"
         ),
-        maintenance_notes: firearm.maintenance_notes, // Ensure maintenance notes are included
       };
     });
 
@@ -250,22 +250,52 @@ export default function FirearmsChecklist() {
   };
 
   const handleSubmitChecklist = async (shift: "morning" | "evening") => {
-    const allVerified = data.every((item) =>
-      shift === "morning" ? item.morning_checked : item.evening_checked
-    );
+    const today = new Date().toISOString().split("T")[0];
 
-    if (!allVerified) {
-      alert(`Please verify all firearms for the ${shift} shift.`);
+    // Check if a submission already exists for today and this shift
+    const { data: existingSubmissions, error: existingSubmissionsError } =
+      await supabase
+        .from("checklist_submissions")
+        .select("*")
+        .eq("shift", shift)
+        .eq("submission_date", today);
+
+    if (existingSubmissionsError) {
+      console.error(
+        "Error checking for existing submissions:",
+        existingSubmissionsError.message
+      );
+      alert("Failed to check for existing submissions.");
+      return;
+    }
+
+    if (existingSubmissions.length > 0) {
+      alert(
+        `A checklist for the ${shift} shift has already been submitted today.`
+      );
+      return;
+    }
+
+    // Filter firearms with notes
+    const firearmsWithNotes = data.filter((item) => item.notes);
+
+    if (firearmsWithNotes.length === 0) {
+      alert(`No firearms with notes to submit for the ${shift} shift.`);
       return;
     }
 
     try {
-      await supabase.from("checklist_submissions").insert({
-        shift,
-        submitted_by: userUuid,
-        submitted_by_name: userName,
-        submission_date: new Date().toISOString(),
-      });
+      for (const firearm of firearmsWithNotes) {
+        await supabase.from("checklist_submissions").insert({
+          shift,
+          submitted_by: userUuid,
+          submitted_by_name: userName,
+          submission_date: today,
+          checklist_notes: firearm.notes,
+          firearm_id: firearm.id,
+        });
+      }
+
       alert(`Checklist for ${shift} shift submitted successfully.`);
     } catch (error) {
       console.error("Error submitting checklist:", error);
@@ -283,6 +313,20 @@ export default function FirearmsChecklist() {
               <h2 className="text-2xl font-bold">
                 <TextGenerateEffect words={words} />
               </h2>
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="linkHover1"
+                onClick={() => handleSubmitChecklist("morning")}
+              >
+                Submit Morning Checklist
+              </Button>
+              <Button
+                variant="linkHover1"
+                onClick={() => handleSubmitChecklist("evening")}
+              >
+                Submit Evening Checklist
+              </Button>
             </div>
             {["admin", "super admin"].includes(userRole || "") && (
               <AddFirearmForm onAdd={handleAddFirearm} />
