@@ -13,6 +13,7 @@ const words = "Firearms Checklist";
 
 interface FirearmVerification {
   firearm_id: number;
+  firearm_name: string;
   verified_by: string;
   verification_date: string;
   verification_time: string;
@@ -210,31 +211,33 @@ export default function FirearmsChecklist() {
         .from("firearm_verifications")
         .delete()
         .eq("firearm_id", id);
-  
+
       if (verificationsError) {
         throw verificationsError;
       }
-  
+
       // Then, delete the firearm
       const { error: firearmError } = await supabase
         .from("firearms_maintenance")
         .delete()
         .eq("id", id);
-  
+
       if (firearmError) {
         throw firearmError;
       }
-  
+
       setData((prevData) => prevData.filter((item) => item.id !== id)); // Update the local state
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error deleting firearm:", error.message);
       } else {
-        console.error("An unknown error occurred while deleting firearm:", error);
+        console.error(
+          "An unknown error occurred while deleting firearm:",
+          error
+        );
       }
     }
   };
-  
 
   const handleAddFirearm = async (newFirearm: {
     firearm_type: string;
@@ -295,12 +298,8 @@ export default function FirearmsChecklist() {
     // Filter firearms with notes
     const firearmsWithNotes = data.filter((item) => item.notes);
 
-    if (firearmsWithNotes.length === 0) {
-      alert(`No firearms with notes to submit for the ${shift} shift.`);
-      return;
-    }
-
     try {
+      // Insert the firearms with notes into the checklist_submissions table
       for (const firearm of firearmsWithNotes) {
         await supabase.from("checklist_submissions").insert({
           shift,
@@ -308,10 +307,23 @@ export default function FirearmsChecklist() {
           submitted_by_name: userName,
           submission_date: today,
           checklist_notes: firearm.notes,
-          firearm_id: firearm.id,
+          firearm_name: firearm.firearm_name,
         });
       }
 
+      // Reset the in-memory state for all firearms except those with notes
+      const updatedData = data.map((firearm) => {
+        if (!firearm.notes) {
+          return {
+            ...firearm,
+            morning_checked: false,
+            evening_checked: false,
+          };
+        }
+        return firearm;
+      });
+
+      setData(updatedData);
       alert(`Checklist for ${shift} shift submitted successfully.`);
     } catch (error) {
       console.error("Error submitting checklist:", error);
