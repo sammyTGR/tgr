@@ -205,20 +205,36 @@ export default function FirearmsChecklist() {
 
   const handleDeleteFirearm = async (id: number) => {
     try {
-      const { error } = await supabase
+      // First, delete related records from firearm_verifications
+      const { error: verificationsError } = await supabase
+        .from("firearm_verifications")
+        .delete()
+        .eq("firearm_id", id);
+  
+      if (verificationsError) {
+        throw verificationsError;
+      }
+  
+      // Then, delete the firearm
+      const { error: firearmError } = await supabase
         .from("firearms_maintenance")
         .delete()
         .eq("id", id);
-
-      if (error) {
-        throw error;
+  
+      if (firearmError) {
+        throw firearmError;
       }
-
-      setData((prevData) => prevData.filter((item) => item.id !== id));
+  
+      setData((prevData) => prevData.filter((item) => item.id !== id)); // Update the local state
     } catch (error) {
-      console.error("Error deleting firearm:", error);
+      if (error instanceof Error) {
+        console.error("Error deleting firearm:", error.message);
+      } else {
+        console.error("An unknown error occurred while deleting firearm:", error);
+      }
     }
   };
+  
 
   const handleAddFirearm = async (newFirearm: {
     firearm_type: string;
