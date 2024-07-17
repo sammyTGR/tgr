@@ -31,6 +31,7 @@ import { supabase } from "@/utils/supabase/client";
 import { toast, Toaster } from "sonner";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
+import { debounce } from "lodash";
 
 const title = "TGR Ops Chat";
 
@@ -48,6 +49,7 @@ interface ChatMessage {
   is_read: boolean;
   receiver_id?: string;
   sender_id?: string;
+  read_by?: string[];
 }
 
 interface User {
@@ -87,6 +89,9 @@ function ChatContent() {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [groupChatId, setGroupChatId] = useState<number | null>(null);
   const [chatType, setChatType] = useState<"dm" | "group">("dm");
+  const debouncedSetMessages = useCallback(debounce(setMessages, 300), [
+    setMessages,
+  ]);
 
   // Function to handle chat type selection
   const handleChatTypeSelection = (type: "dm" | "group") => {
@@ -931,6 +936,7 @@ function ChatContent() {
     }
   };
 
+  // Filter messages to avoid duplicates
   const filteredMessages = selectedChat
     ? messages.filter((msg) => {
         if (selectedChat === "Admin Chat") {
@@ -1100,20 +1106,15 @@ function ChatContent() {
     };
   }, [user, dmUsers, unreadStatus]);
 
-  // Store the current chat ID in localStorage whenever it changes
-  useEffect(() => {
-    if (selectedChat) {
-      localStorage.setItem("currentChat", selectedChat);
-    }
-    scrollToBottom();
-  }, [selectedChat, messages]);
-
   const handleChatClick = useCallback(
     async (chatId: string) => {
       if (!user || !user.id) {
         console.error("User is not defined");
         return;
       }
+
+      // Clear messages state to prevent duplicates
+      setMessages([]);
 
       // Immediately set the selected chat
       setSelectedChat(chatId);
@@ -1149,25 +1150,38 @@ function ChatContent() {
           .map((msg) => msg.id);
 
         if (messageIdsToUpdate.length > 0) {
-          for (const messageId of messageIdsToUpdate) {
-            const { error: updateError } = await supabase
-              .from(tableName)
-              .update({
-                read_by: [
-                  ...(messagesToUpdate.find((msg) => msg.id === messageId)
-                    ?.read_by || []),
-                  user.id,
-                ],
-              })
-              .eq("id", messageId);
+          const updatedMessages = await Promise.all(
+            messageIdsToUpdate.map(async (messageId) => {
+              const { data, error: updateError } = await supabase
+                .from(tableName)
+                .update({
+                  read_by: [
+                    ...(messagesToUpdate.find((msg) => msg.id === messageId)
+                      ?.read_by || []),
+                    user.id,
+                  ],
+                })
+                .eq("id", messageId)
+                .select("*");
 
-            if (updateError) {
-              console.error(
-                "Error updating messages as read:",
-                updateError.message
-              );
-            }
-          }
+              if (updateError) {
+                console.error(
+                  "Error updating messages as read:",
+                  updateError.message
+                );
+              }
+              return data;
+            })
+          );
+
+          const updatedMessagesFlat = updatedMessages.flat();
+          setMessages((prev) =>
+            prev.map((msg) =>
+              updatedMessagesFlat.some((updatedMsg) => updatedMsg.id === msg.id)
+                ? { ...msg, read_by: [...(msg.read_by || []), user.id] }
+                : msg
+            )
+          );
         }
       }
 
@@ -1241,6 +1255,14 @@ function ChatContent() {
     },
     [dmUsers, unreadStatus, user, setMessages, setUnreadStatus, setSelectedChat]
   );
+
+  // Store the current chat ID in localStorage whenever it changes
+  useEffect(() => {
+    if (selectedChat) {
+      localStorage.setItem("currentChat", selectedChat);
+    }
+    scrollToBottom();
+  }, [selectedChat, messages]);
 
   if (loading) {
     return <div>Loading...</div>;
