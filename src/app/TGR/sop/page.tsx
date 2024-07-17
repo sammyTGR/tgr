@@ -28,7 +28,9 @@ const SlidesPage: React.FC = () => {
   const [user, setUser] = useState(null);
 
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith", "user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+    >
       <div className="flex flex-col items-center justify-center text-center mt-12 ">
         <h1 className="flex justify-start ">
           <TextGenerateEffect words={title} />

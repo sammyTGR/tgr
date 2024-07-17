@@ -1,4 +1,3 @@
-// src/components/Header.tsx
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -6,10 +5,17 @@ import { supabase } from "@/utils/supabase/client";
 
 const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
 const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
-const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), { ssr: false });
+const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), {
+  ssr: false,
+});
 const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
-const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), { ssr: false });
-const HeaderGunsmith = dynamic(() => import("./HeaderGunsmith"), { ssr: false }); // Add this line
+const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), {
+  ssr: false,
+});
+const HeaderGunsmith = dynamic(() => import("./HeaderGunsmith"), {
+  ssr: false,
+});
+const HeaderAuditor = dynamic(() => import("./HeaderAuditor"), { ssr: false }); // Import HeaderAuditor
 
 export default function Header() {
   const [role, setRole] = useState<string | null>(null);
@@ -25,7 +31,8 @@ export default function Header() {
         setRole(roleHeader);
         setLoading(false);
       } else {
-        const { data: userData, error: userError } = await supabase.auth.getUser();
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
         if (userError) {
           console.error("Error fetching user:", userError.message);
           setLoading(false);
@@ -92,6 +99,10 @@ export default function Header() {
 
   if (role === "gunsmith") {
     return <HeaderGunsmith />;
+  }
+
+  if (role === "auditor") {
+    return <HeaderAuditor />; // Add this condition
   }
 
   return <HeaderUser />;

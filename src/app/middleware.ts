@@ -1,4 +1,3 @@
-// src/middleware.ts
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { protectedPaths } from "@/lib/constant";
@@ -55,6 +54,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/landing-page/super-admin", request.url));
     } else if (userRole === "gunsmith") {
       return NextResponse.redirect(new URL("/landing-page/gunsmith", request.url));
+    } else if (userRole === "auditor") { // Add this condition
+      return NextResponse.redirect(new URL("/landing-page/auditor", request.url));
     } else {
       return NextResponse.redirect(new URL("/landing-page/user", request.url));
     }

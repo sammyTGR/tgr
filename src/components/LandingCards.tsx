@@ -309,7 +309,7 @@ export const SOPCard = () => (
 
 export const AdminSOPCard = () => (
   <>
-    <Link className="group" href="/TGR/sop">
+    <Link className="group" href="/admin/sop">
       <Card>
         <CardHeader className="flex items-center gap-2">
           <FileTextIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />

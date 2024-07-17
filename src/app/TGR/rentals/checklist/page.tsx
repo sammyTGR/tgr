@@ -332,7 +332,9 @@ export default function FirearmsChecklist() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["user", "auditor", "admin", "super admin"]}
+    >
       <div className="h-screen flex flex-col">
         <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">

@@ -28,7 +28,7 @@ const SOPPage: React.FC = () => {
   const [user, setUser] = useState(null);
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin"]}>
       <div className="flex flex-col items-center justify-center text-center mt-12 ">
         <h1 className="flex justify-start ">
           <TextGenerateEffect words={title} />

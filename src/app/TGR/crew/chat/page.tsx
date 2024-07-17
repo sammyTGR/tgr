@@ -283,7 +283,9 @@ function ChatContent() {
       const { data: usersData, error: usersError } = await supabase
         .from("employees")
         .select("user_uuid, name, is_online")
-        .or("role.eq.admin,role.eq.super admin,role.eq.gunsmith");
+        .or(
+          "role.eq.admin,role.eq.super admin,role.eq.gunsmith,role.eq.auditor"
+        );
       if (usersData) {
         setUsers(
           usersData.map((user) => ({
@@ -1104,7 +1106,9 @@ function ChatContent() {
   return (
     <>
       <Toaster />
-      <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
+      <RoleBasedWrapper
+        allowedRoles={["gunsmith", "admin", "super admin", "auditor"]}
+      >
         <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4 overflow-hidden">
           <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
             <TextGenerateEffect words={title} />
@@ -1120,7 +1124,9 @@ function ChatContent() {
                 </div>
                 <div className="flex-1 overflow-auto">
                   <nav className="space-y-1 p-4">
-                    {(role === "admin" || role === "super admin") && (
+                    {(role === "admin" ||
+                      role === "auditor" ||
+                      role === "super admin") && (
                       <div
                         className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
                           selectedChat === "Admin Chat"

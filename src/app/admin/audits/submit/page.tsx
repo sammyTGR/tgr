@@ -364,7 +364,7 @@ export default function SubmitAudits() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin"]}>
       <FormProvider {...methods}>
         <main>
           <header>

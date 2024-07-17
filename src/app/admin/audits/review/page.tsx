@@ -68,7 +68,7 @@ export default function AuditReview() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin"]}>
       <>
         <div className="h-screen flex flex-col">
           <section className="flex-1 flex flex-col space-y-4 p-4">

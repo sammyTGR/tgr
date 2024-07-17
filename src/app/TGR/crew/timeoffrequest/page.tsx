@@ -240,7 +240,9 @@ export default function TimeOffRequestPage() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith", "user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+    >
       <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-4">
           <TextGenerateEffect words={title} />

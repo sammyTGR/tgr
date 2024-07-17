@@ -57,7 +57,8 @@ export default function Component() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
       if (userError) {
         console.error("Error fetching user:", userError.message);
         return;
@@ -66,7 +67,8 @@ export default function Component() {
       const user = userData.user;
       setUserId(user.id);
 
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
       if (sessionError) {
         console.error("Error fetching session:", sessionError.message);
         return;
@@ -138,7 +140,9 @@ export default function Component() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["user", "auditor", "admin", "super admin"]}
+    >
       <Card className="w-full max-w-md mx-auto my-24">
         <CardHeader>
           <CardTitle>Range Walk Report</CardTitle>
@@ -177,7 +181,9 @@ export default function Component() {
                   <SelectValue placeholder="Select lanes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Lanes (Main & Back Range)</SelectItem>
+                  <SelectItem value="all">
+                    All Lanes (Main & Back Range)
+                  </SelectItem>
                   <SelectItem value="1-15">Lanes 1-15</SelectItem>
                   <SelectItem value="a-e">Lanes A-E</SelectItem>
                 </SelectContent>

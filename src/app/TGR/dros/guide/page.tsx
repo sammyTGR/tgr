@@ -174,7 +174,9 @@ export default function DROSGuide() {
     : "";
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["user", "auditor", "admin", "super admin"]}
+    >
       <div>
         <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
           <SupportMenu />
@@ -218,7 +220,7 @@ export default function DROSGuide() {
         </div>
         <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
           <Button
-          variant="gooeyLeft"
+            variant="gooeyLeft"
             onClick={resetSelections}
             className="mb-6 flex-shrink py-1"
           >

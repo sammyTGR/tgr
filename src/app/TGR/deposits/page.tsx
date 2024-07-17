@@ -69,6 +69,7 @@ export default function DailyDepositsPage() {
     if (
       !loading &&
       role !== "user" &&
+      role !== "auditor" &&
       role !== "admin" &&
       role !== "super admin"
     ) {
@@ -146,7 +147,9 @@ export default function DailyDepositsPage() {
   const calculateRemainingBalance = (registerIndex: number) => {
     const overallTotal = parseFloat(calculateOverallTotal(registerIndex));
     const totalToDeposit = parseFloat(calculateTotalToDeposit(registerIndex));
-    return overallTotal >= 300 ? (overallTotal - totalToDeposit).toFixed(2) : "";
+    return overallTotal >= 300
+      ? (overallTotal - totalToDeposit).toFixed(2)
+      : "";
   };
 
   const clearForm = (registerIndex: number) => {
@@ -318,13 +321,18 @@ export default function DailyDepositsPage() {
 
   if (
     loading ||
-    (role !== "user" && role !== "admin" && role !== "super admin")
+    (role !== "user" &&
+      role !== "auditor" &&
+      role !== "admin" &&
+      role !== "super admin")
   ) {
     return <div>Loading...</div>;
   }
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["user", "auditor", "admin", "super admin"]}
+    >
       <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-4xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center space-x-2">
