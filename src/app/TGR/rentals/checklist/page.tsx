@@ -80,7 +80,7 @@ export default function FirearmsChecklist() {
       throw new Error(firearmsError.message);
     }
 
-    // Fetch all verifications (not just for today)
+    // Fetch all verifications
     const { data: verificationsData, error: verificationsError } =
       await supabase.from("firearm_verifications").select("*");
 
@@ -101,19 +101,26 @@ export default function FirearmsChecklist() {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )[0];
 
+      const withGunsmith = latestVerification?.notes === "With Gunsmith";
       return {
         ...firearm,
         notes: latestVerification ? latestVerification.notes : "",
-        morning_checked: verificationsData.some(
-          (verification) =>
-            verification.firearm_id === firearm.id &&
-            verification.verification_time === "morning"
-        ),
-        evening_checked: verificationsData.some(
-          (verification) =>
-            verification.firearm_id === firearm.id &&
-            verification.verification_time === "evening"
-        ),
+        morning_checked: withGunsmith
+          ? ""
+          : verificationsData.some(
+              (verification) =>
+                verification.firearm_id === firearm.id &&
+                verification.verification_time === "morning" &&
+                verification.verification_date === today
+            ),
+        evening_checked: withGunsmith
+          ? ""
+          : verificationsData.some(
+              (verification) =>
+                verification.firearm_id === firearm.id &&
+                verification.verification_time === "evening" &&
+                verification.verification_date === today
+            ),
       };
     });
 
@@ -311,7 +318,23 @@ export default function FirearmsChecklist() {
         });
       }
 
-      // Reset the in-memory state for all firearms except those with notes
+      // Reset verifications for the current day
+      const firearmsToReset = data.filter((item) => !item.notes);
+
+      for (const firearm of firearmsToReset) {
+        await supabase
+          .from("firearm_verifications")
+          .update({
+            serial_verified: false,
+            condition_verified: false,
+            magazine_attached: false,
+          })
+          .eq("firearm_id", firearm.id)
+          .eq("verification_date", today)
+          .eq("verification_time", shift);
+      }
+
+      // Update in-memory state for firearms that need to be reset
       const updatedData = data.map((firearm) => {
         if (!firearm.notes) {
           return {
