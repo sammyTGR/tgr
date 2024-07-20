@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: "Everything TGR",
 };
 
-const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
+const clientId = process.env.GOOGLE_CLIENT_ID!;
 if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
