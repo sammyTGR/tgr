@@ -45,14 +45,22 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  const sendEmail = async (email: string, subject: string, message: string) => {
+  const sendEmail = async (
+    email: string,
+    subject: string,
+    message: string,
+    oauthToken: string
+  ) => {
     try {
+      const requestBody = { email, subject, message, oauthToken };
+      console.log("Request Body:", requestBody); // Debugging log
+
       const response = await fetch("/api/send_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, subject, message }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -288,7 +296,14 @@ export default function ApproveRequestsPage() {
         action === "denied"
           ? "Time Off Request Denied"
           : "Time Off Request Approved";
-      await sendEmail(email, subject, emailMessage);
+      const oauthToken = localStorage.getItem("oauthToken"); // Fetch the token from storage
+      console.log("OAuth Token Retrieved:", oauthToken); // Debugging log
+      if (!oauthToken) {
+        console.error("OAuth Token not found in local storage");
+        throw new Error("Missing OAuth Token");
+      }
+      console.log("Using OAuth Token:", oauthToken); // Debugging log
+      await sendEmail(email, subject, emailMessage, oauthToken);
 
       // Refresh the requests list after approval/denial
       const updatedRequests = requests.filter(
