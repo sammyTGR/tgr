@@ -32,6 +32,19 @@ function LoginComponent() {
         const user = userResponse.data.user;
 
         if (user) {
+          // Fetch the session to get the OAuth token
+          const sessionResponse = await supabase.auth.getSession();
+          const session = sessionResponse.data.session;
+          const oauthToken = session?.access_token;
+          console.log("OAuth Token:", oauthToken); // Debugging log
+          if (oauthToken) {
+            localStorage.setItem("oauthToken", oauthToken);
+            console.log(
+              "Token stored in local storage:",
+              localStorage.getItem("oauthToken")
+            ); // Debugging log
+          }
+
           const response = await fetch("/api/syncUser", {
             method: "POST",
             headers: {

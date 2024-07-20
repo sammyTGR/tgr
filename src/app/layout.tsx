@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Header from "../app/header";
 import { RoleProvider } from "../context/RoleContext";
 import NotificationsProvider from "@/components/NotificationsProvider";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,6 +15,11 @@ export const metadata: Metadata = {
   description: "Everything TGR",
 };
 
+const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
+if (!clientId) {
+  throw new Error("Missing Google Client ID");
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,22 +27,24 @@ export default function RootLayout({
 }>) {
   return (
     <RoleProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <NotificationsProvider>
-              <Header />
-              <main>{children}</main>
-              <Toaster />
-            </NotificationsProvider>
-          </ThemeProvider>
-        </body>
-      </html>
+      <GoogleOAuthProvider clientId={clientId}>
+        <html lang="en" suppressHydrationWarning>
+          <body className={inter.className}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <NotificationsProvider>
+                <Header />
+                <main>{children}</main>
+                <Toaster />
+              </NotificationsProvider>
+            </ThemeProvider>
+          </body>
+        </html>
+      </GoogleOAuthProvider>
     </RoleProvider>
   );
 }

@@ -17,6 +17,7 @@ interface TimeOffRequest {
   other_reason: string;
   status: string;
   name: string;
+  email: string; // Assuming the email field is available
 }
 
 export default function ApproveRequestsPage() {
@@ -44,20 +45,54 @@ export default function ApproveRequestsPage() {
     }
   };
 
+  const sendEmail = async (email: string, subject: string, message: string) => {
+    try {
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, subject, message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to send email:", error.message);
+    }
+  };
+
   const handleApprove = async (request_id: number) => {
-    await handleRequest(request_id, "approved");
+    await handleRequest(
+      request_id,
+      "approved",
+      "Your Time Off Request Has Been Approved!"
+    );
   };
 
   const handleDeny = async (request_id: number) => {
-    await handleRequest(request_id, "denied");
+    await handleRequest(
+      request_id,
+      "denied",
+      "Your Time Off Request Has Been Denied. Please Contact Management Directly For Details."
+    );
   };
 
   const handleCalledOut = async (request_id: number) => {
-    await handleRequest(request_id, "called_out");
+    await handleRequest(
+      request_id,
+      "called_out",
+      "Your Schedule Has Been Updated To Reflect That You Called Out."
+    );
   };
 
   const handleLeftEarly = async (request_id: number) => {
-    await handleRequest(request_id, "left_early");
+    await handleRequest(
+      request_id,
+      "left_early",
+      "Your Schedule Has Been Updated To Reflect That You Left Early."
+    );
   };
 
   const handleCustomApproval = (request_id: number) => {
@@ -67,14 +102,51 @@ export default function ApproveRequestsPage() {
 
   const handleSubmitCustomApproval = async () => {
     if (currentRequestId !== null) {
-      await handleRequest(currentRequestId, `Custom: ${customApprovalText}`);
+      const request = requests.find(
+        (req) => req.request_id === currentRequestId
+      );
+      if (request) {
+        await handleRequest(
+          currentRequestId,
+          `Custom: ${customApprovalText}`,
+          `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`
+        );
+      }
       setShowCustomApprovalModal(false);
       setCustomApprovalText("");
       setCurrentRequestId(null);
     }
   };
 
-  const handleRequest = async (request_id: number, action: string) => {
+  const handleMarkAsDuplicate = async (request_id: number) => {
+    try {
+      const response = await fetch("/api/mark_duplicate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ request_id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Remove the request from the list
+      const updatedRequests = requests.filter(
+        (request) => request.request_id !== request_id
+      );
+      setRequests(updatedRequests);
+    } catch (error: any) {
+      console.error("Failed to mark as duplicate:", error.message);
+    }
+  };
+
+  const handleRequest = async (
+    request_id: number,
+    action: string,
+    emailMessage: string
+  ) => {
     try {
       const response = await fetch("/api/approve_request", {
         method: "POST",
@@ -91,7 +163,7 @@ export default function ApproveRequestsPage() {
       const result = await response.json();
 
       // Check reference schedules before updating the status
-      const { employee_id, start_date, end_date } = result;
+      const { employee_id, start_date, end_date, email } = result;
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dates = [];
@@ -211,6 +283,13 @@ export default function ApproveRequestsPage() {
         }
       }
 
+      // Send email notification
+      const subject =
+        action === "denied"
+          ? "Time Off Request Denied"
+          : "Time Off Request Approved";
+      await sendEmail(email, subject, emailMessage);
+
       // Refresh the requests list after approval/denial
       const updatedRequests = requests.filter(
         (request) => request.request_id !== request_id
@@ -246,37 +325,47 @@ export default function ApproveRequestsPage() {
                       `: ${request.other_reason}`}
                   </p>
                 </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleApprove(request.request_id)}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleDeny(request.request_id)}
-                  >
-                    Deny
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleCalledOut(request.request_id)}
-                  >
-                    Called Out
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleLeftEarly(request.request_id)}
-                  >
-                    Left Early
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleCustomApproval(request.request_id)}
-                  >
-                    Custom Approval
-                  </Button>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleApprove(request.request_id)}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDeny(request.request_id)}
+                    >
+                      Deny
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleCalledOut(request.request_id)}
+                    >
+                      Called Out
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleLeftEarly(request.request_id)}
+                    >
+                      Left Early
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleCustomApproval(request.request_id)}
+                    >
+                      Custom Approval
+                    </Button>
+                  </div>
+                  <div className="flex">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleMarkAsDuplicate(request.request_id)}
+                    >
+                      Mark As Duplicate
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
