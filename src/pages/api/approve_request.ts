@@ -1,4 +1,3 @@
-// pages/api/approve_request.ts used in time off review
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { corsHeaders } from '@/utils/cors';
@@ -26,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from('time_off_requests')
                 .update({ status: action })
                 .eq('request_id', request_id)
-                .select()
+                .select('employee_id, start_date, end_date, email')  // Ensure email is included
                 .single();
 
             if (timeOffError) {
@@ -34,63 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: timeOffError.message });
             }
 
-            // Extract details from the time off request
-            const { employee_id, start_date, end_date } = timeOffData;
-
-            // Generate dates between start_date and end_date
-            const startDate = new Date(start_date);
-            const endDate = new Date(end_date);
-            const dates = [];
-            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                dates.push(new Date(d));
+            // Ensure the email is present in the response
+            if (!timeOffData.email) {
+                console.error("Email not found in the time off request:", timeOffData);
+                return res.status(400).json({ error: "Email not found in the time off request" });
             }
 
-            // Array to map days of the week
-            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-            for (const date of dates) {
-                const formattedDate = date.toISOString().split('T')[0]; // Format date as 'YYYY-MM-DD'
-                const dayOfWeek = daysOfWeek[date.getUTCDay()]; // Get the day of the week as text
-                console.log(`Processing date: ${formattedDate} which is a ${dayOfWeek}`);
-
-                // Check if the date exists in the schedules table
-                let { data: scheduleData, error: scheduleFetchError } = await supabase
-                    .from('schedules')
-                    .select('*')
-                    .eq('employee_id', employee_id)
-                    .eq('schedule_date', formattedDate)
-                    .single();
-            
-                if (scheduleFetchError) {
-                    console.error(`Error fetching schedule for date ${formattedDate}:`, scheduleFetchError);
-                }
-            
-                if (!scheduleData) {
-                    console.log(`Inserting new schedule for date ${formattedDate}`);
-                    // Insert new schedule if it doesn't exist
-                    const { error: scheduleInsertError } = await supabase
-                        .from('schedules')
-                        .insert({ employee_id, schedule_date: formattedDate, day_of_week: dayOfWeek, status: action });
-            
-                    if (scheduleInsertError) {
-                        console.error(`Error inserting schedule for date ${formattedDate}:`, scheduleInsertError);
-                        return res.status(500).json({ error: scheduleInsertError.message });
-                    }
-                } else {
-                    console.log(`Updating existing schedule for date ${formattedDate}`);
-                    // Update existing schedule
-                    const { error: scheduleUpdateError } = await supabase
-                        .from('schedules')
-                        .update({ status: action })
-                        .eq('employee_id', employee_id)
-                        .eq('schedule_date', formattedDate);
-            
-                    if (scheduleUpdateError) {
-                        console.error(`Error updating schedule for date ${formattedDate}:`, scheduleUpdateError);
-                        return res.status(500).json({ error: scheduleUpdateError.message });
-                    }
-                }
-            }
+            // Further processing if needed
 
             return res.status(200).json(timeOffData);
         } catch (err) {

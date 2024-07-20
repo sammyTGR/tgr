@@ -17,10 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { employee_name, start_date, end_date, reason, other_reason } = req.body;
 
         try {
-            // Fetch employee_id based on employee_name
+            // Fetch employee_id and contact_info based on employee_name
             const { data: employeeData, error: employeeError } = await supabase
                 .from('employees')
-                .select('employee_id')
+                .select('employee_id, contact_info')
                 .eq('name', employee_name)
                 .single();
 
@@ -29,12 +29,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: 'Employee not found' });
             }
 
-            const employee_id = employeeData.employee_id;
+            const { employee_id, contact_info } = employeeData;
+            const email = contact_info; // Assuming contact_info is the plain text email
 
             // Insert the time off request
             const { data, error } = await supabase
                 .from('time_off_requests')
-                .insert([{ employee_id, name: employee_name, start_date, end_date, reason, other_reason, status: 'pending' }])
+                .insert([{ employee_id, name: employee_name, start_date, end_date, reason, other_reason, status: 'pending', email }])
                 .select(); // Select the inserted row to return it
 
             if (error) {
@@ -42,7 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: error.message });
             }
 
-            // console.log("Time off request inserted:", data);
             return res.status(200).json(data);
         } catch (err) {
             console.error("Unexpected error handling time off request:", err);
@@ -53,4 +53,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 }
-

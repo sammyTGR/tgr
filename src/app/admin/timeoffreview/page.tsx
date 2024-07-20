@@ -45,24 +45,6 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  const sendEmail = async (email: string, subject: string, message: string) => {
-    try {
-      const response = await fetch("/api/send_email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, subject, message }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } catch (error: any) {
-      console.error("Failed to send email:", error.message);
-    }
-  };
-
   const handleApprove = async (request_id: number) => {
     await handleRequest(
       request_id,
@@ -142,6 +124,39 @@ export default function ApproveRequestsPage() {
     }
   };
 
+  // Send email function with OAuth token
+  const sendEmail = async (
+    email: string,
+    subject: string,
+    message: string,
+    oauthToken: string
+  ) => {
+    try {
+      // Log the request body to debug
+      console.log("Sending email with the following details:", {
+        email,
+        subject,
+        message,
+        oauthToken,
+      });
+
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, subject, message, oauthToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to send email:", error.message);
+    }
+  };
+
+  // Handle request function with OAuth token retrieval
   const handleRequest = async (
     request_id: number,
     action: string,
@@ -162,8 +177,15 @@ export default function ApproveRequestsPage() {
 
       const result = await response.json();
 
-      // Check reference schedules before updating the status
+      // Log the result to check if the email field is present
+      console.log("API response result:", result);
+
+      // Ensure email is present
       const { employee_id, start_date, end_date, email } = result;
+      if (!email) {
+        throw new Error("Email not found in API response");
+      }
+
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dates = [];
@@ -288,7 +310,12 @@ export default function ApproveRequestsPage() {
         action === "denied"
           ? "Time Off Request Denied"
           : "Time Off Request Approved";
-      await sendEmail(email, subject, emailMessage);
+      await sendEmail(
+        email,
+        subject,
+        emailMessage,
+        localStorage.getItem("oauthToken")!
+      );
 
       // Refresh the requests list after approval/denial
       const updatedRequests = requests.filter(
