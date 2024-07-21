@@ -45,14 +45,17 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  const handleApprove = async (request_id: number) => {
-    await handleRequest(
-      request_id,
-      "approved",
-      "Your Time Off Request Has Been Approved!"
-    );
+  const handleApprove = (request_id: number) => {
+    const request = requests.find((req) => req.request_id === request_id);
+    if (request) {
+      handleRequest(
+        request_id,
+        "time_off",
+        `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`
+      );
+    }
   };
-
+  
   const handleDeny = async (request_id: number) => {
     await handleRequest(
       request_id,
@@ -125,36 +128,27 @@ export default function ApproveRequestsPage() {
   };
 
   // Send email function with OAuth token
-  const sendEmail = async (
-    email: string,
-    subject: string,
-    message: string,
-    oauthToken: string
-  ) => {
+  const sendEmail = async (email: string, subject: string, message: string) => {
     try {
-      // Log the request body to debug
-      console.log("Sending email with the following details:", {
-        email,
-        subject,
-        message,
-        oauthToken,
-      });
-
       const response = await fetch("/api/send_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, subject, message, oauthToken }),
+        body: JSON.stringify({ email, subject, message }),
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+  
+      const result = await response.json();
+      console.log("Email sent successfully:", result);
     } catch (error: any) {
       console.error("Failed to send email:", error.message);
     }
   };
+  
 
   // Handle request function with OAuth token retrieval
   const handleRequest = async (
@@ -170,22 +164,20 @@ export default function ApproveRequestsPage() {
         },
         body: JSON.stringify({ request_id, action }),
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const result = await response.json();
-
-      // Log the result to check if the email field is present
+  
       console.log("API response result:", result);
-
-      // Ensure email is present
+  
       const { employee_id, start_date, end_date, email } = result;
       if (!email) {
         throw new Error("Email not found in API response");
       }
-
+  
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dates = [];
@@ -196,10 +188,10 @@ export default function ApproveRequestsPage() {
       ) {
         dates.push(new Date(d));
       }
-
+  
       for (const date of dates) {
         const formattedDate = date.toISOString().split("T")[0];
-        const dayOfWeek = date.getUTCDay(); // Get the day of the week (0-6)
+        const dayOfWeek = date.getUTCDay();
         const daysOfWeek = [
           "Sunday",
           "Monday",
@@ -210,15 +202,14 @@ export default function ApproveRequestsPage() {
           "Saturday",
         ];
         const dayName = daysOfWeek[dayOfWeek];
-
-        // Fetch the reference schedule
+  
         const { data: refSchedules, error: refError } = await supabase
           .from("reference_schedules")
           .select("start_time, end_time")
           .eq("employee_id", employee_id)
           .eq("day_of_week", dayName)
           .single();
-
+  
         if (refError) {
           console.error(
             `Error fetching reference schedule for ${dayName}:`,
@@ -226,11 +217,9 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-
-        // Log the reference schedule data
+  
         console.log(`Reference schedule for ${dayName}:`, refSchedules);
-
-        // Check if the reference schedule is empty or start_time and end_time are null
+  
         if (
           !refSchedules ||
           (refSchedules.start_time === null && refSchedules.end_time === null)
@@ -240,15 +229,14 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-
-        // Update or insert the schedule
+  
         const { data: scheduleData, error: scheduleFetchError } = await supabase
           .from("schedules")
           .select("*")
           .eq("employee_id", employee_id)
           .eq("schedule_date", formattedDate)
           .single();
-
+  
         if (scheduleFetchError && scheduleFetchError.code !== "PGRST116") {
           console.error(
             `Error fetching schedule for date ${formattedDate}:`,
@@ -256,7 +244,7 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-
+  
         if (!scheduleData) {
           console.log(`Inserting new schedule for date ${formattedDate}`);
           const { error: scheduleInsertError } = await supabase
@@ -267,13 +255,12 @@ export default function ApproveRequestsPage() {
               day_of_week: dayName,
               status: action,
             });
-
+  
           if (scheduleInsertError) {
             console.error(
               `Error inserting schedule for date ${formattedDate}:`,
               scheduleInsertError
             );
-            // Handle error appropriately in the client-side context, e.g., show a notification
           }
         } else {
           console.log(`Updating existing schedule for date ${formattedDate}`);
@@ -282,52 +269,50 @@ export default function ApproveRequestsPage() {
             .update({ status: action })
             .eq("employee_id", employee_id)
             .eq("schedule_date", formattedDate);
-
+  
           if (scheduleUpdateError) {
             console.error(
               `Error updating schedule for date ${formattedDate}:`,
               scheduleUpdateError
             );
-            // Handle error appropriately in the client-side context, e.g., show a notification
           }
         }
       }
-
-      // Update the is_read field if the status changes
+  
       if (action !== "pending") {
         const { error: updateError } = await supabase
           .from("time_off_requests")
           .update({ is_read: true })
           .eq("request_id", request_id);
-
+  
         if (updateError) {
           throw new Error(updateError.message);
         }
       }
-
-      // Send email notification
+  
       const subject =
         action === "denied"
           ? "Time Off Request Denied"
+          : action === "called_out"
+          ? "You've Called Out"
+          : action === "left_early"
+          ? "You've Left Early"
           : "Time Off Request Approved";
       await sendEmail(
         email,
         subject,
-        emailMessage,
-        localStorage.getItem("oauthToken")!
+        emailMessage
       );
-
-      // Refresh the requests list after approval/denial
+  
       const updatedRequests = requests.filter(
         (request) => request.request_id !== request_id
       );
       setRequests(updatedRequests);
     } catch (error: any) {
       console.error("Failed to handle request:", error.message);
-      // Handle error appropriately in the client-side context, e.g., show a notification
     }
   };
-
+  
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">

@@ -274,19 +274,68 @@ export default function Component() {
           status,
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
+      // Remove this block
+      /*
+      const employeeResponse = await supabase
+        .from("employees")
+        .select("contact_info")
+        .eq("employee_id", employee_id)
+        .single();
+  
+      if (employeeResponse.error || !employeeResponse.data.contact_info) {
+        throw new Error("Failed to fetch employee email");
+      }
+  
+      const email = employeeResponse.data.contact_info;
+      let subject = "Your Schedule Has Been Updated";
+      let message = `Your Scheduled Shift On ${formattedDate} Has Been Changed To Reflect That You're Off For That Day. Please Contact Management Directly With Any Questions.`;
+  
+      if (status === "called_out") {
+        subject = "You've Called Out";
+        message = `Your Schedule Has Been Updated To Reflect That You Called Out For ${formattedDate}.`;
+      } else if (status === "left_early") {
+        subject = "You've Left Early";
+        message = `Your Schedule Has Been Updated To Reflect That You Left Early On ${formattedDate}.`;
+      } else if (status.startsWith("Custom:")) {
+        message = `Your Time Off Request For ${formattedDate} Has Been Approved!`;
+      }
+  
+      await sendEmail(email, subject, message);
+      */
+  
       await fetchCalendarData();
     } catch (error) {
-      console.error(
-        "Failed to update schedule status:",
-        (error as Error).message
-      );
+      console.error("Failed to update schedule status:", (error as Error).message);
     }
   };
+  
+  // Send email function with SendGrid
+// const sendEmail = async (email: string, subject: string, message: string) => {
+//   try {
+//     const response = await fetch("/api/send_email", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({ email, subject, message }),
+//     });
+
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+
+//     const result = await response.json();
+//     console.log("Email sent successfully:", result);
+//   } catch (error: any) {
+//     console.error("Failed to send email:", error.message);
+//   }
+// };
+
 
   const handleCustomStatusSubmit = () => {
     if (currentEvent) {
