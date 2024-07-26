@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation"; // Correct import
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import { Pencil1Icon, TrashIcon, PlusIcon } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
@@ -17,6 +17,15 @@ import { CustomCalendar } from "@/components/ui/calendar";
 import { DataTable } from "../../../audits/contest/data-table";
 import { RenderDropdown } from "../../../audits/contest/dropdown";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogOverlay,
+  DialogClose,
+} from "@radix-ui/react-dialog";
 
 interface Note {
   id: number;
@@ -32,8 +41,12 @@ interface Note {
 }
 
 interface Absence {
+  id: number;
+  employee_id: number;
   schedule_date: string;
   status: string;
+  created_by: string;
+  created_at: string;
 }
 
 interface Audit {
@@ -75,6 +88,23 @@ interface PointsCalculation {
   points_deducted: number;
 }
 
+interface Review {
+  id: number;
+  employee_id: number;
+  review_quarter: string;
+  review_year: number;
+  overview_performance: string;
+  achievements_contributions: string[];
+  attendance_reliability: string[];
+  quality_work: string[];
+  communication_collaboration: string[];
+  strengths_accomplishments: string[];
+  areas_growth: string[];
+  recognition: string[];
+  created_by: string;
+  created_at: string;
+}
+
 const EmployeeProfile = () => {
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
@@ -107,13 +137,147 @@ const EmployeeProfile = () => {
   const [totalPoints, setTotalPoints] = useState<number>(300);
   const [summaryData, setSummaryData] = useState<any[]>([]);
   const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewQuarter, setReviewQuarter] = useState("");
+  const [reviewYear, setReviewYear] = useState(new Date().getFullYear());
+  const [overviewPerformance, setOverviewPerformance] = useState("");
+  const [achievementsContributions, setAchievementsContributions] = useState([
+    "",
+  ]);
+  const [attendanceReliability, setAttendanceReliability] = useState([""]);
+  const [qualityWork, setQualityWork] = useState([""]);
+  const [communicationCollaboration, setCommunicationCollaboration] = useState([
+    "",
+  ]);
+  const [strengthsAccomplishments, setStrengthsAccomplishments] = useState([
+    "",
+  ]);
+  const [areasGrowth, setAreasGrowth] = useState([""]);
+  const [recognition, setRecognition] = useState([""]);
+  const [viewReviewDialog, setViewReviewDialog] = useState(false);
+  const [currentReview, setCurrentReview] = useState<Review | null>(null);
+  const [editMode, setEditMode] = useState(false);
+
+  const handleViewReview = (review: Review) => {
+    setCurrentReview(review);
+    setViewReviewDialog(true);
+  };
+
+  const handleEditReview = async (id: number) => {
+    const { data, error } = await supabase
+      .from("employee_quarterly_reviews")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching review:", error);
+      return;
+    }
+
+    if (data) {
+      setReviewQuarter(data.review_quarter);
+      setReviewYear(data.review_year);
+      setOverviewPerformance(data.overview_performance);
+      setAchievementsContributions(data.achievements_contributions || [""]);
+      setAttendanceReliability(data.attendance_reliability || [""]);
+      setQualityWork(data.quality_work || [""]);
+      setCommunicationCollaboration(data.communication_collaboration || [""]);
+      setStrengthsAccomplishments(data.strengths_accomplishments || [""]);
+      setAreasGrowth(data.areas_growth || [""]);
+      setRecognition(data.recognition || [""]);
+      setEditMode(true);
+      setShowReviewDialog(true);
+    }
+  };
+
+  const handleDeleteReview = async (id: number) => {
+    const { error } = await supabase
+      .from("employee_quarterly_reviews")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting review:", error);
+    } else {
+      setReviews((prevReviews) =>
+        prevReviews.filter((review) => review.id !== id)
+      );
+    }
+  };
+
+  const fetchEmployeeNameByUserUUID = async (
+    userUUID: string
+  ): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("name")
+      .eq("user_uuid", userUUID)
+      .single();
+
+    if (error) {
+      console.error("Error fetching employee name:", error);
+      return null;
+    }
+    return data?.name || null;
+  };
 
   useEffect(() => {
     if (user && employeeId) {
       fetchEmployeeData();
       fetchNotes();
+      fetchReviews();
       fetchAbsences();
       subscribeToNoteChanges();
+
+      const scheduleSubscription = supabase
+        .channel("schedules-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "schedules" },
+          async (payload: { new: any; old: any; eventType: string }) => {
+            const newRecord = payload.new;
+
+            if (
+              newRecord.employee_id === employeeId &&
+              (["called_out", "left_early"].includes(newRecord.status) ||
+                newRecord.status.toLowerCase().includes("late"))
+            ) {
+              const status =
+                newRecord.status === "called_out"
+                  ? "Called Out"
+                  : newRecord.status === "left_early"
+                  ? "Left Early"
+                  : newRecord.status.replace(/^Custom:\s*/i, "").trim();
+
+              const createdByName = await fetchEmployeeNameByUserUUID(user.id);
+              if (!createdByName) return;
+
+              const { error } = await supabase
+                .from("employee_absences")
+                .insert([
+                  {
+                    employee_id: newRecord.employee_id,
+                    schedule_date: newRecord.schedule_date,
+                    status: status,
+                    created_by: createdByName,
+                  },
+                ]);
+
+              if (error) {
+                console.error("Error inserting absence:", error);
+              } else {
+                fetchAbsences(); // Refetch absences after insertion
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(scheduleSubscription);
+      };
     }
   }, [user, employeeId]);
 
@@ -124,21 +288,22 @@ const EmployeeProfile = () => {
   }, [employee]);
 
   useEffect(() => {
-    const fetchEmployeeName = async (user_uuid: string): Promise<string | null> => {
+    const fetchEmployeeName = async (
+      user_uuid: string
+    ): Promise<string | null> => {
       const { data, error } = await supabase
         .from("employees")
         .select("name")
         .eq("user_uuid", user_uuid)
         .single();
-    
+
       if (error) {
         console.error("Error fetching employee name:", error);
         return null;
       }
       return data?.name || null;
     };
-    
-  
+
     const fetchPointsCalculation = async () => {
       const { data, error } = await supabase
         .from("points_calculation")
@@ -149,10 +314,9 @@ const EmployeeProfile = () => {
         setPointsCalculation(data);
       }
     };
-  
+
     fetchPointsCalculation();
   }, []);
-  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -246,19 +410,21 @@ const EmployeeProfile = () => {
     }
   };
 
-  const fetchEmployeeName = async (user_uuid: string): Promise<string | null> => {
+  const fetchEmployeeName = async (
+    user_uuid: string
+  ): Promise<string | null> => {
     const { data, error } = await supabase
       .from("employees")
       .select("name")
       .eq("user_uuid", user_uuid)
       .single();
-  
+
     if (error) {
       console.error("Error fetching employee name:", error);
       return null;
     }
     return data?.name || null;
-  };  
+  };
 
   const fetchNotes = async () => {
     if (!employeeId) return;
@@ -275,33 +441,76 @@ const EmployeeProfile = () => {
     }
   };
 
-  const fetchAbsences = async () => {
+  const fetchReviews = async () => {
     if (!employeeId) return;
 
     const { data, error } = await supabase
+      .from("employee_quarterly_reviews")
+      .select("*")
+      .eq("employee_id", employeeId);
+
+    if (error) {
+      console.error("Error fetching reviews:", error);
+    } else {
+      setReviews(data as Review[]);
+    }
+  };
+
+  const fetchAbsences = async () => {
+    if (!employeeId) return;
+
+    const { data: absencesData, error: absencesError } = await supabase
+      .from("employee_absences")
+      .select("id, employee_id, schedule_date, status, created_by, created_at")
+      .eq("employee_id", employeeId);
+
+    if (absencesError) {
+      console.error("Error fetching absences:", absencesError);
+    } else {
+      setAbsences(absencesData);
+    }
+
+    const { data: schedulesData, error: schedulesError } = await supabase
       .from("schedules")
       .select("schedule_date, status")
       .eq("employee_id", employeeId)
       .or("status.eq.called_out,status.eq.left_early,status.ilike.%late%");
 
-    if (error) {
-      console.error("Error fetching absences:", error);
+    if (schedulesError) {
+      console.error("Error fetching schedules:", schedulesError);
     } else {
-      const formattedAbsences = data.map((absence) => {
-        let status = absence.status;
-        if (status === "called_out") {
-          status = "Called Out";
-        } else if (status === "left_early") {
-          status = "Left Early";
-        } else if (status.toLowerCase().includes("late")) {
-          status = status.replace(/^Custom:\s*/i, "").trim();
+      const formattedAbsences = schedulesData.map(
+        (absence: { schedule_date: string; status: string }) => {
+          let status = absence.status;
+          if (status === "called_out") {
+            status = "Called Out";
+          } else if (status === "left_early") {
+            status = "Left Early";
+          } else if (status.toLowerCase().includes("late")) {
+            status = status.replace(/^Custom:\s*/i, "").trim();
+          }
+          return {
+            id: -1,
+            employee_id: employeeId,
+            schedule_date: absence.schedule_date,
+            status: status,
+            created_by: "System",
+            created_at: new Date().toISOString(),
+          };
         }
-        return {
-          schedule_date: absence.schedule_date,
-          status: status,
-        };
+      );
+      setAbsences((prevAbsences) => {
+        const combinedAbsences = [...prevAbsences];
+        const existingDates = new Set(
+          prevAbsences.map((absence) => absence.schedule_date)
+        );
+        formattedAbsences.forEach((absence) => {
+          if (!existingDates.has(absence.schedule_date)) {
+            combinedAbsences.push(absence);
+          }
+        });
+        return combinedAbsences;
       });
-      setAbsences(formattedAbsences);
     }
   };
 
@@ -365,12 +574,12 @@ const EmployeeProfile = () => {
       default:
         return;
     }
-  
+
     if (!employeeId || noteContent.trim() === "") return;
-  
-    const employeeName = await fetchEmployeeName(user.id);
+
+    const employeeName = await fetchEmployeeNameByUserUUID(user.id);
     if (!employeeName) return;
-  
+
     const { data, error } = await supabase
       .from("employee_profile_notes")
       .insert([
@@ -383,7 +592,7 @@ const EmployeeProfile = () => {
         },
       ])
       .select();
-  
+
     if (error) {
       console.error("Error adding note:", error);
     } else if (data) {
@@ -407,7 +616,7 @@ const EmployeeProfile = () => {
       }
     }
   };
-  
+
   const handleDeleteNote = async (id: number) => {
     const { error } = await supabase
       .from("employee_profile_notes")
@@ -418,6 +627,17 @@ const EmployeeProfile = () => {
       console.error("Error deleting note:", error);
     } else {
       setNotes(notes.filter((note) => note.id !== id));
+    }
+
+    const { error: absenceError } = await supabase
+      .from("employee_absences")
+      .delete()
+      .eq("id", id);
+
+    if (absenceError) {
+      console.error("Error deleting absence:", absenceError);
+    } else {
+      setAbsences(absences.filter((absence) => absence.id !== id));
     }
   };
 
@@ -440,9 +660,12 @@ const EmployeeProfile = () => {
     }
   };
 
-  const handleReviewNote = async (id: number, currentReviewedStatus: boolean) => {
+  const handleReviewNote = async (
+    id: number,
+    currentReviewedStatus: boolean
+  ) => {
     const newReviewedStatus = !currentReviewedStatus;
-  
+
     const { error } = await supabase
       .from("employee_profile_notes")
       .update({
@@ -451,7 +674,7 @@ const EmployeeProfile = () => {
         reviewed_at: newReviewedStatus ? new Date().toISOString() : null,
       })
       .eq("id", id);
-  
+
     if (error) {
       console.error("Error reviewing note:", error);
     } else {
@@ -462,14 +685,69 @@ const EmployeeProfile = () => {
                 ...note,
                 reviewed: newReviewedStatus,
                 reviewed_by: newReviewedStatus ? user.name : null,
-                reviewed_at: newReviewedStatus ? new Date().toISOString() : undefined,
+                reviewed_at: newReviewedStatus
+                  ? new Date().toISOString()
+                  : undefined,
               }
             : note
         )
       );
     }
   };
-  
+
+  const handleAddReviewClick = () => {
+    resetReviewForm();
+    setEditMode(false);
+    setShowReviewDialog(true);
+  };
+
+  const handleAddReview = async () => {
+    if (!employeeId) return;
+
+    const employeeName = await fetchEmployeeNameByUserUUID(user.id);
+    if (!employeeName) return;
+
+    const newReview = {
+      employee_id: employeeId,
+      review_quarter: reviewQuarter,
+      review_year: reviewYear,
+      overview_performance: overviewPerformance,
+      achievements_contributions: achievementsContributions,
+      attendance_reliability: attendanceReliability,
+      quality_work: qualityWork,
+      communication_collaboration: communicationCollaboration,
+      strengths_accomplishments: strengthsAccomplishments,
+      areas_growth: areasGrowth,
+      recognition: recognition,
+      created_by: employeeName,
+    };
+
+    const { data, error } = await supabase
+      .from("employee_quarterly_reviews")
+      .insert([newReview])
+      .select();
+
+    if (error) {
+      console.error("Error adding review:", error);
+    } else if (data) {
+      setReviews((prevReviews) => [data[0], ...prevReviews]);
+      setShowReviewDialog(false);
+      resetReviewForm();
+    }
+  };
+
+  const resetReviewForm = () => {
+    setReviewQuarter("");
+    setReviewYear(new Date().getFullYear());
+    setOverviewPerformance("");
+    setAchievementsContributions([""]);
+    setAttendanceReliability([""]);
+    setQualityWork([""]);
+    setCommunicationCollaboration([""]);
+    setStrengthsAccomplishments([""]);
+    setAreasGrowth([""]);
+    setRecognition([""]);
+  };
 
   const calculateSummary = (
     salesData: SalesData[],
@@ -573,137 +851,170 @@ const EmployeeProfile = () => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="daily_briefing">
-  <div className="p-6 space-y-4">
-    <div className="grid gap-1.5">
-      <Label htmlFor="new-daily-briefing">Add a new daily briefing</Label>
-      <Textarea
-        id="new-daily-briefing"
-        value={newDailyBriefing}
-        onChange={(e) => setNewDailyBriefing(e.target.value)}
-        placeholder="Type your daily briefing here..."
-        className="min-h-[100px]"
-      />
-      <Button onClick={() => handleAddNote("daily_briefing")}>
-        Add Daily Briefing
-      </Button>
-    </div>
-    <div className="grid gap-4">
-      {notes
-        .filter((note) => note.type === "daily_briefing" && !note.reviewed)
-        .map((note) => (
-          <div key={note.id} className="flex justify-between items-start">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={note.reviewed || false}
-                onChange={() => handleReviewNote(note.id, note.reviewed || false)}
-              />
-              <div>
-                <div
-                  className="text-sm font-medium"
-                  style={{
-                    textDecoration: note.reviewed ? "line-through" : "none",
-                  }}
-                >
-                  {note.note}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  - {note.created_by} on{" "}
-                  {new Date(note.created_at).toLocaleDateString()}
-                </div>
-                {note.reviewed && note.reviewed_by && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Reviewed by {note.reviewed_by} on{" "}
-                    {note.reviewed_at
-                      ? new Date(note.reviewed_at).toLocaleDateString()
-                      : ""}
+                <div className="p-6 space-y-4">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="new-daily-briefing">
+                      Add a new daily briefing
+                    </Label>
+                    <Textarea
+                      id="new-daily-briefing"
+                      value={newDailyBriefing}
+                      onChange={(e) => setNewDailyBriefing(e.target.value)}
+                      placeholder="Type your daily briefing here..."
+                      className="min-h-[100px]"
+                    />
+                    <Button onClick={() => handleAddNote("daily_briefing")}>
+                      Add Daily Briefing
+                    </Button>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() =>
-                  handleEditNote(
-                    note.id,
-                    prompt("Edit daily briefing:", note.note) ?? note.note
-                  )
-                }
-              >
-                <Pencil1Icon />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleDeleteNote(note.id)}
-              >
-                <TrashIcon />
-              </Button>
-            </div>
-          </div>
-        ))}
-      {notes
-        .filter((note) => note.type === "daily_briefing" && note.reviewed)
-        .map((note) => (
-          <div key={note.id} className="flex justify-between items-start">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={note.reviewed || false}
-                onChange={() => handleReviewNote(note.id, note.reviewed || false)}
-              />
-              <div>
-                <div
-                  className="text-sm font-medium"
-                  style={{
-                    textDecoration: note.reviewed ? "line-through" : "none",
-                  }}
-                >
-                  {note.note}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  - {note.created_by} on{" "}
-                  {new Date(note.created_at).toLocaleDateString()}
-                </div>
-                {note.reviewed && note.reviewed_by && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Reviewed by {note.reviewed_by} on{" "}
-                    {note.reviewed_at
-                      ? new Date(note.reviewed_at).toLocaleDateString()
-                      : ""}
+                  <div className="grid gap-4">
+                    {notes
+                      .filter(
+                        (note) =>
+                          note.type === "daily_briefing" && !note.reviewed
+                      )
+                      .map((note) => (
+                        <div
+                          key={note.id}
+                          className="flex justify-between items-start"
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={note.reviewed || false}
+                              onChange={() =>
+                                handleReviewNote(
+                                  note.id,
+                                  note.reviewed || false
+                                )
+                              }
+                            />
+                            <div>
+                              <div
+                                className="text-sm font-medium"
+                                style={{
+                                  textDecoration: note.reviewed
+                                    ? "line-through"
+                                    : "none",
+                                }}
+                              >
+                                {note.note}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                - {note.created_by} on{" "}
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </div>
+                              {note.reviewed && note.reviewed_by && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Reviewed by {note.reviewed_by} on{" "}
+                                  {note.reviewed_at
+                                    ? new Date(
+                                        note.reviewed_at
+                                      ).toLocaleDateString()
+                                    : ""}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                handleEditNote(
+                                  note.id,
+                                  prompt("Edit daily briefing:", note.note) ??
+                                    note.note
+                                )
+                              }
+                            >
+                              <Pencil1Icon />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleDeleteNote(note.id)}
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    {notes
+                      .filter(
+                        (note) =>
+                          note.type === "daily_briefing" && note.reviewed
+                      )
+                      .map((note) => (
+                        <div
+                          key={note.id}
+                          className="flex justify-between items-start"
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={note.reviewed || false}
+                              onChange={() =>
+                                handleReviewNote(
+                                  note.id,
+                                  note.reviewed || false
+                                )
+                              }
+                            />
+                            <div>
+                              <div
+                                className="text-sm font-medium"
+                                style={{
+                                  textDecoration: note.reviewed
+                                    ? "line-through"
+                                    : "none",
+                                }}
+                              >
+                                {note.note}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                - {note.created_by} on{" "}
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </div>
+                              {note.reviewed && note.reviewed_by && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Reviewed by {note.reviewed_by} on{" "}
+                                  {note.reviewed_at
+                                    ? new Date(
+                                        note.reviewed_at
+                                      ).toLocaleDateString()
+                                    : ""}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() =>
+                                handleEditNote(
+                                  note.id,
+                                  prompt("Edit daily briefing:", note.note) ??
+                                    note.note
+                                )
+                              }
+                            >
+                              <Pencil1Icon />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleDeleteNote(note.id)}
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() =>
-                  handleEditNote(
-                    note.id,
-                    prompt("Edit daily briefing:", note.note) ?? note.note
-                  )
-                }
-              >
-                <Pencil1Icon />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleDeleteNote(note.id)}
-              >
-                <TrashIcon />
-              </Button>
-            </div>
-          </div>
-        ))}
-    </div>
-  </div>
-</TabsContent>
-
+                </div>
+              </TabsContent>
 
               <TabsContent value="notes">
                 <div className="p-6 space-y-4">
@@ -728,9 +1039,42 @@ const EmployeeProfile = () => {
                           key={note.id}
                           className="flex justify-between items-start"
                         >
-                          <div>
-                            <div className="text-sm font-medium">
-                              {note.note}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={note.reviewed || false}
+                              onChange={() =>
+                                handleReviewNote(
+                                  note.id,
+                                  note.reviewed || false
+                                )
+                              }
+                            />
+                            <div>
+                              <div
+                                className="text-sm font-medium"
+                                style={{
+                                  textDecoration: note.reviewed
+                                    ? "line-through"
+                                    : "none",
+                                }}
+                              >
+                                {note.note}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                - {note.created_by} on{" "}
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </div>
+                              {note.reviewed && note.reviewed_by && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Reviewed by {note.reviewed_by} on{" "}
+                                  {note.reviewed_at
+                                    ? new Date(
+                                        note.reviewed_at
+                                      ).toLocaleDateString()
+                                    : ""}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -768,7 +1112,7 @@ const EmployeeProfile = () => {
                       id="new-absence"
                       value={newAbsence}
                       onChange={(e) => setNewAbsence(e.target.value)}
-                      placeholder="Enter date and reason for absence (e.g., 2023-12-01: Called out sick)"
+                      placeholder="Enter date and reason for absence (e.g., 2023-12-01 CALLED OUT)"
                       className="min-h-[100px]"
                     />
                     <Button onClick={() => handleAddNote("absence")}>
@@ -776,51 +1120,46 @@ const EmployeeProfile = () => {
                     </Button>
                   </div>
                   <div className="grid gap-4">
-                    {notes
-                      .filter((note) => note.type === "absence")
-                      .map((note) => (
-                        <div
-                          key={note.id}
-                          className="flex justify-between items-start"
-                        >
-                          <div>
-                            <div className="text-sm font-medium">
-                              {note.note}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() =>
-                                handleEditNote(
-                                  note.id,
-                                  prompt("Edit absence:", note.note) ??
-                                    note.note
-                                )
-                              }
-                            >
-                              <Pencil1Icon />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleDeleteNote(note.id)}
-                            >
-                              <TrashIcon />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    {absences.map((absence, index) => (
+                    {absences.map((absence) => (
                       <div
-                        key={index}
+                        key={absence.id}
                         className="flex justify-between items-start"
                       >
-                        <div className="text-sm font-medium">
-                          {absence.schedule_date}
+                        <div>
+                          <div className="text-sm font-medium">
+                            {absence.schedule_date}
+                          </div>
+                          <div className="text-sm">{absence.status}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            - {absence.created_by} on{" "}
+                            {new Date(absence.created_at).toLocaleDateString()}
+                          </div>
                         </div>
-                        <div className="text-sm">{absence.status}</div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              handleEditNote(
+                                absence.id,
+                                prompt(
+                                  "Edit absence:",
+                                  `${absence.schedule_date}\t${absence.status}`
+                                ) ??
+                                  `${absence.schedule_date}\t${absence.status}`
+                              )
+                            }
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteNote(absence.id)}
+                          >
+                            <TrashIcon />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -830,57 +1169,443 @@ const EmployeeProfile = () => {
               <TabsContent value="reviews">
                 <div className="p-6 space-y-4">
                   <div className="grid gap-1.5">
-                    <Label htmlFor="new-review">Add a new review</Label>
-                    <Textarea
-                      id="new-review"
-                      value={newReview}
-                      onChange={(e) => setNewReview(e.target.value)}
-                      placeholder="Type your review here..."
-                      className="min-h-[100px]"
-                    />
-                    <Button onClick={() => handleAddNote("reviews")}>
+                    <Button variant="linkHover1" onClick={handleAddReviewClick}>
                       Add Review
+                      <PlusIcon className="ml-2" />
                     </Button>
                   </div>
                   <div className="grid gap-4">
-                    {notes
-                      .filter((note) => note.type === "reviews")
-                      .map((note) => (
-                        <div
-                          key={note.id}
-                          className="flex justify-between items-start"
-                        >
-                          <div>
-                            <div className="text-sm font-medium">
-                              {note.note}
-                            </div>
+                    {reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="flex justify-between items-start"
+                      >
+                        <div>
+                          <div className="text-sm font-medium">
+                            {review.review_quarter} {review.review_year}
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() =>
-                                handleEditNote(
-                                  note.id,
-                                  prompt("Edit note:", note.note) ?? note.note
-                                )
-                              }
-                            >
-                              <Pencil1Icon />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleDeleteNote(note.id)}
-                            >
-                              <TrashIcon />
-                            </Button>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            - {review.created_by} on{" "}
+                            {new Date(review.created_at).toLocaleDateString()}
                           </div>
                         </div>
-                      ))}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditReview(review.id)}
+                          >
+                            <Pencil1Icon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteReview(review.id)}
+                          >
+                            <TrashIcon />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleViewReview(review)}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </TabsContent>
+
+              <Dialog
+                open={showReviewDialog}
+                onOpenChange={setShowReviewDialog}
+              >
+                <DialogOverlay className="fixed inset-0 bg-white dark:bg-gray-950 z-50" />
+                <DialogContent className="fixed inset-0 flex items-center justify-center z-50">
+                  <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                    <DialogTitle>
+                      {editMode
+                        ? "Edit Quarterly Review"
+                        : "Add Quarterly Review"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="review-quarter">Quarter</Label>
+                        <input
+                          type="text"
+                          id="review-quarter"
+                          value={reviewQuarter}
+                          onChange={(e) => setReviewQuarter(e.target.value)}
+                          className="input"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="review-year">Year</Label>
+                        <input
+                          type="number"
+                          id="review-year"
+                          value={reviewYear}
+                          onChange={(e) =>
+                            setReviewYear(Number(e.target.value))
+                          }
+                          className="input"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="overview-performance">
+                          Overview of Performance
+                        </Label>
+                        <Textarea
+                          id="overview-performance"
+                          value={overviewPerformance}
+                          onChange={(e) =>
+                            setOverviewPerformance(e.target.value)
+                          }
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="achievements-contributions">
+                          Achievements and Contributions
+                        </Label>
+                        {achievementsContributions.map((achievement, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Textarea
+                              id={`achievement-${index}`}
+                              value={achievement}
+                              onChange={(e) =>
+                                setAchievementsContributions(
+                                  achievementsContributions.map((ach, i) =>
+                                    i === index ? e.target.value : ach
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            {index === achievementsContributions.length - 1 && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  setAchievementsContributions([
+                                    ...achievementsContributions,
+                                    "",
+                                  ])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="attendance-reliability">
+                          Attendance and Reliability
+                        </Label>
+                        {attendanceReliability.map((attendance, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Textarea
+                              id={`attendance-${index}`}
+                              value={attendance}
+                              onChange={(e) =>
+                                setAttendanceReliability(
+                                  attendanceReliability.map((att, i) =>
+                                    i === index ? e.target.value : att
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            {index === attendanceReliability.length - 1 && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  setAttendanceReliability([
+                                    ...attendanceReliability,
+                                    "",
+                                  ])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="quality-work">Quality of Work</Label>
+                        {qualityWork.map((quality, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Textarea
+                              id={`quality-${index}`}
+                              value={quality}
+                              onChange={(e) =>
+                                setQualityWork(
+                                  qualityWork.map((qual, i) =>
+                                    i === index ? e.target.value : qual
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            {index === qualityWork.length - 1 && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  setQualityWork([...qualityWork, ""])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="communication-collaboration">
+                          Communication & Collaboration
+                        </Label>
+                        {communicationCollaboration.map(
+                          (communication, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2"
+                            >
+                              <Textarea
+                                id={`communication-${index}`}
+                                value={communication}
+                                onChange={(e) =>
+                                  setCommunicationCollaboration(
+                                    communicationCollaboration.map((comm, i) =>
+                                      i === index ? e.target.value : comm
+                                    )
+                                  )
+                                }
+                                className="min-h-[50px] flex-1"
+                              />
+                              {index ===
+                                communicationCollaboration.length - 1 && (
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() =>
+                                    setCommunicationCollaboration([
+                                      ...communicationCollaboration,
+                                      "",
+                                    ])
+                                  }
+                                >
+                                  <PlusIcon />
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        )}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="strengths-accomplishments">
+                          Strengths & Accomplishments
+                        </Label>
+                        {strengthsAccomplishments.map((strength, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Textarea
+                              id={`strength-${index}`}
+                              value={strength}
+                              onChange={(e) =>
+                                setStrengthsAccomplishments(
+                                  strengthsAccomplishments.map((str, i) =>
+                                    i === index ? e.target.value : str
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            {index === strengthsAccomplishments.length - 1 && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  setStrengthsAccomplishments([
+                                    ...strengthsAccomplishments,
+                                    "",
+                                  ])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="areas-growth">
+                          Areas for Growth and Development
+                        </Label>
+                        {areasGrowth.map((area, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Textarea
+                              id={`area-${index}`}
+                              value={area}
+                              onChange={(e) =>
+                                setAreasGrowth(
+                                  areasGrowth.map((ar, i) =>
+                                    i === index ? e.target.value : ar
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            {index === areasGrowth.length - 1 && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  setAreasGrowth([...areasGrowth, ""])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="recognition">Recognition</Label>
+                        {recognition.map((rec, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Textarea
+                              id={`recognition-${index}`}
+                              value={rec}
+                              onChange={(e) =>
+                                setRecognition(
+                                  recognition.map((re, i) =>
+                                    i === index ? e.target.value : re
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            {index === recognition.length - 1 && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  setRecognition([...recognition, ""])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowReviewDialog(false)}
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          onClick={editMode ? handleAddReview : handleAddReview}
+                        >
+                          {editMode ? "Update Review" : "Submit Review"}
+                        </Button>
+                      </div>
+                    </DialogDescription>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog
+                open={viewReviewDialog}
+                onOpenChange={setViewReviewDialog}
+              >
+                <DialogOverlay className="fixed inset-0 bg-white dark:bg-gray-950 z-50" />
+                <DialogContent className="fixed inset-0 flex items-center justify-center z-50">
+                  <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                    <DialogTitle>View Quarterly Review</DialogTitle>
+                    <DialogDescription>
+                      <div className="grid gap-1.5">
+                        <Label>Quarter</Label>
+                        <p>{currentReview?.review_quarter}</p>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Year</Label>
+                        <p>{currentReview?.review_year}</p>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Overview of Performance</Label>
+                        <p>{currentReview?.overview_performance}</p>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Achievements and Contributions</Label>
+                        {currentReview?.achievements_contributions.map(
+                          (achievement, index) => (
+                            <p key={index}>{achievement}</p>
+                          )
+                        )}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Attendance and Reliability</Label>
+                        {currentReview?.attendance_reliability.map(
+                          (attendance, index) => (
+                            <p key={index}>{attendance}</p>
+                          )
+                        )}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Quality of Work</Label>
+                        {currentReview?.quality_work.map((quality, index) => (
+                          <p key={index}>{quality}</p>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Communication & Collaboration</Label>
+                        {currentReview?.communication_collaboration.map(
+                          (communication, index) => (
+                            <p key={index}>{communication}</p>
+                          )
+                        )}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Strengths & Accomplishments</Label>
+                        {currentReview?.strengths_accomplishments.map(
+                          (strength, index) => (
+                            <p key={index}>{strength}</p>
+                          )
+                        )}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Areas for Growth and Development</Label>
+                        {currentReview?.areas_growth.map((area, index) => (
+                          <p key={index}>{area}</p>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Recognition</Label>
+                        {currentReview?.recognition.map((rec, index) => (
+                          <p key={index}>{rec}</p>
+                        ))}
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setViewReviewDialog(false)}
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    </DialogDescription>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <TabsContent value="growth">
                 <div className="p-6 space-y-4">
                   <div className="grid gap-1.5">

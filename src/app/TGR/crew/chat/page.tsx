@@ -94,6 +94,14 @@ function ChatContent() {
   ]);
   const userDataRef = useRef<{ user: User | null }>({ user: null });
   const directMessageChannelRef = useRef<RealtimeChannel | null>(null);
+  const debouncedScrollToBottom = useCallback(
+    debounce(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 300),
+    []
+  );
 
   // Function to handle chat type selection
   const handleChatTypeSelection = (type: "dm" | "group") => {
@@ -216,8 +224,6 @@ function ChatContent() {
   };
 
   useEffect(() => {
-    const client = supabase;
-
     const fetchInitialData = async () => {
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
@@ -254,30 +260,6 @@ function ChatContent() {
             .update({ is_online: true })
             .eq("user_uuid", userData.user.id);
         }
-      }
-
-      const { data: chatMessages, error: chatError } = await supabase
-        .from("chat_messages")
-        .select("*")
-        .order("created_at", { ascending: true });
-
-      const { data: directMessages, error: directError } = await supabase
-        .from("direct_messages")
-        .select("*")
-        .order("created_at", { ascending: true });
-
-      const { data: groupChatMessages, error: groupChatError } = await supabase
-        .from("group_chat_messages")
-        .select("*")
-        .order("created_at", { ascending: true });
-
-      if (chatMessages && directMessages && groupChatMessages) {
-        setMessages([...chatMessages, ...directMessages, ...groupChatMessages]);
-      } else {
-        console.error(
-          "Error fetching messages:",
-          chatError || directError || groupChatError
-        );
       }
 
       const { data: usersData, error: usersError } = await supabase
@@ -333,6 +315,12 @@ function ChatContent() {
         }
       }
     };
+
+    fetchInitialData();
+  }, []); // Only run this once when the component mounts
+
+  useEffect(() => {
+    const client = supabase;
 
     const setupSubscriptions = () => {
       if (!channel.current) {
@@ -476,7 +464,6 @@ function ChatContent() {
       }
     };
 
-    fetchInitialData();
     setupSubscriptions();
 
     return () => {
@@ -487,7 +474,7 @@ function ChatContent() {
       directMessageChannelRef.current?.unsubscribe();
       directMessageChannelRef.current = null;
     };
-  }, [user, dmUsers, unreadStatus]);
+  }, [dmUsers, unreadStatus, user]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -961,8 +948,10 @@ function ChatContent() {
         return;
       }
 
-      // Clear messages state to prevent duplicates
-      setMessages([]);
+      // Prevent re-fetching if the selected chat is already the current one
+      if (selectedChat === chatId) {
+        return;
+      }
 
       // Immediately set the selected chat
       setSelectedChat(chatId);
@@ -1088,16 +1077,23 @@ function ChatContent() {
       localStorage.setItem("currentChat", chatId);
       scrollToBottom();
     },
-    [dmUsers, unreadStatus, user, setMessages, setUnreadStatus, setSelectedChat]
+    [
+      dmUsers,
+      unreadStatus,
+      user,
+      selectedChat,
+      setMessages,
+      setUnreadStatus,
+      setSelectedChat,
+    ]
   );
 
   // Store the current chat ID in localStorage whenever it changes
   useEffect(() => {
-    if (selectedChat) {
-      localStorage.setItem("currentChat", selectedChat);
+    if (selectedChat && messages.length > 0) {
+      scrollToBottom();
     }
-    scrollToBottom();
-  }, [selectedChat, messages]);
+  }, [messages, selectedChat]);
 
   if (loading) {
     return <div>Loading...</div>;
