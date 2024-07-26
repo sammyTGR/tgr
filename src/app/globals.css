@@ -148,6 +148,10 @@
       }
     }
     
+    .view-dialog-content .view-label {
+      font-size: 1.05rem;
+      font-weight: bold;
+    }
     
 
     
