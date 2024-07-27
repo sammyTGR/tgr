@@ -9,7 +9,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Papa, { ParseResult } from "papaparse";
 import * as XLSX from "xlsx";
 import SalesRangeStackedBarChart from "../charts/SalesRangeStackedBarChart";
-import { CustomCalendar } from "@/components/ui/calendar"; // Import CustomCalendar
+import { CustomCalendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +17,15 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 
 const title = "Sales Report";
 
@@ -33,7 +42,7 @@ const SalesPage = () => {
     start: Date | undefined;
     end: Date | undefined;
   }>({ start: undefined, end: undefined });
-  const [loading, setLoading] = useState(false); // New state variable for loading
+  const [loading, setLoading] = useState(false);
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -229,54 +238,104 @@ const SalesPage = () => {
       <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
         <TextGenerateEffect words={title} />
       </h1>
-      <div className="flex max-w-8xl justify-start items-start p-4 mb-4">
-        <div className="mr-6 mb-auto">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-[240px] pl-3 text-left font-normal"
-              >
-                {selectedRange.start ? (
-                  format(selectedRange.start, "PPP")
-                ) : (
-                  <span>Pick a date</span>
-                )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CustomCalendar
-                selectedDate={selectedRange.start ?? new Date()}
-                onDateChange={handleRangeChange}
-                disabledDays={() => false}
-              />
-            </PopoverContent>
-          </Popover>
-          <h1 className="flex my-2 p-2">Select A Date</h1>
-        </div>
-        <div className="flex-1 overflow-x-auto max-w-full ml-4 border border-gray-300 rounded-md p-4">
-          <SalesRangeStackedBarChart selectedRange={selectedRange} />
-        </div>
-      </div>
-      <div className="flex max-w-6xl w-full justify-start mb-4 px-4 md:px-6">
-        <SalesDataTable />
-      </div>
-      <div className="mt-4">
-        <div className="flex items-center gap-2">
-          <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
-          {/* {file && <p className="mt-2">{file.name}</p>}{" "}
-          Display selected file name */}
-          <Button
-            variant="linkHover1"
-            onClick={handleSubmit}
-            className="mt-4"
-            disabled={loading} // Disable button when loading
-          >
-            {loading ? "Uploading..." : "Upload and Process"}
-          </Button>
-        </div>
-      </div>
+      <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <Tabs defaultValue="overview">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="details">Sales Details</TabsTrigger>
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Select A Date To Review
+                  </CardTitle>
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-[240px] pl-3 text-left font-normal"
+                      >
+                        {selectedRange.start ? (
+                          format(selectedRange.start, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CustomCalendar
+                        selectedDate={selectedRange.start ?? new Date()}
+                        onDateChange={handleRangeChange}
+                        disabledDays={() => false}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </CardContent>
+              </Card>
+            </div>
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Sales Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col border p-4">
+                <SalesRangeStackedBarChart selectedRange={selectedRange} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="details">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Sales Details</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col border p-2">
+                <div className="flex max-w-8xl w-full justify-start mb-4  md:px-6">
+                  <SalesDataTable />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="upload">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Upload</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col border p-4">
+                <div className="mt-4 rounded-md border max-w-6xl">
+                  <div className="flex items-center gap-2 ml-2">
+                    <label className="shadcn-ui-button flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:font-white dark:hover:bg-gray-500 size-icon">
+                      Select File
+                      <Input
+                        type="file"
+                        accept=".csv,.xlsx"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <Button
+                      variant="linkHover1"
+                      onClick={handleSubmit}
+                      className="mt-4"
+                      disabled={loading} // Disable button when loading
+                    >
+                      {loading ? "Uploading..." : "Upload and Process"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
     </RoleBasedWrapper>
   );
 };

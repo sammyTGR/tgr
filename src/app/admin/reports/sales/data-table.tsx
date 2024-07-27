@@ -30,7 +30,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
       <div className="flex flex-row items-center justify-between mx-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button variant="outline" className="mr-auto mb-2">
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -55,7 +55,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden rounded-md border w-full sm:w-full md:w-full lg:min-w-[1850px] lg:max-w-[3068px]">
+      <div className="flex-1 overflow-hidden rounded-md border max-w-8xl w-full sm:w-full md:w-full  lg:max-w-8xl">
         <div className="h-[calc(100vh-200px)] overflow-auto">
           <Table>
             <TableHeader>
