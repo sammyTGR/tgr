@@ -711,7 +711,7 @@ const EmployeeProfile = () => {
   
     const reviewData = {
       employee_id: employeeId,
-      review_quarter: reviewQuarter,
+      review_quarter: reviewQuarter,  // This will now accept longer text
       review_year: reviewYear,
       overview_performance: overviewPerformance,
       achievements_contributions: achievementsContributions,
@@ -740,7 +740,7 @@ const EmployeeProfile = () => {
             review.id === currentReview.id ? data[0] : review
           )
         );
-        setShowReviewDialog(false);
+        setShowReviewDialog(false);  // Close the dialog after update
         resetReviewForm();
       }
     } else {
@@ -754,7 +754,7 @@ const EmployeeProfile = () => {
         console.error("Error adding review:", error);
       } else if (data) {
         setReviews((prevReviews) => [data[0], ...prevReviews]);
-        setShowReviewDialog(false);
+        setShowReviewDialog(false);  // Close the dialog after insert
         resetReviewForm();
       }
     }
@@ -1251,11 +1251,11 @@ const EmployeeProfile = () => {
   <DialogContent className="fixed inset-0 flex items-center justify-center z-50">
     <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
       <DialogTitle>
-        {editMode ? "Edit Quarterly Review" : "Add Quarterly Review"}
+        {editMode ? "Edit Review" : "Add Review"}
       </DialogTitle>
       <DialogDescription>
         <div className="grid gap-1.5 my-4">
-          <Label htmlFor="review-quarter">Quarter</Label>
+          <Label htmlFor="review-quarter">Review Title</Label>
           <input
             type="text"
             id="review-quarter"
@@ -1532,10 +1532,10 @@ const EmployeeProfile = () => {
   <DialogOverlay className="fixed inset-0 bg-white dark:bg-gray-950 z-50" />
   <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 z-50 view-dialog-content">
     <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-      <DialogTitle className="font-size: 1.25rem font-bold">View Quarterly Review</DialogTitle>
+      <DialogTitle className="font-size: 1.25rem font-bold">Employee Review</DialogTitle>
       <DialogDescription>
         <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Quarter</Label>
+          <Label className="view-label"></Label>
           <p>{currentReview?.review_quarter}</p>
         </div>
         <div className="grid gap-1.5 mb-2">
