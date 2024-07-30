@@ -313,29 +313,6 @@ export default function Component() {
       console.error("Failed to update schedule status:", (error as Error).message);
     }
   };
-  
-  // Send email function with SendGrid
-// const sendEmail = async (email: string, subject: string, message: string) => {
-//   try {
-//     const response = await fetch("/api/send_email", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ email, subject, message }),
-//     });
-
-//     if (!response.ok) {
-//       throw new Error(`HTTP error! status: ${response.status}`);
-//     }
-
-//     const result = await response.json();
-//     console.log("Email sent successfully:", result);
-//   } catch (error: any) {
-//     console.error("Failed to send email:", error.message);
-//   }
-// };
-
 
   const handleCustomStatusSubmit = () => {
     if (currentEvent) {

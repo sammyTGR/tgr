@@ -62,6 +62,11 @@ const schedComponents = [
     href: "/admin/timeoffreview",
     description: "DENY THEM ALL!",
   },
+  {
+    title: "Submit Schedules",
+    href: "/admin/schedules",
+    description: "Create and Manage Schedules",
+  },
 ];
 
 const serviceComponents = [
