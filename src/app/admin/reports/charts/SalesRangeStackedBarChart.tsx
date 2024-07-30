@@ -138,7 +138,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col justify-start">
+      {/* <div className="flex flex-col justify-start">
         <p className="text-sm font-medium">
           Total Gross Sales: ${totalGross.toFixed(2)}
         </p>
@@ -148,7 +148,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
         <p className="text-sm font-medium">
           Total - Firearms: ${totalGrossMinusExclusions.toFixed(2)}
         </p>
-      </div>
+      </div> */}
       <ResponsiveContainer width="100%" height="100%">
         <div className="overflow-x-auto">
           <div style={{ minWidth: chartData.length * 100 }}>

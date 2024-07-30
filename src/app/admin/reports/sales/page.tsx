@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SalesDataTable from "./sales-data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { supabase } from "@/utils/supabase/client";
@@ -19,15 +19,15 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const title = "Sales Report";
+
+interface ChartData {
+  Lanid: string;
+  Date: string;
+  [key: string]: any;
+}
 
 const convertDateFormat = (date: string) => {
   if (!date) return "";
@@ -43,6 +43,10 @@ const SalesPage = () => {
     end: Date | undefined;
   }>({ start: undefined, end: undefined });
   const [loading, setLoading] = useState(false);
+  const [totalGross, setTotalGross] = useState<number>(0);
+  const [totalNet, setTotalNet] = useState<number>(0);
+  const [totalGrossMinusExclusions, setTotalGrossMinusExclusions] =
+    useState<number>(0);
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -227,10 +231,102 @@ const SalesPage = () => {
     }
   };
 
-  const handleRangeChange = (date: Date | undefined) => {
+  const handleRangeChange = async (date: Date | undefined) => {
     if (date) {
       setSelectedRange({ start: date, end: date });
+
+      // Fetch new data and update totals
+      try {
+        const data = await fetchData(
+          date.toISOString().split("T")[0],
+          date.toISOString().split("T")[0]
+        );
+        const { totalGross, totalNet, totalGrossMinusExclusions } =
+          processData(data);
+
+        setTotalGross(totalGross);
+        setTotalNet(totalNet);
+        setTotalGrossMinusExclusions(totalGrossMinusExclusions);
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      }
     }
+  };
+
+  const fetchData = async (startDate: string, endDate: string) => {
+    const response = await fetch(
+      `/api/fetch-sales-data-by-range?start=${startDate}&end=${endDate}`
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  };
+
+  const processData = (data: any[]) => {
+    const processedData: ChartData[] = [];
+    const categories: Set<string> = new Set();
+    const excludeCategoriesFromChart = [
+      "CA Tax Gun Transfer",
+      "CA Tax Adjust",
+      "CA Excise Tax",
+      "CA Excise Tax Adjustment",
+    ];
+    const excludeCategoriesFromTotalFirearms = [
+      "Pistol",
+      "Rifle",
+      "Revolver",
+      "Shotgun",
+      "Receiver",
+      ...excludeCategoriesFromChart,
+    ];
+
+    let totalGross = 0;
+    let totalGrossMinusExclusions = 0;
+    let totalNet = 0;
+
+    data.forEach((item) => {
+      const lanid = item.Lanid;
+      const category = item.category_label;
+      const grossValue = item.total_gross ?? 0;
+      const netValue = item.total_net ?? 0;
+
+      totalGross += grossValue;
+      totalNet += netValue;
+
+      if (!excludeCategoriesFromTotalFirearms.includes(category)) {
+        totalGrossMinusExclusions += grossValue;
+      }
+
+      if (!excludeCategoriesFromChart.includes(category)) {
+        let existingEntry = processedData.find((d) => d.Lanid === lanid);
+        if (!existingEntry) {
+          existingEntry = {
+            Lanid: lanid,
+            Date: item.Date,
+            Total: 0,
+            TotalMinusExclusions: 0,
+          };
+          processedData.push(existingEntry);
+        }
+
+        existingEntry[category] = grossValue;
+        existingEntry.Total += grossValue;
+        if (!excludeCategoriesFromTotalFirearms.includes(category)) {
+          existingEntry.TotalMinusExclusions += grossValue;
+        }
+        categories.add(category);
+      }
+    });
+
+    return {
+      processedData,
+      categories: Array.from(categories),
+      totalGross,
+      totalGrossMinusExclusions,
+      totalNet,
+    };
   };
 
   return (
@@ -247,44 +343,80 @@ const SalesPage = () => {
           </TabsList>
 
           <TabsContent value="overview">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Select A Date To Review
-                  </CardTitle>
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-[240px] pl-3 text-left font-normal"
-                      >
-                        {selectedRange.start ? (
-                          format(selectedRange.start, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CustomCalendar
-                        selectedDate={selectedRange.start ?? new Date()}
-                        onDateChange={handleRangeChange}
-                        disabledDays={() => false}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </CardContent>
-              </Card>
-            </div>
             <Card className="mt-4">
               <CardHeader>
                 <CardTitle>Sales Overview</CardTitle>
               </CardHeader>
+              <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Select A Date To Review
+                    </CardTitle>
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-[240px] pl-3 text-left font-normal"
+                        >
+                          {selectedRange.start ? (
+                            format(selectedRange.start, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CustomCalendar
+                          selectedDate={selectedRange.start ?? new Date()}
+                          onDateChange={handleRangeChange}
+                          disabledDays={() => false}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Gross Sales
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${totalGross.toFixed(2)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Net Sales Without Firearms
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${totalNet.toFixed(2)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Net Sales With Firearms
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${totalGrossMinusExclusions.toFixed(2)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               <CardContent className="flex flex-col border p-4">
                 <SalesRangeStackedBarChart selectedRange={selectedRange} />
               </CardContent>
