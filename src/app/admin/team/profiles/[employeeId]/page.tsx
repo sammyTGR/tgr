@@ -42,11 +42,11 @@ interface Note {
 
 interface Absence {
   id: number;
-  employee_id: number;
   schedule_date: string;
   status: string;
   created_by: string;
   created_at: string;
+  employee_id: number;
 }
 
 interface Audit {
@@ -170,12 +170,12 @@ const EmployeeProfile = () => {
       .select("*")
       .eq("id", id)
       .single();
-  
+
     if (error) {
       console.error("Error fetching review:", error);
       return;
     }
-  
+
     if (data) {
       setReviewQuarter(data.review_quarter);
       setReviewYear(data.review_year);
@@ -187,12 +187,11 @@ const EmployeeProfile = () => {
       setStrengthsAccomplishments(data.strengths_accomplishments || [""]);
       setAreasGrowth(data.areas_growth || [""]);
       setRecognition(data.recognition || [""]);
-      setCurrentReview(data);  // <-- Add this line
+      setCurrentReview(data); // <-- Add this line
       setEditMode(true);
       setShowReviewDialog(true);
     }
   };
-  
 
   const handleDeleteReview = async (id: number) => {
     const { error } = await supabase
@@ -611,6 +610,17 @@ const EmployeeProfile = () => {
           break;
         case "absence":
           setNewAbsence("");
+          setAbsences((prevAbsences) => [
+            ...prevAbsences,
+            {
+              id: data[0].id,
+              schedule_date: noteContent.split(" ")[0],
+              status: noteContent.split(" ").slice(1).join(" "),
+              created_by: data[0].created_by,
+              created_at: data[0].created_at,
+              employee_id: employeeId, // Add employee_id here
+            },
+          ]);
           break;
         case "daily_briefing":
           setNewDailyBriefing("");
@@ -705,13 +715,13 @@ const EmployeeProfile = () => {
 
   const handleAddReview = async () => {
     if (!employeeId) return;
-  
+
     const employeeName = await fetchEmployeeNameByUserUUID(user.id);
     if (!employeeName) return;
-  
+
     const reviewData = {
       employee_id: employeeId,
-      review_quarter: reviewQuarter,  // This will now accept longer text
+      review_quarter: reviewQuarter, // This will now accept longer text
       review_year: reviewYear,
       overview_performance: overviewPerformance,
       achievements_contributions: achievementsContributions,
@@ -723,7 +733,7 @@ const EmployeeProfile = () => {
       recognition: recognition,
       created_by: employeeName,
     };
-  
+
     if (editMode && currentReview) {
       // Update existing review
       const { data, error } = await supabase
@@ -731,7 +741,7 @@ const EmployeeProfile = () => {
         .update(reviewData)
         .eq("id", currentReview.id)
         .select();
-  
+
       if (error) {
         console.error("Error updating review:", error);
       } else if (data) {
@@ -740,7 +750,7 @@ const EmployeeProfile = () => {
             review.id === currentReview.id ? data[0] : review
           )
         );
-        setShowReviewDialog(false);  // Close the dialog after update
+        setShowReviewDialog(false); // Close the dialog after update
         resetReviewForm();
       }
     } else {
@@ -749,17 +759,16 @@ const EmployeeProfile = () => {
         .from("employee_quarterly_reviews")
         .insert([reviewData])
         .select();
-  
+
       if (error) {
         console.error("Error adding review:", error);
       } else if (data) {
         setReviews((prevReviews) => [data[0], ...prevReviews]);
-        setShowReviewDialog(false);  // Close the dialog after insert
+        setShowReviewDialog(false); // Close the dialog after insert
         resetReviewForm();
       }
     }
   };
-  
 
   const resetReviewForm = () => {
     setReviewQuarter("");
@@ -1015,7 +1024,7 @@ const EmployeeProfile = () => {
                           </div>
                           <div className="flex gap-2">
                             <Button
-                              variant="outline"
+                              variant="linkHover1"
                               size="icon"
                               onClick={() =>
                                 handleEditNote(
@@ -1028,7 +1037,7 @@ const EmployeeProfile = () => {
                               <Pencil1Icon />
                             </Button>
                             <Button
-                              variant="outline"
+                              variant="linkHover1"
                               size="icon"
                               onClick={() => handleDeleteNote(note.id)}
                             >
@@ -1104,7 +1113,7 @@ const EmployeeProfile = () => {
                           </div>
                           <div className="flex gap-2">
                             <Button
-                              variant="outline"
+                              variant="linkHover1"
                               size="icon"
                               onClick={() =>
                                 handleEditNote(
@@ -1116,7 +1125,7 @@ const EmployeeProfile = () => {
                               <Pencil1Icon />
                             </Button>
                             <Button
-                              variant="outline"
+                              variant="linkHover1"
                               size="icon"
                               onClick={() => handleDeleteNote(note.id)}
                             >
@@ -1162,7 +1171,7 @@ const EmployeeProfile = () => {
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            variant="outline"
+                            variant="linkHover1"
                             size="icon"
                             onClick={() =>
                               handleEditNote(
@@ -1178,7 +1187,7 @@ const EmployeeProfile = () => {
                             <Pencil1Icon />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="linkHover1"
                             size="icon"
                             onClick={() => handleDeleteNote(absence.id)}
                           >
@@ -1196,7 +1205,7 @@ const EmployeeProfile = () => {
                   <div className="grid gap-1.5">
                     <Button variant="linkHover1" onClick={handleAddReviewClick}>
                       Add Review
-                      <PlusIcon className="ml-2" />
+                      <PlusIcon className="ml-2 size-icon" />
                     </Button>
                   </div>
                   <div className="grid gap-4">
@@ -1216,21 +1225,21 @@ const EmployeeProfile = () => {
                         </div>
                         <div className="flex gap-2">
                           <Button
-                            variant="outline"
+                            variant="linkHover1"
                             size="icon"
                             onClick={() => handleEditReview(review.id)}
                           >
                             <Pencil1Icon />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="linkHover1"
                             size="icon"
                             onClick={() => handleDeleteReview(review.id)}
                           >
                             <TrashIcon />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="linkHover1"
                             size="icon"
                             onClick={() => handleViewReview(review)}
                           >
@@ -1244,368 +1253,485 @@ const EmployeeProfile = () => {
               </TabsContent>
 
               <Dialog
-  open={showReviewDialog}
-  onOpenChange={setShowReviewDialog}
->
-  <DialogOverlay className="fixed inset-0 bg-white dark:bg-gray-950 z-50" />
-  <DialogContent className="fixed inset-0 flex items-center justify-center z-50">
-    <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-      <DialogTitle>
-        {editMode ? "Edit Review" : "Add Review"}
-      </DialogTitle>
-      <DialogDescription>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="review-quarter">Review Title</Label>
-          <input
-            type="text"
-            id="review-quarter"
-            value={reviewQuarter}
-            onChange={(e) => setReviewQuarter(e.target.value)}
-            className="input"
-          />
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="review-year">Year</Label>
-          <input
-            type="number"
-            id="review-year"
-            value={reviewYear}
-            onChange={(e) => setReviewYear(Number(e.target.value))}
-            className="input"
-          />
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="overview-performance">
-            Overview of Performance
-          </Label>
-          <Textarea
-            id="overview-performance"
-            value={overviewPerformance}
-            onChange={(e) => setOverviewPerformance(e.target.value)}
-            className="min-h-[100px]"
-          />
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="achievements-contributions">
-            Achievements and Contributions
-          </Label>
-          {achievementsContributions.map((achievement, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`achievement-${index}`}
-                value={achievement}
-                onChange={(e) =>
-                  setAchievementsContributions(
-                    achievementsContributions.map((ach, i) =>
-                      i === index ? e.target.value : ach
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === achievementsContributions.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setAchievementsContributions([
-                      ...achievementsContributions,
-                      "",
-                    ])
-                  }
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="attendance-reliability">
-            Attendance and Reliability
-          </Label>
-          {attendanceReliability.map((attendance, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`attendance-${index}`}
-                value={attendance}
-                onChange={(e) =>
-                  setAttendanceReliability(
-                    attendanceReliability.map((att, i) =>
-                      i === index ? e.target.value : att
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === attendanceReliability.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setAttendanceReliability([
-                      ...attendanceReliability,
-                      "",
-                    ])
-                  }
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="quality-work">Quality of Work</Label>
-          {qualityWork.map((quality, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`quality-${index}`}
-                value={quality}
-                onChange={(e) =>
-                  setQualityWork(
-                    qualityWork.map((qual, i) =>
-                      i === index ? e.target.value : qual
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === qualityWork.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setQualityWork([...qualityWork, ""])}
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="communication-collaboration">
-            Communication & Collaboration
-          </Label>
-          {communicationCollaboration.map((communication, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`communication-${index}`}
-                value={communication}
-                onChange={(e) =>
-                  setCommunicationCollaboration(
-                    communicationCollaboration.map((comm, i) =>
-                      i === index ? e.target.value : comm
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === communicationCollaboration.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setCommunicationCollaboration([
-                      ...communicationCollaboration,
-                      "",
-                    ])
-                  }
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="strengths-accomplishments">
-            Strengths & Accomplishments
-          </Label>
-          {strengthsAccomplishments.map((strength, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`strength-${index}`}
-                value={strength}
-                onChange={(e) =>
-                  setStrengthsAccomplishments(
-                    strengthsAccomplishments.map((str, i) =>
-                      i === index ? e.target.value : str
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === strengthsAccomplishments.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setStrengthsAccomplishments([
-                      ...strengthsAccomplishments,
-                      "",
-                    ])
-                  }
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="areas-growth">
-            Areas for Growth and Development
-          </Label>
-          {areasGrowth.map((area, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`area-${index}`}
-                value={area}
-                onChange={(e) =>
-                  setAreasGrowth(
-                    areasGrowth.map((ar, i) =>
-                      i === index ? e.target.value : ar
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === areasGrowth.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setAreasGrowth([...areasGrowth, ""])}
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5 my-4">
-          <Label htmlFor="recognition">Recognition</Label>
-          {recognition.map((rec, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Textarea
-                id={`recognition-${index}`}
-                value={rec}
-                onChange={(e) =>
-                  setRecognition(
-                    recognition.map((re, i) =>
-                      i === index ? e.target.value : re
-                    )
-                  )
-                }
-                className="min-h-[50px] flex-1"
-              />
-              {index === recognition.length - 1 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setRecognition([...recognition, ""])}
-                >
-                  <PlusIcon />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-end space-x-2 my-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowReviewDialog(false)}
-          >
-            Close
-          </Button>
-          <Button onClick={handleAddReview}>
-            {editMode ? "Update Review" : "Submit Review"}
-          </Button>
-        </div>
-      </DialogDescription>
-    </div>
-  </DialogContent>
-</Dialog>
+                open={showReviewDialog}
+                onOpenChange={setShowReviewDialog}
+              >
+                <DialogOverlay className="fixed inset-0 z-50" />
+                <DialogContent className="fixed inset-0 flex items-center justify-center bg-white dark:bg-black z-50 view-review-dialog">
+                  <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                    <DialogTitle>
+                      {editMode ? "Edit Review" : "Add Review"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="review-quarter">Review Title</Label>
+                        <input
+                          type="text"
+                          id="review-quarter"
+                          value={reviewQuarter}
+                          onChange={(e) => setReviewQuarter(e.target.value)}
+                          className="input"
+                        />
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="review-year">Year</Label>
+                        <input
+                          type="number"
+                          id="review-year"
+                          value={reviewYear}
+                          onChange={(e) =>
+                            setReviewYear(Number(e.target.value))
+                          }
+                          className="input"
+                        />
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="overview-performance">
+                          Overview of Performance
+                        </Label>
+                        <Textarea
+                          id="overview-performance"
+                          value={overviewPerformance}
+                          onChange={(e) =>
+                            setOverviewPerformance(e.target.value)
+                          }
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="achievements-contributions">
+                          Achievements and Contributions
+                        </Label>
+                        {achievementsContributions.map((achievement, index) => (
+                          <div key={index} className="flex items-center ">
+                            <Textarea
+                              id={`achievement-${index}`}
+                              value={achievement}
+                              onChange={(e) =>
+                                setAchievementsContributions(
+                                  achievementsContributions.map((ach, i) =>
+                                    i === index ? e.target.value : ach
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setAchievementsContributions([
+                                  ...achievementsContributions,
+                                  "",
+                                ])
+                              }
+                            >
+                              <PlusIcon />
+                            </Button>
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setAchievementsContributions(
+                                  achievementsContributions.filter(
+                                    (_, i) => i !== index
+                                  )
+                                )
+                              }
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="attendance-reliability">
+                          Attendance and Reliability
+                        </Label>
+                        {attendanceReliability.map((attendance, index) => (
+                          <div key={index} className="flex items-center ">
+                            <Textarea
+                              id={`attendance-${index}`}
+                              value={attendance}
+                              onChange={(e) =>
+                                setAttendanceReliability(
+                                  attendanceReliability.map((att, i) =>
+                                    i === index ? e.target.value : att
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setAttendanceReliability([
+                                  ...attendanceReliability,
+                                  "",
+                                ])
+                              }
+                            >
+                              <PlusIcon />
+                            </Button>
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setAttendanceReliability(
+                                  attendanceReliability.filter(
+                                    (_, i) => i !== index
+                                  )
+                                )
+                              }
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="quality-work">Quality of Work</Label>
+                        {qualityWork.map((quality, index) => (
+                          <div key={index} className="flex items-center ">
+                            <Textarea
+                              id={`quality-${index}`}
+                              value={quality}
+                              onChange={(e) =>
+                                setQualityWork(
+                                  qualityWork.map((qual, i) =>
+                                    i === index ? e.target.value : qual
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setQualityWork([...qualityWork, ""])
+                              }
+                            >
+                              <PlusIcon />
+                            </Button>
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setQualityWork(
+                                  qualityWork.filter((_, i) => i !== index)
+                                )
+                              }
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="communication-collaboration">
+                          Communication & Collaboration
+                        </Label>
+                        {communicationCollaboration.map(
+                          (communication, index) => (
+                            <div key={index} className="flex items-center ">
+                              <Textarea
+                                id={`communication-${index}`}
+                                value={communication}
+                                onChange={(e) =>
+                                  setCommunicationCollaboration(
+                                    communicationCollaboration.map((comm, i) =>
+                                      i === index ? e.target.value : comm
+                                    )
+                                  )
+                                }
+                                className="min-h-[50px] flex-1"
+                              />
+                              <Button
+                                variant="linkHover2"
+                                size="icon"
+                                onClick={() =>
+                                  setCommunicationCollaboration([
+                                    ...communicationCollaboration,
+                                    "",
+                                  ])
+                                }
+                              >
+                                <PlusIcon />
+                              </Button>
+                              <Button
+                                variant="linkHover2"
+                                size="icon"
+                                onClick={() =>
+                                  setCommunicationCollaboration(
+                                    communicationCollaboration.filter(
+                                      (_, i) => i !== index
+                                    )
+                                  )
+                                }
+                              >
+                                <TrashIcon />
+                              </Button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="strengths-accomplishments">
+                          Strengths & Accomplishments
+                        </Label>
+                        {strengthsAccomplishments.map((strength, index) => (
+                          <div key={index} className="flex items-center ">
+                            <Textarea
+                              id={`strength-${index}`}
+                              value={strength}
+                              onChange={(e) =>
+                                setStrengthsAccomplishments(
+                                  strengthsAccomplishments.map((str, i) =>
+                                    i === index ? e.target.value : str
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setStrengthsAccomplishments([
+                                  ...strengthsAccomplishments,
+                                  "",
+                                ])
+                              }
+                            >
+                              <PlusIcon />
+                            </Button>
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setStrengthsAccomplishments(
+                                  strengthsAccomplishments.filter(
+                                    (_, i) => i !== index
+                                  )
+                                )
+                              }
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="areas-growth">
+                          Areas for Growth and Development
+                        </Label>
+                        {areasGrowth.map((area, index) => (
+                          <div key={index} className="flex items-center ">
+                            <Textarea
+                              id={`area-${index}`}
+                              value={area}
+                              onChange={(e) =>
+                                setAreasGrowth(
+                                  areasGrowth.map((ar, i) =>
+                                    i === index ? e.target.value : ar
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setAreasGrowth([...areasGrowth, ""])
+                              }
+                            >
+                              <PlusIcon />
+                            </Button>
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setAreasGrowth(
+                                  areasGrowth.filter((_, i) => i !== index)
+                                )
+                              }
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid gap-1.5 my-4">
+                        <Label htmlFor="recognition">Recognition</Label>
+                        {recognition.map((rec, index) => (
+                          <div key={index} className="flex items-center ">
+                            <Textarea
+                              id={`recognition-${index}`}
+                              value={rec}
+                              onChange={(e) =>
+                                setRecognition(
+                                  recognition.map((re, i) =>
+                                    i === index ? e.target.value : re
+                                  )
+                                )
+                              }
+                              className="min-h-[50px] flex-1"
+                            />
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setRecognition([...recognition, ""])
+                              }
+                            >
+                              <PlusIcon />
+                            </Button>
+                            <Button
+                              variant="linkHover2"
+                              size="icon"
+                              onClick={() =>
+                                setRecognition(
+                                  recognition.filter((_, i) => i !== index)
+                                )
+                              }
+                            >
+                              <TrashIcon />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-end space-x-2 my-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowReviewDialog(false)}
+                        >
+                          Close
+                        </Button>
+                        <Button onClick={handleAddReview}>
+                          {editMode ? "Update Review" : "Submit Review"}
+                        </Button>
+                      </div>
+                    </DialogDescription>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
-
-<Dialog open={viewReviewDialog} onOpenChange={setViewReviewDialog}>
-  <DialogOverlay className="fixed inset-0 bg-white dark:bg-gray-950 z-50" />
-  <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 z-50 view-dialog-content">
-    <div className="bg-white dark:bg-gray-950 p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-      <DialogTitle className="font-size: 1.25rem font-bold">Employee Review</DialogTitle>
-      <DialogDescription>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label"></Label>
-          <p>{currentReview?.review_quarter}</p>
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Year</Label>
-          <p>{currentReview?.review_year}</p>
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Overview of Performance</Label>
-          <p>{currentReview?.overview_performance}</p>
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Achievements and Contributions</Label>
-          {currentReview?.achievements_contributions.map(
-            (achievement, index) => (
-              <p key={index}>{achievement}</p>
-            )
-          )}
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Attendance and Reliability</Label>
-          {currentReview?.attendance_reliability.map(
-            (attendance, index) => (
-              <p key={index}>{attendance}</p>
-            )
-          )}
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Quality of Work</Label>
-          {currentReview?.quality_work.map((quality, index) => (
-            <p key={index}>{quality}</p>
-          ))}
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Communication & Collaboration</Label>
-          {currentReview?.communication_collaboration.map(
-            (communication, index) => (
-              <p key={index}>{communication}</p>
-            )
-          )}
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Strengths & Accomplishments</Label>
-          {currentReview?.strengths_accomplishments.map(
-            (strength, index) => (
-              <p key={index}>{strength}</p>
-            )
-          )}
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Areas for Growth and Development</Label>
-          {currentReview?.areas_growth.map((area, index) => (
-            <p key={index}>{area}</p>
-          ))}
-        </div>
-        <div className="grid gap-1.5 mb-2">
-          <Label className="view-label">Recognition</Label>
-          {currentReview?.recognition.map((rec, index) => (
-            <p key={index}>{rec}</p>
-          ))}
-        </div>
-        <div className="flex justify-end mt-2 space-x-2">
-          <Button variant="outline" onClick={() => setViewReviewDialog(false)}>
-            Close
-          </Button>
-        </div>
-      </DialogDescription>
-    </div>
-  </DialogContent>
-</Dialog>
-
+              <Dialog
+                open={viewReviewDialog}
+                onOpenChange={setViewReviewDialog}
+              >
+                <DialogOverlay className="fixed inset-0 z-50" />
+                <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
+                  <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                    <DialogTitle className="font-size: 1.35rem font-bold">
+                      Employee Review
+                    </DialogTitle>
+                    <DialogDescription>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="view-label"></Label>
+                        <p>{currentReview?.review_quarter}</p>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">Year</Label>
+                        <p>{currentReview?.review_year}</p>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Overview of Performance
+                        </Label>
+                        <p>{currentReview?.overview_performance}</p>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Achievements and Contributions
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.achievements_contributions.map(
+                            (achievement, index) => (
+                              <li key={index}>{achievement}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Attendance and Reliability
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.attendance_reliability.map(
+                            (attendance, index) => (
+                              <li key={index}>{attendance}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Quality of Work
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.quality_work.map((quality, index) => (
+                            <li key={index}>{quality}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Communication & Collaboration
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.communication_collaboration.map(
+                            (communication, index) => (
+                              <li key={index}>{communication}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Strengths & Accomplishments
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.strengths_accomplishments.map(
+                            (strength, index) => (
+                              <li key={index}>{strength}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Areas for Growth and Development
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.areas_growth.map((area, index) => (
+                            <li key={index}>{area}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">Recognition</Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.recognition.map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex justify-end mt-2 space-x-2">
+                        <Button
+                          variant="linkHover1"
+                          onClick={() => setViewReviewDialog(false)}
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    </DialogDescription>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               <TabsContent value="growth">
                 <div className="p-6 space-y-4">
