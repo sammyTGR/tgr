@@ -17,12 +17,14 @@ interface TimeOffRequest {
   other_reason: string;
   status: string;
   name: string;
-  email: string; // Assuming the email field is available
+  email: string;
+  use_sick_time: boolean; // New field
+  available_sick_time: number; // New field
 }
 
 export default function ApproveRequestsPage() {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [showCustomApprovalModal, setShowCustomApprovalModal] = useState(false);
   const [customApprovalText, setCustomApprovalText] = useState("");
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
@@ -39,7 +41,20 @@ export default function ApproveRequestsPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setRequests(data);
+      const enrichedData = await Promise.all(
+        data.map(async (request: TimeOffRequest) => {
+          const { data: sickTimeData, error } = await supabase.rpc(
+            "calculate_available_sick_time",
+            { p_emp_id: request.employee_id }
+          );
+          if (error) {
+            console.error("Failed to fetch sick time:", error.message);
+            return { ...request, available_sick_time: 40 }; // Default to 40 if error
+          }
+          return { ...request, available_sick_time: sickTimeData };
+        })
+      );
+      setRequests(enrichedData);
     } catch (error: any) {
       console.error("Failed to fetch time off requests:", error.message);
     }
@@ -51,11 +66,12 @@ export default function ApproveRequestsPage() {
       handleRequest(
         request_id,
         "time_off",
-        `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`
+        `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
+        request.use_sick_time
       );
     }
   };
-  
+
   const handleDeny = async (request_id: number) => {
     await handleRequest(
       request_id,
@@ -94,7 +110,8 @@ export default function ApproveRequestsPage() {
         await handleRequest(
           currentRequestId,
           `Custom: ${customApprovalText}`,
-          `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`
+          `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
+          request.use_sick_time
         );
       }
       setShowCustomApprovalModal(false);
@@ -117,7 +134,6 @@ export default function ApproveRequestsPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Remove the request from the list
       const updatedRequests = requests.filter(
         (request) => request.request_id !== request_id
       );
@@ -127,7 +143,6 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  // Send email function with OAuth token
   const sendEmail = async (email: string, subject: string, message: string) => {
     try {
       const response = await fetch("/api/send_email", {
@@ -137,24 +152,23 @@ export default function ApproveRequestsPage() {
         },
         body: JSON.stringify({ email, subject, message }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const result = await response.json();
       console.log("Email sent successfully:", result);
     } catch (error: any) {
       console.error("Failed to send email:", error.message);
     }
   };
-  
 
-  // Handle request function with OAuth token retrieval
   const handleRequest = async (
     request_id: number,
     action: string,
-    emailMessage: string
+    emailMessage: string,
+    use_sick_time: boolean = false
   ) => {
     try {
       const response = await fetch("/api/approve_request", {
@@ -162,22 +176,19 @@ export default function ApproveRequestsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ request_id, action }),
+        body: JSON.stringify({ request_id, action, use_sick_time }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const result = await response.json();
-  
-      console.log("API response result:", result);
-  
       const { employee_id, start_date, end_date, email } = result;
       if (!email) {
         throw new Error("Email not found in API response");
       }
-  
+
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dates = [];
@@ -188,7 +199,7 @@ export default function ApproveRequestsPage() {
       ) {
         dates.push(new Date(d));
       }
-  
+
       for (const date of dates) {
         const formattedDate = date.toISOString().split("T")[0];
         const dayOfWeek = date.getUTCDay();
@@ -202,14 +213,14 @@ export default function ApproveRequestsPage() {
           "Saturday",
         ];
         const dayName = daysOfWeek[dayOfWeek];
-  
+
         const { data: refSchedules, error: refError } = await supabase
           .from("reference_schedules")
           .select("start_time, end_time")
           .eq("employee_id", employee_id)
           .eq("day_of_week", dayName)
           .single();
-  
+
         if (refError) {
           console.error(
             `Error fetching reference schedule for ${dayName}:`,
@@ -217,9 +228,9 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-  
+
         console.log(`Reference schedule for ${dayName}:`, refSchedules);
-  
+
         if (
           !refSchedules ||
           (refSchedules.start_time === null && refSchedules.end_time === null)
@@ -229,14 +240,14 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-  
+
         const { data: scheduleData, error: scheduleFetchError } = await supabase
           .from("schedules")
           .select("*")
           .eq("employee_id", employee_id)
           .eq("schedule_date", formattedDate)
           .single();
-  
+
         if (scheduleFetchError && scheduleFetchError.code !== "PGRST116") {
           console.error(
             `Error fetching schedule for date ${formattedDate}:`,
@@ -244,7 +255,7 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-  
+
         if (!scheduleData) {
           console.log(`Inserting new schedule for date ${formattedDate}`);
           const { error: scheduleInsertError } = await supabase
@@ -255,7 +266,7 @@ export default function ApproveRequestsPage() {
               day_of_week: dayName,
               status: action,
             });
-  
+
           if (scheduleInsertError) {
             console.error(
               `Error inserting schedule for date ${formattedDate}:`,
@@ -269,7 +280,7 @@ export default function ApproveRequestsPage() {
             .update({ status: action })
             .eq("employee_id", employee_id)
             .eq("schedule_date", formattedDate);
-  
+
           if (scheduleUpdateError) {
             console.error(
               `Error updating schedule for date ${formattedDate}:`,
@@ -278,18 +289,18 @@ export default function ApproveRequestsPage() {
           }
         }
       }
-  
+
       if (action !== "pending") {
         const { error: updateError } = await supabase
           .from("time_off_requests")
           .update({ is_read: true })
           .eq("request_id", request_id);
-  
+
         if (updateError) {
           throw new Error(updateError.message);
         }
       }
-  
+
       const subject =
         action === "denied"
           ? "Time Off Request Denied"
@@ -298,21 +309,15 @@ export default function ApproveRequestsPage() {
           : action === "left_early"
           ? "You've Left Early"
           : "Time Off Request Approved";
-      await sendEmail(
-        email,
-        subject,
-        emailMessage
-      );
-  
-      const updatedRequests = requests.filter(
-        (request) => request.request_id !== request_id
-      );
-      setRequests(updatedRequests);
+      await sendEmail(email, subject, emailMessage);
+
+      // Re-fetch the updated requests after handling the action
+      await fetchRequests();
     } catch (error: any) {
       console.error("Failed to handle request:", error.message);
     }
   };
-  
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
@@ -336,6 +341,26 @@ export default function ApproveRequestsPage() {
                       request.other_reason &&
                       `: ${request.other_reason}`}
                   </p>
+                  <p>
+                    Available Sick Time: {request.available_sick_time} hours
+                  </p>{" "}
+                  {/* Display available sick time */}
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={request.use_sick_time}
+                      onChange={(e) =>
+                        setRequests((prevRequests) =>
+                          prevRequests.map((req) =>
+                            req.request_id === request.request_id
+                              ? { ...req, use_sick_time: e.target.checked }
+                              : req
+                          )
+                        )
+                      }
+                    />
+                    Use Sick Time
+                  </label>
                 </div>
                 <div className="flex flex-col space-y-2">
                   <div className="flex space-x-2">

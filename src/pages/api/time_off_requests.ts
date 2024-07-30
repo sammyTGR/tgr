@@ -1,8 +1,21 @@
-// pages/api/time_off_requests.ts used in time off review
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { corsHeaders } from '@/utils/cors';
 import { supabase } from '@/utils/supabase/client';
+
+interface TimeOffRequest {
+  request_id: number;
+  employee_id: number;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  other_reason: string;
+  status: string;
+  name: string;
+  email: string;
+  use_sick_time: boolean; // Add this field to match the request data
+  available_sick_time: number; // New field to hold available sick time
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') {
@@ -25,7 +38,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: error.message });
             }
 
-            return res.status(200).json(data);
+            const enrichedData = await Promise.all(data.map(async (request: TimeOffRequest) => {
+                const { data: sickTimeData, error } = await supabase
+                  .rpc("calculate_available_sick_time", { employee_id: request.employee_id });
+                if (error) {
+                  console.error("Failed to fetch sick time:", error.message);
+                  return { ...request, available_sick_time: 40 };  // Default to 40 if error
+                }
+                return { ...request, available_sick_time: sickTimeData };
+            }));
+
+            return res.status(200).json(enrichedData);
         } catch (err) {
             console.error("Unexpected error fetching time off requests:", err);
             return res.status(500).json({ error: 'Unexpected error fetching time off requests' });
