@@ -5,7 +5,7 @@ import { FirearmsMaintenanceData, columns } from "./columns";
 import { DataTable } from "./data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import AddFirearmForm from "@/app/TGR/gunsmithing/AddFirearmForm";
 
@@ -291,12 +291,12 @@ export default function FirearmsChecklist() {
         "Error checking for existing submissions:",
         existingSubmissionsError.message
       );
-      alert("Failed to check for existing submissions.");
+      toast.error("Failed to check for existing submissions.");
       return;
     }
 
     if (existingSubmissions.length > 0) {
-      alert(
+      toast(
         `A checklist for the ${shift} shift has already been submitted today.`
       );
       return;
@@ -304,6 +304,16 @@ export default function FirearmsChecklist() {
 
     // Filter firearms with notes
     const firearmsWithNotes = data.filter((item) => item.notes);
+
+    // Ensure all required firearms are verified
+    const allVerified = data.every(
+      (item) => item.notes || item.morning_checked || item.evening_checked
+    );
+
+    if (!allVerified) {
+      toast(`Please verify all firearms for the ${shift} shift.`);
+      return;
+    }
 
     try {
       // Insert the firearms with notes into the checklist_submissions table
@@ -347,10 +357,10 @@ export default function FirearmsChecklist() {
       });
 
       setData(updatedData);
-      alert(`Checklist for ${shift} shift submitted successfully.`);
+      toast.success(`Checklist for ${shift} shift submitted successfully.`);
     } catch (error) {
       console.error("Error submitting checklist:", error);
-      alert("Failed to submit checklist.");
+      toast.error("Failed to submit checklist.");
     }
   };
 
