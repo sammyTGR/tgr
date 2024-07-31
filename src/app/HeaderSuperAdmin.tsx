@@ -167,44 +167,32 @@ const reportsComps = [
   },
 ];
 
-const profileComps = [
-  {
-    title: "Notes",
-    href: "/admin/todo",
-    description: "All Kinda Notes",
-  },
-  {
-    title: "Weekly Agenda",
-    href: "/admin/weeklyagenda",
-    description: "Weekly Agenda Topics",
-  },
-  {
-    title: "Staff Profiles",
-    href: "/admin/dashboard",
-    description: "All Profiles",
-  },
-  {
-    title: "Test Profiles",
-    href: "/TGR/crew/profile/[employeeId]",
-    description: "All Profiles",
-  },
-];
-
 const HeaderSuperAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
   const router = useRouter();
   const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
   const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
   const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data) {
-        setUser(data.user);
+    const fetchUserAndEmployee = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData && userData.user) {
+        setUser(userData.user);
+        const { data: employeeData, error } = await supabase
+          .from("employees")
+          .select("employee_id")
+          .eq("user_uuid", userData.user.id)
+          .single();
+        if (error) {
+          console.error("Error fetching employee data:", error.message);
+        } else {
+          setEmployeeId(employeeData.employee_id);
+        }
       }
     };
-    fetchUser();
+    fetchUserAndEmployee();
   }, []);
 
   const handleSignOut = async () => {
@@ -255,6 +243,29 @@ const HeaderSuperAdmin = React.memo(() => {
       router.push("/TGR/crew/chat");
     }
   };
+
+  const profileComps = [
+    {
+      title: "Notes",
+      href: "/admin/todo",
+      description: "All Kinda Notes",
+    },
+    {
+      title: "Weekly Agenda",
+      href: "/admin/weeklyagenda",
+      description: "Weekly Agenda Topics",
+    },
+    {
+      title: "Staff Profiles",
+      href: "/admin/dashboard",
+      description: "All Profiles",
+    },
+    {
+      title: "Test Profiles",
+      href: employeeId ? `/TGR/crew/profile/${employeeId}` : "#",
+      description: "All Profiles",
+    },
+  ];
 
   return (
     <RoleBasedWrapper allowedRoles={["super admin"]}>
