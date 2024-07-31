@@ -183,6 +183,11 @@ const profileComps = [
     href: "/admin/dashboard",
     description: "All Profiles",
   },
+  {
+    title: "Test Profiles",
+    href: "/TGR/crew/profile/[employeeId]",
+    description: "All Profiles",
+  },
 ];
 
 const HeaderSuperAdmin = React.memo(() => {

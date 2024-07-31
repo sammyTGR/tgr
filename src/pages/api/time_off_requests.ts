@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { corsHeaders } from '@/utils/cors';
 import { supabase } from '@/utils/supabase/client';
 
 interface TimeOffRequest {
@@ -13,8 +12,8 @@ interface TimeOffRequest {
   status: string;
   name: string;
   email: string;
-  use_sick_time: boolean; // Add this field to match the request data
-  available_sick_time: number; // New field to hold available sick time
+  use_sick_time: boolean;
+  available_sick_time: number;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -31,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const { data, error } = await supabase
                 .from('time_off_requests')
                 .select('*')
-                .eq('status', 'pending'); // Filter where status is 'pending'
+                .eq('status', 'pending'); 
 
             if (error) {
                 console.error("Error fetching time off requests:", error.message);
@@ -40,10 +39,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const enrichedData = await Promise.all(data.map(async (request: TimeOffRequest) => {
                 const { data: sickTimeData, error } = await supabase
-                  .rpc("calculate_available_sick_time", { employee_id: request.employee_id });
+                  .rpc("calculate_available_sick_time", { p_emp_id: request.employee_id });
                 if (error) {
                   console.error("Failed to fetch sick time:", error.message);
-                  return { ...request, available_sick_time: 40 };  // Default to 40 if error
+                  return { ...request, available_sick_time: 40 };  
                 }
                 return { ...request, available_sick_time: sickTimeData };
             }));

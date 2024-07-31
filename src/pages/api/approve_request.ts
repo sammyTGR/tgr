@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { corsHeaders } from '@/utils/cors';
 import { supabase } from '@/utils/supabase/client';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'OPTIONS') {

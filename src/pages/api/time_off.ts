@@ -1,4 +1,3 @@
-// pages/api/time_off.ts used for submitting time off requests
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { corsHeaders } from '@/utils/cors';
@@ -35,7 +34,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // Insert the time off request
             const { data, error } = await supabase
                 .from('time_off_requests')
-                .insert([{ employee_id, name: employee_name, start_date, end_date, reason, other_reason, status: 'pending', email }])
+                .insert([{
+                    employee_id,
+                    name: employee_name,
+                    start_date,
+                    end_date,
+                    reason,
+                    other_reason,
+                    status: 'pending',
+                    email,
+                    sick_time_year: new Date().getFullYear()  // Add this line
+                }])
                 .select(); // Select the inserted row to return it
 
             if (error) {
