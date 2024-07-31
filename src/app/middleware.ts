@@ -3,12 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { protectedPaths } from "@/lib/constant";
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
   const supabase = createClient();
   const url = new URL(request.url);
 
@@ -21,13 +15,13 @@ export async function middleware(request: NextRequest) {
     if (protectedPaths.includes(url.pathname)) {
       return NextResponse.redirect(new URL("/auth?next=" + url.pathname, request.url));
     }
-    return response;
+    return NextResponse.next();
   }
 
   // Fetch user role from the employees table
   const { data: roleData, error: roleError } = await supabase
     .from("employees")
-    .select("role")
+    .select("role, employee_id")
     .eq("user_uuid", user.id)
     .single();
 
@@ -37,31 +31,18 @@ export async function middleware(request: NextRequest) {
   }
 
   const userRole = roleData.role;
-  response.headers.set("X-User-Role", userRole);
+  const employeeId = roleData.employee_id;
 
-  // Set the role as a cookie
-  response.cookies.set({
-    name: "X-User-Role",
-    value: userRole,
-    path: "/",
-  });
-
-  // Redirect to the correct landing page based on role
+  // Redirect to the correct profile page based on role
   if (url.pathname === "/auth" || url.pathname === "/") {
-    if (userRole === "admin") {
-      return NextResponse.redirect(new URL("/landing-page/admin", request.url));
-    } else if (userRole === "super admin") {
-      return NextResponse.redirect(new URL("/landing-page/super-admin", request.url));
-    } else if (userRole === "gunsmith") {
-      return NextResponse.redirect(new URL("/landing-page/gunsmith", request.url));
-    } else if (userRole === "auditor") { // Add this condition
-      return NextResponse.redirect(new URL("/landing-page/auditor", request.url));
+    if (userRole === "admin" || userRole === "super admin" || userRole === "gunsmith" || userRole === "auditor") {
+      return NextResponse.redirect(new URL(`/TGR/crew/profile/${employeeId}`, request.url));
     } else {
-      return NextResponse.redirect(new URL("/landing-page/user", request.url));
+      return NextResponse.redirect(new URL(`/TGR/crew/profile/${employeeId}`, request.url));
     }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

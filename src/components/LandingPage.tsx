@@ -1,105 +1,89 @@
-"use client";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
+// "use client";
+// import dynamic from "next/dynamic";
+// import { useEffect, useState } from "react";
+// import { useRouter } from "next/navigation";
+// import { supabase } from "@/utils/supabase/client";
 
-const LandingPageUser = dynamic(() => import("./LandingPageUser"));
-const LandingPageAdmin = dynamic(() => import("./LandingPageAdmin"));
-const LandingPageSuperAdmin = dynamic(() => import("./LandingPageSuperAdmin"));
-const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
-const LandingPageCustomer = dynamic(() => import("./LandingPageCustomer"));
-const LandingPageGunsmith = dynamic(() => import("./LandingPageGunsmith"));
-const LandingPageAuditor = dynamic(() => import("./LandingPageAuditor")); // Add this line
+// const LandingPagePublic = dynamic(() => import("./LandingPagePublic"));
 
-const LandingPage: React.FC = () => {
-  const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+// const LandingPage: React.FC = () => {
+//   const [loading, setLoading] = useState(true);
+//   const router = useRouter();
 
-  useEffect(() => {
-    const fetchRole = async () => {
-      const roleHeader = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("X-User-Role="))
-        ?.split("=")[1];
-      if (roleHeader) {
-        setRole(roleHeader);
-        setLoading(false);
-      } else {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) {
-          console.error("Error fetching user:", userError.message);
-          setLoading(false);
-          return;
-        }
+//   useEffect(() => {
+//     const fetchRoleAndRedirect = async () => {
+//       const { data: userData, error: userError } =
+//         await supabase.auth.getUser();
+//       if (userError || !userData.user) {
+//         console.error("Error fetching user:", userError?.message);
+//         setLoading(false);
+//         return;
+//       }
 
-        const user = userData.user;
+//       const user = userData.user;
 
-        // Check the employees table
-        const { data: roleData, error: roleError } = await supabase
-          .from("employees")
-          .select("role")
-          .eq("user_uuid", user?.id)
-          .single();
+//       // Check the employees table
+//       const { data: roleData, error: roleError } = await supabase
+//         .from("employees")
+//         .select("role, employee_id")
+//         .eq("user_uuid", user.id)
+//         .single();
 
-        if (roleError || !roleData) {
-          // Check the public_customers table if not found in employees table
-          const { data: customerData, error: customerError } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("email", user?.email)
-            .single();
+//       if (roleError || !roleData) {
+//         // Check the profiles table if not found in employees table
+//         const { data: customerData, error: customerError } = await supabase
+//           .from("profiles")
+//           .select("role")
+//           .eq("email", user.email)
+//           .single();
 
-          if (customerError || !customerData) {
-            console.error(
-              "Error fetching role:",
-              roleError?.message || customerError?.message
-            );
-            setLoading(false);
-            return;
-          }
+//         if (customerError || !customerData) {
+//           console.error(
+//             "Error fetching role:",
+//             roleError?.message || customerError?.message
+//           );
+//           setLoading(false);
+//           return;
+//         }
 
-          setRole(customerData.role);
-        } else {
-          setRole(roleData.role);
-        }
+//         const role = customerData.role;
+//         if (role === "customer") {
+//           router.push(`/profiles/customer/${user.id}`);
+//         } else {
+//           router.push(`/profiles/user/${user.id}`);
+//         }
+//       } else {
+//         const { role, employee_id } = roleData;
+//         switch (role) {
+//           case "admin":
+//             router.push(`/TGR/crew/profile/${employee_id}`);
+//             break;
+//           case "super admin":
+//             router.push(`/TGR/crew/profile/${employee_id}`);
+//             break;
+//           case "gunsmith":
+//             router.push(`/TGR/crew/profile/${employee_id}`);
+//             break;
+//           case "auditor":
+//             router.push(`/TGR/crew/profile/${employee_id}`);
+//             break;
+//           default:
+//             router.push(`/TGR/crew/profile/${employee_id}`);
+//             break;
+//         }
+//       }
 
-        setLoading(false);
-      }
-    };
+//       setLoading(false);
+//     };
 
-    fetchRole();
-  }, []);
+//     fetchRoleAndRedirect();
+//   }, [router]);
 
-  if (loading) {
-    return <div>Loading...</div>; // Show loading spinner or any placeholder
-  }
+//   if (loading) {
+//     return <div>Loading...</div>; // Show loading spinner or any placeholder
+//   }
 
-  if (!role) {
-    return <LandingPagePublic />;
-  }
+//   return <LandingPagePublic />;
+// };
 
-  if (role === "super admin") {
-    return <LandingPageSuperAdmin />;
-  }
-
-  if (role === "admin") {
-    return <LandingPageAdmin />;
-  }
-
-  if (role === "customer") {
-    return <LandingPageCustomer />;
-  }
-
-  if (role === "gunsmith") {
-    return <LandingPageGunsmith />;
-  }
-
-  if (role === "auditor") {
-    return <LandingPageAuditor />; // Add this condition
-  }
-
-  return <LandingPageUser />;
-};
-
-export default LandingPage;
+// export default LandingPage;

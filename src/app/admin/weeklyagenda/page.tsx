@@ -10,8 +10,9 @@ import React, {
 } from "react";
 import { PlusIcon, TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { motion } from "framer-motion";
-import { LinkBreak2Icon } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { useRole } from "@/context/RoleContext"; // Adjust the import path if needed
 
 type ColumnType = {
   id: string;
@@ -22,6 +23,7 @@ type CardType = {
   id: string;
   title: string;
   column_name: string;
+  created_by: string; // Assuming you have a field that stores the creator's ID
 };
 
 const CustomKanban = () => {
@@ -36,6 +38,7 @@ export default function Board() {
   const [columns, setColumns] = useState<ColumnType[]>([]);
   const [cards, setCards] = useState<CardType[]>([]);
   const channel = useRef(null);
+  const { role, user } = useRole(); // Get the role and user from context
 
   const fetchColumns = async () => {
     const { data, error } = await supabase
@@ -92,7 +95,7 @@ export default function Board() {
   const addCard = async (column_name: string, title: string) => {
     const { data, error } = await supabase
       .from("weekly_agenda")
-      .insert([{ column_name, title }])
+      .insert([{ column_name, title, created_by: user.email }]) // Include created_by field
       .select();
     if (error) {
       console.error("Error adding card:", error);
@@ -125,15 +128,22 @@ export default function Board() {
     }
   };
 
-  const deleteCard = async (id: string) => {
-    const { error } = await supabase
-      .from("weekly_agenda")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      console.error("Error deleting card:", error);
+  const deleteCard = async (id: string, createdBy: string) => {
+    if (
+      role === "super admin" ||
+      (role === "admin" && user.email === createdBy)
+    ) {
+      const { error } = await supabase
+        .from("weekly_agenda")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        console.error("Error deleting card:", error);
+      } else {
+        setCards((prevCards) => prevCards.filter((card) => card.id !== id));
+      }
     } else {
-      setCards((prevCards) => prevCards.filter((card) => card.id !== id));
+      console.error("You do not have permission to delete this card.");
     }
   };
 
@@ -162,28 +172,34 @@ export default function Board() {
   };
 
   const deleteColumn = async (id: string) => {
-    const { error } = await supabase
-      .from("weekly_agenda_columns")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      console.error("Error deleting column:", error);
+    if (role === "super admin") {
+      const { error } = await supabase
+        .from("weekly_agenda_columns")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        console.error("Error deleting column:", error);
+      } else {
+        setColumns((prevColumns) =>
+          prevColumns.filter((column) => column.id !== id)
+        );
+      }
     } else {
-      setColumns((prevColumns) =>
-        prevColumns.filter((column) => column.id !== id)
-      );
+      console.error("You do not have permission to delete this column.");
     }
   };
 
   return (
-    <>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="flex flex-col space-y-4 mb-4 p-4">
         <h1 className="text-2xl font-bold">Weekly Agenda</h1>
         <AddColumn handleAddColumn={addColumn} />
       </div>
       <div className="flex flex-wrap gap-3 p-4">
         {columns.map((column) => (
-          <div key={column.id} className="w-1/3"> {/* Adjust width here */}
+          <div key={column.id} className="w-1/3">
+            {" "}
+            {/* Adjust width here */}
             <Column
               title={column.title}
               column={column}
@@ -201,8 +217,8 @@ export default function Board() {
         ))}
         <BurnBarrel setCards={setCards} />
       </div>
-    </>
-  );  
+    </RoleBasedWrapper>
+  );
 }
 
 type ColumnProps = {
@@ -214,7 +230,7 @@ type ColumnProps = {
   updateCardColumn: (id: string, column_name: string) => void;
   updateCardTitle: (id: string, title: string) => void;
   addCard: (column_name: string, title: string) => void;
-  deleteCard: (id: string) => void;
+  deleteCard: (id: string, createdBy: string) => void; // Update prop type
   updateColumnTitle: (id: string, title: string) => void;
   deleteColumn: (id: string) => void;
 };
@@ -236,6 +252,8 @@ const Column = ({
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
 
+  const { role } = useRole(); // Get the role from context
+
   const handleDragStart = (e: DragEvent, card: CardType) => {
     e.dataTransfer.setData("cardId", card.id);
     e.dataTransfer.setData("currentColumn", card.column_name);
@@ -245,7 +263,24 @@ const Column = ({
     const cardId = e.dataTransfer.getData("cardId");
     const currentColumn = e.dataTransfer.getData("currentColumn");
 
-    if (currentColumn !== column.title) {
+    if (currentColumn === column.title) {
+      // Reorder within the same column
+      const updatedCards = [...cards];
+      const cardIndex = updatedCards.findIndex((card) => card.id === cardId);
+      if (cardIndex !== -1) {
+        const [movedCard] = updatedCards.splice(cardIndex, 1);
+        const dropIndex = getNearestIndicatorIndex(e, updatedCards);
+        updatedCards.splice(dropIndex, 0, movedCard);
+        setCards((prevCards) =>
+          prevCards.map(
+            (card) =>
+              updatedCards.find((updatedCard) => updatedCard.id === card.id) ||
+              card
+          )
+        );
+      }
+    } else {
+      // Move to a different column
       await updateCardColumn(cardId, column.title);
       setCards((prevCards) => {
         const updatedCards = prevCards.map((card) =>
@@ -306,6 +341,15 @@ const Column = ({
     );
   };
 
+  const getNearestIndicatorIndex = (e: DragEvent, cards: CardType[]) => {
+    const indicators = getIndicators();
+    const el = getNearestIndicator(e, indicators);
+    const index = cards.findIndex(
+      (card) => card.id === el.element.dataset.before
+    );
+    return index === -1 ? cards.length : index;
+  };
+
   const handleDragLeave = () => {
     clearHighlights();
     setActive(false);
@@ -315,8 +359,8 @@ const Column = ({
     await addCard(column.title, title);
   };
 
-  const handleDeleteCard = async (id: string) => {
-    await deleteCard(id);
+  const handleDeleteCard = async (id: string, createdBy: string) => {
+    await deleteCard(id, createdBy);
   };
 
   const handleEditColumn = () => {
@@ -360,12 +404,14 @@ const Column = ({
               <button onClick={handleEditColumn} className="text-yellow-500">
                 <Pencil1Icon />
               </button>
-              <button
-                onClick={() => deleteColumn(column.id)}
-                className="text-red-500"
-              >
-                <TrashIcon />
-              </button>
+              {role === "super admin" && (
+                <button
+                  onClick={() => deleteColumn(column.id)}
+                  className="text-red-500"
+                >
+                  <TrashIcon />
+                </button>
+              )}
             </div>
           </>
         )}
@@ -396,7 +442,7 @@ const Column = ({
 
 type CardProps = CardType & {
   handleDragStart: Function;
-  handleDeleteCard: (id: string) => void;
+  handleDeleteCard: (id: string, createdBy: string) => void; // Update prop type
   updateCardTitle: (id: string, title: string) => void;
 };
 
@@ -404,12 +450,15 @@ const Card = ({
   title,
   id,
   column_name,
+  created_by, // Assuming you pass this prop
   handleDragStart,
   handleDeleteCard,
   updateCardTitle,
 }: CardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
+
+  const { role, user } = useRole(); // Get the role and user from context
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -434,6 +483,7 @@ const Card = ({
         draggable="true"
         onDragStart={(e) => handleDragStart(e, { title, id, column_name })}
         className="cursor-grab rounded border border-neutral-700 bg-neutral-800 p-3 active:cursor-grabbing group"
+        data-before={id} // Add this line
       >
         {isEditing ? (
           <form onSubmit={handleTitleSubmit} className="flex-1">
@@ -459,12 +509,15 @@ const Card = ({
               <button onClick={handleEdit} className="text-yellow-500">
                 <Pencil1Icon />
               </button>
-              <button
-                onClick={() => handleDeleteCard(id)}
-                className="text-red-500"
-              >
-                <TrashIcon />
-              </button>
+              {(role === "super admin" ||
+                (role === "admin" && user.email === created_by)) && (
+                <button
+                  onClick={() => handleDeleteCard(id, created_by)}
+                  className="text-red-500"
+                >
+                  <TrashIcon />
+                </button>
+              )}
             </div>
           </div>
         )}

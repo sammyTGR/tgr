@@ -168,6 +168,11 @@ const profileComps = [
     href: "/admin/dashboard",
     description: "All Profiles",
   },
+  {
+    title: "Weekly Agenda",
+    href: "/admin/weeklyagenda",
+    description: "Weekly Agenda Topics",
+  },
 ];
 
 const HeaderAdmin = React.memo(() => {
