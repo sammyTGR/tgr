@@ -261,9 +261,9 @@ const HeaderSuperAdmin = React.memo(() => {
       description: "All Profiles",
     },
     {
-      title: "Test Profiles",
+      title: "Your Profile",
       href: employeeId ? `/TGR/crew/profile/${employeeId}` : "#",
-      description: "All Profiles",
+      description: "Your Personal Profile",
     },
   ];
 

@@ -153,6 +153,30 @@
       font-weight: bold;
     }
     
+/* Add this CSS to your global styles or in the component's styles */
+/* @media print {
+  .fixed, .DialogOverlay, .DialogContent, .Button {
+    display: none !important;
+  }
+
+  .view-review-dialog {
+    display: block !important;
+    position: static !important;
+    background: white !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+  }
+} */
 
     
   }

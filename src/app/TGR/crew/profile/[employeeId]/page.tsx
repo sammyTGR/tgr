@@ -1,7 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/utils/supabase/client";
@@ -21,6 +27,15 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogOverlay,
+  DialogClose,
+} from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -28,8 +43,17 @@ import TimeOffRequestComponent from "@/components/TimeOffRequestComponent";
 import { Textarea } from "@/components/ui/textarea";
 import { ClockIcon } from "@radix-ui/react-icons";
 import { DataTable } from "../../../../admin/audits/contest/data-table";
+import { Input } from "@/components/ui/input";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import PointsForm from "@/components/PointsForm";
+import PointsComponent from "../../points/page";
+import { Label } from "@/components/ui/label";
 
 const schedulestitle = "Scheduling";
+const performancetitle = "Individual Performance";
+const formtitle = "Your Forms";
 
 // TimeOffReason interface for type
 interface TimeOffReason {
@@ -38,22 +62,55 @@ interface TimeOffReason {
 }
 
 interface Audit {
-    dros_number: string;
-    salesreps: string;
-    audit_type: string;
-    trans_date: string;
-    audit_date: string;
-    error_location: string;
-    error_details: string;
-    error_notes: string;
-    dros_cancel: string;
-  }
-  
-  interface PointsCalculation {
-    category: string;
-    error_location: string;
-    points_deducted: number;
-  }
+  dros_number: string;
+  salesreps: string;
+  audit_type: string;
+  trans_date: string;
+  audit_date: string;
+  error_location: string;
+  error_details: string;
+  error_notes: string;
+  dros_cancel: string;
+}
+
+interface Review {
+  id: number;
+  employee_id: number;
+  review_quarter: string;
+  review_year: number;
+  overview_performance: string;
+  achievements_contributions: string[];
+  attendance_reliability: string[];
+  quality_work: string[];
+  communication_collaboration: string[];
+  strengths_accomplishments: string[];
+  areas_growth: string[];
+  recognition: string[];
+  created_by: string;
+  created_at: string;
+}
+
+interface PointsCalculation {
+  category: string;
+  error_location: string;
+  points_deducted: number;
+}
+
+const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+
+const schema = z.object({
+  employee: z.string().nonempty({ message: "Employee name is required" }),
+  dros_status: z.string().nonempty({ message: "DROS status is required" }),
+  dros_number: z.string().min(2, { message: "DROS Number is required" }),
+  invoice_number: z.string().min(2, { message: "Invoice Number is required" }),
+  serial_number: z.string().min(2, { message: "Serial Number is required" }),
+  start_trans: z
+    .string()
+    .nonempty({ message: "Start Transaction status is required" }),
+  details: z.string().optional(),
+});
+
+type FormData = z.infer<typeof schema>;
 
 const EmployeeProfilePage = () => {
   const params = useParams();
@@ -66,11 +123,13 @@ const EmployeeProfilePage = () => {
   const [availableSickTime, setAvailableSickTime] = useState<number | null>(
     null
   );
-  const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(undefined);
+  const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(
+    undefined
+  );
   const [summaryData, setSummaryData] = useState<any[]>([]);
-  const [pointsCalculation, setPointsCalculation] = useState<PointsCalculation[]>([]);
-
-
+  const [pointsCalculation, setPointsCalculation] = useState<
+    PointsCalculation[]
+  >([]);
 
   // State for time off request
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -79,6 +138,29 @@ const EmployeeProfilePage = () => {
   const [otherReason, setOtherReason] = useState<string>("");
   const [timeOffReasons, setTimeOffReasons] = useState<TimeOffReason[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [currentReview, setCurrentReview] = useState<Review | null>(null);
+  const [viewReviewDialog, setViewReviewDialog] = useState(false);
+
+  const handleViewReview = (review: Review) => {
+    setCurrentReview(review);
+    setViewReviewDialog(true);
+  };
+
+  const fetchReviews = async () => {
+    if (!employeeId) return;
+
+    const { data, error } = await supabase
+      .from("employee_quarterly_reviews")
+      .select("*")
+      .eq("employee_id", employeeId);
+
+    if (error) {
+      console.error("Error fetching reviews:", error);
+    } else {
+      setReviews(data as Review[]);
+    }
+  };
 
   const fetchAvailableSickTime = async () => {
     if (!employeeId) return;
@@ -136,6 +218,7 @@ const EmployeeProfilePage = () => {
     fetchEmployeeData();
     fetchAvailableTimeOff();
     fetchAvailableSickTime();
+    fetchReviews();
   }, [employeeId]);
 
   const handleDateChange = (date: Date | undefined) => {
@@ -305,7 +388,7 @@ const EmployeeProfilePage = () => {
       .select("*")
       .eq("salesreps", lanid)
       .order("audit_date", { ascending: false });
-  
+
     if (error) {
       console.error("Error fetching audits:", error);
     } else {
@@ -318,8 +401,6 @@ const EmployeeProfilePage = () => {
       fetchAudits(employee.lanid);
     }
   }, [employee]);
-  
-  
 
   useEffect(() => {
     const fetchTimeOffReasons = async () => {
@@ -340,13 +421,11 @@ const EmployeeProfilePage = () => {
     fetchTimeOffReasons();
   }, []);
 
-  
-
   if (!employee) return <div>Loading...</div>;
 
   return (
     <div className="section w-full">
-      <Card className="h-full max-w-8xl mx-auto my-12">
+      <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
         <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
             <Avatar>
@@ -367,11 +446,12 @@ const EmployeeProfilePage = () => {
         <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
           <Tabs defaultValue="schedules" className="w-full">
             <TabsList className="border-b border-gray-200 dark:border-gray-700">
-              <TabsTrigger value="schedules">Schedules</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="schedules">Scheduling</TabsTrigger>
+              <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
-              <TabsTrigger value="sops">SOPs</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
             </TabsList>
+
             <TabsContent value="schedules">
               <h1 className="text-xl font-bold mb-4 ml-2">
                 <TextGenerateEffect words={schedulestitle} />
@@ -442,7 +522,6 @@ const EmployeeProfilePage = () => {
                     </Button>
                   </CardContent>
                 </Card>
-
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-2xl font-bold">
@@ -459,162 +538,325 @@ const EmployeeProfilePage = () => {
                   </CardContent>
                 </Card>
               </div>
-              <Card >
-                <CardHeader>
-                </CardHeader>
-                <CardContent >
+              <Card>
+                <CardHeader></CardHeader>
+                <CardContent>
                   <SchedulesComponent employeeId={employeeId} />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            
             <TabsContent value="performance">
-  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-    <Card className="mt-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle >Select A Date</CardTitle>
-        {/* Add any icons or elements you want here */}
-      </CardHeader>
-      <CardContent>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full pl-3 text-left font-normal"
-            >
-              {selectedDate ? (
-                format(selectedDate, "PPP")
-              ) : (
-                <span>Pick a date</span>
-              )}
-              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <CustomCalendar
-              selectedDate={selectedDate ?? new Date()}
-              onDateChange={handleDateChange}
-              disabledDays={() => false}
-            />
-          </PopoverContent>
-        </Popover>
-      </CardContent>
-    </Card>
+              <h1 className="text-xl font-bold mb-2 ml-2">
+                <TextGenerateEffect words={performancetitle} />
+              </h1>
+              <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                <Card className="mt-4">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-2xl font-bold">
+                      Select A Date
+                    </CardTitle>
+                    {/* Add any icons or elements you want here */}
+                  </CardHeader>
+                  <CardContent>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full pl-3 text-left font-normal"
+                        >
+                          {selectedDate ? (
+                            format(selectedDate, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CustomCalendar
+                          selectedDate={selectedDate ?? new Date()}
+                          onDateChange={handleDateChange}
+                          disabledDays={() => false}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </CardContent>
+                </Card>
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">
+                      Total DROS Processed
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="text-left">
+                      <DataTable
+                        columns={[
+                          { Header: "Total DROS", accessor: "TotalDros" },
+                        ]}
+                        data={summaryData}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">
+                      Points Deducted
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="text-left">
+                      <DataTable
+                        columns={[
+                          {
+                            Header: "Points Deducted",
+                            accessor: "PointsDeducted",
+                          },
+                        ]}
+                        data={summaryData}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">
+                      Current Points
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="text-left">
+                      <DataTable
+                        columns={[
+                          { Header: "Total Points", accessor: "TotalPoints" },
+                        ]}
+                        data={summaryData}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle>DROS Total</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
-        <div className="text-left">
-          <DataTable
-            columns={[
-              { Header: "Total DROS", accessor: "TotalDros" },
-              
-            ]}
-            data={summaryData}
-          />
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle>Points Deducted</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
-        <div className="text-left">
-          <DataTable
-            columns={[
-              
-              { Header: "Points Deducted", accessor: "PointsDeducted" },
-              
-            ]}
-            data={summaryData}
-          />
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle>Current Points</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
-        <div className="text-left">
-          <DataTable
-            columns={[
-              
-              { Header: "Total Points", accessor: "TotalPoints" },
-            ]}
-            data={summaryData}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-
-  <div className="p-6 space-y-4">
-    <Card>
-      <CardContent>
-        <table className="min-w-full">
-          <thead>
-            <tr>
-              <th className="py-2 w-36 text-left">DROS #</th>
-              {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
-              {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
-              <th className="py-2 w-32 text-left">Trans Date</th>
-              {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
-              <th className="py-2 w-38 text-left">Location</th>
-              <th className="py-2 w-58 text-left">Details</th>
-              <th className="py-2 w-64 text-left">Notes</th>
-              <th className="py-2 w-12 text-left">Cancelled?</th>
-            </tr>
-          </thead>
-          <tbody>
-            {audits.map((audit, index) => (
-              <tr key={index} className="border-t">
-                <td className="py-2 w-36">{audit.dros_number}</td>
-                {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
-                {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
-                <td className="py-2 w-30">{audit.trans_date}</td>
-                {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
-                <td className="py-2 w-38">{audit.error_location}</td>
-                <td className="py-2 w-58">{audit.error_details}</td>
-                <td className="py-2 w-64">{audit.error_notes}</td>
-                <td className="py-2 w-12">{audit.dros_cancel}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </CardContent>
-    </Card>
-  </div>
-</TabsContent>
-
-
-
+              <div className="p-6 space-y-4">
+                <Card>
+                  <CardContent>
+                    <table className="min-w-full">
+                      <thead>
+                        <tr>
+                          <th className="py-2 w-36 text-left">DROS #</th>
+                          {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
+                          {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
+                          <th className="py-2 w-32 text-left">Trans Date</th>
+                          {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
+                          <th className="py-2 w-32 text-left">Location</th>
+                          <th className="py-2 w-48 text-left">Details</th>
+                          <th className="py-2 w-64 text-left">Notes</th>
+                          <th className="py-2 w-12 text-left">Cancelled?</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {audits.map((audit, index) => (
+                          <tr key={index} className="border-t">
+                            <td className="py-2 w-36">{audit.dros_number}</td>
+                            {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
+                            {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
+                            <td className="py-2 w-30">{audit.trans_date}</td>
+                            {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
+                            <td className="py-2 w-32">
+                              {audit.error_location}
+                            </td>
+                            <td className="py-2 w-48">{audit.error_details}</td>
+                            <td className="py-2 w-64">{audit.error_notes}</td>
+                            <td className="py-2 w-12">{audit.dros_cancel}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
             <TabsContent value="forms">
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle>Forms</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Forms content will be displayed here.</p>
-                </CardContent>
-              </Card>
+              <h1 className="text-xl font-bold mb-2 ml-2">
+                <TextGenerateEffect words={formtitle} />
+              </h1>
+              <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                <Card className="mt-4">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-2xl font-bold">
+                      Submit Points
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full text-left font-normal"
+                        >
+                          Submit Points Form
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2" align="start">
+                        <PointsForm /> {/* Render the PointsComponent */}
+                      </PopoverContent>
+                    </Popover>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
-            <TabsContent value="sops">
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle>Standard Operating Procedures (SOPs)</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <p>SOPs for the employee will be displayed here.</p>
-                </CardContent>
-              </Card>
+
+            <TabsContent value="reviews">
+              <h1 className="text-xl font-bold mb-2 ml-2">
+                <TextGenerateEffect words="Your Reviews" />
+              </h1>
+              <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {reviews.map((review) => (
+                  <Card key={review.id} className="mt-4">
+                    <CardHeader className="flex flex-col items-start justify-between space-y-2 pb-2">
+                      <CardTitle className="text-2xl font-bold">
+                        {review.review_quarter} {review.review_year}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
+                        - {review.created_by} on{" "}
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <Button
+                        variant="outline"
+                        className="w-full text-left font-normal"
+                        onClick={() => handleViewReview(review)}
+                      >
+                        View Review
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Dialog
+                open={viewReviewDialog}
+                onOpenChange={setViewReviewDialog}
+              >
+                <DialogOverlay className="fixed inset-0 z-50" />
+                <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
+                  <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                    <DialogTitle className="font-size: 1.35rem font-bold">
+                      Employee Review
+                    </DialogTitle>
+                    <DialogDescription>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="view-label"></Label>
+                        <p>{currentReview?.review_quarter}</p>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">Year</Label>
+                        <p>{currentReview?.review_year}</p>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Overview of Performance
+                        </Label>
+                        <p>{currentReview?.overview_performance}</p>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Achievements and Contributions
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.achievements_contributions.map(
+                            (achievement, index) => (
+                              <li key={index}>{achievement}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Attendance and Reliability
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.attendance_reliability.map(
+                            (attendance, index) => (
+                              <li key={index}>{attendance}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Quality of Work
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.quality_work.map((quality, index) => (
+                            <li key={index}>{quality}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Communication & Collaboration
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.communication_collaboration.map(
+                            (communication, index) => (
+                              <li key={index}>{communication}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Strengths & Accomplishments
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.strengths_accomplishments.map(
+                            (strength, index) => (
+                              <li key={index}>{strength}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">
+                          Areas for Growth and Development
+                        </Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.areas_growth.map((area, index) => (
+                            <li key={index}>{area}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="grid gap-1.5 mb-2">
+                        <Label className="text-md font-bold">Recognition</Label>
+                        <ul className="list-disc pl-5">
+                          {currentReview?.recognition.map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex justify-end mt-2 space-x-2">
+                        <Button
+                          variant="linkHover1"
+                          onClick={() => setViewReviewDialog(false)}
+                        >
+                          Close
+                        </Button>
+                        {/* <Button
+                          variant="linkHover1"
+                          onClick={() => window.print()}
+                        >
+                          Print
+                        </Button> */}
+                      </div>
+                    </DialogDescription>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           </Tabs>
         </main>
