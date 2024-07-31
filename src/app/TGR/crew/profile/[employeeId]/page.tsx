@@ -51,6 +51,8 @@ import PointsForm from "@/components/PointsForm";
 import PointsComponent from "../../points/page";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import styles from "./profiles.module.css";
+import classNames from "classnames";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -452,7 +454,12 @@ const EmployeeProfilePage = () => {
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
           <ScrollArea className="h-[calc(100vh-300px)]">
-            <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body">
+            <main
+              className={classNames(
+                "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
+                styles.noScroll
+              )}
+            >
               {/* Schedules tab content */}
               <TabsContent value="schedules">
                 <h1 className="text-xl font-bold mb-2 ml-2">
