@@ -26,6 +26,7 @@ import {
   DialogOverlay,
   DialogClose,
 } from "@radix-ui/react-dialog";
+import classNames from "classnames";
 
 interface Note {
   id: number;
@@ -158,6 +159,38 @@ const EmployeeProfile = () => {
   const [viewReviewDialog, setViewReviewDialog] = useState(false);
   const [currentReview, setCurrentReview] = useState<Review | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [availableSickTime, setAvailableSickTime] = useState<number | null>(
+    null
+  );
+
+  const fetchAvailableSickTime = async (employeeId: number) => {
+    try {
+      const { data, error } = await supabase.rpc(
+        "calculate_available_sick_time",
+        { p_emp_id: employeeId }
+      );
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error(
+        "Error fetching available sick time:",
+        (error as Error).message
+      );
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (employeeId) {
+      fetchAvailableSickTime(employeeId).then((time) => {
+        if (time !== null) {
+          setAvailableSickTime(time);
+        }
+      });
+    }
+  }, [employeeId]);
 
   const handleViewReview = (review: Review) => {
     setCurrentReview(review);
@@ -1196,6 +1229,17 @@ const EmployeeProfile = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+                  {/* Display available sick time */}
+                  <div className="mt-4">
+                    <h3 className="text-lg font-semibold">
+                      Available Sick Time
+                    </h3>
+                    <p className="text-2xl font-medium">
+                      {availableSickTime !== null
+                        ? `${availableSickTime} hours`
+                        : "Loading..."}
+                    </p>
                   </div>
                 </div>
               </TabsContent>

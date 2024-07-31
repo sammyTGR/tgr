@@ -53,6 +53,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
 import classNames from "classnames";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -427,461 +428,475 @@ const EmployeeProfilePage = () => {
   if (!employee) return <div>Loading...</div>;
 
   return (
-    <div className="section w-full">
-      <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
-        <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <Avatar>
-              <img
-                src={employee.avatar_url || "/Banner.png"}
-                alt="Employee Avatar"
-              />
-              <AvatarFallback>{employee.name[0]}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-xl font-bold">Welcome {employee.name}</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {employee.position}
-              </p>
+    <RoleBasedWrapper
+      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+    >
+      <div className="section w-full">
+        <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
+          <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-4">
+              <Avatar>
+                <img
+                  src={employee.avatar_url || "/Banner.png"}
+                  alt="Employee Avatar"
+                />
+                <AvatarFallback>{employee.name[0]}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-xl font-bold">Welcome {employee.name}</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {employee.position}
+                </p>
+              </div>
             </div>
-          </div>
-        </header>
-        <Tabs defaultValue="schedules" className="w-full">
-          <TabsList className="border-b border-gray-200 dark:border-gray-700">
-            <TabsTrigger value="schedules">Scheduling</TabsTrigger>
-            <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
-            <TabsTrigger value="forms">Forms</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
-          <ScrollArea className="h-[calc(100vh-300px)]">
-            <main
-              className={classNames(
-                "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
-                styles.noScroll
-              )}
-            >
-              {/* Schedules tab content */}
-              <TabsContent value="schedules">
-                <h1 className="text-xl font-bold mb-2 ml-2">
-                  <TextGenerateEffect words={schedulestitle} />
-                </h1>
-                <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-2xl font-bold">
-                        Request Time Off
-                      </CardTitle>
-                      {/* <CalendarIcon className="h-4 w-4 text-muted-foreground" /> */}
-                    </CardHeader>
-                    <CardContent>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full pl-3 text-left font-normal"
-                          >
-                            {selectedDate ? (
-                              format(selectedDate, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CustomCalendar
-                            selectedDate={selectedDate ?? new Date()}
-                            onDateChange={handleDateChange}
-                            disabledDays={() => false}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <div className="mt-4">
-                        <Select
-                          value={reason}
-                          onValueChange={handleReasonChange}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Reason" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeOffReasons.map((reason: TimeOffReason) => (
-                              <SelectItem key={reason.id} value={reason.reason}>
-                                {reason.reason}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {showOtherTextarea && (
-                        <Textarea
-                          className="mt-4"
-                          value={otherReason}
-                          onChange={(e) => setOtherReason(e.target.value)}
-                          placeholder={
-                            reason === "Swapping Schedules"
-                              ? "Please specify who you are swapping with"
-                              : "Please specify your reason"
-                          }
-                        />
-                      )}
-                      <Button
-                        onClick={handleSubmit}
-                        variant="linkHover1"
-                        className="mt-4"
-                      >
-                        Submit Request
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-2xl font-bold">
-                        Available Sick Time
-                      </CardTitle>
-                      <ClockIcon className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-medium">
-                        {availableSickTime !== null
-                          ? `${availableSickTime} hours`
-                          : "Loading..."}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                <Card>
-                  <CardHeader></CardHeader>
-                  <CardContent>
-                    <SchedulesComponent employeeId={employeeId} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Performance tab content */}
-              <TabsContent value="performance">
-                <h1 className="text-xl font-bold mb-2 ml-2">
-                  <TextGenerateEffect words={performancetitle} />
-                </h1>
-                <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  <Card className="mt-4">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-2xl font-bold mb-6">
-                        Select A Date
-                      </CardTitle>
-                      {/* Add any icons or elements you want here */}
-                    </CardHeader>
-                    <CardContent>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full pl-3 text-left font-normal"
-                          >
-                            {selectedDate ? (
-                              format(selectedDate, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CustomCalendar
-                            selectedDate={selectedDate ?? new Date()}
-                            onDateChange={handleDateChange}
-                            disabledDays={() => false}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Total # Of DROS
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTable
-                          columns={[
-                            { Header: "Total DROS", accessor: "TotalDros" },
-                          ]}
-                          data={summaryData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Points Deducted
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTable
-                          columns={[
-                            {
-                              Header: "Points Deducted",
-                              accessor: "PointsDeducted",
-                            },
-                          ]}
-                          data={summaryData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Current Points
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTable
-                          columns={[
-                            { Header: "Total Points", accessor: "TotalPoints" },
-                          ]}
-                          data={summaryData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardContent>
-                    <table className="w-full">
-                      <thead>
-                        <tr>
-                          <th className="py-2 w-36 text-left">DROS #</th>
-                          {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
-                          {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
-                          <th className="py-2 w-32 text-left">Trans Date</th>
-                          {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
-                          <th className="py-2 w-32 text-left">Location</th>
-                          <th className="py-2 w-48 text-left">Details</th>
-                          <th className="py-2 w-64 text-left">Notes</th>
-                          <th className="py-2 w-12 text-left">Cancelled?</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {audits.map((audit, index) => (
-                          <tr key={index} className="border-t">
-                            <td className="py-2 w-36">{audit.dros_number}</td>
-                            {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
-                            {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
-                            <td className="py-2 w-30">{audit.trans_date}</td>
-                            {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
-                            <td className="py-2 w-32">
-                              {audit.error_location}
-                            </td>
-                            <td className="py-2 w-48">{audit.error_details}</td>
-                            <td className="py-2 w-64">{audit.error_notes}</td>
-                            <td className="py-2 w-12">{audit.dros_cancel}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Forms tab content */}
-              <TabsContent value="forms">
-                <h1 className="text-xl font-bold mb-2 ml-2">
-                  <TextGenerateEffect words={formtitle} />
-                </h1>
-                <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  <Card className="mt-4">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-2xl font-bold">
-                        Submit Points
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full text-left font-normal"
-                          >
-                            Submit Points Form
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-2" align="start">
-                          <PointsForm /> {/* Render the PointsComponent */}
-                        </PopoverContent>
-                      </Popover>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              {/* Review tab content */}
-              <TabsContent value="reviews">
-                <h1 className="text-xl font-bold mb-2 ml-2">
-                  <TextGenerateEffect words="Your Reviews" />
-                </h1>
-                <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                  {reviews.map((review) => (
-                    <Card key={review.id} className="mt-4">
-                      <CardHeader className="flex flex-col items-start justify-between space-y-2 pb-2">
+          </header>
+          <Tabs defaultValue="schedules" className="w-full">
+            <TabsList className="border-b border-gray-200 dark:border-gray-700">
+              <TabsTrigger value="schedules">Scheduling</TabsTrigger>
+              <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
+              <TabsTrigger value="forms">Forms</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            </TabsList>
+            <ScrollArea className="h-[calc(100vh-300px)]">
+              <main
+                className={classNames(
+                  "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
+                  styles.noScroll
+                )}
+              >
+                {/* Schedules tab content */}
+                <TabsContent value="schedules">
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words={schedulestitle} />
+                  </h1>
+                  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-2xl font-bold">
-                          {review.review_quarter} {review.review_year}
+                          Request Time Off
                         </CardTitle>
-                        <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
-                          - {review.created_by} on{" "}
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </CardDescription>
+                        {/* <CalendarIcon className="h-4 w-4 text-muted-foreground" /> */}
                       </CardHeader>
-                      <CardContent className="p-4">
+                      <CardContent>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full pl-3 text-left font-normal"
+                            >
+                              {selectedDate ? (
+                                format(selectedDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CustomCalendar
+                              selectedDate={selectedDate ?? new Date()}
+                              onDateChange={handleDateChange}
+                              disabledDays={() => false}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <div className="mt-4">
+                          <Select
+                            value={reason}
+                            onValueChange={handleReasonChange}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Reason" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {timeOffReasons.map((reason: TimeOffReason) => (
+                                <SelectItem
+                                  key={reason.id}
+                                  value={reason.reason}
+                                >
+                                  {reason.reason}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {showOtherTextarea && (
+                          <Textarea
+                            className="mt-4"
+                            value={otherReason}
+                            onChange={(e) => setOtherReason(e.target.value)}
+                            placeholder={
+                              reason === "Swapping Schedules"
+                                ? "Please specify who you are swapping with"
+                                : "Please specify your reason"
+                            }
+                          />
+                        )}
                         <Button
-                          variant="outline"
-                          className="w-full text-left font-normal"
-                          onClick={() => handleViewReview(review)}
+                          onClick={handleSubmit}
+                          variant="linkHover1"
+                          className="mt-4"
                         >
-                          View Review
+                          Submit Request
                         </Button>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-2xl font-bold">
+                          Available Sick Time
+                        </CardTitle>
+                        <ClockIcon className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-medium">
+                          {availableSickTime !== null
+                            ? `${availableSickTime} hours`
+                            : "Loading..."}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <Card>
+                    <CardHeader></CardHeader>
+                    <CardContent>
+                      <SchedulesComponent employeeId={employeeId} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                <Dialog
-                  open={viewReviewDialog}
-                  onOpenChange={setViewReviewDialog}
-                >
-                  <DialogOverlay className="fixed inset-0 z-50" />
-                  <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
-                    <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-                      <DialogTitle className="font-size: 1.35rem font-bold">
-                        Employee Review
-                      </DialogTitle>
-                      <DialogDescription>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="view-label"></Label>
-                          <p>{currentReview?.review_quarter}</p>
+                {/* Performance tab content */}
+                <TabsContent value="performance">
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words={performancetitle} />
+                  </h1>
+                  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <Card className="mt-4">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-2xl font-bold mb-6">
+                          Select A Date
+                        </CardTitle>
+                        {/* Add any icons or elements you want here */}
+                      </CardHeader>
+                      <CardContent>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full pl-3 text-left font-normal"
+                            >
+                              {selectedDate ? (
+                                format(selectedDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CustomCalendar
+                              selectedDate={selectedDate ?? new Date()}
+                              onDateChange={handleDateChange}
+                              disabledDays={() => false}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          Total # Of DROS
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="text-left">
+                          <DataTable
+                            columns={[
+                              { Header: "Total DROS", accessor: "TotalDros" },
+                            ]}
+                            data={summaryData}
+                          />
                         </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">Year</Label>
-                          <p>{currentReview?.review_year}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          Points Deducted
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="text-left">
+                          <DataTable
+                            columns={[
+                              {
+                                Header: "Points Deducted",
+                                accessor: "PointsDeducted",
+                              },
+                            ]}
+                            data={summaryData}
+                          />
                         </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Overview of Performance
-                          </Label>
-                          <p>{currentReview?.overview_performance}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          Current Points
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="text-left">
+                          <DataTable
+                            columns={[
+                              {
+                                Header: "Total Points",
+                                accessor: "TotalPoints",
+                              },
+                            ]}
+                            data={summaryData}
+                          />
                         </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Achievements and Contributions
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.achievements_contributions.map(
-                              (achievement, index) => (
-                                <li key={index}>{achievement}</li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Attendance and Reliability
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.attendance_reliability.map(
-                              (attendance, index) => (
-                                <li key={index}>{attendance}</li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Quality of Work
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.quality_work.map(
-                              (quality, index) => (
-                                <li key={index}>{quality}</li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Communication & Collaboration
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.communication_collaboration.map(
-                              (communication, index) => (
-                                <li key={index}>{communication}</li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Strengths & Accomplishments
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.strengths_accomplishments.map(
-                              (strength, index) => (
-                                <li key={index}>{strength}</li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Areas for Growth and Development
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.areas_growth.map((area, index) => (
-                              <li key={index}>{area}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="grid gap-1.5 mb-2">
-                          <Label className="text-md font-bold">
-                            Recognition
-                          </Label>
-                          <ul className="list-disc pl-5">
-                            {currentReview?.recognition.map((rec, index) => (
-                              <li key={index}>{rec}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="flex justify-end mt-2 space-x-2">
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardContent>
+                      <table className="w-full">
+                        <thead>
+                          <tr>
+                            <th className="py-2 w-36 text-left">DROS #</th>
+                            {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
+                            {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
+                            <th className="py-2 w-32 text-left">Trans Date</th>
+                            {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
+                            <th className="py-2 w-32 text-left">Location</th>
+                            <th className="py-2 w-48 text-left">Details</th>
+                            <th className="py-2 w-64 text-left">Notes</th>
+                            <th className="py-2 w-12 text-left">Cancelled?</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {audits.map((audit, index) => (
+                            <tr key={index} className="border-t">
+                              <td className="py-2 w-36">{audit.dros_number}</td>
+                              {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
+                              {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
+                              <td className="py-2 w-30">{audit.trans_date}</td>
+                              {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
+                              <td className="py-2 w-32">
+                                {audit.error_location}
+                              </td>
+                              <td className="py-2 w-48">
+                                {audit.error_details}
+                              </td>
+                              <td className="py-2 w-64">{audit.error_notes}</td>
+                              <td className="py-2 w-12">{audit.dros_cancel}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Forms tab content */}
+                <TabsContent value="forms">
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words={formtitle} />
+                  </h1>
+                  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <Card className="mt-4">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-2xl font-bold">
+                          Submit Points
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full text-left font-normal"
+                            >
+                              Submit Points Form
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2" align="start">
+                            <PointsForm /> {/* Render the PointsComponent */}
+                          </PopoverContent>
+                        </Popover>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                {/* Review tab content */}
+                <TabsContent value="reviews">
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words="Your Reviews" />
+                  </h1>
+                  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    {reviews.map((review) => (
+                      <Card key={review.id} className="mt-4">
+                        <CardHeader className="flex flex-col items-start justify-between space-y-2 pb-2">
+                          <CardTitle className="text-2xl font-bold">
+                            {review.review_quarter} {review.review_year}
+                          </CardTitle>
+                          <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
+                            - {review.created_by} on{" "}
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-4">
                           <Button
-                            variant="linkHover1"
-                            onClick={() => setViewReviewDialog(false)}
+                            variant="outline"
+                            className="w-full text-left font-normal"
+                            onClick={() => handleViewReview(review)}
                           >
-                            Close
+                            View Review
                           </Button>
-                          {/* <Button
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <Dialog
+                    open={viewReviewDialog}
+                    onOpenChange={setViewReviewDialog}
+                  >
+                    <DialogOverlay className="fixed inset-0 z-50" />
+                    <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
+                      <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                        <DialogTitle className="font-size: 1.35rem font-bold">
+                          Employee Review
+                        </DialogTitle>
+                        <DialogDescription>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="view-label"></Label>
+                            <p>{currentReview?.review_quarter}</p>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">Year</Label>
+                            <p>{currentReview?.review_year}</p>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Overview of Performance
+                            </Label>
+                            <p>{currentReview?.overview_performance}</p>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Achievements and Contributions
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.achievements_contributions.map(
+                                (achievement, index) => (
+                                  <li key={index}>{achievement}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Attendance and Reliability
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.attendance_reliability.map(
+                                (attendance, index) => (
+                                  <li key={index}>{attendance}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Quality of Work
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.quality_work.map(
+                                (quality, index) => (
+                                  <li key={index}>{quality}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Communication & Collaboration
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.communication_collaboration.map(
+                                (communication, index) => (
+                                  <li key={index}>{communication}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Strengths & Accomplishments
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.strengths_accomplishments.map(
+                                (strength, index) => (
+                                  <li key={index}>{strength}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Areas for Growth and Development
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.areas_growth.map(
+                                (area, index) => (
+                                  <li key={index}>{area}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                          <div className="grid gap-1.5 mb-2">
+                            <Label className="text-md font-bold">
+                              Recognition
+                            </Label>
+                            <ul className="list-disc pl-5">
+                              {currentReview?.recognition.map((rec, index) => (
+                                <li key={index}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="flex justify-end mt-2 space-x-2">
+                            <Button
+                              variant="linkHover1"
+                              onClick={() => setViewReviewDialog(false)}
+                            >
+                              Close
+                            </Button>
+                            {/* <Button
                           variant="linkHover1"
                           onClick={() => window.print()}
                         >
                           Print
                         </Button> */}
-                        </div>
-                      </DialogDescription>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </TabsContent>
-            </main>
-            <ScrollBar orientation="vertical" />
-          </ScrollArea>
-        </Tabs>
-      </Card>
-    </div>
+                          </div>
+                        </DialogDescription>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </TabsContent>
+              </main>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
+          </Tabs>
+        </Card>
+      </div>
+    </RoleBasedWrapper>
   );
 };
 

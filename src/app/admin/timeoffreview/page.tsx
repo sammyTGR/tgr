@@ -47,7 +47,6 @@ export default function ApproveRequestsPage() {
       console.error("Failed to fetch time off requests:", error.message);
     }
   };
-  
 
   const handleApprove = (request_id: number) => {
     const request = requests.find((req) => req.request_id === request_id);
@@ -60,9 +59,6 @@ export default function ApproveRequestsPage() {
       );
     }
   };
-  
- 
-  
 
   const handleDeny = async (request_id: number) => {
     await handleRequest(
@@ -170,17 +166,17 @@ export default function ApproveRequestsPage() {
         },
         body: JSON.stringify({ request_id, action, use_sick_time }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const result = await response.json();
       const { employee_id, start_date, end_date, email } = result;
       if (!email) {
         throw new Error("Email not found in API response");
       }
-  
+
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dates = [];
@@ -191,7 +187,7 @@ export default function ApproveRequestsPage() {
       ) {
         dates.push(new Date(d));
       }
-  
+
       for (const date of dates) {
         const formattedDate = date.toISOString().split("T")[0];
         const dayOfWeek = date.getUTCDay();
@@ -205,14 +201,14 @@ export default function ApproveRequestsPage() {
           "Saturday",
         ];
         const dayName = daysOfWeek[dayOfWeek];
-  
+
         const { data: refSchedules, error: refError } = await supabase
           .from("reference_schedules")
           .select("start_time, end_time")
           .eq("employee_id", employee_id)
           .eq("day_of_week", dayName)
           .single();
-  
+
         if (refError) {
           console.error(
             `Error fetching reference schedule for ${dayName}:`,
@@ -220,9 +216,9 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-  
+
         console.log(`Reference schedule for ${dayName}:`, refSchedules);
-  
+
         if (
           !refSchedules ||
           (refSchedules.start_time === null && refSchedules.end_time === null)
@@ -232,14 +228,14 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-  
+
         const { data: scheduleData, error: scheduleFetchError } = await supabase
           .from("schedules")
           .select("*")
           .eq("employee_id", employee_id)
           .eq("schedule_date", formattedDate)
           .single();
-  
+
         if (scheduleFetchError && scheduleFetchError.code !== "PGRST116") {
           console.error(
             `Error fetching schedule for date ${formattedDate}:`,
@@ -247,7 +243,7 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-  
+
         if (!scheduleData) {
           console.log(`Inserting new schedule for date ${formattedDate}`);
           const { error: scheduleInsertError } = await supabase
@@ -258,7 +254,7 @@ export default function ApproveRequestsPage() {
               day_of_week: dayName,
               status: action,
             });
-  
+
           if (scheduleInsertError) {
             console.error(
               `Error inserting schedule for date ${formattedDate}:`,
@@ -272,7 +268,7 @@ export default function ApproveRequestsPage() {
             .update({ status: action })
             .eq("employee_id", employee_id)
             .eq("schedule_date", formattedDate);
-  
+
           if (scheduleUpdateError) {
             console.error(
               `Error updating schedule for date ${formattedDate}:`,
@@ -280,19 +276,37 @@ export default function ApproveRequestsPage() {
             );
           }
         }
+
+        if (use_sick_time) {
+          const { error: updateSickTimeError } = await supabase.rpc(
+            "deduct_sick_time",
+            {
+              p_emp_id: employee_id,
+              p_start_date: formattedDate,
+              p_end_date: formattedDate,
+            }
+          );
+
+          if (updateSickTimeError) {
+            console.error(
+              `Error deducting sick time for date ${formattedDate}:`,
+              updateSickTimeError
+            );
+          }
+        }
       }
-  
+
       if (action !== "pending") {
         const { error: updateError } = await supabase
           .from("time_off_requests")
           .update({ is_read: true })
           .eq("request_id", request_id);
-  
+
         if (updateError) {
           throw new Error(updateError.message);
         }
       }
-  
+
       const subject =
         action === "denied"
           ? "Time Off Request Denied"
@@ -302,14 +316,13 @@ export default function ApproveRequestsPage() {
           ? "You've Left Early"
           : "Time Off Request Approved";
       await sendEmail(email, subject, emailMessage);
-  
+
       // Re-fetch the updated requests after handling the action
       await fetchRequests();
     } catch (error: any) {
       console.error("Failed to handle request:", error.message);
     }
   };
-  
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
