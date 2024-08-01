@@ -278,18 +278,20 @@ export default function ApproveRequestsPage() {
         }
 
         if (use_sick_time) {
-          const { error: updateSickTimeError } = await supabase.rpc(
-            "deduct_sick_time",
-            {
-              p_emp_id: employee_id,
-              p_start_date: formattedDate,
-              p_end_date: formattedDate,
-            }
-          );
+          const { error: updateSickTimeError } = await supabase
+            .from("time_off_requests")
+            .update({
+              use_sick_time: true,
+              sick_time_year: new Date().getFullYear(),
+            })
+            .eq("employee_id", employee_id)
+            .eq("start_date", start_date)
+            .eq("end_date", end_date)
+            .eq("use_sick_time", false);
 
           if (updateSickTimeError) {
             console.error(
-              `Error deducting sick time for date ${formattedDate}:`,
+              `Error updating time_off_requests for use_sick_time:`,
               updateSickTimeError
             );
           }
@@ -341,14 +343,12 @@ export default function ApproveRequestsPage() {
                   <p className="font-medium">Employee: {request.name}</p>
                   <p>Start Date: {request.start_date}</p>
                   <p>End Date: {request.end_date}</p>
+                  <p>Reason: {request.reason}</p>
+                  {request.other_reason && (
+                    <p>Details: {request.other_reason}</p>
+                  )}
                   <p>
-                    Reason: {request.reason}{" "}
-                    {request.reason === "Other" &&
-                      request.other_reason &&
-                      `: ${request.other_reason}`}
-                  </p>
-                  <p>
-                    Available Sick Time: {request.available_sick_time} hours
+                    Available Sick Time: {request.available_sick_time} Hours
                   </p>{" "}
                   {/* Display available sick time */}
                   <label>

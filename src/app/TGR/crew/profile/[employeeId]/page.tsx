@@ -54,6 +54,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
 import classNames from "classnames";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { CustomCalendarMulti } from "@/components/ui/calendar";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -145,6 +146,7 @@ const EmployeeProfilePage = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentReview, setCurrentReview] = useState<Review | null>(null);
   const [viewReviewDialog, setViewReviewDialog] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
 
   const handleViewReview = (review: Review) => {
     setCurrentReview(review);
@@ -331,20 +333,29 @@ const EmployeeProfilePage = () => {
   }, [employee, selectedDate]);
 
   const handleSubmit = async () => {
-    if (!selectedDate || !reason) {
-      toast.error("Please select a date and a reason.");
+    if (selectedDates.length < 1) {
+      toast.error("Please select at least one date.");
       return;
     }
 
+    const start_date = format(
+      new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
+      "yyyy-MM-dd"
+    );
+    const end_date = format(
+      new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
+      "yyyy-MM-dd"
+    );
+
     const payload = {
-      start_date: selectedDate.toISOString().split("T")[0],
-      end_date: selectedDate.toISOString().split("T")[0], // Assuming end_date is same as start_date for simplicity
+      start_date,
+      end_date,
       reason,
       other_reason: showOtherTextarea ? otherReason : "",
       employee_id: employeeId,
       name: employee.name,
-      email: employee.contact_info, // Include the email from the employee object
-      sick_time_year: selectedDate.getFullYear(),
+      email: employee.contact_info,
+      sick_time_year: new Date().getFullYear(),
     };
 
     try {
@@ -357,7 +368,7 @@ const EmployeeProfilePage = () => {
       }
 
       // Reset the form fields
-      setSelectedDate(null);
+      setSelectedDates([]);
       setReason("");
       setOtherReason("");
       setShowOtherTextarea(false);
@@ -481,21 +492,43 @@ const EmployeeProfilePage = () => {
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
-                              variant="outline"
+                              variant="linkHover1"
                               className="w-full pl-3 text-left font-normal"
                             >
-                              {selectedDate ? (
-                                format(selectedDate, "PPP")
+                              {selectedDates.length > 0 ? (
+                                <>
+                                  {format(
+                                    new Date(
+                                      Math.min(
+                                        ...selectedDates.map((date) =>
+                                          date.getTime()
+                                        )
+                                      )
+                                    ),
+                                    "PPP"
+                                  )}{" "}
+                                  -{" "}
+                                  {format(
+                                    new Date(
+                                      Math.max(
+                                        ...selectedDates.map((date) =>
+                                          date.getTime()
+                                        )
+                                      )
+                                    ),
+                                    "PPP"
+                                  )}
+                                </>
                               ) : (
-                                <span>Pick a date</span>
+                                <span>Pick dates</span>
                               )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <CustomCalendar
-                              selectedDate={selectedDate ?? new Date()}
-                              onDateChange={handleDateChange}
+                            <CustomCalendarMulti
+                              selectedDates={selectedDates}
+                              onDatesChange={setSelectedDates}
                               disabledDays={() => false}
                             />
                           </PopoverContent>
