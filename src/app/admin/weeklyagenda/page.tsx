@@ -378,9 +378,11 @@ const Column = ({
           <>
             <h3 className={`font-medium ${headingColor}`}>{title}</h3>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={handleEditColumn} className="text-yellow-500">
-                <Pencil1Icon />
-              </button>
+              {role === "super admin" && (
+                <button onClick={handleEditColumn} className="text-yellow-500">
+                  <Pencil1Icon />
+                </button>
+              )}
               {role === "super admin" && (
                 <button
                   onClick={() => deleteColumn(column.id)}
@@ -601,7 +603,7 @@ const AddCard = ({ column_name, handleAddCard }: AddCardProps) => {
           onClick={() => setAdding(true)}
           className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
         >
-          <span>Add card</span>
+          <span>Add Topic</span>
           <PlusIcon />
         </motion.button>
       )}
@@ -660,7 +662,7 @@ const AddColumn = ({ handleAddColumn }: AddColumnProps) => {
           onClick={() => setAdding(true)}
           className="flex items-center gap-1.5 px-3 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
         >
-          <span>Add column</span>
+          <span>Add Staff</span>
           <PlusIcon />
         </motion.button>
       )}
