@@ -1,4 +1,4 @@
-// src\app\admin\reports\sales\columns.tsx
+// src/app\admin\reports\sales\columns.tsx
 
 import { format } from "date-fns";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
