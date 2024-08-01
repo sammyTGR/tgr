@@ -1,13 +1,18 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
-import { useReactTable, ColumnDef, getCoreRowModel, getPaginationRowModel, getFilteredRowModel } from "@tanstack/react-table";
+import {
+  useReactTable,
+  ColumnDef,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+} from "@tanstack/react-table";
 import { SchedulePagination } from "./schedule-pagination";
 import { DataTable } from "./DataTable";
-import { PopoverForm } from "./PopoverForm";
+import PopoverForm from "./PopoverForm";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 interface ScheduleData {
@@ -45,27 +50,39 @@ const columns: ColumnDef<ScheduleData>[] = [
 
 const ManageSchedules = () => {
   const { user } = useRole();
-  const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>([]);
+  const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>(
+    []
+  );
+  const [employees, setEmployees] = useState<
+    { employee_id: number; name: string }[]
+  >([]);
 
   useEffect(() => {
     fetchReferenceSchedules();
+    fetchEmployees();
   }, []);
 
   const fetchReferenceSchedules = async () => {
-    const { data: schedules, error: schedulesError } = await supabase.from("reference_schedules").select("*");
+    const { data: schedules, error: schedulesError } = await supabase
+      .from("reference_schedules")
+      .select("*");
     if (schedulesError) {
       console.error("Error fetching reference schedules:", schedulesError);
       return;
     }
 
-    const { data: employees, error: employeesError } = await supabase.from("employees").select("employee_id, name");
+    const { data: employees, error: employeesError } = await supabase
+      .from("employees")
+      .select("employee_id, name");
     if (employeesError) {
       console.error("Error fetching employees:", employeesError);
       return;
     }
 
-    const schedulesWithNames = schedules.map(schedule => {
-      const employee = employees.find(emp => emp.employee_id === schedule.employee_id);
+    const schedulesWithNames = schedules.map((schedule) => {
+      const employee = employees.find(
+        (emp) => emp.employee_id === schedule.employee_id
+      );
       return {
         ...schedule,
         employee_name: employee ? employee.name : "Unknown",
@@ -75,15 +92,80 @@ const ManageSchedules = () => {
     setReferenceSchedules(schedulesWithNames);
   };
 
-  const handleGenerateSingleSchedule = async (employeeName: string, weeks: string) => {
-    const { error } = await supabase.rpc("generate_schedules_for_employees_by_name", {
-      employee_name: employeeName,
-      weeks: parseInt(weeks, 10),
-    });
+  const fetchEmployees = async () => {
+    const { data: employees, error: employeesError } = await supabase
+      .from("employees")
+      .select("employee_id, name");
+    if (employeesError) {
+      console.error("Error fetching employees:", employeesError);
+      return;
+    }
+    setEmployees(employees);
+  };
+
+  const handleAddSchedule = async (
+    employeeName: string,
+    _: string | undefined,
+    date?: string,
+    startTime?: string,
+    endTime?: string
+  ) => {
+    const employee = employees.find((emp) => emp.name === employeeName);
+    if (!employee) {
+      console.error("Employee not found:", employeeName);
+      return;
+    }
+
+    if (date && startTime && endTime) {
+      const daysOfWeek = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const dayOfWeek = daysOfWeek[new Date(date).getDay()];
+
+      const { error } = await supabase.from("schedules").insert({
+        employee_id: employee.employee_id,
+        schedule_date: date,
+        start_time: startTime,
+        end_time: endTime,
+        day_of_week: dayOfWeek,
+        status: "scheduled",
+      });
+
+      if (error) {
+        console.error("Error adding schedule:", error);
+      } else {
+        console.log("Schedule added successfully.");
+        fetchReferenceSchedules();
+      }
+    } else {
+      console.error(
+        "Date, Start Time, and End Time are required to add a schedule."
+      );
+    }
+  };
+
+  const handleGenerateSingleSchedule = async (
+    employeeName: string,
+    weeks?: string
+  ) => {
+    const { error } = await supabase.rpc(
+      "generate_schedules_for_employees_by_name",
+      {
+        employee_name: employeeName,
+        weeks: parseInt(weeks || "0", 10),
+      }
+    );
     if (error) {
       console.error("Error generating schedules:", error);
     } else {
       console.log("Schedules generated successfully.");
+      fetchReferenceSchedules();
     }
   };
 
@@ -115,17 +197,22 @@ const ManageSchedules = () => {
       console.error("Error clearing schedules:", error);
     } else {
       console.log("Schedules cleared for employee:", employeeName);
+      fetchReferenceSchedules();
     }
   };
 
   const handleGenerateAllSchedules = async (weeks: string) => {
-    const { error } = await supabase.rpc("generate_schedules_for_all_employees", {
-      weeks: parseInt(weeks, 10),
-    });
+    const { error } = await supabase.rpc(
+      "generate_schedules_for_all_employees",
+      {
+        weeks: parseInt(weeks, 10),
+      }
+    );
     if (error) {
       console.error("Error generating schedules:", error);
     } else {
       console.log("Schedules generated for all employees.");
+      fetchReferenceSchedules();
     }
   };
 
@@ -139,40 +226,48 @@ const ManageSchedules = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-
-    <Card>
-      <CardHeader>
-        <h1>Manage Employee Schedules</h1>
-      </CardHeader>
-      <CardContent>
-        <DataTable
-          columns={columns}
-          data={referenceSchedules}
-          fetchReferenceSchedules={fetchReferenceSchedules}
-        />
-        <SchedulePagination table={table} />
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-2">
+      <Card>
+        <CardHeader>
+          <h1>Manage Employee Schedules</h1>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={referenceSchedules}
+            fetchReferenceSchedules={fetchReferenceSchedules}
+          />
+          <SchedulePagination table={table} />
+          <div className="flex justify-between items-center">
+            <div className="flex space-x-2">
+              <PopoverForm
+                onSubmit={handleGenerateSingleSchedule}
+                buttonText="Create Single Employee's Schedule"
+                placeholder="Enter employee name and weeks"
+                formType="generate"
+              />
+              <PopoverForm
+                onSubmit={handleClearSchedule}
+                buttonText="Clear An Employee's Schedule"
+                placeholder="Enter employee name"
+                formType="generate"
+              />
+            </div>
             <PopoverForm
-              onSubmit={(employeeName: string, weeks: string) => handleGenerateSingleSchedule(employeeName, weeks)}
-              buttonText="Create Single Employee's Schedule"
-              placeholder="Enter employee name and weeks"
-            />
-            <PopoverForm
-              onSubmit={(employeeName: string) => handleClearSchedule(employeeName)}
-              buttonText="Clear An Employee's Schedule"
-              placeholder="Enter employee name"
+              onSubmit={handleGenerateAllSchedules}
+              buttonText="Generate All Staff Schedules"
+              placeholder="Enter number of weeks"
+              formType="generate"
             />
           </div>
           <PopoverForm
-            onSubmit={(_, weeks: string) => handleGenerateAllSchedules(weeks)}
-            buttonText="Generate All Staff Schedules"
-            placeholder="Enter number of weeks"
+            onSubmit={handleAddSchedule}
+            buttonText="Add Schedule"
+            placeholder="Enter employee name and details"
+            formType="addSchedule"
+            employees={employees}
           />
-        </div>
-      </CardContent>
-    </Card>
-
+        </CardContent>
+      </Card>
     </RoleBasedWrapper>
   );
 };
