@@ -126,7 +126,7 @@ const ManageSchedules = () => {
         "Friday",
         "Saturday",
       ];
-      const dayOfWeek = daysOfWeek[new Date(date).getDay()];
+      const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
 
       const { error } = await supabase.from("schedules").insert({
         employee_id: employee.employee_id,
