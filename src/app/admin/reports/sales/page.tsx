@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 const title = "Sales Report";
 
@@ -45,8 +46,9 @@ const SalesPage = () => {
   const [loading, setLoading] = useState(false);
   const [totalGross, setTotalGross] = useState<number>(0);
   const [totalNet, setTotalNet] = useState<number>(0);
-  const [totalGrossMinusExclusions, setTotalGrossMinusExclusions] =
+  const [totalNetMinusExclusions, setTotalNetMinusExclusions] =
     useState<number>(0);
+  const [progress, setProgress] = useState<number>(0);
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -135,7 +137,7 @@ const SalesPage = () => {
         offset += batchSize;
       }
 
-      toast.success("Labels updated successfully!");
+      // toast.success("Labels updated successfully!");
     } catch (error) {
       console.error("Unexpected error:", error);
     }
@@ -167,7 +169,7 @@ const SalesPage = () => {
           console.error("Error inserting data:", error);
           reject(error);
         } else {
-          console.log("Data successfully inserted:", insertedData);
+          // console.log("Data successfully inserted:", insertedData);
           resolve();
         }
       };
@@ -216,6 +218,13 @@ const SalesPage = () => {
   const handleSubmit = async () => {
     if (file) {
       setLoading(true); // Set loading state to true
+      setProgress(0); // Reset progress bar
+
+      const updateProgress = (loaded: number, total: number) => {
+        const percentage = (loaded / total) * 100;
+        setProgress(percentage);
+      };
+
       try {
         await handleFileUpload(file);
         await handleUpdateLabels();
@@ -225,6 +234,7 @@ const SalesPage = () => {
         toast.error("Failed to upload and process file.");
       } finally {
         setLoading(false); // Reset loading state to false
+        setProgress(100); // Ensure progress bar is complete
       }
     } else {
       toast.error("No file selected.");
@@ -241,12 +251,12 @@ const SalesPage = () => {
           date.toISOString().split("T")[0],
           date.toISOString().split("T")[0]
         );
-        const { totalGross, totalNet, totalGrossMinusExclusions } =
+        const { totalGross, totalNet, totalNetMinusExclusions } =
           processData(data);
 
         setTotalGross(totalGross);
         setTotalNet(totalNet);
-        setTotalGrossMinusExclusions(totalGrossMinusExclusions);
+        setTotalNetMinusExclusions(totalNetMinusExclusions);
       } catch (error) {
         console.error("Error fetching chart data:", error);
       }
@@ -273,7 +283,7 @@ const SalesPage = () => {
       "CA Excise Tax",
       "CA Excise Tax Adjustment",
     ];
-    const excludeCategoriesFromTotalFirearms = [
+    const excludeCategoriesFromTotalNet = [
       "Pistol",
       "Rifle",
       "Revolver",
@@ -283,7 +293,7 @@ const SalesPage = () => {
     ];
 
     let totalGross = 0;
-    let totalGrossMinusExclusions = 0;
+    let totalNetMinusExclusions = 0;
     let totalNet = 0;
 
     data.forEach((item) => {
@@ -295,8 +305,8 @@ const SalesPage = () => {
       totalGross += grossValue;
       totalNet += netValue;
 
-      if (!excludeCategoriesFromTotalFirearms.includes(category)) {
-        totalGrossMinusExclusions += grossValue;
+      if (!excludeCategoriesFromTotalNet.includes(category)) {
+        totalNetMinusExclusions += netValue;
       }
 
       if (!excludeCategoriesFromChart.includes(category)) {
@@ -313,8 +323,8 @@ const SalesPage = () => {
 
         existingEntry[category] = grossValue;
         existingEntry.Total += grossValue;
-        if (!excludeCategoriesFromTotalFirearms.includes(category)) {
-          existingEntry.TotalMinusExclusions += grossValue;
+        if (!excludeCategoriesFromTotalNet.includes(category)) {
+          existingEntry.TotalMinusExclusions += netValue;
         }
         categories.add(category);
       }
@@ -324,7 +334,7 @@ const SalesPage = () => {
       processedData,
       categories: Array.from(categories),
       totalGross,
-      totalGrossMinusExclusions,
+      totalNetMinusExclusions,
       totalNet,
     };
   };
@@ -412,7 +422,7 @@ const SalesPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      ${totalGrossMinusExclusions.toFixed(2)}
+                      ${totalNetMinusExclusions.toFixed(2)}
                     </div>
                   </CardContent>
                 </Card>
@@ -463,6 +473,7 @@ const SalesPage = () => {
                     </Button>
                   </div>
                 </div>
+                {loading && <Progress value={progress} className="mt-4" />}
               </CardContent>
             </Card>
           </TabsContent>

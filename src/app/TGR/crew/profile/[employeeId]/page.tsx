@@ -56,6 +56,8 @@ import styles from "./profiles.module.css";
 import classNames from "classnames";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { CustomCalendarMulti } from "@/components/ui/calendar";
+import { Progress } from "@/components/ui/progress";
+import { ProgressBar } from "@/components/ProgressBar";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -148,86 +150,8 @@ const EmployeeProfilePage = () => {
   const [currentReview, setCurrentReview] = useState<Review | null>(null);
   const [viewReviewDialog, setViewReviewDialog] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-
-  const handleViewReview = (review: Review) => {
-    setCurrentReview(review);
-    setViewReviewDialog(true);
-  };
-
-  const fetchReviews = async () => {
-    if (!employeeId) return;
-
-    const { data, error } = await supabase
-      .from("employee_quarterly_reviews")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .eq("published", true); // Fetch only published reviews
-
-    if (error) {
-      console.error("Error fetching reviews:", error);
-    } else {
-      setReviews(data as Review[]);
-    }
-  };
-
-  const fetchAvailableSickTime = async () => {
-    if (!employeeId) return;
-    try {
-      const { data, error } = await supabase.rpc(
-        "calculate_available_sick_time",
-        {
-          p_emp_id: employeeId,
-        }
-      );
-
-      if (error) throw error;
-
-      setAvailableSickTime(data);
-    } catch (error) {
-      console.error(
-        "Error fetching available sick time:",
-        (error as Error).message
-      );
-    }
-  };
-
-  const fetchAvailableTimeOff = async () => {
-    if (!employeeId) return;
-    try {
-      const { data, error } = await supabase
-        .from("time_off_requests")
-        .select("sick_time_year, use_sick_time")
-        .eq("employee_id", employeeId);
-
-      if (error) throw error;
-
-      // Calculate available time off
-      const usedSickTime = data.reduce((acc: number, request: any) => {
-        if (request.use_sick_time) {
-          acc +=
-            (new Date(request.end_date).getTime() -
-              new Date(request.start_date).getTime()) /
-              (1000 * 60 * 60 * 24) +
-            1;
-        }
-        return acc;
-      }, 0);
-
-      setAvailableTimeOff(40 - usedSickTime); // Assuming 40 hours of sick time available at the start of the year
-    } catch (error) {
-      console.error(
-        "Error fetching available time off:",
-        (error as Error).message
-      );
-    }
-  };
-
-  useEffect(() => {
-    fetchEmployeeData();
-    fetchAvailableTimeOff();
-    fetchAvailableSickTime();
-    fetchReviews();
-  }, [employeeId]);
+  const [progress, setProgress] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const handleDateChange = (date: Date | undefined) => {
     setSelectedDate(date || null);
@@ -381,18 +305,9 @@ const EmployeeProfilePage = () => {
     }
   };
 
-  const fetchEmployeeData = async () => {
-    if (!employeeId) return;
-    const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .single();
-    if (error) {
-      console.error("Error fetching employee data:", error.message);
-    } else {
-      setEmployee(data);
-    }
+  const handleViewReview = (review: Review) => {
+    setCurrentReview(review);
+    setViewReviewDialog(true);
   };
 
   const fetchAudits = async (lanid: string) => {
@@ -434,7 +349,111 @@ const EmployeeProfilePage = () => {
     fetchTimeOffReasons();
   }, []);
 
-  if (!employee) return <div>Loading...</div>;
+  const fetchEmployeeData = async () => {
+    setProgress((prev) => prev + 10); // Initial progress
+    const { data, error } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching employee data:", error.message);
+    } else {
+      setEmployee(data);
+    }
+    setProgress((prev) => prev + 30); // Update progress
+  };
+
+  const fetchAvailableSickTime = async () => {
+    setProgress((prev) => prev + 10); // Initial progress
+    try {
+      const { data, error } = await supabase.rpc(
+        "calculate_available_sick_time",
+        {
+          p_emp_id: employeeId,
+        }
+      );
+
+      if (error) throw error;
+
+      setAvailableSickTime(data);
+    } catch (error) {
+      console.error(
+        "Error fetching available sick time:",
+        (error as Error).message
+      );
+    }
+    setProgress((prev) => prev + 20); // Update progress
+  };
+
+  const fetchAvailableTimeOff = async () => {
+    setProgress((prev) => prev + 10); // Initial progress
+    try {
+      const { data, error } = await supabase
+        .from("time_off_requests")
+        .select("sick_time_year, use_sick_time")
+        .eq("employee_id", employeeId);
+
+      if (error) throw error;
+
+      const usedSickTime = data.reduce((acc: number, request: any) => {
+        if (request.use_sick_time) {
+          acc +=
+            (new Date(request.end_date).getTime() -
+              new Date(request.start_date).getTime()) /
+              (1000 * 60 * 60 * 24) +
+            1;
+        }
+        return acc;
+      }, 0);
+
+      setAvailableTimeOff(40 - usedSickTime);
+    } catch (error) {
+      console.error(
+        "Error fetching available time off:",
+        (error as Error).message
+      );
+    }
+    setProgress((prev) => prev + 20); // Update progress
+  };
+
+  const fetchReviews = async () => {
+    setProgress((prev) => prev + 10); // Initial progress
+    if (!employeeId) return;
+
+    const { data, error } = await supabase
+      .from("employee_quarterly_reviews")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .eq("published", true);
+
+    if (error) {
+      console.error("Error fetching reviews:", error);
+    } else {
+      setReviews(data as Review[]);
+    }
+    setProgress((prev) => prev + 20); // Update progress
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setProgress(0);
+
+      await fetchEmployeeData();
+      await fetchAvailableTimeOff();
+      await fetchAvailableSickTime();
+      await fetchReviews();
+
+      setProgress(100); // Final progress
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [employeeId]);
+
+  if (loading) return <ProgressBar value={progress} showAnimation={true} />;
 
   return (
     <RoleBasedWrapper
