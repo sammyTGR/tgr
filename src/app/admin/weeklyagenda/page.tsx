@@ -11,7 +11,6 @@ import React, {
 import { PlusIcon, TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase/client";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useRole } from "@/context/RoleContext"; // Adjust the import path if needed
 
 type ColumnType = {
@@ -148,14 +147,18 @@ export default function Board() {
   };
 
   const addColumn = async (title: string) => {
-    const { data, error } = await supabase
-      .from("weekly_agenda_columns")
-      .insert([{ title }])
-      .select();
-    if (error) {
-      console.error("Error adding column:", error);
+    if (role === "super admin") {
+      const { data, error } = await supabase
+        .from("weekly_agenda_columns")
+        .insert([{ title }])
+        .select();
+      if (error) {
+        console.error("Error adding column:", error);
+      } else {
+        setColumns((prevColumns) => [...prevColumns, data[0]]);
+      }
     } else {
-      setColumns((prevColumns) => [...prevColumns, data[0]]);
+      console.error("You do not have permission to add columns.");
     }
   };
 
@@ -190,10 +193,10 @@ export default function Board() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <>
       <div className="flex flex-col space-y-4 mb-4 p-4">
         <h1 className="text-2xl font-bold">Weekly Agenda</h1>
-        <AddColumn handleAddColumn={addColumn} />
+        {role === "super admin" && <AddColumn handleAddColumn={addColumn} />}
       </div>
       <div className="flex flex-wrap gap-3 p-4">
         {columns.map((column) => (
@@ -217,7 +220,7 @@ export default function Board() {
         ))}
         <BurnBarrel setCards={setCards} />
       </div>
-    </RoleBasedWrapper>
+    </>
   );
 }
 
@@ -252,7 +255,7 @@ const Column = ({
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
 
-  const { role } = useRole(); // Get the role from context
+  const { role, user } = useRole(); // Get the role from context
 
   const handleDragStart = (e: DragEvent, card: CardType) => {
     e.dataTransfer.setData("cardId", card.id);
@@ -263,24 +266,7 @@ const Column = ({
     const cardId = e.dataTransfer.getData("cardId");
     const currentColumn = e.dataTransfer.getData("currentColumn");
 
-    if (currentColumn === column.title) {
-      // Reorder within the same column
-      const updatedCards = [...cards];
-      const cardIndex = updatedCards.findIndex((card) => card.id === cardId);
-      if (cardIndex !== -1) {
-        const [movedCard] = updatedCards.splice(cardIndex, 1);
-        const dropIndex = getNearestIndicatorIndex(e, updatedCards);
-        updatedCards.splice(dropIndex, 0, movedCard);
-        setCards((prevCards) =>
-          prevCards.map(
-            (card) =>
-              updatedCards.find((updatedCard) => updatedCard.id === card.id) ||
-              card
-          )
-        );
-      }
-    } else {
-      // Move to a different column
+    if (currentColumn !== column.title) {
       await updateCardColumn(cardId, column.title);
       setCards((prevCards) => {
         const updatedCards = prevCards.map((card) =>
@@ -339,15 +325,6 @@ const Column = ({
         `[data-column="${column.title}"]`
       ) as unknown as HTMLElement[]
     );
-  };
-
-  const getNearestIndicatorIndex = (e: DragEvent, cards: CardType[]) => {
-    const indicators = getIndicators();
-    const el = getNearestIndicator(e, indicators);
-    const index = cards.findIndex(
-      (card) => card.id === el.element.dataset.before
-    );
-    return index === -1 ? cards.length : index;
   };
 
   const handleDragLeave = () => {
@@ -568,14 +545,7 @@ const BurnBarrel = ({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      // className={`mt-10 grid h-56 w-56 shrink-0 place-content-center rounded border text-3xl ${
-      //   active
-      //     ? "border-red-800 bg-red-800/20 text-red-500"
-      //     : "border-neutral-500 bg-neutral-500/20 text-neutral-500"
-      // }`}
-    >
-      {/* {active ? <LinkBreak2Icon className="animate-bounce" /> : <TrashIcon />} */}
-    </div>
+    ></div>
   );
 };
 
@@ -593,6 +563,7 @@ const AddCard = ({ column_name, handleAddCard }: AddCardProps) => {
     if (!text.trim().length) return;
     await handleAddCard(text.trim());
     setAdding(false);
+    setText(""); // Reset text after adding
   };
 
   return (
@@ -601,6 +572,7 @@ const AddCard = ({ column_name, handleAddCard }: AddCardProps) => {
         <motion.form layout onSubmit={handleSubmit}>
           <textarea
             onChange={(e) => setText(e.target.value)}
+            value={text} // Ensure value is controlled
             autoFocus
             placeholder="Add new task..."
             className="w-full rounded border border-violet-400 bg-violet-400/20 p-3 text-sm text-neutral-50 placeholder-violet-300 focus:outline-0"
