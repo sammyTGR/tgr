@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation"; // Correct import
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Pencil1Icon, TrashIcon, PlusIcon } from "@radix-ui/react-icons";
+import { Pencil1Icon, TrashIcon, PlusIcon, CalendarIcon } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
@@ -27,6 +27,12 @@ import {
   DialogClose,
 } from "@radix-ui/react-dialog";
 import classNames from "classnames";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import styles from "./profiles.module.css";
+import SalesDataTableEmployee from "../../../reports/sales/sales-data-table-employee";
 
 interface Note {
   id: number;
@@ -162,6 +168,7 @@ const EmployeeProfile = () => {
   const [availableSickTime, setAvailableSickTime] = useState<number | null>(
     null
   );
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const fetchAvailableSickTime = async (employeeId: number) => {
     try {
@@ -238,6 +245,96 @@ const EmployeeProfile = () => {
       setReviews((prevReviews) =>
         prevReviews.filter((review) => review.id !== id)
       );
+    }
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date || null);
+    fetchAndCalculateSummary(date || null);
+  };
+
+  const fetchAndCalculateSummary = async (date: Date | null) => {
+    if (!date || !employee) return;
+
+    const startDate = new Date(date.getFullYear(), date.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
+    const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+      .toISOString()
+      .split("T")[0];
+
+    try {
+      const { data: salesData, error: salesError } = await supabase
+        .from("sales_data")
+        .select("*")
+        .eq("Lanid", employee.lanid)
+        .gte("Date", startDate)
+        .lte("Date", endDate)
+        .not("subcategory_label", "is", null)
+        .not("subcategory_label", "eq", "");
+
+      const { data: auditData, error: auditError } = await supabase
+        .from("Auditsinput")
+        .select("*")
+        .eq("salesreps", employee.lanid)
+        .gte("audit_date", startDate)
+        .lte("audit_date", endDate);
+
+      if (salesError || auditError) {
+        console.error(salesError || auditError);
+        return;
+      }
+
+      const lanids = [employee.lanid];
+      let summary = lanids.map((lanid) => {
+        const employeeSalesData = salesData.filter(
+          (sale) => sale.Lanid === lanid
+        );
+        const employeeAuditData = auditData.filter(
+          (audit) => audit.salesreps === lanid
+        );
+
+        const totalDros = employeeSalesData.filter(
+          (sale) => sale.subcategory_label
+        ).length;
+        let pointsDeducted = 0;
+
+        employeeSalesData.forEach((sale) => {
+          if (sale.dros_cancel === "Yes") {
+            pointsDeducted += 5;
+          }
+        });
+
+        employeeAuditData.forEach((audit) => {
+          const auditDate = new Date(audit.audit_date);
+          if (auditDate <= date) {
+            pointsCalculation.forEach((point) => {
+              if (audit.error_location === point.error_location) {
+                pointsDeducted += point.points_deducted;
+              } else if (
+                point.error_location === "dros_cancel_field" &&
+                audit.dros_cancel === "Yes"
+              ) {
+                pointsDeducted += point.points_deducted;
+              }
+            });
+          }
+        });
+
+        const totalPoints = 300 - pointsDeducted;
+
+        return {
+          Lanid: lanid,
+          TotalDros: totalDros,
+          PointsDeducted: pointsDeducted,
+          TotalPoints: totalPoints,
+        };
+      });
+
+      summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
+      setSummaryData(summary);
+    } catch (error) {
+      console.error("Error fetching or calculating summary data:", error);
     }
   };
 
@@ -876,7 +973,7 @@ const EmployeeProfile = () => {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="section w-full">
-        <Card className="h-full max-w-8xl mx-auto my-12">
+        <Card className="h-full max-w-6xl mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-4">
               <Avatar>
@@ -909,14 +1006,22 @@ const EmployeeProfile = () => {
               <TabsList className="border-b border-gray-200 dark:border-gray-700">
                 <TabsTrigger value="daily_briefing">Daily Briefing</TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
-                <TabsTrigger value="absences">Absences</TabsTrigger>
+                <TabsTrigger value="absences">Attendance</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
-                <TabsTrigger value="audits">Audits</TabsTrigger>
+                <TabsTrigger value="sales">Sales</TabsTrigger>
                 <TabsTrigger value="performance">
                   Monthly Performance
                 </TabsTrigger>
               </TabsList>
+              <ScrollArea className="h-[calc(100vh-300px)]">
+              <main
+                className={classNames(
+                  "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
+                  styles.noScroll
+                )}
+              >
+
               <TabsContent value="daily_briefing">
                 <div className="p-6 space-y-4">
                   <div className="grid gap-1.5">
@@ -1833,67 +1938,154 @@ const EmployeeProfile = () => {
                   </div>
                 </div>
               </TabsContent>
-              <TabsContent value="audits">
-                <div className="p-6 space-y-4">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr>
-                        <th className="py-2 w-36 text-left">DROS #</th>
-                        <th className="py-2 w-24 text-left">Sales Rep</th>
-                        <th className="py-2 w-24 text-left">Audit Type</th>
-                        <th className="py-2 w-32 text-left">Trans Date</th>
-                        <th className="py-2 w-32 text-left">Audit Date</th>
-                        <th className="py-2 w-38 text-left">Location</th>
-                        <th className="py-2 w-58 text-left">Details</th>
-                        <th className="py-2 w-64 text-left">Notes</th>
-                        <th className="py-2 w-12 text-left">Cancelled?</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {audits.map((audit, index) => (
-                        <tr key={index} className="border-t">
-                          <td className="py-2 w-36">{audit.dros_number}</td>
-                          <td className="py-2 w-24">{audit.salesreps}</td>
-                          <td className="py-2 w-24">{audit.audit_type}</td>
-                          <td className="py-2 w-30">{audit.trans_date}</td>
-                          <td className="py-2 w-30">{audit.audit_date}</td>
-                          <td className="py-2 w-38">{audit.error_location}</td>
-                          <td className="py-2 w-58">{audit.error_details}</td>
-                          <td className="py-2 w-64">{audit.error_notes}</td>
-                          <td className="py-2 w-12">{audit.dros_cancel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </TabsContent>
+              <TabsContent value="sales">
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words="Sales Data" />
+                  </h1>
+                  <SalesDataTableEmployee employeeId={employeeId} /> {/* Include SalesDataTable */}
+                </TabsContent>
+
+              
               <TabsContent value="performance">
-                <div className="p-6 space-y-4">
-                  <div className="w-full mb-4">
-                    <CustomCalendar
-                      selectedDate={selectedMonth}
-                      onDateChange={(date: Date | undefined) =>
-                        setSelectedMonth(date)
-                      }
-                      disabledDays={() => false} // Adjust this if needed
-                    />
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words="Sales Insight" />
+                  </h1>
+                  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <Card className="mt-4">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-2xl font-bold mb-6">
+                          Select A Date
+                        </CardTitle>
+                        {/* Add any icons or elements you want here */}
+                      </CardHeader>
+                      <CardContent>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full pl-3 text-left font-normal"
+                            >
+                              {selectedDate ? (
+                                format(selectedDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CustomCalendar
+                              selectedDate={selectedDate ?? new Date()}
+                              onDateChange={handleDateChange}
+                              disabledDays={() => false}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          Total # Of DROS
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="text-left">
+                          <DataTable
+                            columns={[
+                              { Header: "Total DROS", accessor: "TotalDros" },
+                            ]}
+                            data={summaryData}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          Points Deducted
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="text-left">
+                          <DataTable
+                            columns={[
+                              {
+                                Header: "Points Deducted",
+                                accessor: "PointsDeducted",
+                              },
+                            ]}
+                            data={summaryData}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="mt-4">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          Current Points
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="text-left">
+                          <DataTable
+                            columns={[
+                              {
+                                Header: "Total Points",
+                                accessor: "TotalPoints",
+                              },
+                            ]}
+                            data={summaryData}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <div className="text-left">
-                    <DataTable
-                      columns={[
-                        { Header: "Lanid", accessor: "Lanid" },
-                        { Header: "Total DROS", accessor: "TotalDros" },
-                        {
-                          Header: "Points Deducted",
-                          accessor: "PointsDeducted",
-                        },
-                        { Header: "Total Points", accessor: "TotalPoints" },
-                      ]}
-                      data={summaryData}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
+
+                  <Card>
+                    <CardContent>
+                      <table className="w-full">
+                        <thead>
+                          <tr>
+                            <th className="py-2 w-36 text-left">DROS #</th>
+                            {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
+                            {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
+                            <th className="py-2 w-32 text-left">Trans Date</th>
+                            {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
+                            <th className="py-2 w-32 text-left">Location</th>
+                            <th className="py-2 w-48 text-left">Details</th>
+                            <th className="py-2 w-64 text-left">Notes</th>
+                            <th className="py-2 w-12 text-left">Cancelled?</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {audits.map((audit, index) => (
+                            <tr key={index} className="border-t">
+                              <td className="py-2 w-36">{audit.dros_number}</td>
+                              {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
+                              {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
+                              <td className="py-2 w-30">{audit.trans_date}</td>
+                              {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
+                              <td className="py-2 w-32">
+                                {audit.error_location}
+                              </td>
+                              <td className="py-2 w-48">
+                                {audit.error_details}
+                              </td>
+                              <td className="py-2 w-64">{audit.error_notes}</td>
+                              <td className="py-2 w-12">{audit.dros_cancel}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                </main>
+                <ScrollBar orientation="vertical" />
+                </ScrollArea>
+
             </Tabs>
           </div>
         </Card>
