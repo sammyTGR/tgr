@@ -1,3 +1,4 @@
+// TGR\crew\profile\[employeeId]\page.tsx
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -159,7 +160,8 @@ const EmployeeProfilePage = () => {
     const { data, error } = await supabase
       .from("employee_quarterly_reviews")
       .select("*")
-      .eq("employee_id", employeeId);
+      .eq("employee_id", employeeId)
+      .eq("published", true); // Fetch only published reviews
 
     if (error) {
       console.error("Error fetching reviews:", error);
@@ -321,10 +323,6 @@ const EmployeeProfilePage = () => {
       console.error("Error fetching or calculating summary data:", error);
     }
   };
-
-  useEffect(() => {
-    fetchEmployeeData();
-  }, [employeeId]);
 
   useEffect(() => {
     if (employee && selectedDate) {
