@@ -427,7 +427,7 @@ const Card = ({
   title,
   id,
   column_name,
-  created_by, // Assuming you pass this prop
+  created_by,
   handleDragStart,
   handleDeleteCard,
   updateCardTitle,
@@ -483,9 +483,11 @@ const Card = ({
           <div className="flex justify-between items-center">
             <p className="text-sm text-neutral-100">{title}</p>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={handleEdit} className="text-yellow-500">
-                <Pencil1Icon />
-              </button>
+              {(role === "super admin" || user.email === created_by) && (
+                <button onClick={handleEdit} className="text-yellow-500">
+                  <Pencil1Icon />
+                </button>
+              )}
               {(role === "super admin" ||
                 (role === "admin" && user.email === created_by)) && (
                 <button
