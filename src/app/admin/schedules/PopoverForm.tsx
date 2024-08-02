@@ -1,35 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PopoverFormProps {
-  onSubmit: (
-    employeeName: string,
-    weeks?: string,
-    date?: string,
-    startTime?: string,
-    endTime?: string
-  ) => void;
+  onSubmit: (employeeName: string, weeks?: string, date?: string, startTime?: string, endTime?: string) => void;
   buttonText: string;
   placeholder: string;
-  formType: "generate" | "addSchedule";
   employees?: { employee_id: number; name: string }[];
+  formType: "generate" | "addSchedule" | "generateAll" | "clearSchedule";
 }
 
-const PopoverForm: React.FC<PopoverFormProps> = ({
+export const PopoverForm: React.FC<PopoverFormProps> = ({
   onSubmit,
   buttonText,
   placeholder,
-  formType,
   employees,
+  formType,
 }) => {
   const [employeeName, setEmployeeName] = useState("");
   const [weeks, setWeeks] = useState("");
@@ -39,100 +30,109 @@ const PopoverForm: React.FC<PopoverFormProps> = ({
   const [employeeId, setEmployeeId] = useState<number | null>(null);
 
   const handleSubmit = () => {
-    if (formType === "generate") {
-      onSubmit(employeeName, weeks);
-    } else if (
-      formType === "addSchedule" &&
-      employeeId &&
-      date &&
-      startTime &&
-      endTime
-    ) {
-      onSubmit(employeeName, undefined, date, startTime, endTime);
+    if (formType === "generate" || formType === "clearSchedule") {
+      const selectedEmployee = employees?.find(emp => emp.employee_id === employeeId);
+      onSubmit(selectedEmployee?.name || "", weeks);
+    } else if (formType === "generateAll") {
+      onSubmit("", weeks);
+    } else if (formType === "addSchedule" && employeeId && date && startTime && endTime) {
+      const selectedEmployee = employees?.find(emp => emp.employee_id === employeeId);
+      onSubmit(selectedEmployee?.name || "", undefined, date, startTime, endTime);
     }
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setEmployeeName("");
+    setWeeks("");
+    setDate("");
+    setStartTime("");
+    setEndTime("");
+    setEmployeeId(null);
   };
 
   return (
     <Popover>
-      <PopoverTrigger>
-        <Button>{buttonText}</Button>
+      <PopoverTrigger asChild>
+        <Button variant="linkHover2">{buttonText}</Button>
       </PopoverTrigger>
-      <PopoverContent>
-        <div className="space-y-4">
-          {formType === "addSchedule" && employees && (
-            <div>
-              <Label>Employee</Label>
-              <select
-                value={employeeId ?? ""}
-                onChange={(e) => setEmployeeId(Number(e.target.value))}
-              >
-                <option value="" disabled>
-                  Select Employee
-                </option>
-                {employees.map((employee) => (
-                  <option
-                    key={employee.employee_id}
-                    value={employee.employee_id}
-                  >
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div>
-            <Label>Employee Name</Label>
+      <PopoverContent align="end" className="p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">{placeholder}</label>
+          {formType === "generateAll" ? (
             <Input
-              type="text"
-              value={employeeName}
-              onChange={(e) => setEmployeeName(e.target.value)}
-              placeholder={placeholder}
+              type="number"
+              value={weeks}
+              onChange={(e) => setWeeks(e.target.value)}
+              placeholder="Number of weeks"
+              className="mt-2"
             />
-          </div>
-          {formType === "generate" && (
-            <div>
-              <Label>Weeks</Label>
-              <Input
-                type="text"
-                value={weeks}
-                onChange={(e) => setWeeks(e.target.value)}
-                placeholder="Enter number of weeks"
-              />
-            </div>
-          )}
-          {formType === "addSchedule" && (
+          ) : (
             <>
-              <div>
-                <Label>Date</Label>
+              {(formType === "generate" || formType === "clearSchedule" || formType === "addSchedule") && employees && (
+                <div>
+                  <Label>Employee</Label>
+                  <Select onValueChange={(value) => setEmployeeId(Number(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {(formType === "generate" || formType === "clearSchedule") && (
                 <Input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  type="number"
+                  value={weeks}
+                  onChange={(e) => setWeeks(e.target.value)}
+                  placeholder="Number of weeks"
+                  className="mt-2"
                 />
-              </div>
-              <div>
-                <Label>Start Time</Label>
-                <Input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>End Time</Label>
-                <Input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
-              </div>
+              )}
+              {formType === "addSchedule" && (
+                <>
+                  <div>
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Start Time</Label>
+                    <Input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>End Time</Label>
+                    <Input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
-          <Button onClick={handleSubmit}>Submit</Button>
+          <Button
+            className="mt-2"
+            onClick={handleSubmit}
+          >
+            Submit
+          </Button>
         </div>
       </PopoverContent>
     </Popover>
   );
 };
-
-export default PopoverForm;

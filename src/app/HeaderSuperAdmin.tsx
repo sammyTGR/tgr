@@ -63,9 +63,9 @@ const schedComponents = [
     description: "NO!",
   },
   {
-    title: "Submit Schedules",
+    title: "Create Schedules",
     href: "/admin/schedules",
-    description: "Create and Manage Schedules",
+    description: "Manage Schedules",
   },
 ];
 
