@@ -85,6 +85,11 @@ const formComps = [
     href: "/TGR/certifications",
     description: "View All Certifications",
   },
+  {
+    title: "Rental Gun Checklist",
+    href: "/TGR/rentals/checklist",
+    description: "Daily Rental Checklist",
+  },
 ];
 
 const HeaderUser = React.memo(() => {
