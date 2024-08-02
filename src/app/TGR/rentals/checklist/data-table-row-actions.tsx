@@ -58,7 +58,8 @@ export function DataTableRowActions({
         await supabase
           .from("firearms_maintenance")
           .update({ rental_notes: "" })
-          .eq("id", task.id);
+          .eq("id", task.id)
+          .eq("verification_date", today);
         // Reset the verification status for both morning and evening
         await supabase
           .from("firearm_verifications")
