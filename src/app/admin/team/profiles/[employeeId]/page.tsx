@@ -1041,9 +1041,7 @@ const EmployeeProfile = () => {
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
                 <TabsTrigger value="sales">Sales</TabsTrigger>
-                <TabsTrigger value="performance">
-                  Monthly Performance
-                </TabsTrigger>
+                <TabsTrigger value="performance">Audits</TabsTrigger>
               </TabsList>
               <ScrollArea className="h-[calc(100vh-300px)]">
                 <main

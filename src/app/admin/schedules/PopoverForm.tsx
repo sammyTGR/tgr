@@ -1,14 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface PopoverFormProps {
-  onSubmit: (employeeName: string, weeks?: string, date?: string, startTime?: string, endTime?: string) => void;
+  onSubmit: (
+    employeeName: string,
+    weeks?: string,
+    date?: string,
+    startTime?: string,
+    endTime?: string
+  ) => void;
   buttonText: string;
   placeholder: string;
   employees?: { employee_id: number; name: string }[];
@@ -31,13 +48,42 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
 
   const handleSubmit = () => {
     if (formType === "generate" || formType === "clearSchedule") {
-      const selectedEmployee = employees?.find(emp => emp.employee_id === employeeId);
+      const selectedEmployee = employees?.find(
+        (emp) => emp.employee_id === employeeId
+      );
       onSubmit(selectedEmployee?.name || "", weeks);
+      if (formType === "generate") {
+        toast.success(
+          `Published ${weeks} weeks of schedules for ${selectedEmployee?.name}!`
+        );
+      } else {
+        toast.success(`Cleared all of ${selectedEmployee?.name}'s schedules!`);
+      }
     } else if (formType === "generateAll") {
       onSubmit("", weeks);
-    } else if (formType === "addSchedule" && employeeId && date && startTime && endTime) {
-      const selectedEmployee = employees?.find(emp => emp.employee_id === employeeId);
-      onSubmit(selectedEmployee?.name || "", undefined, date, startTime, endTime);
+      toast.success(
+        `${weeks} weeks of schedules have been published for the crew!`
+      );
+    } else if (
+      formType === "addSchedule" &&
+      employeeId &&
+      date &&
+      startTime &&
+      endTime
+    ) {
+      const selectedEmployee = employees?.find(
+        (emp) => emp.employee_id === employeeId
+      );
+      onSubmit(
+        selectedEmployee?.name || "",
+        undefined,
+        date,
+        startTime,
+        endTime
+      );
+      toast.success(
+        `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
+      );
     }
     resetForm();
   };
@@ -58,7 +104,9 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
       </PopoverTrigger>
       <PopoverContent align="end" className="p-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">{placeholder}</label>
+          <label className="block text-sm font-medium text-gray-700">
+            {placeholder}
+          </label>
           {formType === "generateAll" ? (
             <Input
               type="number"
@@ -69,24 +117,32 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
             />
           ) : (
             <>
-              {(formType === "generate" || formType === "clearSchedule" || formType === "addSchedule") && employees && (
-                <div>
-                  <Label>Employee</Label>
-                  <Select onValueChange={(value) => setEmployeeId(Number(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((employee) => (
-                        <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
-                          {employee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {(formType === "generate" || formType === "clearSchedule") && (
+              {(formType === "generate" ||
+                formType === "clearSchedule" ||
+                formType === "addSchedule") &&
+                employees && (
+                  <div>
+                    <Label>Employee</Label>
+                    <Select
+                      onValueChange={(value) => setEmployeeId(Number(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map((employee) => (
+                          <SelectItem
+                            key={employee.employee_id}
+                            value={employee.employee_id.toString()}
+                          >
+                            {employee.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              {formType === "generate" && (
                 <Input
                   type="number"
                   value={weeks}
@@ -125,10 +181,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               )}
             </>
           )}
-          <Button
-            className="mt-2"
-            onClick={handleSubmit}
-          >
+          <Button variant="linkHover1" className="mt-2" onClick={handleSubmit}>
             Submit
           </Button>
         </div>
