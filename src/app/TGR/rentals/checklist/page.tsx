@@ -126,7 +126,11 @@ export default function FirearmsChecklist() {
                   verification.verification_time === "evening" &&
                   verification.verification_date === today
               ),
-        highlight: withGunsmith ? "amber" : currentlyRentedOut ? "red" : "",
+        highlight: withGunsmith
+          ? "text-amber"
+          : currentlyRentedOut
+          ? "text-red"
+          : "",
       };
     });
 

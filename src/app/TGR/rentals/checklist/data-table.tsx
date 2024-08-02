@@ -145,7 +145,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                     data-state={row.getIsSelected() && "selected"}
                     className={
                       row.original.highlight
-                        ? `highlight-${row.original.highlight}`
+                        ? `text-${row.original.highlight}`
                         : ""
                     }
                   >

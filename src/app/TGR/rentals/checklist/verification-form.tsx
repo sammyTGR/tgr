@@ -49,27 +49,47 @@ export function VerificationForm({
       ? "Currently Rented Out"
       : notes;
 
-    const { error } = await supabase.from("firearm_verifications").upsert({
-      firearm_id: firearmId,
-      verified_by: userUuid,
-      verification_date: verificationDate,
-      verification_time: verificationTime,
-      serial_verified: serialVerified,
-      condition_verified: conditionVerified,
-      magazine_attached: magazineAttached,
-      notes: noteText,
+    // Save verification data
+    const { error: verificationError } = await supabase
+      .from("firearm_verifications")
+      .upsert({
+        firearm_id: firearmId,
+        verified_by: userUuid,
+        verification_date: verificationDate,
+        verification_time: verificationTime,
+        serial_verified: serialVerified,
+        condition_verified: conditionVerified,
+        magazine_attached: magazineAttached,
+        notes: noteText,
+      });
+
+    if (verificationError) {
+      console.error("Error saving verification:", verificationError.message);
+      return;
+    }
+
+    // Log the update action
+    console.log("Updating firearms_maintenance with:", {
+      rental_notes: noteText,
+      firearmId,
     });
 
-    if (error) {
-      console.error("Error saving verification:", error.message);
-    } else {
-      await supabase
-        .from("firearms_maintenance")
-        .update({ with_gunsmith: withGunsmith, rental_on_range: rentalOnRange })
-        .eq("id", firearmId);
+    // Update firearms maintenance notes
+    const { error: maintenanceError } = await supabase
+      .from("firearms_maintenance")
+      .update({ rental_notes: noteText })
+      .eq("id", firearmId);
 
-      onVerificationComplete(noteText);
+    if (maintenanceError) {
+      console.error(
+        "Error updating firearms maintenance:",
+        maintenanceError.message
+      );
+      return;
     }
+
+    // Call the completion callback
+    onVerificationComplete(noteText);
   };
 
   return (

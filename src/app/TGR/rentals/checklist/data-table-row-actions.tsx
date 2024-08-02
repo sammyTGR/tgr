@@ -1,4 +1,3 @@
-// src/app/TGR/rentals/checklist/data-table-row-actions.tsx
 "use client";
 import { useState } from "react";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
@@ -58,7 +57,7 @@ export function DataTableRowActions({
           .eq("notes", "With Gunsmith");
         await supabase
           .from("firearms_maintenance")
-          .update({ with_gunsmith: false })
+          .update({ rental_notes: "" })
           .eq("id", task.id);
         // Reset the verification status for both morning and evening
         await supabase
@@ -71,6 +70,22 @@ export function DataTableRowActions({
           .eq("firearm_id", task.id)
           .eq("verification_date", today);
         onNotesChange(task.id, ""); // Update the local state
+      } else if (status === "With Gunsmith") {
+        await supabase
+          .from("firearms_maintenance")
+          .update({ rental_notes: "With Gunsmith" })
+          .eq("id", task.id);
+        // Clear the verification status for both morning and evening
+        await supabase
+          .from("firearm_verifications")
+          .update({
+            serial_verified: false,
+            condition_verified: false,
+            magazine_attached: false,
+          })
+          .eq("firearm_id", task.id)
+          .eq("verification_date", today);
+        onNotesChange(task.id, "With Gunsmith"); // Update the local state
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -120,6 +135,11 @@ export function DataTableRowActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Gunsmithing</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
+              <DropdownMenuItem
+                onSelect={() => handleSetGunsmithStatus("With Gunsmith")}
+              >
+                With Gunsmith
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() =>
                   handleSetGunsmithStatus("Returned From Gunsmith")
