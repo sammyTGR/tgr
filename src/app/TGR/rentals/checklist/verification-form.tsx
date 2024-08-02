@@ -69,10 +69,10 @@ export function VerificationForm({
     }
 
     // Log the update action
-    console.log("Updating firearms_maintenance with:", {
-      rental_notes: noteText,
-      firearmId,
-    });
+    // console.log("Updating firearms_maintenance with:", {
+    //   rental_notes: noteText,
+    //   firearmId,
+    // });
 
     // Update firearms maintenance notes
     const { error: maintenanceError } = await supabase

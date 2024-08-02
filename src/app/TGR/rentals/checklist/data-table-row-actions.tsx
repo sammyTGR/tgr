@@ -96,6 +96,58 @@ export function DataTableRowActions({
     }
   };
 
+  const handleRentalReturned = async (firearmId: number) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const currentHour = new Date().getHours();
+      const isMorning = currentHour < 14;
+
+      // Clear rental notes
+      await supabase
+        .from("firearms_maintenance")
+        .update({ rental_notes: "" })
+        .eq("id", firearmId);
+
+      // Update verification status for the appropriate column
+      await supabase
+        .from("firearm_verifications")
+        .update({
+          serial_verified: false,
+          condition_verified: false,
+          magazine_attached: false,
+        })
+        .eq("firearm_id", firearmId)
+        .eq("verification_date", today)
+        .eq("verification_time", isMorning ? "morning" : "evening");
+
+      onNotesChange(firearmId, ""); // Update the local state
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error setting rental returned status:", error.message);
+      } else {
+        console.error("An unknown error occurred.");
+      }
+    }
+  };
+
+  const handleRentalOnRange = async (firearmId: number) => {
+    try {
+      // Set rental notes to "Currently Rented Out"
+      await supabase
+        .from("firearms_maintenance")
+        .update({ rental_notes: "Currently Rented Out" })
+        .eq("id", firearmId);
+
+      onNotesChange(firearmId, "Currently Rented Out"); // Update the local state
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error setting rental on range status:", error.message);
+      } else {
+        console.error("An unknown error occurred.");
+      }
+    }
+  };
+
   const handleDeleteFirearm = async () => {
     try {
       await supabase.from("firearms_maintenance").delete().eq("id", task.id);
@@ -131,6 +183,18 @@ export function DataTableRowActions({
           <DropdownMenuItem onSelect={() => setOpenVerification(true)}>
             Verify Firearm
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Rented Out</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem onSelect={() => handleRentalOnRange(task.id)}>
+                Rental On Range
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleRentalReturned(task.id)}>
+                Rental Returned
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Gunsmithing</DropdownMenuSubTrigger>
