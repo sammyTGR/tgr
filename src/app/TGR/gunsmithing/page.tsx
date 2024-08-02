@@ -17,6 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "sonner";
+import AllFirearmsList from "./AllFirearmsList";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import styles from "./profiles.module.css";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import classNames from "classnames";
 
 const words = "Gunsmithing Maintenance";
 
@@ -401,124 +407,172 @@ export default function GunsmithingMaintenance() {
     <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
         <Toaster position="top-right" />
-        <section className="flex-1 flex flex-col space-y-4 p-4">
-          <div className="flex items-center justify-between space-y-2">
-            <div>
-              <h2 className="text-2xl font-bold">
-                <TextGenerateEffect words={words} />
-              </h2>
-            </div>
-            {["admin", "super admin"].includes(userRole || "") && (
-              <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
-                Add Firearm
-              </Button>
-            )}
-          </div>
-          <div className="flex-1 flex flex-col space-y-4">
-            <div className="rounded-md border flex-1 flex flex-col">
-              <div className="relative w-full h-full overflow-auto">
-                {loading ? (
-                  <p>Loading...</p>
-                ) : (
-                  userRole &&
-                  userUuid && (
-                    <>
-                      <DataTable
-                        columns={columns}
-                        data={data}
-                        userRole={userRole}
-                        userUuid={userUuid}
-                        onStatusChange={handleStatusChange}
-                        onNotesChange={handleNotesChange}
-                        onUpdateFrequency={handleUpdateFrequency}
-                        onDeleteFirearm={handleDeleteFirearm} // Pass this prop
-                        pageIndex={pageIndex} // Pass the pageIndex
-                        setPageIndex={setPageIndex} // Pass the setPageIndex
-                      />
-                    </>
-                  )
-                )}
-              </div>
-            </div>
-            <Button onClick={handleSubmit} variant="ringHover">
-              Submit Maintenance List
-            </Button>
-          </div>
-        </section>
+        <Tabs defaultValue="maintenance" className="w-full">
+          <TabsList className="ml-4">
+            <TabsTrigger value="maintenance">Weekly Maintenance</TabsTrigger>
+            <TabsTrigger value="repairs">Firearms Repairs</TabsTrigger>
+          </TabsList>
+          <ScrollArea className="h-[calc(100vh-300px)]">
+            <main
+              className={classNames(
+                "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
+                styles.noScroll
+              )}
+            >
+              <TabsContent value="maintenance">
+                <Card className="m-4">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">
+                      <TextGenerateEffect words={words} />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <section className="flex-1 flex flex-col space-y-4 p-4">
+                      <div className="flex items-center justify-between space-y-2">
+                        {["admin", "super admin"].includes(userRole || "") && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsDialogOpen(true)}
+                          >
+                            Add Firearm
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col space-y-4">
+                        <div className="rounded-md border flex-1 flex flex-col">
+                          <div className="relative w-full h-full overflow-auto">
+                            {loading ? (
+                              <p>Loading...</p>
+                            ) : (
+                              userRole &&
+                              userUuid && (
+                                <>
+                                  <DataTable
+                                    columns={columns}
+                                    data={data}
+                                    userRole={userRole}
+                                    userUuid={userUuid}
+                                    onStatusChange={handleStatusChange}
+                                    onNotesChange={handleNotesChange}
+                                    onUpdateFrequency={handleUpdateFrequency}
+                                    onDeleteFirearm={handleDeleteFirearm}
+                                    pageIndex={pageIndex}
+                                    setPageIndex={setPageIndex}
+                                  />
+                                </>
+                              )
+                            )}
+                          </div>
+                        </div>
+                        <Button variant="linkHover1" onClick={handleSubmit}>
+                          Submit Maintenance List
+                        </Button>
+                      </div>
+                    </section>
 
-        {isDialogOpen && (
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white text-black dark:bg-black dark:text-white p-6 rounded shadow-md w-full max-w-lg">
-              <h3 className="text-lg font-bold mb-4">Add New Firearm</h3>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">
-                  Firearm Name
-                </label>
-                <Input
-                  type="text"
-                  name="firearm_name"
-                  value={newFirearm.firearm_name}
-                  onChange={handleFirearmInputChange}
-                  className="block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">
-                  Firearm Type
-                </label>
-                <Select
-                  onValueChange={(value) =>
-                    handleFirearmInputChange({
-                      target: { name: "firearm_type", value },
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <SelectValue placeholder="Select firearm type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="handgun">Handgun</SelectItem>
-                    <SelectItem value="long gun">Long Gun</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">
-                  Maintenance Frequency (days)
-                </label>
-                <Input
-                  type="number"
-                  name="maintenance_frequency"
-                  value={newFirearm.maintenance_frequency}
-                  onChange={handleFirearmInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">
-                  Maintenance Notes
-                </label>
-                <Textarea
-                  name="maintenance_notes"
-                  value={newFirearm.maintenance_notes}
-                  onChange={handleFirearmInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="outline" onClick={handleAddFirearm}>
-                  Add Firearm
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+                    {isDialogOpen && (
+                      <div className="fixed inset-0 flex items-center justify-center z-50">
+                        <div className="bg-white text-black dark:bg-black dark:text-white p-6 rounded shadow-md w-full max-w-lg">
+                          <h3 className="text-lg font-bold mb-4">
+                            Add New Firearm
+                          </h3>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium">
+                              Firearm Name
+                            </label>
+                            <Input
+                              type="text"
+                              name="firearm_name"
+                              value={newFirearm.firearm_name}
+                              onChange={handleFirearmInputChange}
+                              className="block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium">
+                              Firearm Type
+                            </label>
+                            <Select
+                              onValueChange={(value) =>
+                                handleFirearmInputChange({
+                                  target: { name: "firearm_type", value },
+                                })
+                              }
+                            >
+                              <SelectTrigger className="w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <SelectValue placeholder="Select firearm type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="handgun">Handgun</SelectItem>
+                                <SelectItem value="long gun">
+                                  Long Gun
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium">
+                              Maintenance Frequency (days)
+                            </label>
+                            <Input
+                              type="number"
+                              name="maintenance_frequency"
+                              value={newFirearm.maintenance_frequency}
+                              onChange={handleFirearmInputChange}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium">
+                              Maintenance Notes
+                            </label>
+                            <Textarea
+                              name="maintenance_notes"
+                              value={newFirearm.maintenance_notes}
+                              onChange={handleFirearmInputChange}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsDialogOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={handleAddFirearm}
+                            >
+                              Add Firearm
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="repairs">
+                <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-2xl font-bold">
+                        <TextGenerateEffect words="Repairs" />
+                      </CardTitle>
+                      {/* <CalendarIcon className="h-4 w-4 text-muted-foreground" /> */}
+                    </CardHeader>
+                    <CardContent>
+                      <AllFirearmsList userRole={userRole} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </main>
+            <ScrollBar orientation="vertical" />
+          </ScrollArea>
+        </Tabs>
       </div>
     </RoleBasedWrapper>
   );

@@ -38,7 +38,7 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   userUuid: string;
   onNotesChange: (id: number, notes: string) => void;
   onVerificationComplete: () => Promise<void>;
-  onDeleteFirearm: (id: number) => void; // Add this prop
+  onDeleteFirearm: (id: number) => void;
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -48,7 +48,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   userUuid,
   onNotesChange,
   onVerificationComplete,
-  onDeleteFirearm, // Add this prop
+  onDeleteFirearm,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -143,6 +143,11 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className={
+                      row.original.highlight
+                        ? `highlight-${row.original.highlight}`
+                        : ""
+                    }
                   >
                     {row.getVisibleCells().map((cell) => {
                       const metaStyle = (
@@ -166,7 +171,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         userUuid={userUuid}
                         onNotesChange={onNotesChange}
                         onVerificationComplete={onVerificationComplete}
-                        onDeleteFirearm={onDeleteFirearm} // Pass this prop
+                        onDeleteFirearm={onDeleteFirearm}
                       />
                     </TableCell>
                   </TableRow>

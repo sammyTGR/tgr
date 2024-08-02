@@ -31,6 +31,7 @@ export default function FirearmsChecklist() {
   const [userUuid, setUserUuid] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAnyFirearmRentedOut, setIsAnyFirearmRentedOut] = useState(false);
 
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -92,7 +93,6 @@ export default function FirearmsChecklist() {
       throw new Error(verificationsError.message);
     }
 
-    // Combine firearms data with the latest verification data
     const combinedData = firearmsData.map((firearm) => {
       const latestVerification = verificationsData
         .filter((verification) => verification.firearm_id === firearm.id)
@@ -102,25 +102,31 @@ export default function FirearmsChecklist() {
         )[0];
 
       const withGunsmith = latestVerification?.notes === "With Gunsmith";
+      const currentlyRentedOut =
+        latestVerification?.notes === "Currently Rented Out";
+
       return {
         ...firearm,
         notes: latestVerification ? latestVerification.notes : "",
-        morning_checked: withGunsmith
-          ? ""
-          : verificationsData.some(
-              (verification) =>
-                verification.firearm_id === firearm.id &&
-                verification.verification_time === "morning" &&
-                verification.verification_date === today
-            ),
-        evening_checked: withGunsmith
-          ? ""
-          : verificationsData.some(
-              (verification) =>
-                verification.firearm_id === firearm.id &&
-                verification.verification_time === "evening" &&
-                verification.verification_date === today
-            ),
+        morning_checked:
+          withGunsmith || currentlyRentedOut
+            ? ""
+            : verificationsData.some(
+                (verification) =>
+                  verification.firearm_id === firearm.id &&
+                  verification.verification_time === "morning" &&
+                  verification.verification_date === today
+              ),
+        evening_checked:
+          withGunsmith || currentlyRentedOut
+            ? ""
+            : verificationsData.some(
+                (verification) =>
+                  verification.firearm_id === firearm.id &&
+                  verification.verification_time === "evening" &&
+                  verification.verification_date === today
+              ),
+        highlight: withGunsmith ? "amber" : currentlyRentedOut ? "red" : "",
       };
     });
 
@@ -305,6 +311,16 @@ export default function FirearmsChecklist() {
     // Filter firearms with notes
     const firearmsWithNotes = data.filter((item) => item.notes);
 
+    // Ensure no firearms are currently rented out
+    const currentlyRentedOut = data.some(
+      (item) => item.notes === "Currently Rented Out"
+    );
+
+    if (currentlyRentedOut) {
+      toast("There's a firearm still rented out!");
+      return;
+    }
+
     // Ensure all required firearms are verified
     const allVerified = data.every(
       (item) => item.notes || item.morning_checked || item.evening_checked
@@ -406,12 +422,20 @@ export default function FirearmsChecklist() {
                     <>
                       <DataTable
                         columns={columns}
-                        data={data}
+                        data={data.map((item) => ({
+                          ...item,
+                          highlight:
+                            item.notes === "With Gunsmith"
+                              ? "amber"
+                              : item.notes === "Currently Rented Out"
+                              ? "red"
+                              : "",
+                        }))}
                         userRole={userRole}
                         userUuid={userUuid}
                         onNotesChange={handleNotesChange}
                         onVerificationComplete={fetchData}
-                        onDeleteFirearm={handleDeleteFirearm} // Handle delete firearm
+                        onDeleteFirearm={handleDeleteFirearm}
                       />
                     </>
                   )
