@@ -152,6 +152,128 @@ const EmployeeProfilePage = () => {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [onLunchBreak, setOnLunchBreak] = useState(false);
+  const [clockInTime, setClockInTime] = useState<Date | null>(null);
+  const [currentShift, setCurrentShift] = useState<any>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleClockIn = async () => {
+    const now = new Date();
+    setClockInTime(now);
+    setIsClockedIn(true);
+  
+    const { data, error } = await supabase
+      .from("employee_clock_events")
+      .insert({
+        employee_id: employeeId,
+        employee_name: employee.name,
+        start_time: now.toISOString(),
+      })
+      .select();
+  
+    if (error) {
+      console.error("Error clocking in:", error);
+    } else {
+      setCurrentShift(data[0]);
+      toast.success(`Welcome Back ${employee.name}!`);
+    }
+  };
+  
+  const handleClockOut = () => {
+    if (onLunchBreak) {
+      setDialogOpen(true);
+    } else {
+      setPopoverOpen(true);
+    }
+  };
+  
+  const handleEndShift = async () => {
+    const now = new Date();
+    const duration = clockInTime ? calculateDuration(clockInTime, now) : null;
+    const { error } = await supabase
+      .from("employee_clock_events")
+      .update({
+        end_time: now.toISOString(),
+        total_hours: duration,
+      })
+      .eq("id", currentShift.id);
+  
+    if (error) {
+      console.error("Error ending shift:", error);
+    } else {
+      setIsClockedIn(false);
+      setOnLunchBreak(false);
+      setClockInTime(null);
+      setCurrentShift(null);
+      setPopoverOpen(false);
+      setDialogOpen(false);
+      toast.success(`Thank You For Your Hard Work Today ${employee.name}!`);
+    }
+  };
+  
+  const handleLunchBreak = async () => {
+    const now = new Date();
+    const { error } = await supabase
+      .from("employee_clock_events")
+      .update({
+        lunch_start: now.toISOString(),
+      })
+      .eq("id", currentShift.id);
+  
+    if (error) {
+      console.error("Error starting lunch break:", error);
+    } else {
+      setOnLunchBreak(true);
+      setPopoverOpen(false);
+      toast.success(`Enjoy Your Lunch ${employee.name}!`);
+    }
+  };
+  
+  const handleClockBackInFromLunch = async () => {
+    const now = new Date();
+    const { error } = await supabase
+      .from("employee_clock_events")
+      .update({
+        lunch_end: now.toISOString(),
+      })
+      .eq("id", currentShift.id);
+  
+    if (error) {
+      console.error("Error ending lunch break:", error);
+    } else {
+      setOnLunchBreak(false);
+      setDialogOpen(false);
+      setPopoverOpen(false);
+      toast.success("Let's Get Dis Bread!");
+    }
+  };
+
+  const calculateDuration = (start: Date, end: Date): string => {
+    const diff = end.getTime() - start.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setProgress(0);
+
+      await fetchEmployeeData();
+      await fetchAvailableTimeOff();
+      await fetchAvailableSickTime();
+      await fetchReviews();
+
+      setProgress(100); // Final progress
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [employeeId]);
 
   const handleDateChange = (date: Date | undefined) => {
     setSelectedDate(date || null);
@@ -481,6 +603,7 @@ const EmployeeProfilePage = () => {
           <Tabs defaultValue="schedules" className="w-full">
             <TabsList className="border-b border-gray-200 dark:border-gray-700">
               <TabsTrigger value="schedules">Scheduling</TabsTrigger>
+              <TabsTrigger value="clock">Timesheet</TabsTrigger>
               <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
@@ -614,6 +737,132 @@ const EmployeeProfilePage = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                {/* Clock tab content */}
+                <TabsContent value="clock">
+  <h1 className="text-xl font-bold mb-2 ml-2">
+    <TextGenerateEffect words="Time Clock" />
+  </h1>
+  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+    <Card className="mt-4">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="text-2xl font-bold">
+          Time Card
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="mx-auto">
+        {!isClockedIn && (
+          <Button
+            variant="linkHover1"
+            className="w-full mx-auto"
+            onClick={handleClockIn}
+          >
+            Clock In
+          </Button>
+        )}
+        {isClockedIn && !onLunchBreak && (
+          <Button
+            variant="ringHover"
+            className="w-full mx-auto"
+            onClick={handleClockOut}
+          >
+            Clock Out
+          </Button>
+        )}
+        {onLunchBreak && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="linkHover1"
+              >
+                Clock Back In From Lunch
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              {/* <DialogTitle>Lunch Break</DialogTitle> */}
+              <DialogDescription>
+                <Button
+                  variant="gooeyLeft"
+                  className="w-full mx-auto"
+                  onClick={handleClockBackInFromLunch}
+                >
+                  Confirm Clocking Back In
+                </Button>
+              </DialogDescription>
+            </DialogContent>
+          </Dialog>
+        )}
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+          <PopoverTrigger asChild>
+            <div />
+          </PopoverTrigger>
+          <PopoverContent>
+            <div className="flex w-full justify-center space-between">
+              <Button
+                variant="linkHover2"
+                onClick={handleEndShift}
+              >
+                End Shift
+              </Button>
+              <Button
+                variant="linkHover2"
+                onClick={handleLunchBreak}
+              >
+                Lunch Break
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </CardContent>
+    </Card>
+
+    <Card className="mt-4">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="text-2xl font-bold">
+          Start Of Shift
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="mx-auto">
+        {clockInTime ? (
+          <div>{format(clockInTime, "PPP p")}</div>
+        ) : (
+          <div>Not clocked in</div>
+        )}
+      </CardContent>
+    </Card>
+
+    <Card className="mt-4">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="text-2xl font-bold">
+          End Of Shift
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="mx-auto">
+        {currentShift?.end_time ? (
+          <div>{format(new Date(currentShift.end_time), "PPP p")}</div>
+        ) : (
+          <div>Still on shift</div>
+        )}
+      </CardContent>
+    </Card>
+
+    <Card className="mt-4">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="text-2xl font-bold">
+          Summary
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="mx-auto">
+        {currentShift?.total_hours ? (
+          <div>{currentShift.total_hours}</div>
+        ) : (
+          <div>No shift data</div>
+        )}
+      </CardContent>
+    </Card>
+  </div>
+</TabsContent>
+
 
                 {/* Performance tab content */}
                 <TabsContent value="performance">
