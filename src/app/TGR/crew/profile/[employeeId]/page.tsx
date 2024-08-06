@@ -202,25 +202,39 @@ const EmployeeProfilePage = () => {
 
   const handleEndShift = async () => {
     const now = new Date();
-    const duration = clockInTime ? calculateDuration(clockInTime, now) : null;
-    const { error } = await supabase
-      .from("employee_clock_events")
-      .update({
-        end_time: now.toISOString(),
-        total_hours: duration,
-      })
-      .eq("id", currentShift.id);
+    if (!clockInTime) {
+      console.error("Invalid clock-in time");
+      return;
+    }
 
-    if (error) {
-      console.error("Error ending shift:", error);
+    const duration = calculateDuration(clockInTime, now);
+
+    if (duration !== "00:00:00") {
+      const { error } = await supabase
+        .from("employee_clock_events")
+        .update({
+          end_time: now.toISOString(),
+          total_hours: duration,
+        })
+        .eq("id", currentShift?.id);
+
+      if (error) {
+        console.error("Error ending shift:", error);
+      } else {
+        setIsClockedIn(false);
+        setOnLunchBreak(false);
+        setClockInTime(null);
+        setCurrentShift((prevShift: any) => ({
+          ...prevShift,
+          end_time: now.toISOString(),
+          total_hours: duration,
+        }));
+        setPopoverOpen(false);
+        setDialogOpen(false);
+        toast.success(`Thank You For Your Hard Work Today ${employee.name}!`);
+      }
     } else {
-      setIsClockedIn(false);
-      setOnLunchBreak(false);
-      setClockInTime(null);
-      setCurrentShift(null);
-      setPopoverOpen(false);
-      setDialogOpen(false);
-      toast.success(`Thank You For Your Hard Work Today ${employee.name}!`);
+      console.error("Invalid duration calculated");
     }
   };
 
@@ -287,10 +301,13 @@ const EmployeeProfilePage = () => {
 
   const calculateDuration = (start: Date, end: Date): string => {
     const diff = end.getTime() - start.getTime();
+    if (diff < 0) return "00:00:00";
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${hours}:${minutes}:${seconds}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const handleDateChange = (date: Date | undefined) => {
