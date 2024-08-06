@@ -39,6 +39,7 @@ import {
 } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { toast } from "sonner";
 import TimeOffRequestComponent from "@/components/TimeOffRequestComponent";
 import { Textarea } from "@/components/ui/textarea";
@@ -172,7 +173,8 @@ const EmployeeProfilePage = () => {
 
   const handleClockIn = async () => {
     const now = new Date();
-    setClockInTime(now);
+    const zonedNow = toZonedTime(now, "America/Los_Angeles");
+    setClockInTime(zonedNow);
     setIsClockedIn(true);
 
     const { data, error } = await supabase
@@ -180,7 +182,7 @@ const EmployeeProfilePage = () => {
       .insert({
         employee_id: employeeId,
         employee_name: employee.name,
-        start_time: now.toISOString(),
+        start_time: zonedNow.toISOString(), // Store in UTC
       })
       .select();
 
@@ -202,6 +204,7 @@ const EmployeeProfilePage = () => {
 
   const handleEndShift = async () => {
     const now = new Date();
+    const zonedNow = toZonedTime(now, "America/Los_Angeles");
     if (!clockInTime) {
       console.error("Invalid clock-in time");
       return;
@@ -213,7 +216,7 @@ const EmployeeProfilePage = () => {
       const { error } = await supabase
         .from("employee_clock_events")
         .update({
-          end_time: now.toISOString(),
+          end_time: zonedNow.toISOString(), // Store in UTC
           total_hours: duration,
         })
         .eq("id", currentShift?.id);
@@ -226,7 +229,7 @@ const EmployeeProfilePage = () => {
         setClockInTime(null);
         setCurrentShift((prevShift: any) => ({
           ...prevShift,
-          end_time: now.toISOString(),
+          end_time: zonedNow.toISOString(),
           total_hours: duration,
         }));
         setPopoverOpen(false);
@@ -240,10 +243,12 @@ const EmployeeProfilePage = () => {
 
   const handleLunchBreak = async () => {
     const now = new Date();
+    const zonedNow = toZonedTime(now, "America/Los_Angeles");
+
     const { error } = await supabase
       .from("employee_clock_events")
       .update({
-        lunch_start: now.toISOString(),
+        lunch_start: zonedNow.toISOString(), // Store in UTC
       })
       .eq("id", currentShift.id);
 
@@ -258,10 +263,12 @@ const EmployeeProfilePage = () => {
 
   const handleClockBackInFromLunch = async () => {
     const now = new Date();
+    const zonedNow = toZonedTime(now, "America/Los_Angeles");
+
     const { error } = await supabase
       .from("employee_clock_events")
       .update({
-        lunch_end: now.toISOString(),
+        lunch_end: zonedNow.toISOString(), // Store in UTC
       })
       .eq("id", currentShift.id);
 
@@ -289,7 +296,9 @@ const EmployeeProfilePage = () => {
     } else {
       if (data) {
         setIsClockedIn(true);
-        setClockInTime(new Date(data.start_time));
+        setClockInTime(
+          toZonedTime(new Date(data.start_time), "America/Los_Angeles")
+        ); // Convert from UTC to local time
         setCurrentShift(data);
       } else {
         setIsClockedIn(false);
