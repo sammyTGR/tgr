@@ -38,7 +38,7 @@ import {
   DialogClose,
 } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { toast } from "sonner";
 import TimeOffRequestComponent from "@/components/TimeOffRequestComponent";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +104,15 @@ interface PointsCalculation {
   points_deducted: number;
 }
 
+interface Shift {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  start_time: string;
+  end_time?: string;
+  total_hours?: string;
+}
+
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 
 const schema = z.object({
@@ -158,12 +167,14 @@ const EmployeeProfilePage = () => {
   const [currentShift, setCurrentShift] = useState<any>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
+  const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
 
   const handleClockIn = async () => {
     const now = new Date();
     setClockInTime(now);
     setIsClockedIn(true);
-  
+
     const { data, error } = await supabase
       .from("employee_clock_events")
       .insert({
@@ -172,7 +183,7 @@ const EmployeeProfilePage = () => {
         start_time: now.toISOString(),
       })
       .select();
-  
+
     if (error) {
       console.error("Error clocking in:", error);
     } else {
@@ -180,7 +191,7 @@ const EmployeeProfilePage = () => {
       toast.success(`Welcome Back ${employee.name}!`);
     }
   };
-  
+
   const handleClockOut = () => {
     if (onLunchBreak) {
       setDialogOpen(true);
@@ -188,7 +199,7 @@ const EmployeeProfilePage = () => {
       setPopoverOpen(true);
     }
   };
-  
+
   const handleEndShift = async () => {
     const now = new Date();
     const duration = clockInTime ? calculateDuration(clockInTime, now) : null;
@@ -199,7 +210,7 @@ const EmployeeProfilePage = () => {
         total_hours: duration,
       })
       .eq("id", currentShift.id);
-  
+
     if (error) {
       console.error("Error ending shift:", error);
     } else {
@@ -212,7 +223,7 @@ const EmployeeProfilePage = () => {
       toast.success(`Thank You For Your Hard Work Today ${employee.name}!`);
     }
   };
-  
+
   const handleLunchBreak = async () => {
     const now = new Date();
     const { error } = await supabase
@@ -221,7 +232,7 @@ const EmployeeProfilePage = () => {
         lunch_start: now.toISOString(),
       })
       .eq("id", currentShift.id);
-  
+
     if (error) {
       console.error("Error starting lunch break:", error);
     } else {
@@ -230,7 +241,7 @@ const EmployeeProfilePage = () => {
       toast.success(`Enjoy Your Lunch ${employee.name}!`);
     }
   };
-  
+
   const handleClockBackInFromLunch = async () => {
     const now = new Date();
     const { error } = await supabase
@@ -239,7 +250,7 @@ const EmployeeProfilePage = () => {
         lunch_end: now.toISOString(),
       })
       .eq("id", currentShift.id);
-  
+
     if (error) {
       console.error("Error ending lunch break:", error);
     } else {
@@ -250,6 +261,30 @@ const EmployeeProfilePage = () => {
     }
   };
 
+  // Function to fetch the current shift
+  const fetchCurrentShift = async () => {
+    const { data, error } = await supabase
+      .from("employee_clock_events")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .is("end_time", null)
+      .single();
+
+    if (error) {
+      console.error("Error fetching current shift:", error);
+    } else {
+      if (data) {
+        setIsClockedIn(true);
+        setClockInTime(new Date(data.start_time));
+        setCurrentShift(data);
+      } else {
+        setIsClockedIn(false);
+        setClockInTime(null);
+        setCurrentShift(null);
+      }
+    }
+  };
+
   const calculateDuration = (start: Date, end: Date): string => {
     const diff = end.getTime() - start.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -257,23 +292,6 @@ const EmployeeProfilePage = () => {
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     return `${hours}:${minutes}:${seconds}`;
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setProgress(0);
-
-      await fetchEmployeeData();
-      await fetchAvailableTimeOff();
-      await fetchAvailableSickTime();
-      await fetchReviews();
-
-      setProgress(100); // Final progress
-      setLoading(false);
-    };
-
-    fetchData();
-  }, [employeeId]);
 
   const handleDateChange = (date: Date | undefined) => {
     setSelectedDate(date || null);
@@ -558,6 +576,82 @@ const EmployeeProfilePage = () => {
     setProgress((prev) => prev + 20); // Update progress
   };
 
+  // Function to fetch weekly summary
+  const fetchWeeklySummary = async () => {
+    const startOfWeekDate = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const endOfWeekDate = endOfWeek(new Date(), { weekStartsOn: 0 });
+
+    const { data, error } = await supabase
+      .from("employee_clock_events")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .gte("start_time", startOfWeekDate.toISOString())
+      .lte("end_time", endOfWeekDate.toISOString());
+
+    if (error) {
+      console.error("Error fetching weekly summary:", error);
+    } else {
+      const totalHours = data.reduce((acc, shift) => {
+        if (shift.start_time && shift.end_time) {
+          const start = new Date(shift.start_time);
+          const end = new Date(shift.end_time);
+          const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60); // Convert to hours
+          return acc + duration;
+        }
+        return acc;
+      }, 0);
+      setWeeklySummary(totalHours.toFixed(2)); // Round to 2 decimal places
+    }
+  };
+
+  // Function to fetch pay period summary
+  const fetchPayPeriodSummary = async () => {
+    const startOfPreviousWeek = startOfWeek(subWeeks(new Date(), 1), {
+      weekStartsOn: 0,
+    });
+    const endOfPreviousWeek = endOfWeek(subWeeks(new Date(), 1), {
+      weekStartsOn: 0,
+    });
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const endOfCurrentWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
+
+    const { data: previousWeekData, error: previousWeekError } = await supabase
+      .from("employee_clock_events")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .gte("start_time", startOfPreviousWeek.toISOString())
+      .lte("end_time", endOfPreviousWeek.toISOString());
+
+    const { data: currentWeekData, error: currentWeekError } = await supabase
+      .from("employee_clock_events")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .gte("start_time", startOfCurrentWeek.toISOString())
+      .lte("end_time", endOfCurrentWeek.toISOString());
+
+    if (previousWeekError || currentWeekError) {
+      console.error(
+        "Error fetching pay period summary:",
+        previousWeekError || currentWeekError
+      );
+    } else {
+      const totalHours = [...previousWeekData, ...currentWeekData].reduce(
+        (acc, shift) => {
+          if (shift.start_time && shift.end_time) {
+            const start = new Date(shift.start_time);
+            const end = new Date(shift.end_time);
+            const duration =
+              (end.getTime() - start.getTime()) / (1000 * 60 * 60); // Convert to hours
+            return acc + duration;
+          }
+          return acc;
+        },
+        0
+      );
+      setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -567,6 +661,9 @@ const EmployeeProfilePage = () => {
       await fetchAvailableTimeOff();
       await fetchAvailableSickTime();
       await fetchReviews();
+      await fetchWeeklySummary();
+      await fetchPayPeriodSummary();
+      await fetchCurrentShift();
 
       setProgress(100); // Final progress
       setLoading(false);
@@ -603,7 +700,7 @@ const EmployeeProfilePage = () => {
           <Tabs defaultValue="schedules" className="w-full">
             <TabsList className="border-b border-gray-200 dark:border-gray-700">
               <TabsTrigger value="schedules">Scheduling</TabsTrigger>
-              {/* <TabsTrigger value="clock">Timesheet</TabsTrigger> */}
+              <TabsTrigger value="clock">Timesheet</TabsTrigger>
               <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
@@ -740,129 +837,164 @@ const EmployeeProfilePage = () => {
 
                 {/* Clock tab content */}
                 <TabsContent value="clock">
-  <h1 className="text-xl font-bold mb-2 ml-2">
-    <TextGenerateEffect words="Time Clock" />
-  </h1>
-  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-    <Card className="mt-4">
-      <CardHeader className="flex justify-between items-center">
-        <CardTitle className="text-2xl font-bold">
-          Time Card
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="mx-auto">
-        {!isClockedIn && (
-          <Button
-            variant="linkHover1"
-            className="w-full mx-auto"
-            onClick={handleClockIn}
-          >
-            Clock In
-          </Button>
-        )}
-        {isClockedIn && !onLunchBreak && (
-          <Button
-            variant="ringHover"
-            className="w-full mx-auto"
-            onClick={handleClockOut}
-          >
-            Clock Out
-          </Button>
-        )}
-        {onLunchBreak && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="linkHover1"
-              >
-                Clock Back In From Lunch
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              {/* <DialogTitle>Lunch Break</DialogTitle> */}
-              <DialogDescription>
-                <Button
-                  variant="gooeyLeft"
-                  className="w-full mx-auto"
-                  onClick={handleClockBackInFromLunch}
-                >
-                  Confirm Clocking Back In
-                </Button>
-              </DialogDescription>
-            </DialogContent>
-          </Dialog>
-        )}
-        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-          <PopoverTrigger asChild>
-            <div />
-          </PopoverTrigger>
-          <PopoverContent>
-            <div className="flex w-full justify-center space-between">
-              <Button
-                variant="linkHover2"
-                onClick={handleEndShift}
-              >
-                End Shift
-              </Button>
-              <Button
-                variant="linkHover2"
-                onClick={handleLunchBreak}
-              >
-                Lunch Break
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </CardContent>
-    </Card>
+                  <h1 className="text-xl font-bold mb-2 ml-2">
+                    <TextGenerateEffect words="Time Clock" />
+                  </h1>
+                  <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <Card className="mt-4">
+                      <CardHeader className="flex justify-between items-center">
+                        <CardTitle className="text-2xl font-bold">
+                          Time Card
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="mx-auto">
+                        {!isClockedIn && (
+                          <Button
+                            variant="linkHover1"
+                            className="w-full mx-auto"
+                            onClick={handleClockIn}
+                          >
+                            Clock In
+                          </Button>
+                        )}
+                        {isClockedIn && !onLunchBreak && (
+                          <Button
+                            variant="ringHover"
+                            className="w-full mx-auto"
+                            onClick={handleClockOut}
+                          >
+                            Clock Out
+                          </Button>
+                        )}
+                        {onLunchBreak && (
+                          <Dialog
+                            open={dialogOpen}
+                            onOpenChange={setDialogOpen}
+                          >
+                            <DialogTrigger asChild>
+                              <Button variant="linkHover1">
+                                Clock Back In From Lunch
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              {/* <DialogTitle>Lunch Break</DialogTitle> */}
+                              <DialogDescription>
+                                <Button
+                                  variant="gooeyLeft"
+                                  className="w-full mx-auto"
+                                  onClick={handleClockBackInFromLunch}
+                                >
+                                  Confirm Clocking Back In
+                                </Button>
+                              </DialogDescription>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                        <Popover
+                          open={popoverOpen}
+                          onOpenChange={setPopoverOpen}
+                        >
+                          <PopoverTrigger asChild>
+                            <div />
+                          </PopoverTrigger>
+                          <PopoverContent>
+                            <div className="flex w-full justify-center space-between">
+                              <Button
+                                variant="linkHover2"
+                                onClick={handleEndShift}
+                              >
+                                End Shift
+                              </Button>
+                              <Button
+                                variant="linkHover2"
+                                onClick={handleLunchBreak}
+                              >
+                                Lunch Break
+                              </Button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </CardContent>
+                    </Card>
 
-    <Card className="mt-4">
-      <CardHeader className="flex justify-between items-center">
-        <CardTitle className="text-2xl font-bold">
-          Start Of Shift
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="mx-auto">
-        {clockInTime ? (
-          <div>{format(clockInTime, "PPP p")}</div>
-        ) : (
-          <div>Not clocked in</div>
-        )}
-      </CardContent>
-    </Card>
+                    <Card className="mt-4">
+                      <CardHeader className="flex justify-between items-center">
+                        <CardTitle className="text-2xl font-bold">
+                          Start Of Shift
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="mx-auto">
+                        {clockInTime ? (
+                          <div>{format(clockInTime, "PPP p")}</div>
+                        ) : (
+                          <div>Not clocked in</div>
+                        )}
+                      </CardContent>
+                    </Card>
 
-    <Card className="mt-4">
-      <CardHeader className="flex justify-between items-center">
-        <CardTitle className="text-2xl font-bold">
-          End Of Shift
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="mx-auto">
-        {currentShift?.end_time ? (
-          <div>{format(new Date(currentShift.end_time), "PPP p")}</div>
-        ) : (
-          <div>Still on shift</div>
-        )}
-      </CardContent>
-    </Card>
+                    <Card className="mt-4">
+                      <CardHeader className="flex justify-between items-center">
+                        <CardTitle className="text-2xl font-bold">
+                          End Of Shift
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="mx-auto">
+                        {currentShift?.end_time ? (
+                          <div>
+                            {format(new Date(currentShift.end_time), "PPP p")}
+                          </div>
+                        ) : (
+                          <div>Still on shift</div>
+                        )}
+                      </CardContent>
+                    </Card>
 
-    <Card className="mt-4">
-      <CardHeader className="flex justify-between items-center">
-        <CardTitle className="text-2xl font-bold">
-          Summary
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="mx-auto">
-        {currentShift?.total_hours ? (
-          <div>{currentShift.total_hours}</div>
-        ) : (
-          <div>No shift data</div>
-        )}
-      </CardContent>
-    </Card>
-  </div>
-</TabsContent>
+                    <Card className="mt-4">
+                      <CardHeader className="flex justify-between items-center">
+                        <CardTitle className="text-2xl font-bold">
+                          Daily Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="mx-auto">
+                        {currentShift?.total_hours ? (
+                          <div>{currentShift.total_hours}</div>
+                        ) : (
+                          <div>No shift data</div>
+                        )}
+                      </CardContent>
+                    </Card>
 
+                    <Card className="mt-4">
+                      <CardHeader className="flex justify-between items-center">
+                        <CardTitle className="text-2xl font-bold">
+                          Weekly Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="mx-auto">
+                        {weeklySummary !== null ? (
+                          <div>{weeklySummary} hours</div>
+                        ) : (
+                          <div>No data</div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="mt-4">
+                      <CardHeader className="flex justify-between items-center">
+                        <CardTitle className="text-2xl font-bold">
+                          Pay Period
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="mx-auto">
+                        {payPeriodSummary !== null ? (
+                          <div>{payPeriodSummary} hours</div>
+                        ) : (
+                          <div>No data</div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
 
                 {/* Performance tab content */}
                 <TabsContent value="performance">
