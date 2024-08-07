@@ -439,69 +439,67 @@ export default function GunsmithingMaintenance() {
             <TabsTrigger value="maintenance">Weekly Maintenance</TabsTrigger>
             <TabsTrigger value="repairs">Firearms Repairs</TabsTrigger>
           </TabsList>
-          <ScrollArea className="h-[calc(100vh-300px)]">
+          <ScrollArea className="flex-1 overflow-auto">
             <main
               className={classNames(
                 "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
                 styles.noScroll
               )}
             >
-              <TabsContent value="maintenance">
-                <Card className="m-4">
+              <TabsContent value="maintenance" className="h-full">
+                <Card className="m-4 h-full">
                   <CardHeader>
                     <CardTitle className="text-2xl font-bold">
                       <TextGenerateEffect words={words} />
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <section className="flex-1 flex flex-col space-y-4 p-4">
-                      <div className="flex items-center justify-between space-y-2">
-                        {["admin", "super admin"].includes(userRole || "") && (
-                          <Button
-                            variant="outline"
-                            onClick={() => setIsDialogOpen(true)}
-                          >
-                            Add Firearm
-                          </Button>
-                        )}
+                  <CardContent className="flex-1 flex flex-col space-y-4 p-4">
+                    <div className="flex items-center justify-between space-y-2">
+                      {["admin", "super admin"].includes(userRole || "") && (
                         <Button
                           variant="outline"
-                          onClick={regenerateFirearmsList}
+                          onClick={() => setIsDialogOpen(true)}
                         >
-                          Regenerate Firearms List
+                          Add Firearm
                         </Button>
-                      </div>
-                      <div className="flex-1 flex flex-col space-y-4">
-                        <div className="rounded-md border flex-1 flex flex-col">
-                          <div className="relative w-full h-full overflow-auto">
-                            {loading ? (
-                              <p>Loading...</p>
-                            ) : (
-                              userRole &&
-                              userUuid && (
-                                <>
-                                  <DataTable
-                                    columns={columns}
-                                    data={data}
-                                    userRole={userRole}
-                                    userUuid={userUuid}
-                                    onStatusChange={handleStatusChange}
-                                    onNotesChange={handleNotesChange}
-                                    onUpdateFrequency={handleUpdateFrequency}
-                                    onDeleteFirearm={handleDeleteFirearm}
-                                    pageIndex={pageIndex}
-                                    setPageIndex={setPageIndex}
-                                  />
-                                </>
-                              )
-                            )}
-                          </div>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={regenerateFirearmsList}
+                      >
+                        Regenerate Firearms List
+                      </Button>
+                    </div>
+                    <div className="flex-1 flex flex-col space-y-4 overflow-y-auto">
+                      <div className="rounded-md border flex-1 flex flex-col">
+                        <div className="relative w-full h-full overflow-y-auto">
+                          {loading ? (
+                            <p>Loading...</p>
+                          ) : (
+                            userRole &&
+                            userUuid && (
+                              <>
+                                <DataTable
+                                  columns={columns}
+                                  data={data}
+                                  userRole={userRole}
+                                  userUuid={userUuid}
+                                  onStatusChange={handleStatusChange}
+                                  onNotesChange={handleNotesChange}
+                                  onUpdateFrequency={handleUpdateFrequency}
+                                  onDeleteFirearm={handleDeleteFirearm}
+                                  pageIndex={pageIndex}
+                                  setPageIndex={setPageIndex}
+                                />
+                              </>
+                            )
+                          )}
                         </div>
-                        <Button variant="linkHover1" onClick={handleSubmit}>
-                          Submit Maintenance List
-                        </Button>
                       </div>
-                    </section>
+                      <Button variant="linkHover1" onClick={handleSubmit}>
+                        Submit Maintenance List
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

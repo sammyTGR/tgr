@@ -133,7 +133,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden rounded-md border w-full">
+      <div className="flex-1 rounded-md border h-full w-full">
         <div className="h-full overflow-y-auto">
           <Table>
             <TableHeader>
