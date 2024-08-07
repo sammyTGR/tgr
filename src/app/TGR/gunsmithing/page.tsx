@@ -90,12 +90,18 @@ export default function GunsmithingMaintenance() {
       throw new Error(error.message);
     }
 
+    // Clear the status field for each firearm
+    const updatedData = data.map((item: FirearmsMaintenanceData) => ({
+      ...item,
+      status: "", // Clear the status
+    }));
+
     if (role === "gunsmith") {
       // Separate handguns and long guns
-      const handguns = data.filter(
+      const handguns = updatedData.filter(
         (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
       );
-      const longGuns = data.filter(
+      const longGuns = updatedData.filter(
         (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
       );
 
@@ -107,7 +113,7 @@ export default function GunsmithingMaintenance() {
     }
 
     // For admin and super admin, return full data
-    return data;
+    return updatedData;
   }, []);
 
   const fetchPersistedData = useCallback(async (userUuid: string) => {
