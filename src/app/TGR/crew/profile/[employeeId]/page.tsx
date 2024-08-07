@@ -651,16 +651,16 @@ const EmployeeProfilePage = () => {
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("start_time", startOfWeekDate.toISOString())
-      .lte("end_time", endOfWeekDate.toISOString());
+      .gte("event_date", format(startOfWeekDate, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfWeekDate, "yyyy-MM-dd"));
 
     if (error) {
       console.error("Error fetching weekly summary:", error);
     } else {
       const totalHours = data.reduce((acc, shift) => {
         if (shift.start_time && shift.end_time) {
-          const start = new Date(shift.start_time);
-          const end = new Date(shift.end_time);
+          const start = new Date(`1970-01-01T${shift.start_time}Z`);
+          const end = new Date(`1970-01-01T${shift.end_time}Z`);
           const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60); // Convert to hours
           return acc + duration;
         }
@@ -685,15 +685,15 @@ const EmployeeProfilePage = () => {
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("start_time", startOfPreviousWeek.toISOString())
-      .lte("end_time", endOfPreviousWeek.toISOString());
+      .gte("event_date", format(startOfPreviousWeek, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfPreviousWeek, "yyyy-MM-dd"));
 
     const { data: currentWeekData, error: currentWeekError } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("start_time", startOfCurrentWeek.toISOString())
-      .lte("end_time", endOfCurrentWeek.toISOString());
+      .gte("event_date", format(startOfCurrentWeek, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfCurrentWeek, "yyyy-MM-dd"));
 
     if (previousWeekError || currentWeekError) {
       console.error(
@@ -704,8 +704,8 @@ const EmployeeProfilePage = () => {
       const totalHours = [...previousWeekData, ...currentWeekData].reduce(
         (acc, shift) => {
           if (shift.start_time && shift.end_time) {
-            const start = new Date(shift.start_time);
-            const end = new Date(shift.end_time);
+            const start = new Date(`1970-01-01T${shift.start_time}Z`);
+            const end = new Date(`1970-01-01T${shift.end_time}Z`);
             const duration =
               (end.getTime() - start.getTime()) / (1000 * 60 * 60); // Convert to hours
             return acc + duration;
@@ -943,7 +943,6 @@ const EmployeeProfilePage = () => {
                               </Button>
                             </DialogTrigger>
                             <DialogContent>
-                              {/* <DialogTitle>Lunch Break</DialogTitle> */}
                               <DialogDescription>
                                 <Button
                                   variant="gooeyLeft"
@@ -991,7 +990,10 @@ const EmployeeProfilePage = () => {
                       </CardHeader>
                       <CardContent className="mx-auto">
                         {clockInTime ? (
-                          <div>{format(clockInTime, "PPP p")}</div>
+                          <div>{`${format(
+                            new Date(currentShift.event_date),
+                            "PPP"
+                          )} ${currentShift.start_time}`}</div>
                         ) : (
                           <div>Not clocked in</div>
                         )}
@@ -1007,10 +1009,10 @@ const EmployeeProfilePage = () => {
                       <CardContent className="mx-auto">
                         {currentShift?.end_time ? (
                           <div>
-                            {format(
-                              new Date(`1970-01-01T${currentShift.end_time}Z`),
-                              "PPP p"
-                            )}
+                            {`${format(
+                              new Date(currentShift.event_date),
+                              "PPP"
+                            )} ${currentShift.end_time}`}
                           </div>
                         ) : (
                           <div>Still on shift</div>
