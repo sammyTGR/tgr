@@ -403,6 +403,33 @@ export default function GunsmithingMaintenance() {
     }
   };
 
+  const regenerateFirearmsList = async () => {
+    try {
+      const response = await fetch("/api/firearms-maintenance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "generateNewList", data: { userUuid } }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to regenerate firearms list");
+      }
+
+      const { firearms } = await response.json();
+      setData(firearms);
+
+      // Persist the new list
+      await persistData(userUuid || "", firearms);
+
+      toast.success("Firearms list regenerated successfully!");
+    } catch (error) {
+      console.error("Failed to regenerate firearms list:", error);
+      toast.error("Failed to regenerate firearms list.");
+    }
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
       <div className="h-screen flex flex-col">
@@ -437,6 +464,12 @@ export default function GunsmithingMaintenance() {
                             Add Firearm
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          onClick={regenerateFirearmsList}
+                        >
+                          Regenerate Firearms List
+                        </Button>
                       </div>
                       <div className="flex-1 flex flex-col space-y-4">
                         <div className="rounded-md border flex-1 flex flex-col">
@@ -469,87 +502,6 @@ export default function GunsmithingMaintenance() {
                         </Button>
                       </div>
                     </section>
-
-                    {isDialogOpen && (
-                      <div className="fixed inset-0 flex items-center justify-center z-50">
-                        <div className="bg-white text-black dark:bg-black dark:text-white p-6 rounded shadow-md w-full max-w-lg">
-                          <h3 className="text-lg font-bold mb-4">
-                            Add New Firearm
-                          </h3>
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium">
-                              Firearm Name
-                            </label>
-                            <Input
-                              type="text"
-                              name="firearm_name"
-                              value={newFirearm.firearm_name}
-                              onChange={handleFirearmInputChange}
-                              className="block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium">
-                              Firearm Type
-                            </label>
-                            <Select
-                              onValueChange={(value) =>
-                                handleFirearmInputChange({
-                                  target: { name: "firearm_type", value },
-                                })
-                              }
-                            >
-                              <SelectTrigger className="w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                <SelectValue placeholder="Select firearm type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="handgun">Handgun</SelectItem>
-                                <SelectItem value="long gun">
-                                  Long Gun
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium">
-                              Maintenance Frequency (days)
-                            </label>
-                            <Input
-                              type="number"
-                              name="maintenance_frequency"
-                              value={newFirearm.maintenance_frequency}
-                              onChange={handleFirearmInputChange}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium">
-                              Maintenance Notes
-                            </label>
-                            <Textarea
-                              name="maintenance_notes"
-                              value={newFirearm.maintenance_notes}
-                              onChange={handleFirearmInputChange}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsDialogOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={handleAddFirearm}
-                            >
-                              Add Firearm
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
