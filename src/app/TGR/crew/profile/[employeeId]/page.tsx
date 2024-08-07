@@ -336,12 +336,16 @@ const EmployeeProfilePage = () => {
     } else {
       if (data) {
         setIsClockedIn(!!data.start_time && !data.end_time);
+        setOnLunchBreak(
+          !!data.lunch_start && !data.lunch_end && !data.end_time
+        );
         setClockInTime(
           data.start_time ? new Date(`1970-01-01T${data.start_time}Z`) : null
         );
         setCurrentShift(data);
       } else {
         setIsClockedIn(false);
+        setOnLunchBreak(false);
         setClockInTime(null);
         setCurrentShift(null);
       }
