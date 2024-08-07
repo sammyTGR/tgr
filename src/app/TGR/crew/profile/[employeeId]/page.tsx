@@ -173,24 +173,57 @@ const EmployeeProfilePage = () => {
 
   const handleClockIn = async () => {
     const now = new Date();
-    const zonedNow = toZonedTime(now, "America/Los_Angeles");
-    setClockInTime(zonedNow);
-    setIsClockedIn(true);
+    const eventDate = format(now, "yyyy-MM-dd");
+    const startTime = format(now, "HH:mm:ss");
 
-    const { data, error } = await supabase
+    const { data: existingData, error: fetchError } = await supabase
       .from("employee_clock_events")
-      .insert({
-        employee_id: employeeId,
-        employee_name: employee.name,
-        start_time: zonedNow.toISOString(), // Store in UTC
-      })
-      .select();
+      .select("*")
+      .eq("employee_id", employeeId)
+      .eq("event_date", eventDate)
+      .single();
 
-    if (error) {
-      console.error("Error clocking in:", error);
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("Error fetching existing clock-in data:", fetchError);
+      return;
+    }
+
+    if (existingData) {
+      const { error: updateError } = await supabase
+        .from("employee_clock_events")
+        .update({
+          start_time: startTime,
+        })
+        .eq("id", existingData.id);
+
+      if (updateError) {
+        console.error("Error updating clock-in data:", updateError);
+      } else {
+        setClockInTime(now);
+        setIsClockedIn(true);
+        setCurrentShift(existingData);
+        toast.success(`Welcome Back ${employee.name}!`);
+      }
     } else {
-      setCurrentShift(data[0]);
-      toast.success(`Welcome Back ${employee.name}!`);
+      const { data: insertData, error: insertError } = await supabase
+        .from("employee_clock_events")
+        .insert({
+          employee_id: employeeId,
+          employee_name: employee.name,
+          event_date: eventDate,
+          start_time: startTime,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Error clocking in:", insertError);
+      } else {
+        setClockInTime(now);
+        setIsClockedIn(true);
+        setCurrentShift(insertData);
+        toast.success(`Welcome Back ${employee.name}!`);
+      }
     }
   };
 
@@ -204,7 +237,9 @@ const EmployeeProfilePage = () => {
 
   const handleEndShift = async () => {
     const now = new Date();
-    const zonedNow = toZonedTime(now, "America/Los_Angeles");
+    const endTime = format(now, "HH:mm:ss");
+    const eventDate = format(now, "yyyy-MM-dd"); // Ensure date is the same
+
     if (!clockInTime) {
       console.error("Invalid clock-in time");
       return;
@@ -216,10 +251,11 @@ const EmployeeProfilePage = () => {
       const { error } = await supabase
         .from("employee_clock_events")
         .update({
-          end_time: zonedNow.toISOString(), // Store in UTC
+          end_time: endTime, // Store just the time
           total_hours: duration,
         })
-        .eq("id", currentShift?.id);
+        .eq("employee_id", employeeId)
+        .eq("event_date", eventDate);
 
       if (error) {
         console.error("Error ending shift:", error);
@@ -229,7 +265,7 @@ const EmployeeProfilePage = () => {
         setClockInTime(null);
         setCurrentShift((prevShift: any) => ({
           ...prevShift,
-          end_time: zonedNow.toISOString(),
+          end_time: endTime,
           total_hours: duration,
         }));
         setPopoverOpen(false);
@@ -243,12 +279,13 @@ const EmployeeProfilePage = () => {
 
   const handleLunchBreak = async () => {
     const now = new Date();
-    const zonedNow = toZonedTime(now, "America/Los_Angeles");
+    const lunchStart = format(now, "HH:mm:ss");
+    const eventDate = format(now, "yyyy-MM-dd"); // Ensure date is the same
 
     const { error } = await supabase
       .from("employee_clock_events")
       .update({
-        lunch_start: zonedNow.toISOString(), // Store in UTC
+        lunch_start: lunchStart, // Store just the time
       })
       .eq("id", currentShift.id);
 
@@ -263,12 +300,13 @@ const EmployeeProfilePage = () => {
 
   const handleClockBackInFromLunch = async () => {
     const now = new Date();
-    const zonedNow = toZonedTime(now, "America/Los_Angeles");
+    const lunchEnd = format(now, "HH:mm:ss");
+    const eventDate = format(now, "yyyy-MM-dd"); // Ensure date is the same
 
     const { error } = await supabase
       .from("employee_clock_events")
       .update({
-        lunch_end: zonedNow.toISOString(), // Store in UTC
+        lunch_end: lunchEnd, // Store just the time
       })
       .eq("id", currentShift.id);
 
@@ -284,21 +322,23 @@ const EmployeeProfilePage = () => {
 
   // Function to fetch the current shift
   const fetchCurrentShift = async () => {
+    const eventDate = format(new Date(), "yyyy-MM-dd");
+
     const { data, error } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .is("end_time", null)
+      .eq("event_date", eventDate)
       .single();
 
-    if (error) {
+    if (error && error.code !== "PGRST116") {
       console.error("Error fetching current shift:", error);
     } else {
       if (data) {
-        setIsClockedIn(true);
+        setIsClockedIn(!!data.start_time && !data.end_time);
         setClockInTime(
-          toZonedTime(new Date(data.start_time), "America/Los_Angeles")
-        ); // Convert from UTC to local time
+          data.start_time ? new Date(`1970-01-01T${data.start_time}Z`) : null
+        );
         setCurrentShift(data);
       } else {
         setIsClockedIn(false);
@@ -967,7 +1007,10 @@ const EmployeeProfilePage = () => {
                       <CardContent className="mx-auto">
                         {currentShift?.end_time ? (
                           <div>
-                            {format(new Date(currentShift.end_time), "PPP p")}
+                            {format(
+                              new Date(`1970-01-01T${currentShift.end_time}Z`),
+                              "PPP p"
+                            )}
                           </div>
                         ) : (
                           <div>Still on shift</div>

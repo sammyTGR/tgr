@@ -4,11 +4,19 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
-import { useReactTable, ColumnDef, getCoreRowModel, getPaginationRowModel, getFilteredRowModel } from "@tanstack/react-table";
+import {
+  useReactTable,
+  ColumnDef,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+} from "@tanstack/react-table";
 import { SchedulePagination } from "./schedule-pagination";
 import { PopoverForm } from "./PopoverForm";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { DataTable } from "./DataTable";
+import { TimesheetDataTable } from "./TimesheetDataTable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ScheduleData {
   id: number;
@@ -20,7 +28,20 @@ interface ScheduleData {
   user_uuid: string;
 }
 
-const columns: ColumnDef<ScheduleData>[] = [
+interface TimesheetData {
+  id: number;
+  employee_id: number;
+  start_time: string;
+  lunch_start: string | null;
+  lunch_end: string | null;
+  end_time: string | null;
+  total_hours: string | null;
+  created_at: string | null;
+  employee_name: string | null;
+  event_date: string | null;
+}
+
+const scheduleColumns: ColumnDef<ScheduleData>[] = [
   {
     accessorKey: "employee_name",
     header: "Employee Name",
@@ -43,31 +64,86 @@ const columns: ColumnDef<ScheduleData>[] = [
   },
 ];
 
+const timesheetColumns: ColumnDef<TimesheetData>[] = [
+  {
+    accessorKey: "employee_name",
+    header: "Employee Name",
+    cell: (info) => info.getValue(),
+  },
+  {
+    accessorKey: "event_date",
+    header: "Shift Date",
+    cell: (info) => info.getValue(),
+  },
+  {
+    accessorKey: "start_time",
+    header: "Start Time",
+    cell: (info) => info.getValue(),
+  },
+  {
+    accessorKey: "lunch_start",
+    header: "Lunch Start",
+    cell: (info) => info.getValue() || "N/A",
+  },
+  {
+    accessorKey: "lunch_end",
+    header: "Lunch End",
+    cell: (info) => info.getValue() || "N/A",
+  },
+  {
+    accessorKey: "end_time",
+    header: "Shift End",
+    cell: (info) => info.getValue() || "N/A",
+  },
+  {
+    accessorKey: "total_hours",
+    header: "Total Hours",
+    cell: (info) => info.getValue() || "N/A",
+  },
+  // {
+  //   accessorKey: "created_at",
+  //   header: "Created At",
+  //   cell: (info) => info.getValue(),
+  // },
+];
+
 const ManageSchedules = () => {
   const { user } = useRole();
-  const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>([]);
-  const [employees, setEmployees] = useState<{ employee_id: number; name: string }[]>([]);
+  const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>(
+    []
+  );
+  const [employees, setEmployees] = useState<
+    { employee_id: number; name: string }[]
+  >([]);
+  const [timesheets, setTimesheets] = useState<TimesheetData[]>([]);
 
   useEffect(() => {
     fetchReferenceSchedules();
     fetchEmployees();
+    fetchTimesheets();
   }, []);
 
   const fetchReferenceSchedules = async () => {
-    const { data: schedules, error: schedulesError } = await supabase.from("reference_schedules").select("*");
+    const { data: schedules, error: schedulesError } = await supabase
+      .from("reference_schedules")
+      .select("*");
     if (schedulesError) {
       console.error("Error fetching reference schedules:", schedulesError);
       return;
     }
 
-    const { data: employees, error: employeesError } = await supabase.from("employees").select("employee_id, name");
+    const { data: employees, error: employeesError } = await supabase
+      .from("employees")
+      .select("employee_id, name");
     if (employeesError) {
       console.error("Error fetching employees:", employeesError);
       return;
     }
 
-    const schedulesWithNames = schedules.map(schedule => {
-      const employee = employees.find(emp => emp.employee_id === schedule.employee_id);
+    const schedulesWithNames = schedules.map((schedule) => {
+      const employee = employees.find(
+        (emp) => emp.employee_id === schedule.employee_id
+      );
       return {
         ...schedule,
         employee_name: employee ? employee.name : "Unknown",
@@ -78,7 +154,9 @@ const ManageSchedules = () => {
   };
 
   const fetchEmployees = async () => {
-    const { data: employees, error: employeesError } = await supabase.from("employees").select("employee_id, name");
+    const { data: employees, error: employeesError } = await supabase
+      .from("employees")
+      .select("employee_id, name");
     if (employeesError) {
       console.error("Error fetching employees:", employeesError);
       return;
@@ -86,11 +164,46 @@ const ManageSchedules = () => {
     setEmployees(employees);
   };
 
-  const handleGenerateSingleSchedule = async (employeeName: string, weeks?: string) => {
-    const { error } = await supabase.rpc("generate_schedules_for_employees_by_name", {
-      employee_name: employeeName,
-      weeks: parseInt(weeks || "0", 10),
-    });
+  const fetchTimesheets = async () => {
+    const { data: timesheets, error: timesheetsError } = await supabase
+      .from("employee_clock_events")
+      .select("*");
+    if (timesheetsError) {
+      console.error("Error fetching timesheets:", timesheetsError);
+      return;
+    }
+    setTimesheets(timesheets);
+  };
+
+  const handleEditTimesheet = async (
+    id: number,
+    lunch_start: string | null,
+    lunch_end: string | null
+  ) => {
+    const { error } = await supabase
+      .from("employee_clock_events")
+      .update({ lunch_start, lunch_end })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating timesheet:", error);
+    } else {
+      console.log("Timesheet updated successfully.");
+      fetchTimesheets();
+    }
+  };
+
+  const handleGenerateSingleSchedule = async (
+    employeeName: string,
+    weeks?: string
+  ) => {
+    const { error } = await supabase.rpc(
+      "generate_schedules_for_employees_by_name",
+      {
+        employee_name: employeeName,
+        weeks: parseInt(weeks || "0", 10),
+      }
+    );
     if (error) {
       console.error("Error generating schedules:", error);
     } else {
@@ -138,9 +251,12 @@ const ManageSchedules = () => {
       return;
     }
 
-    const { error } = await supabase.rpc("generate_schedules_for_all_employees", {
-      weeks: parsedWeeks,
-    });
+    const { error } = await supabase.rpc(
+      "generate_schedules_for_all_employees",
+      {
+        weeks: parsedWeeks,
+      }
+    );
     if (error) {
       console.error("Error generating schedules:", error);
     } else {
@@ -190,13 +306,23 @@ const ManageSchedules = () => {
         fetchReferenceSchedules();
       }
     } else {
-      console.error("Date, Start Time, and End Time are required to add a schedule.");
+      console.error(
+        "Date, Start Time, and End Time are required to add a schedule."
+      );
     }
   };
 
   const table = useReactTable({
     data: referenceSchedules,
-    columns,
+    columns: scheduleColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  const timesheetTable = useReactTable({
+    data: timesheets,
+    columns: timesheetColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -204,49 +330,86 @@ const ManageSchedules = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <Card>
-        <CardHeader>
-          <h1>Manage Employee Schedules</h1>
+      <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
+        <CardHeader className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h1 className="text-xl font-bold">Manage Employee Schedules</h1>
         </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={referenceSchedules}
-            fetchReferenceSchedules={fetchReferenceSchedules}
-          />
-          <SchedulePagination table={table} />
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-2">
-              <PopoverForm
-                onSubmit={(employeeName: string, weeks?: string) => handleGenerateSingleSchedule(employeeName, weeks)}
-                buttonText="Publish An Employee's Schedule"
-                placeholder="Enter employee name and weeks"
-                formType="generate"
-                employees={employees}
+        <Tabs defaultValue="scheduling" className="w-full">
+          <TabsList className="border-b border-gray-200 dark:border-gray-700">
+            <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
+            <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
+          </TabsList>
+          <TabsContent value="scheduling">
+            <CardContent>
+              <DataTable
+                columns={scheduleColumns}
+                data={referenceSchedules}
+                fetchReferenceSchedules={fetchReferenceSchedules}
               />
-              <PopoverForm
-                onSubmit={(employeeName: string, weeks?: string) => handleClearSchedule(employeeName, weeks)}
-                buttonText="Clear An Employee's Schedule"
-                placeholder="Enter employee name"
-                formType="clearSchedule"
-                employees={employees}
+              <SchedulePagination table={table} />
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-2">
+                  <PopoverForm
+                    onSubmit={(employeeName: string, weeks?: string) =>
+                      handleGenerateSingleSchedule(employeeName, weeks)
+                    }
+                    buttonText="Publish An Employee's Schedule"
+                    placeholder="Enter employee name and weeks"
+                    formType="generate"
+                    employees={employees}
+                  />
+                  <PopoverForm
+                    onSubmit={(employeeName: string, weeks?: string) =>
+                      handleClearSchedule(employeeName, weeks)
+                    }
+                    buttonText="Clear An Employee's Schedule"
+                    placeholder="Enter employee name"
+                    formType="clearSchedule"
+                    employees={employees}
+                  />
+                </div>
+                <PopoverForm
+                  onSubmit={(_, weeks?: string) =>
+                    handleGenerateAllSchedules(weeks)
+                  }
+                  buttonText="Generate All Staff Schedules"
+                  placeholder="Enter number of weeks"
+                  formType="generateAll"
+                />
+                <PopoverForm
+                  onSubmit={(
+                    employeeName: string,
+                    _,
+                    date?: string,
+                    startTime?: string,
+                    endTime?: string
+                  ) =>
+                    handleAddSchedule(
+                      employeeName,
+                      undefined,
+                      date,
+                      startTime,
+                      endTime
+                    )
+                  }
+                  buttonText="Add A Work Day"
+                  placeholder="Enter employee name and details"
+                  formType="addSchedule"
+                  employees={employees}
+                />
+              </div>
+            </CardContent>
+          </TabsContent>
+          <TabsContent value="timesheets">
+            <CardContent>
+              <TimesheetDataTable
+                columns={timesheetColumns}
+                data={timesheets}
+                fetchTimesheets={fetchTimesheets}
               />
-            </div>
-            <PopoverForm
-              onSubmit={(_, weeks?: string) => handleGenerateAllSchedules(weeks)}
-              buttonText="Generate All Staff Schedules"
-              placeholder="Enter number of weeks"
-              formType="generateAll"
-            />
-            <PopoverForm
-              onSubmit={(employeeName: string, _, date?: string, startTime?: string, endTime?: string) => handleAddSchedule(employeeName, undefined, date, startTime, endTime)}
-              buttonText="Add A Work Day"
-              placeholder="Enter employee name and details"
-              formType="addSchedule"
-              employees={employees}
-            />
-          </div>
-        </CardContent>
+            </CardContent>
+          </TabsContent>
+        </Tabs>
       </Card>
     </RoleBasedWrapper>
   );

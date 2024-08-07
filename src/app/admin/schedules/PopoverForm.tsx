@@ -18,18 +18,39 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
+interface TimesheetData {
+  id: number;
+  employee_id: number;
+  start_time: string;
+  lunch_start: string | null;
+  lunch_end: string | null;
+  end_time: string | null;
+  total_hours: string | null;
+  created_at: string | null;
+  employee_name: string | null;
+  event_date: string | null;
+}
+
 interface PopoverFormProps {
   onSubmit: (
     employeeName: string,
     weeks?: string,
     date?: string,
     startTime?: string,
-    endTime?: string
+    endTime?: string,
+    lunchStart?: string,
+    lunchEnd?: string
   ) => void;
   buttonText: string;
   placeholder: string;
   employees?: { employee_id: number; name: string }[];
-  formType: "generate" | "addSchedule" | "generateAll" | "clearSchedule";
+  formType:
+    | "generate"
+    | "addSchedule"
+    | "generateAll"
+    | "clearSchedule"
+    | "editTimesheet";
+  row?: TimesheetData; // Add this for timesheet editing
 }
 
 export const PopoverForm: React.FC<PopoverFormProps> = ({
@@ -38,12 +59,15 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   placeholder,
   employees,
   formType,
+  row,
 }) => {
   const [employeeName, setEmployeeName] = useState("");
   const [weeks, setWeeks] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [lunchStart, setLunchStart] = useState(row?.lunch_start || "");
+  const [lunchEnd, setLunchEnd] = useState(row?.lunch_end || "");
   const [employeeId, setEmployeeId] = useState<number | null>(null);
 
   const handleSubmit = () => {
@@ -84,6 +108,19 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
       toast.success(
         `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
       );
+    } else if (formType === "editTimesheet") {
+      onSubmit(
+        row?.employee_name || "",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        lunchStart,
+        lunchEnd
+      );
+      toast.success(
+        `Updated lunch times for ${row?.employee_name} on ${row?.event_date}!`
+      );
     }
     resetForm();
   };
@@ -94,6 +131,8 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     setDate("");
     setStartTime("");
     setEndTime("");
+    setLunchStart("");
+    setLunchEnd("");
     setEmployeeId(null);
   };
 
@@ -115,6 +154,24 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               placeholder="Number of weeks"
               className="mt-2"
             />
+          ) : formType === "editTimesheet" ? (
+            <>
+              <Label>Lunch Start</Label>
+              <Input
+                type="time"
+                value={lunchStart}
+                onChange={(e) => setLunchStart(e.target.value)}
+              />
+              <Label>Lunch End</Label>
+              <Input
+                type="time"
+                value={lunchEnd}
+                onChange={(e) => setLunchEnd(e.target.value)}
+              />
+              <Button className="mt-2" onClick={handleSubmit}>
+                Submit
+              </Button>
+            </>
           ) : (
             <>
               {(formType === "generate" ||
