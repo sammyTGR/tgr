@@ -3,15 +3,19 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import LandingPagePublic from "@/components/LandingPagePublic";
+import { ProgressBar } from "@/components/ProgressBar";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [roleValidating, setRoleValidating] = useState(false);
   const [noSession, setNoSession] = useState(false);
+  const [progress, setProgress] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     const fetchRoleAndRedirect = async () => {
+      setProgress(10); // Initial progress
+
       const {
         data: { session },
         error: sessionError,
@@ -24,10 +28,12 @@ export default function Home() {
         );
         setLoading(false);
         setNoSession(true);
+        setProgress(100); // Final progress
         return; // No active session found
       }
 
       setRoleValidating(true); // Start role validation
+      setProgress(30); // Update progress
 
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
@@ -36,10 +42,12 @@ export default function Home() {
         setLoading(false);
         setRoleValidating(false); // End role validation
         setNoSession(true);
+        setProgress(100); // Final progress
         return; // Fetching the user failed
       }
 
       const user = userData.user;
+      setProgress(50); // Update progress
 
       // Check the employees table
       const { data: roleData, error: roleError } = await supabase
@@ -64,6 +72,7 @@ export default function Home() {
           setLoading(false);
           setRoleValidating(false); // End role validation
           setNoSession(true);
+          setProgress(100); // Final progress
           return; // No role found
         }
 
@@ -73,15 +82,18 @@ export default function Home() {
           setLoading(false);
           setRoleValidating(false); // End role validation
           setNoSession(true);
+          setProgress(100); // Final progress
           return;
         }
 
         setLoading(false); // End loading before redirection
+        setProgress(100); // Final progress
         router.push(`/TGR/crew/profile/${user?.id}`);
       } else {
         const { role, employee_id } = roleData;
         setLoading(false); // End loading before redirection
         setRoleValidating(false); // End role validation
+        setProgress(100); // Final progress
         router.push(`/TGR/crew/profile/${employee_id}`);
       }
     };
@@ -90,7 +102,11 @@ export default function Home() {
   }, [router]);
 
   if (loading) {
-    return <div>Loading...</div>; // Show loading spinner or any placeholder
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <ProgressBar value={progress} showAnimation={true} />
+      </div>
+    ); // Show progress bar while loading
   }
 
   if (roleValidating) {

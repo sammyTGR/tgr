@@ -38,7 +38,10 @@ export default function RangeWalkReport() {
         .single();
 
       if (customerError || !customerData) {
-        console.error("Error fetching role:", roleError?.message || customerError?.message);
+        console.error(
+          "Error fetching role:",
+          roleError?.message || customerError?.message
+        );
         return;
       }
 
@@ -82,17 +85,21 @@ export default function RangeWalkReport() {
   }, [fetchData]);
 
   const handleStatusChange = (id: number, status: string | null) => {
-    setData(prevData =>
-      prevData.map(item =>
-        item.id === id ? { ...item, status: status as string | undefined } : item
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === id
+          ? { ...item, status: status as string | undefined }
+          : item
       )
     );
   };
 
   const handleNotesChange = (id: number, notes: string, userName: string) => {
-    setData(prevData =>
-      prevData.map(item =>
-        item.id === id ? { ...item, repair_notes: notes, repair_notes_user: userName } : item
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === id
+          ? { ...item, repair_notes: notes, repair_notes_user: userName }
+          : item
       )
     );
   };
@@ -112,7 +119,9 @@ export default function RangeWalkReport() {
           } else if (payload.eventType === "UPDATE") {
             setData((currentData) =>
               currentData.map((item) =>
-                item.id === payload.new.id ? payload.new as RangeWalkData : item
+                item.id === payload.new.id
+                  ? (payload.new as RangeWalkData)
+                  : item
               )
             );
           } else {
@@ -142,9 +151,10 @@ export default function RangeWalkReport() {
             <div className="rounded-md border flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto">
                 {loading ? (
-                  <p>Loading...</p>
+                  <p></p>
                 ) : (
-                  userRole && userUuid && (
+                  userRole &&
+                  userUuid && (
                     <DataTable
                       columns={columns}
                       data={data}

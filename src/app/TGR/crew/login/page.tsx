@@ -121,7 +121,7 @@ function LoginComponent() {
 
 export default function Component() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div></div>}>
       <LoginComponent />
     </Suspense>
   );

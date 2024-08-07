@@ -326,7 +326,7 @@ export default function DailyDepositsPage() {
       role !== "admin" &&
       role !== "super admin")
   ) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   return (

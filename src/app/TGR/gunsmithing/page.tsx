@@ -480,7 +480,7 @@ export default function GunsmithingMaintenance() {
                       <div className="rounded-md border flex-1 flex flex-col">
                         <div className="relative w-full h-full overflow-y-auto">
                           {loading ? (
-                            <p>Loading...</p>
+                            <p></p>
                           ) : (
                             userRole &&
                             userUuid && (

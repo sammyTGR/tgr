@@ -1402,7 +1402,7 @@ function ChatContent() {
 }
 export default function ChatClient() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div></div>}>
       <ChatContent />
     </Suspense>
   );

@@ -342,7 +342,7 @@ const SalesPage = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
-      <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
+      <h1 className="ml-2 lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.6rem] 2xl:text-[4rem] text-red-500">
         <TextGenerateEffect words={title} />
       </h1>
       <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -371,7 +371,7 @@ const SalesPage = () => {
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          className="w-[240px] pl-3 text-left font-normal"
+                          className="flex-1 w-full pl-3 text-left font-normal"
                         >
                           {selectedRange.start ? (
                             format(selectedRange.start, "PPP")

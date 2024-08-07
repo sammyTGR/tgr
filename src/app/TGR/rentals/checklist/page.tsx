@@ -419,7 +419,7 @@ export default function FirearmsChecklist() {
             <div className="rounded-md border h-full flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto">
                 {loading ? (
-                  <p>Loading...</p>
+                  <p></p>
                 ) : (
                   userRole &&
                   userUuid && (

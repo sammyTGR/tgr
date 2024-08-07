@@ -83,7 +83,7 @@ export default function AuditReview() {
               <div className="rounded-md border flex-1 flex flex-col">
                 <div className="relative w-full h-full overflow-auto flex-1">
                   {loading ? (
-                    <p>Loading...</p>
+                    <p></p>
                   ) : (
                     <DataTable columns={columns} data={data} />
                   )}
