@@ -171,6 +171,27 @@ const EmployeeProfilePage = () => {
   const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
   const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
 
+  const calculateDurationWithLunch = (start: string, end: string, lunchStart: string, lunchEnd: string): string => {
+    const startTime = new Date(`1970-01-01T${start}Z`).getTime();
+    const endTime = new Date(`1970-01-01T${end}Z`).getTime();
+    const lunchStartTime = new Date(`1970-01-01T${lunchStart}Z`).getTime();
+    const lunchEndTime = new Date(`1970-01-01T${lunchEnd}Z`).getTime();
+  
+    const workDuration = endTime - startTime;
+    const lunchDuration = lunchEndTime - lunchStartTime;
+    const netDuration = workDuration - lunchDuration;
+  
+    if (netDuration < 0) return "00:00:00";
+  
+    const totalSeconds = Math.floor(netDuration / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+  
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+  
+  
   const handleClockIn = async () => {
     const now = new Date();
     const eventDate = format(now, "yyyy-MM-dd");
@@ -238,25 +259,35 @@ const EmployeeProfilePage = () => {
   const handleEndShift = async () => {
     const now = new Date();
     const endTime = format(now, "HH:mm:ss");
-    const eventDate = format(now, "yyyy-MM-dd"); // Ensure date is the same
-
+    const eventDate = format(now, "yyyy-MM-dd");
+  
     if (!clockInTime) {
       console.error("Invalid clock-in time");
       return;
     }
-
-    const duration = calculateDuration(clockInTime, now);
-
+  
+    let duration;
+    if (currentShift?.lunch_start && currentShift?.lunch_end) {
+      duration = calculateDurationWithLunch(
+        currentShift.start_time,
+        endTime,
+        currentShift.lunch_start,
+        currentShift.lunch_end
+      );
+    } else {
+      duration = calculateDuration(clockInTime, now);
+    }
+  
     if (duration !== "00:00:00") {
       const { error } = await supabase
         .from("employee_clock_events")
         .update({
-          end_time: endTime, // Store just the time
+          end_time: endTime,
           total_hours: duration,
         })
         .eq("employee_id", employeeId)
         .eq("event_date", eventDate);
-
+  
       if (error) {
         console.error("Error ending shift:", error);
       } else {
@@ -276,6 +307,7 @@ const EmployeeProfilePage = () => {
       console.error("Invalid duration calculated");
     }
   };
+  
 
   const handleLunchBreak = async () => {
     const now = new Date();
@@ -650,22 +682,21 @@ const EmployeeProfilePage = () => {
   const fetchWeeklySummary = async () => {
     const startOfWeekDate = startOfWeek(new Date(), { weekStartsOn: 0 });
     const endOfWeekDate = endOfWeek(new Date(), { weekStartsOn: 0 });
-
+  
     const { data, error } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
       .gte("event_date", format(startOfWeekDate, "yyyy-MM-dd"))
       .lte("event_date", format(endOfWeekDate, "yyyy-MM-dd"));
-
+  
     if (error) {
       console.error("Error fetching weekly summary:", error);
     } else {
       const totalHours = data.reduce((acc, shift) => {
-        if (shift.start_time && shift.end_time) {
-          const start = new Date(`1970-01-01T${shift.start_time}Z`);
-          const end = new Date(`1970-01-01T${shift.end_time}Z`);
-          const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60); // Convert to hours
+        if (shift.total_hours) {
+          const [hours, minutes, seconds] = shift.total_hours.split(":").map(Number);
+          const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
           return acc + duration;
         }
         return acc;
@@ -673,6 +704,7 @@ const EmployeeProfilePage = () => {
       setWeeklySummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
+  
 
   // Function to fetch pay period summary
   const fetchPayPeriodSummary = async () => {
@@ -684,21 +716,21 @@ const EmployeeProfilePage = () => {
     });
     const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
     const endOfCurrentWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
-
+  
     const { data: previousWeekData, error: previousWeekError } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
       .gte("event_date", format(startOfPreviousWeek, "yyyy-MM-dd"))
       .lte("event_date", format(endOfPreviousWeek, "yyyy-MM-dd"));
-
+  
     const { data: currentWeekData, error: currentWeekError } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
       .gte("event_date", format(startOfCurrentWeek, "yyyy-MM-dd"))
       .lte("event_date", format(endOfCurrentWeek, "yyyy-MM-dd"));
-
+  
     if (previousWeekError || currentWeekError) {
       console.error(
         "Error fetching pay period summary:",
@@ -707,11 +739,9 @@ const EmployeeProfilePage = () => {
     } else {
       const totalHours = [...previousWeekData, ...currentWeekData].reduce(
         (acc, shift) => {
-          if (shift.start_time && shift.end_time) {
-            const start = new Date(`1970-01-01T${shift.start_time}Z`);
-            const end = new Date(`1970-01-01T${shift.end_time}Z`);
-            const duration =
-              (end.getTime() - start.getTime()) / (1000 * 60 * 60); // Convert to hours
+          if (shift.total_hours) {
+            const [hours, minutes, seconds] = shift.total_hours.split(":").map(Number);
+            const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
             return acc + duration;
           }
           return acc;
@@ -721,6 +751,7 @@ const EmployeeProfilePage = () => {
       setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
+  
 
   useEffect(() => {
     const fetchData = async () => {
