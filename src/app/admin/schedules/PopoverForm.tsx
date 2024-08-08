@@ -70,7 +70,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   const [lunchEnd, setLunchEnd] = useState(row?.lunch_end || "");
   const [employeeId, setEmployeeId] = useState<number | null>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (formType === "generate" || formType === "clearSchedule") {
       const selectedEmployee = employees?.find(
         (emp) => emp.employee_id === employeeId
@@ -105,6 +105,20 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         startTime,
         endTime
       );
+
+      // Call the update_schedule_status API to send the email
+      await fetch("/api/update_schedule_status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_id: employeeId,
+          schedule_date: date,
+          status: "added_day", // Or whatever status you wish to use
+        }),
+      });
+
       toast.success(
         `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
       );

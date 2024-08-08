@@ -1,4 +1,3 @@
-// Ensure the backend script is updated as follows:
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
 import sendgrid from '@sendgrid/mail';
@@ -67,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Fetch employee email from contact_info assuming it's plain text
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
-        .select('contact_info')
+        .select('contact_info, name')
         .eq('employee_id', employee_id)
         .single();
 
@@ -77,6 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const email = employeeData.contact_info;
+      const employeeName = employeeData.name;
+      const scheduleDayOfWeek = new Date(schedule_date).toLocaleString('en-US', { weekday: 'long' });
 
       let subject = "Your Schedule Has Been Updated";
       let message = `Your Scheduled Shift On ${schedule_date} Has Been Changed To Reflect That You're Off For That Day. Please Contact Management Directly With Any Questions.`;
@@ -89,6 +90,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message = `Your Schedule Has Been Updated To Reflect That You Left Early On ${schedule_date}.`;
       } else if (status.startsWith("Custom:")) {
         message = `Your Schedule For ${schedule_date} Has Been Updated To: ${status.replace("Custom:", "").trim()}`;
+      } else if (status === "added_day") {
+        message = `A shift has been added to your work schedule for ${scheduleDayOfWeek}, ${schedule_date}!`;
       }
 
       const msg = {
