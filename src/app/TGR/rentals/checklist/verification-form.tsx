@@ -9,7 +9,7 @@ interface VerificationFormProps {
   userUuid: string;
   verificationDate: string;
   verificationTime: string;
-  onVerificationComplete: (notes: string) => void;
+  onVerificationComplete: (notes: string, firearmId: number) => void;
   isWithGunsmith: boolean; // Add this prop to conditionally render form
 }
 
@@ -68,12 +68,6 @@ export function VerificationForm({
       return;
     }
 
-    // Log the update action
-    // console.log("Updating firearms_maintenance with:", {
-    //   rental_notes: noteText,
-    //   firearmId,
-    // });
-
     // Update firearms maintenance notes
     const { error: maintenanceError } = await supabase
       .from("firearms_maintenance")
@@ -88,8 +82,8 @@ export function VerificationForm({
       return;
     }
 
-    // Call the completion callback
-    onVerificationComplete(noteText);
+    // Call the completion callback with the firearm ID
+    onVerificationComplete(noteText, firearmId);
   };
 
   return (
@@ -151,73 +145,6 @@ export function VerificationForm({
         </div>
       </div>
       {!withGunsmith && !rentalOnRange && (
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium">
-            Notes
-          </label>
-          <Textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Enter any additional notes..."
-          />
-        </div>
-      )}
-      <Button variant="linkHover1" onClick={handleSubmit}>
-        Submit Verification
-      </Button>
-    </div>
-  );
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <Checkbox
-              checked={serialVerified}
-              onCheckedChange={(checked) => setSerialVerified(!!checked)}
-              id="serial-verified"
-            />
-            <label htmlFor="serial-verified" className="ml-2">
-              Serial Number Verified
-            </label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox
-              checked={conditionVerified}
-              onCheckedChange={(checked) => setConditionVerified(!!checked)}
-              id="condition-verified"
-            />
-            <label htmlFor="condition-verified" className="ml-2">
-              Condition Verified
-            </label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox
-              checked={magazineAttached}
-              onCheckedChange={(checked) => setMagazineAttached(!!checked)}
-              id="magazine-attached"
-            />
-            <label htmlFor="magazine-attached" className="ml-2">
-              Magazine Attached
-            </label>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <Checkbox
-              checked={withGunsmith}
-              onCheckedChange={(checked) => setWithGunsmith(!!checked)}
-              id="with-gunsmith"
-            />
-            <label htmlFor="with-gunsmith" className="ml-2">
-              With Gunsmith
-            </label>
-          </div>
-        </div>
-      </div>
-      {!withGunsmith && (
         <div>
           <label htmlFor="notes" className="block text-sm font-medium">
             Notes

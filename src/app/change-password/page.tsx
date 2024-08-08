@@ -13,34 +13,23 @@ function ChangePasswordContent() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const accessToken = searchParams?.get("access_token");
+  const tokenHash = searchParams?.get("token_hash");
+  const type = searchParams?.get("type");
 
   useEffect(() => {
-    const setSession = async () => {
-      if (!accessToken) {
-        toast.error("Invalid or missing token!");
-        router.push("/sign-in");
-        return;
-      }
-      const { error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: "",
-      });
-
-      if (error) {
-        toast.error("Failed to set session!");
-        router.push("/sign-in");
-      }
-    };
-
-    setSession();
-  }, [accessToken, router]);
+    if (!tokenHash || !type) {
+      toast.error("Invalid or missing token!");
+      router.push("/sign-in");
+    }
+  }, [tokenHash, type, router]);
 
   const handlePasswordChange = async () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
 
       if (error) {
         toast.error(error.message);

@@ -163,9 +163,9 @@ export function DataTableRowActions({
     }
   };
 
-  const handleVerificationComplete = (notes: string) => {
+  const handleVerificationComplete = (notes: string, firearmId: number) => {
     setOpenVerification(false);
-    onNotesChange(task.id, notes); // Update the notes
+    onNotesChange(firearmId, notes); // Update the notes
   };
 
   return (
@@ -240,6 +240,7 @@ export function DataTableRowActions({
             onVerificationComplete={handleVerificationComplete}
             isWithGunsmith={task.notes === "With Gunsmith"} // Pass this prop to VerificationForm
           />
+
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="linkHover2">Cancel</Button>

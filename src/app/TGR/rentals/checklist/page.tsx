@@ -104,29 +104,26 @@ export default function FirearmsChecklist() {
       const withGunsmith = latestVerification?.notes === "With Gunsmith";
       const currentlyRentedOut =
         latestVerification?.notes === "Currently Rented Out";
+      const isVerifiedToday = latestVerification?.verification_date === today;
+      const isVerified =
+        latestVerification?.serial_verified &&
+        latestVerification?.condition_verified &&
+        latestVerification?.magazine_attached;
 
       return {
         ...firearm,
         notes: latestVerification ? latestVerification.notes : "",
         morning_checked:
-          withGunsmith || currentlyRentedOut
-            ? ""
-            : verificationsData.some(
-                (verification) =>
-                  verification.firearm_id === firearm.id &&
-                  verification.verification_time === "morning" &&
-                  verification.verification_date === today
-              ),
+          withGunsmith || currentlyRentedOut || !isVerifiedToday
+            ? false
+            : latestVerification.verification_time === "morning",
         evening_checked:
-          withGunsmith || currentlyRentedOut
-            ? ""
-            : verificationsData.some(
-                (verification) =>
-                  verification.firearm_id === firearm.id &&
-                  verification.verification_time === "evening" &&
-                  verification.verification_date === today
-              ),
-        highlight: withGunsmith
+          withGunsmith || currentlyRentedOut || !isVerifiedToday
+            ? false
+            : latestVerification.verification_time === "evening",
+        highlight: isVerified
+          ? "text-green-600"
+          : withGunsmith
           ? "text-amber"
           : currentlyRentedOut
           ? "text-red"
@@ -144,6 +141,28 @@ export default function FirearmsChecklist() {
 
     return combinedData;
   }, []);
+
+  const handleVerificationComplete = (notes: string, firearmId: number) => {
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === firearmId
+          ? {
+              ...item,
+              notes,
+              highlight: "text-green-600",
+              morning_checked:
+                notes === "With Gunsmith" || notes === "Currently Rented Out"
+                  ? item.morning_checked
+                  : false,
+              evening_checked:
+                notes === "With Gunsmith" || notes === "Currently Rented Out"
+                  ? item.evening_checked
+                  : false,
+            }
+          : item
+      )
+    );
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -349,7 +368,12 @@ export default function FirearmsChecklist() {
       }
 
       // Reset verifications for the current day
-      const firearmsToReset = data.filter((item) => !item.notes);
+      const firearmsToReset = data.filter(
+        (item) =>
+          !item.notes &&
+          item.highlight !== "text-amber" &&
+          item.highlight !== "text-red"
+      );
 
       for (const firearm of firearmsToReset) {
         await supabase
@@ -366,7 +390,11 @@ export default function FirearmsChecklist() {
 
       // Update in-memory state for firearms that need to be reset
       const updatedData = data.map((firearm) => {
-        if (!firearm.notes) {
+        if (
+          !firearm.notes &&
+          firearm.highlight !== "text-amber" &&
+          firearm.highlight !== "text-red"
+        ) {
           return {
             ...firearm,
             morning_checked: false,
@@ -433,6 +461,8 @@ export default function FirearmsChecklist() {
                               ? "amber"
                               : item.notes === "Currently Rented Out"
                               ? "red"
+                              : item.notes === "Verified"
+                              ? "green-600"
                               : "",
                         }))}
                         userRole={userRole}
