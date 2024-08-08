@@ -19,12 +19,22 @@ function ChangePasswordContent() {
     if (!accessToken) {
       toast.error("Invalid or missing token!");
       router.push("/sign-in");
-    } else {
-      supabase.auth.setSession({
+      return;
+    }
+
+    const setSession = async () => {
+      const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: "",
       });
-    }
+
+      if (error) {
+        toast.error("Failed to set session!");
+        router.push("/sign-in");
+      }
+    };
+
+    setSession();
   }, [accessToken, router]);
 
   const handlePasswordChange = async () => {

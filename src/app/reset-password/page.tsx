@@ -43,7 +43,7 @@ export default function ResetPassword() {
     try {
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/change-password`,
+        redirectTo: "https://tgr-dashboard.vercel.app/change-password",
       });
 
       if (error) throw error;
