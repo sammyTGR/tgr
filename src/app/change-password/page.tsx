@@ -16,13 +16,12 @@ function ChangePasswordContent() {
   const accessToken = searchParams?.get("access_token");
 
   useEffect(() => {
-    if (!accessToken) {
-      toast.error("Invalid or missing token!");
-      router.push("/sign-in");
-      return;
-    }
-
     const setSession = async () => {
+      if (!accessToken) {
+        toast.error("Invalid or missing token!");
+        router.push("/sign-in");
+        return;
+      }
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: "",
@@ -41,9 +40,7 @@ function ChangePasswordContent() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
+      const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
         toast.error(error.message);
