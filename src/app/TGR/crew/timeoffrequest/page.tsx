@@ -176,8 +176,9 @@ export default function TimeOffRequestPage() {
 
   const handleReasonChange = (value: string) => {
     setTimeOffData({ ...timeOffData, reason: value });
-    setShowOtherTextarea(value === "Other");
+    setShowOtherTextarea(value === "Other" || value === "Swapping Schedules");
   };
+  
 
   const handleSelectDates = (dates: Date[] | undefined) => {
     setSelectedDates(dates || []);
@@ -303,18 +304,19 @@ export default function TimeOffRequestPage() {
                 </SelectContent>
               </Select>
               {showOtherTextarea && (
-                <Textarea
-                  placeholder="Please specify your reason"
-                  value={timeOffData.other_reason}
-                  onChange={(e) =>
-                    setTimeOffData({
-                      ...timeOffData,
-                      other_reason: e.target.value,
-                    })
-                  }
-                  className="textarea"
-                />
-              )}
+  <Textarea
+    placeholder={timeOffData.reason === "Swapping Schedules" ? "Please specify who you are swapping with" : "Please specify your reason"}
+    value={timeOffData.other_reason}
+    onChange={(e) =>
+      setTimeOffData({
+        ...timeOffData,
+        other_reason: e.target.value,
+      })
+    }
+    className="textarea"
+  />
+)}
+
               <Button type="submit" variant="gooeyRight">
                 Submit Request
               </Button>

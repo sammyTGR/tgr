@@ -277,7 +277,7 @@ const ManageSchedules = () => {
       console.error("Employee not found:", employeeName);
       return;
     }
-
+  
     if (date && startTime && endTime) {
       const daysOfWeek = [
         "Sunday",
@@ -288,17 +288,20 @@ const ManageSchedules = () => {
         "Friday",
         "Saturday",
       ];
-      const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
-
+      let scheduleDate = new Date(date);
+      scheduleDate.setDate(scheduleDate.getDate() + 7); // Add 7 days to the date
+      const adjustedDate = scheduleDate.toISOString().split("T")[0]; // Convert back to string in YYYY-MM-DD format
+      const dayOfWeek = daysOfWeek[scheduleDate.getUTCDay()]; // Get the correct day of the week for the new date using getUTCDay
+  
       const { error } = await supabase.from("schedules").insert({
         employee_id: employee.employee_id,
-        schedule_date: date,
+        schedule_date: adjustedDate,
         start_time: startTime,
         end_time: endTime,
         day_of_week: dayOfWeek,
         status: "scheduled",
       });
-
+  
       if (error) {
         console.error("Error adding schedule:", error);
       } else {
@@ -311,6 +314,7 @@ const ManageSchedules = () => {
       );
     }
   };
+  
 
   const table = useReactTable({
     data: referenceSchedules,
