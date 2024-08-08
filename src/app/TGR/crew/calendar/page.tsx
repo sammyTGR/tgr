@@ -274,11 +274,11 @@ export default function Component() {
           status,
         }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       // Remove this block
       /*
       const employeeResponse = await supabase
@@ -307,10 +307,13 @@ export default function Component() {
   
       await sendEmail(email, subject, message);
       */
-  
+
       await fetchCalendarData();
     } catch (error) {
-      console.error("Failed to update schedule status:", (error as Error).message);
+      console.error(
+        "Failed to update schedule status:",
+        (error as Error).message
+      );
     }
   };
 
@@ -342,7 +345,7 @@ export default function Component() {
             {eventsByDay[day].map((event, index) => (
               <div key={index} className="relative">
                 {event.status === "time_off" ? (
-                  <div className="text-purple-500 dark:text-purple-400">
+                  <div className="text-purple-600 dark:text-purple-500">
                     Approved Time Off
                   </div>
                 ) : event.status === "called_out" ? (
@@ -356,6 +359,14 @@ export default function Component() {
                 ) : event.status && event.status.startsWith("Custom:") ? (
                   <div className="text-green-500 dark:text-green-400">
                     {event.status.replace("Custom:", "").trim()}
+                  </div>
+                ) : event.status === "added_day" ? (
+                  <div className="text-pink-500 dark:text-pink-300">
+                    {" "}
+                    {/* Adjust color classes as needed */}
+                    {`${formatTime(event.start_time)} - ${formatTime(
+                      event.end_time
+                    )}`}
                   </div>
                 ) : event.start_time === null || event.end_time === null ? (
                   <div className="text-gray-800 dark:text-gray-300">Off</div>

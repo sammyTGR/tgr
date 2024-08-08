@@ -296,7 +296,7 @@ const ManageSchedules = () => {
         start_time: startTime,
         end_time: endTime,
         day_of_week: dayOfWeek,
-        status: "scheduled",
+        status: "added_day",
       });
 
       if (error) {
