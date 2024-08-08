@@ -52,52 +52,52 @@ const HeaderCustomer = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["customer"]}>
-    <header className="flex justify-between items-center p-2">
-      <NavigationMenu>
-        <NavigationMenuList className="flex space-x-4 mr-3">
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Account</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                {accountComponents.map((component) => (
-                  <ListItem
-                    key={component.title}
-                    title={component.title}
-                    href={component.href}
-                  >
-                    {component.description}
-                  </ListItem>
-                ))}
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-      <div className="flex items-center mr-1 gap-2">
-        {user ? (
-          <>
-            <Button
-              variant="outline"
-              className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-              size="sm"
-              onClick={handleSignOut}
-            >
-              Sign Out
+      <header className="flex justify-between items-center p-2">
+        <NavigationMenu>
+          <NavigationMenuList className="flex space-x-4 mr-3">
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Account</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {accountComponents.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+        <div className="flex items-center mr-1 gap-2">
+          {user ? (
+            <>
+              <Button
+                variant="outline"
+                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Link href="/sign-in">
+              <Button>Sign In</Button>
+            </Link>
+          )}
+          <Link href="/">
+            <Button variant="outline" size="icon">
+              <HomeIcon />
             </Button>
-          </>
-        ) : (
-          <Link href="/sign-in">
-            <Button>Sign In</Button>
           </Link>
-        )}
-        <Link href="/">
-          <Button variant="outline" size="icon">
-            <HomeIcon />
-          </Button>
-        </Link>
-        <ModeToggle />
-      </div>
-    </header>
+          <ModeToggle />
+        </div>
+      </header>
     </RoleBasedWrapper>
   );
 });

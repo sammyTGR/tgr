@@ -51,7 +51,7 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
         if (roleError || !roleData) {
           // Check the profiles table if not found in employees table
           const { data: customerData, error: customerError } = await supabase
-            .from("profiles")
+            .from("customers")
             .select("role")
             .eq("email", user?.email)
             .single();

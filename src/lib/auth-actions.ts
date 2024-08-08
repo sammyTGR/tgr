@@ -27,39 +27,47 @@ export async function signup(data: { firstName: string, lastName: string, email:
   const supabase = createClient();
 
   const { firstName, lastName, email, password } = data;
-  const avatar_url = '/default-avatar.png'; // Default avatar URL
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        full_name: `${firstName} ${lastName}`,
+        first_name: firstName,
+        last_name: lastName,
         email: email,
       },
     },
   });
 
   if (signUpError) {
-    redirect("/error");
+    console.error(signUpError);
+    return;
   }
 
   const user = signUpData.user;
 
   if (user) {
     const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert({ id: user.id, full_name: `${firstName} ${lastName}`, email: email, avatar_url, role: "customer" });
+      .from("customers")
+      .upsert({
+        user_uuid: user.id,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        role: "customer",
+      });
 
     if (profileError) {
-      console.log(profileError);
-      redirect("/error");
+      console.error(profileError);
+      return;
     }
   }
 
   revalidatePath("/", "layout");
   redirect("/");
 }
+
 
 export async function signout() {
   const supabase = createClient();
@@ -148,8 +156,14 @@ export async function updateProfile(user: any) {
   const lastName = fullName.split(' ')[1] || '';
 
   const { error: profileError } = await supabase
-    .from("profiles")
-    .upsert({ id: id, full_name: fullName, email: email, role: "customer" });
+    .from("customers")
+    .upsert({
+      user_uuid: id,
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      role: "user"
+    });
 
   if (profileError) {
     console.log(profileError);

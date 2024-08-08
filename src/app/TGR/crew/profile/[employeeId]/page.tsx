@@ -148,6 +148,7 @@ const EmployeeProfilePage = () => {
   const [pointsCalculation, setPointsCalculation] = useState<
     PointsCalculation[]
   >([]);
+  const userUuid = params?.userUuid ?? ""; // Define userUuid
 
   // State for time off request
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -171,27 +172,33 @@ const EmployeeProfilePage = () => {
   const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
   const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
 
-  const calculateDurationWithLunch = (start: string, end: string, lunchStart: string, lunchEnd: string): string => {
+  const calculateDurationWithLunch = (
+    start: string,
+    end: string,
+    lunchStart: string,
+    lunchEnd: string
+  ): string => {
     const startTime = new Date(`1970-01-01T${start}Z`).getTime();
     const endTime = new Date(`1970-01-01T${end}Z`).getTime();
     const lunchStartTime = new Date(`1970-01-01T${lunchStart}Z`).getTime();
     const lunchEndTime = new Date(`1970-01-01T${lunchEnd}Z`).getTime();
-  
+
     const workDuration = endTime - startTime;
     const lunchDuration = lunchEndTime - lunchStartTime;
     const netDuration = workDuration - lunchDuration;
-  
+
     if (netDuration < 0) return "00:00:00";
-  
+
     const totalSeconds = Math.floor(netDuration / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-  
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
-  
-  
+
   const handleClockIn = async () => {
     const now = new Date();
     const eventDate = format(now, "yyyy-MM-dd");
@@ -260,12 +267,12 @@ const EmployeeProfilePage = () => {
     const now = new Date();
     const endTime = format(now, "HH:mm:ss");
     const eventDate = format(now, "yyyy-MM-dd");
-  
+
     if (!clockInTime) {
       console.error("Invalid clock-in time");
       return;
     }
-  
+
     let duration;
     if (currentShift?.lunch_start && currentShift?.lunch_end) {
       duration = calculateDurationWithLunch(
@@ -277,7 +284,7 @@ const EmployeeProfilePage = () => {
     } else {
       duration = calculateDuration(clockInTime, now);
     }
-  
+
     if (duration !== "00:00:00") {
       const { error } = await supabase
         .from("employee_clock_events")
@@ -287,7 +294,7 @@ const EmployeeProfilePage = () => {
         })
         .eq("employee_id", employeeId)
         .eq("event_date", eventDate);
-  
+
       if (error) {
         console.error("Error ending shift:", error);
       } else {
@@ -307,7 +314,6 @@ const EmployeeProfilePage = () => {
       console.error("Invalid duration calculated");
     }
   };
-  
 
   const handleLunchBreak = async () => {
     const now = new Date();
@@ -593,17 +599,45 @@ const EmployeeProfilePage = () => {
 
   const fetchEmployeeData = async () => {
     setProgress((prev) => prev + 10); // Initial progress
-    const { data, error } = await supabase
+
+    let employeeData = null;
+    let employeeRole = null;
+    let error = null;
+
+    // Fetch from employees table
+    const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("*")
       .eq("employee_id", employeeId)
       .single();
 
-    if (error) {
-      console.error("Error fetching employee data:", error.message);
+    if (employeeError && employeeError.code !== "PGRST116") {
+      console.error("Error fetching employee data:", employeeError.message);
+      error = employeeError;
+    } else if (employee) {
+      employeeData = employee;
+      employeeRole = employee.role;
     } else {
-      setEmployee(data);
+      // Fetch from public.customers table if not found in employees table
+      const { data: customer, error: customerError } = await supabase
+        .from("public.customers")
+        .select("*")
+        .eq("user_uuid", userUuid)
+        .single();
+
+      if (customerError) {
+        console.error("Error fetching customer data:", customerError.message);
+        error = customerError;
+      } else {
+        employeeData = customer;
+        employeeRole = customer.role;
+      }
     }
+
+    if (!error) {
+      setEmployee(employeeData);
+    }
+
     setProgress((prev) => prev + 30); // Update progress
   };
 
@@ -682,20 +716,22 @@ const EmployeeProfilePage = () => {
   const fetchWeeklySummary = async () => {
     const startOfWeekDate = startOfWeek(new Date(), { weekStartsOn: 0 });
     const endOfWeekDate = endOfWeek(new Date(), { weekStartsOn: 0 });
-  
+
     const { data, error } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
       .gte("event_date", format(startOfWeekDate, "yyyy-MM-dd"))
       .lte("event_date", format(endOfWeekDate, "yyyy-MM-dd"));
-  
+
     if (error) {
       console.error("Error fetching weekly summary:", error);
     } else {
       const totalHours = data.reduce((acc, shift) => {
         if (shift.total_hours) {
-          const [hours, minutes, seconds] = shift.total_hours.split(":").map(Number);
+          const [hours, minutes, seconds] = shift.total_hours
+            .split(":")
+            .map(Number);
           const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
           return acc + duration;
         }
@@ -704,7 +740,6 @@ const EmployeeProfilePage = () => {
       setWeeklySummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
-  
 
   // Function to fetch pay period summary
   const fetchPayPeriodSummary = async () => {
@@ -716,21 +751,21 @@ const EmployeeProfilePage = () => {
     });
     const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
     const endOfCurrentWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
-  
+
     const { data: previousWeekData, error: previousWeekError } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
       .gte("event_date", format(startOfPreviousWeek, "yyyy-MM-dd"))
       .lte("event_date", format(endOfPreviousWeek, "yyyy-MM-dd"));
-  
+
     const { data: currentWeekData, error: currentWeekError } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
       .gte("event_date", format(startOfCurrentWeek, "yyyy-MM-dd"))
       .lte("event_date", format(endOfCurrentWeek, "yyyy-MM-dd"));
-  
+
     if (previousWeekError || currentWeekError) {
       console.error(
         "Error fetching pay period summary:",
@@ -740,7 +775,9 @@ const EmployeeProfilePage = () => {
       const totalHours = [...previousWeekData, ...currentWeekData].reduce(
         (acc, shift) => {
           if (shift.total_hours) {
-            const [hours, minutes, seconds] = shift.total_hours.split(":").map(Number);
+            const [hours, minutes, seconds] = shift.total_hours
+              .split(":")
+              .map(Number);
             const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
             return acc + duration;
           }
@@ -751,7 +788,6 @@ const EmployeeProfilePage = () => {
       setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
-  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -771,7 +807,7 @@ const EmployeeProfilePage = () => {
     };
 
     fetchData();
-  }, [employeeId]);
+  }, [employeeId, userUuid]);
 
   if (loading) return <ProgressBar value={progress} showAnimation={true} />;
 
@@ -785,15 +821,16 @@ const EmployeeProfilePage = () => {
             <div className="flex items-center gap-4">
               <Avatar>
                 <img
-                  src={employee.avatar_url || "/Banner.png"}
+                  src={employee?.avatar_url || "/Banner.png"}
                   alt="Employee Avatar"
                 />
-                <AvatarFallback>{employee.name[0]}</AvatarFallback>
+                <AvatarFallback>{employee?.name?.[0] || "?"}</AvatarFallback>
               </Avatar>
+
               <div>
-                <h1 className="text-xl font-bold">Welcome {employee.name}</h1>
+                <h1 className="text-xl font-bold">Welcome {employee?.name}</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {employee.position}
+                  {employee?.position}
                 </p>
               </div>
             </div>

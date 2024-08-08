@@ -50,11 +50,14 @@ export default function ProfilePage() {
     if (user) {
       let avatarUrlToUpdate = avatarUrl;
 
-      if (avatarRef.current && avatarRef.current.files && avatarRef.current.files.length > 0) {
+      if (
+        avatarRef.current &&
+        avatarRef.current.files &&
+        avatarRef.current.files.length > 0
+      ) {
         const file = avatarRef.current.files[0];
         const fileName = `${user.id}/${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase
-          .storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from("avatars")
           .upload(fileName, file);
 
@@ -63,13 +66,17 @@ export default function ProfilePage() {
           alert("Error uploading avatar. Please try again.");
           return;
         } else {
-            const publicUrlData: { data: { publicUrl: string; }, error?: any; } = supabase.storage.from("avatars").getPublicUrl(fileName);
-            if (publicUrlData.error) {
-              console.error("Error getting public URL for avatar:", publicUrlData.error);
-              alert("Error getting public URL for avatar. Please try again.");
-              return;
-            }
-            avatarUrlToUpdate = publicUrlData.data.publicUrl;
+          const publicUrlData: { data: { publicUrl: string }; error?: any } =
+            supabase.storage.from("avatars").getPublicUrl(fileName);
+          if (publicUrlData.error) {
+            console.error(
+              "Error getting public URL for avatar:",
+              publicUrlData.error
+            );
+            alert("Error getting public URL for avatar. Please try again.");
+            return;
+          }
+          avatarUrlToUpdate = publicUrlData.data.publicUrl;
         }
       }
 
@@ -104,7 +111,7 @@ export default function ProfilePage() {
         </div>
       </header>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="bg-white dark:bg-gray-950 p-6 rounded-b-lg space-y-6">
+        <div className="bg-white dark:bg-black p-6 rounded-b-lg space-y-6">
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <div>

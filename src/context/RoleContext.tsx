@@ -1,5 +1,11 @@
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { supabase } from "@/utils/supabase/client";
 
 interface RoleContextType {
@@ -17,9 +23,15 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const fetchRole = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
       if (error || !user) {
-        console.error("Error fetching user or no active session found:", error?.message);
+        console.error(
+          "Error fetching user or no active session found:",
+          error?.message
+        );
         setLoading(false);
         return;
       }
@@ -50,21 +62,21 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
         console.log("Role from employees:", employeeData.role);
       } else {
         const { data: customerData, error: customerError } = await supabase
-          .from("public_customers")
+          .from("customers")
           .select("role")
           .eq("email", email.toLowerCase())
           .single();
 
         if (customerError && customerError.code !== "PGRST116") {
           console.error(
-            "Error fetching role from public_customers:",
+            "Error fetching role from customers:",
             customerError.message
           );
         }
 
         if (customerData) {
           setRole(customerData.role || "customer");
-          console.log("Role from public_customers:", customerData.role || "customer");
+          console.log("Role from customers:", customerData.role || "customer");
         } else {
           setRole(null);
         }

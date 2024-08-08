@@ -49,12 +49,10 @@ export default function SignUp() {
     try {
       await signup(data); // Call the signup function
 
-      toast.success(
-        "Account created successfully! G'head & sign in!"
-      );
+      toast.success("Account created successfully! G'head & sign in!");
 
       // Redirect to sign-in page
-      router.push('/sign-in');
+      router.push("/sign-in");
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error creating account:", error.message);
@@ -165,14 +163,14 @@ export default function SignUp() {
               Create an account
             </Button>
           </form>
-            <div className="mt-4 text-center text-sm">
-              Already have an account?{" "}
-              <Link href="/sign-in" className="underline">
-                Sign in
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{" "}
+            <Link href="/sign-in" className="underline">
+              Sign in
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

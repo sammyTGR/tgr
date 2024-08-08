@@ -26,18 +26,40 @@ export async function middleware(request: NextRequest) {
     .single();
 
   if (roleError || !roleData) {
-    console.error("Error fetching role:", roleError?.message || "No role data");
-    return NextResponse.redirect(new URL("/auth", request.url));
-  }
+    // Check the customers table if not found in employees table
+    const { data: customerData, error: customerError } = await supabase
+      .from("customers")
+      .select("role")
+      .eq("email", user.email)
+      .single();
 
-  const userRole = roleData.role;
-  const employeeId = roleData.employee_id;
+    if (customerError) {
+      console.error("Error fetching role from customers:", customerError.message);
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
 
-  // Redirect to the correct profile page based on role
-  if (url.pathname === "/auth" || url.pathname === "/") {
-    if (userRole === "admin" || userRole === "super admin" || userRole === "gunsmith" || userRole === "auditor") {
-      return NextResponse.redirect(new URL(`/TGR/crew/profile/${employeeId}`, request.url));
+    if (!customerData || !customerData.role) {
+      console.error("No role found in customers for user:", user.email);
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
+
+    const userRole = customerData.role;
+    if (userRole === "customer") {
+      // Redirect to the correct landing page for customers
+      if (url.pathname === "/auth" || url.pathname === "/") {
+        return NextResponse.redirect(new URL(`/components/LandingPageCustomer`, request.url));
+
+      }
     } else {
+      console.error("Invalid role for user:", user.email);
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
+  } else {
+    const userRole = roleData.role;
+    const employeeId = roleData.employee_id;
+
+    // Redirect to the correct profile page based on role
+    if (url.pathname === "/auth" || url.pathname === "/") {
       return NextResponse.redirect(new URL(`/TGR/crew/profile/${employeeId}`, request.url));
     }
   }

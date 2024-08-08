@@ -11,11 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { updateProfile } from "@/lib/auth-actions"; // Import the updateProfile function
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { updateProfile } from "@/lib/auth-actions";
 
 // Define the validation schema using Zod
 const schema = z.object({
@@ -31,6 +34,11 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function SignIn() {
+  const params = useSearchParams();
+  const next = params ? params.get("next") || "" : "";
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
   const {
     handleSubmit,
     control,
@@ -43,10 +51,11 @@ export default function SignIn() {
     const { email, password } = data;
 
     try {
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: signInData, error } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (error) throw error;
 
@@ -67,67 +76,145 @@ export default function SignIn() {
     }
   };
 
+  const loginWithOAuth = async (provider: "google") => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${location.origin}/auth/callback${next}`,
+        },
+      });
+
+      if (error) throw error;
+
+      setTimeout(async () => {
+        const userResponse = await supabase.auth.getUser();
+        const user = userResponse.data.user;
+
+        if (user) {
+          const response = await fetch("/api/syncUser", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(user),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            localStorage.setItem("accessToken", result.access_token);
+            localStorage.setItem("refreshToken", result.refresh_token);
+            // Redirect to the intended page or dashboard
+            window.location.href = next || "/";
+          } else {
+            console.error("Error syncing user:", await response.text());
+          }
+        }
+      }, 2000);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error logging in with OAuth:", error.message);
+      } else {
+        console.error("Unexpected error logging in with OAuth:", error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="grid place-items-center h-screen">
-      <Card className="mx-auto max-w-sm ">
+      <Card className="mx-auto max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">Sign In</CardTitle>
-          <CardDescription>Enter your credentials to sign in</CardDescription>
+          <CardTitle className="text-xl">Login</CardTitle>
+          <CardDescription>Select your login type</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
+          <Tabs defaultValue="membersLogin">
+            <TabsList className="flex">
+              <TabsTrigger value="membersLogin">Members Login</TabsTrigger>
+              <TabsTrigger value="employeesLogin">Employees Login</TabsTrigger>
+            </TabsList>
+            <TabsContent value="membersLogin">
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="grid gap-4 mt-4"
+              >
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        id="email"
+                        type="email"
+                        placeholder="m@example.com"
+                        required
+                      />
+                    )}
                   />
-                )}
-              />
-              {errors.email && (
-                <span className="text-red-500 text-xs">
-                  {errors.email.message}
-                </span>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Controller
-                name="password"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
+                  {errors.email && (
+                    <span className="text-red-500 text-xs">
+                      {errors.email.message}
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Controller
+                    name="password"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        id="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        required
+                      />
+                    )}
                   />
-                )}
-              />
-              {errors.password && (
-                <span className="text-red-500 text-xs">
-                  {errors.password.message}
-                </span>
-              )}
-            </div>
-            <Button type="submit" className="w-full">
-              Sign In
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/sign-up" className="underline">
-              Sign up
-            </Link>
-          </div>
+                  {errors.password && (
+                    <span className="text-red-500 text-xs">
+                      {errors.password.message}
+                    </span>
+                  )}
+                </div>
+                <Button type="submit" className="w-full">
+                  Sign In
+                </Button>
+              </form>
+              <div className="mt-4 text-center text-sm">
+                <Link href="/reset-password" className="underline">
+                  Forgot Password?
+                </Link>
+              </div>
+              <div className="mt-4 text-center text-sm">
+                Don&apos;t have an account?{" "}
+                <Link href="/sign-up" className="underline">
+                  Sign up
+                </Link>
+              </div>
+            </TabsContent>
+            <TabsContent value="employeesLogin">
+              <div className="flex flex-col my-4 items-center justify-center">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="email">Login With Your Work Email</Label>
+                  <Button
+                    onClick={() => loginWithOAuth("google")}
+                    variant="ringHover"
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    {loading ? "Logging in..." : "Login with Google"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

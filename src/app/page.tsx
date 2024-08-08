@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import LandingPagePublic from "@/components/LandingPagePublic";
+import LandingPageCustomer from "@/components/LandingPageCustomer";
 import { ProgressBar } from "@/components/ProgressBar";
 
 export default function Home() {
@@ -10,6 +11,7 @@ export default function Home() {
   const [roleValidating, setRoleValidating] = useState(false);
   const [noSession, setNoSession] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -57,9 +59,9 @@ export default function Home() {
         .single();
 
       if (roleError || !roleData) {
-        // Check the profiles table if not found in employees table
+        // Check the customers table if not found in employees table
         const { data: customerData, error: customerError } = await supabase
-          .from("profiles")
+          .from("customers")
           .select("role")
           .eq("email", user?.email)
           .single();
@@ -77,20 +79,24 @@ export default function Home() {
         }
 
         const role = customerData.role;
+        setRole(role);
 
-        if (!role) {
+        if (role === "customer") {
+          setLoading(false);
+          setRoleValidating(false); // End role validation
+          setProgress(100); // Final progress
+          return; // Show the customer landing page
+        } else {
+          console.error("Invalid role for user:", user?.email);
           setLoading(false);
           setRoleValidating(false); // End role validation
           setNoSession(true);
           setProgress(100); // Final progress
-          return;
+          return; // Invalid role
         }
-
-        setLoading(false); // End loading before redirection
-        setProgress(100); // Final progress
-        router.push(`/TGR/crew/profile/${user?.id}`);
       } else {
         const { role, employee_id } = roleData;
+        setRole(role);
         setLoading(false); // End loading before redirection
         setRoleValidating(false); // End role validation
         setProgress(100); // Final progress
@@ -115,6 +121,10 @@ export default function Home() {
 
   if (noSession) {
     return <LandingPagePublic />; // Show the public landing page if no active session
+  }
+
+  if (role === "customer") {
+    return <LandingPageCustomer />;
   }
 
   return null; // No need to show anything else
