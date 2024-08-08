@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-export default function ChangePassword() {
+function ChangePasswordContent() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -78,5 +78,13 @@ export default function ChangePassword() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ChangePassword() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChangePasswordContent />
+    </Suspense>
   );
 }
