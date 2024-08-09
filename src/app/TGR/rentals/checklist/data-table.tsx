@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  ColumnDef,
   ColumnFiltersState,
   SortingState,
   VisibilityState,
@@ -9,7 +10,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
 import {
   Table,
   TableBody,
@@ -19,16 +19,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { supabase } from "@/utils/supabase/client";
-import { ColumnDef, FirearmsMaintenanceData, columns } from "./columns";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { FirearmsMaintenanceData, columns } from "./columns";
+import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+import { Input } from "@/components/ui/input";
 import { DataTableRowActions } from "./data-table-row-actions";
 
 interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
@@ -51,39 +46,61 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   onDeleteFirearm,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
+const table = useReactTable({
+  data,
+  columns,
+  state: {
+    sorting,
+    columnFilters,
+    columnVisibility,
+  },
+  onSortingChange: setSorting,
+  onColumnFiltersChange: setColumnFilters,
+  onColumnVisibilityChange: setColumnVisibility,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getFilteredRowModel: getFilteredRowModel(),
+  filterFns: {
+    // Custom filter function for handling multiple selected values
+    includes: (row, columnId, filterValue) => {
+      const cellValue = row.getValue(columnId) as string;  // Cast to string
+      return filterValue.some((val: string) => cellValue.includes(val));
     },
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
+  },
+});
+
+
+  const handleSelect = (selectedValues: string[]) => {
+    table.getColumn('notes')?.setFilterValue(selectedValues);
+  };
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
-        <Input
+        <div className="flex flex-row items-center gap-2">
+      <Input
           placeholder="Filter By Firearm Name..."
           value={table.getColumn("firearm_name")?.getFilterValue() as string}
           onChange={(event) =>
             table.getColumn("firearm_name")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm w-full"
+          className="min-w-full"
         />
+        <DataTableFacetedFilter
+          columnId="notes"
+          title="Filter By Notes"
+          options={[
+            { label: "With Gunsmith", value: "With Gunsmith" },
+            { label: "Currently Rented Out", value: "Currently Rented Out" },
+          ]}
+          onSelect={(selectedValues) =>
+            table.getColumn("notes")?.setFilterValue(selectedValues.join(","))
+          }
+        />
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
@@ -111,60 +128,55 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 h-full w-full">
-        <div className="h-full overflow-y-auto">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
+      <div className="flex-1 h-full w-full overflow-y-auto">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const metaStyle = (
+                    header.column.columnDef.meta as {
+                      style?: React.CSSProperties;
+                    }
+                  )?.style;
+                  return (
+                    <TableHead key={header.id} style={metaStyle}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className={row.original.highlight ? `text-${row.original.highlight}` : ""}
+                >
+                  {row.getVisibleCells().map((cell) => {
                     const metaStyle = (
-                      header.column.columnDef.meta as {
+                      cell.column.columnDef.meta as {
                         style?: React.CSSProperties;
                       }
                     )?.style;
                     return (
-                      <TableHead key={header.id} style={metaStyle}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
+                      <TableCell key={cell.id} style={metaStyle}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
                     );
                   })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className={
-                      row.original.highlight
-                        ? `text-${row.original.highlight}`
-                        : ""
-                    }
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const metaStyle = (
-                        cell.column.columnDef.meta as {
-                          style?: React.CSSProperties;
-                        }
-                      )?.style;
-                      return (
-                        <TableCell key={cell.id} style={metaStyle}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell>
+                  <TableCell>
                       <DataTableRowActions
                         row={row}
                         userRole={userRole}
@@ -174,21 +186,20 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                         onDeleteFirearm={onDeleteFirearm}
                       />
                     </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

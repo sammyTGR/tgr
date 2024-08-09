@@ -33,22 +33,19 @@ export function VerificationForm({
     setRentalOnRange(false); // Initialize rentalOnRange to false
   }, [isWithGunsmith]);
 
-  const handleSubmit = async () => {
-    if (!serialVerified || !conditionVerified || !magazineAttached) {
-      if (!notes && !withGunsmith && !rentalOnRange) {
-        alert(
-          "Please enter a note explaining why the verification was not complete."
-        );
-        return;
-      }
-    }
-
-    const noteText = withGunsmith
+  const handleSubmit = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent any default form submission behavior
+  
+    const allVerified = serialVerified && conditionVerified && magazineAttached;
+  
+    const noteText = allVerified
+      ? "Verified"
+      : withGunsmith
       ? "With Gunsmith"
       : rentalOnRange
       ? "Currently Rented Out"
       : notes;
-
+  
     // Save verification data
     const { error: verificationError } = await supabase
       .from("firearm_verifications")
@@ -62,30 +59,25 @@ export function VerificationForm({
         magazine_attached: magazineAttached,
         notes: noteText,
       });
-
+  
     if (verificationError) {
       console.error("Error saving verification:", verificationError.message);
       return;
     }
-
+  
     // Update firearms maintenance notes
     const { error: maintenanceError } = await supabase
       .from("firearms_maintenance")
       .update({ rental_notes: noteText })
       .eq("id", firearmId);
-
+  
     if (maintenanceError) {
-      console.error(
-        "Error updating firearms maintenance:",
-        maintenanceError.message
-      );
+      console.error("Error updating firearms maintenance:", maintenanceError.message);
       return;
     }
-
-    // Call the completion callback with the firearm ID
-    onVerificationComplete(noteText, firearmId);
+  
+    onVerificationComplete(noteText, firearmId); // Close the dialog and update the state
   };
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">

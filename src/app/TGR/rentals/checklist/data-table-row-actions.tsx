@@ -45,91 +45,93 @@ export function DataTableRowActions({
 }: DataTableRowActionsProps) {
   const task = row.original;
   const [openVerification, setOpenVerification] = useState(false);
+  const [data, setData] = useState<FirearmsMaintenanceData[]>([]);
+
 
   const handleSetGunsmithStatus = async (status: string) => {
     try {
-      const today = new Date().toISOString().split("T")[0];
-      if (status === "Returned From Gunsmith") {
-        await supabase
-          .from("firearm_verifications")
-          .update({ notes: null })
-          .eq("firearm_id", task.id)
-          .eq("notes", "With Gunsmith");
-        await supabase
+        const today = new Date().toISOString().split("T")[0];
+        if (status === "Returned From Gunsmith") {
+            await supabase
+                .from("firearm_verifications")
+                .update({ notes: null })
+                .eq("firearm_id", task.id)
+                .eq("notes", "With Gunsmith");
+
+            const { error } = await supabase
+                .from("firearms_maintenance")
+                .update({ rental_notes: "" })
+                .eq("id", task.id);
+
+            if (error) {
+                throw error;
+            }
+
+            // Reset the verification status for both morning and evening
+            await supabase
+                .from("firearm_verifications")
+                .update({
+                    serial_verified: false,
+                    condition_verified: false,
+                    magazine_attached: false,
+                })
+                .eq("firearm_id", task.id)
+                .eq("verification_date", today);
+
+            onNotesChange(task.id, ""); // Clear the note in the state
+        } else if (status === "With Gunsmith") {
+            const { error } = await supabase
+                .from("firearms_maintenance")
+                .update({ rental_notes: "With Gunsmith" })
+                .eq("id", task.id);
+
+            if (error) {
+                throw error;
+            }
+
+            // Clear the verification status for both morning and evening
+            await supabase
+                .from("firearm_verifications")
+                .update({
+                    serial_verified: false,
+                    condition_verified: false,
+                    magazine_attached: false,
+                })
+                .eq("firearm_id", task.id)
+                .eq("verification_date", today);
+
+            onNotesChange(task.id, "With Gunsmith"); // Update the local state
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error("Error setting gunsmith status:", error.message);
+        } else {
+            console.error("An unknown error occurred.");
+        }
+    }
+};
+
+
+const handleRentalReturned = async (firearmId: number) => {
+  try {
+      // Clear rental notes in the database
+      await supabase
           .from("firearms_maintenance")
           .update({ rental_notes: "" })
-          .eq("id", task.id)
-          .eq("verification_date", today);
-        // Reset the verification status for both morning and evening
-        await supabase
-          .from("firearm_verifications")
-          .update({
-            serial_verified: false,
-            condition_verified: false,
-            magazine_attached: false,
-          })
-          .eq("firearm_id", task.id)
-          .eq("verification_date", today);
-        onNotesChange(task.id, ""); // Update the local state
-      } else if (status === "With Gunsmith") {
-        await supabase
-          .from("firearms_maintenance")
-          .update({ rental_notes: "With Gunsmith" })
-          .eq("id", task.id);
-        // Clear the verification status for both morning and evening
-        await supabase
-          .from("firearm_verifications")
-          .update({
-            serial_verified: false,
-            condition_verified: false,
-            magazine_attached: false,
-          })
-          .eq("firearm_id", task.id)
-          .eq("verification_date", today);
-        onNotesChange(task.id, "With Gunsmith"); // Update the local state
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error setting gunsmith status:", error.message);
-      } else {
-        console.error("An unknown error occurred.");
-      }
-    }
-  };
+          .eq("id", firearmId);
 
-  const handleRentalReturned = async (firearmId: number) => {
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const currentHour = new Date().getHours();
-      const isMorning = currentHour < 14;
-
-      // Clear rental notes
-      await supabase
-        .from("firearms_maintenance")
-        .update({ rental_notes: "" })
-        .eq("id", firearmId);
-
-      // Update verification status for the appropriate column
-      await supabase
-        .from("firearm_verifications")
-        .update({
-          serial_verified: false,
-          condition_verified: false,
-          magazine_attached: false,
-        })
-        .eq("firearm_id", firearmId)
-        .eq("verification_date", today)
-        .eq("verification_time", isMorning ? "morning" : "evening");
-
+      // Update the local state to reflect the removal of the "Currently Rented Out" note
       onNotesChange(firearmId, ""); // Update the local state
-    } catch (error) {
+  } catch (error) {
       if (error instanceof Error) {
-        console.error("Error setting rental returned status:", error.message);
+          console.error("Error setting rental returned status:", error.message);
       } else {
-        console.error("An unknown error occurred.");
+          console.error("An unknown error occurred.");
       }
-    }
-  };
+  }
+};
+
+
 
   const handleRentalOnRange = async (firearmId: number) => {
     try {
@@ -163,10 +165,34 @@ export function DataTableRowActions({
     }
   };
 
-  const handleVerificationComplete = (notes: string, firearmId: number) => {
-    setOpenVerification(false);
-    onNotesChange(firearmId, notes); // Update the notes
+  const completeVerification = async (notes: string, firearmId: number) => {
+    try {
+      // Update the rental_notes field in the database to the given notes
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({ rental_notes: notes })
+        .eq("id", firearmId);
+  
+      if (error) {
+        console.error("Error updating rental_notes:", error.message);
+        return;
+      }
+  
+      // Update the local state in the parent component
+      onNotesChange(firearmId, notes);
+  
+      // Fetch updated data if necessary, or perform any additional actions
+      await onVerificationComplete();
+  
+      // Close the verification dialog
+      setOpenVerification(false);
+    } catch (error) {
+      console.error("Error in completeVerification:", error);
+    }
   };
+  
+  
+  
 
   return (
     <>
@@ -184,6 +210,44 @@ export function DataTableRowActions({
           <DropdownMenuItem onSelect={() => setOpenVerification(true)}>
             Verify Firearm
           </DropdownMenuItem>
+          {["admin", "super admin"].includes(userRole) && (
+  <>
+    <DropdownMenuItem
+      onSelect={async () => {
+        try {
+          const { data: firearm, error: fetchError } = await supabase
+            .from("firearms_maintenance")
+            .select("rental_notes")
+            .eq("id", task.id)
+            .single();
+      
+          if (fetchError) {
+            throw fetchError;
+          }
+      
+          if (firearm?.rental_notes === "Verified") {
+            await supabase
+              .from("firearms_maintenance")
+              .update({ rental_notes: "" })
+              .eq("id", task.id);
+      
+            // Update the local state to reflect the reset
+            onNotesChange(task.id, "");
+          }
+      
+          // Optionally, close the dialog or refresh data
+          setOpenVerification(false);
+        } catch (error) {
+          console.error("Error resetting verification:", error);
+        }
+      }}
+      
+    >
+      Reset Verification
+    </DropdownMenuItem>
+  </>
+)}
+
           <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Rented Out</DropdownMenuSubTrigger>
@@ -237,7 +301,7 @@ export function DataTableRowActions({
             verificationTime={
               new Date().getHours() < 14 ? "morning" : "evening"
             }
-            onVerificationComplete={handleVerificationComplete}
+            onVerificationComplete={completeVerification}
             isWithGunsmith={task.notes === "With Gunsmith"} // Pass this prop to VerificationForm
           />
 

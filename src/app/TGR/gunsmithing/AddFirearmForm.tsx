@@ -42,7 +42,7 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Add Firearm</Button>
+        <Button variant="linkHover2">Add Firearm</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -81,7 +81,7 @@ export default function AddFirearmForm({ onAdd }: AddFirearmFormProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleAdd}>Add Firearm</Button>
+          <Button variant="linkHover2" onClick={handleAdd}>Add Firearm</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

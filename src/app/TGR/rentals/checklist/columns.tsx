@@ -28,30 +28,30 @@ export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
     header: "Checklist Notes",
     cell: ({ row }) => <span>{row.original.notes}</span>,
   },
-  {
-    accessorKey: "morning_checked",
-    header: "Morning Checked",
-    cell: ({ row }) => {
-      const notes = row.original.notes;
-      return notes === "With Gunsmith" ? (
-        <span></span>
-      ) : (
-        <span>{row.original.morning_checked ? "Yes" : "No"}</span>
-      );
-    },
-  },
-  {
-    accessorKey: "evening_checked",
-    header: "Evening Checked",
-    cell: ({ row }) => {
-      const notes = row.original.notes;
-      return notes === "With Gunsmith" ? (
-        <span></span>
-      ) : (
-        <span>{row.original.evening_checked ? "Yes" : "No"}</span>
-      );
-    },
-  },
+  // {
+  //   accessorKey: "morning_checked",
+  //   header: "Morning Checked",
+  //   cell: ({ row }) => {
+  //     const notes = row.original.notes;
+  //     return notes === "With Gunsmith" ? (
+  //       <span></span>
+  //     ) : (
+  //       <span>{row.original.morning_checked ? "" : ""}</span>
+  //     );
+  //   },
+  // },
+  // {
+  //   accessorKey: "evening_checked",
+  //   header: "Evening Checked",
+  //   cell: ({ row }) => {
+  //     const notes = row.original.notes;
+  //     return notes === "With Gunsmith" ? (
+  //       <span></span>
+  //     ) : (
+  //       <span>{row.original.evening_checked ? "" : ""}</span>
+  //     );
+  //   },
+  // },
   // Other columns as needed...
 ];
 

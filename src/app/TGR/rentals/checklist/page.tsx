@@ -81,7 +81,6 @@ export default function FirearmsChecklist() {
       throw new Error(firearmsError.message);
     }
 
-    // Fetch all verifications
     const { data: verificationsData, error: verificationsError } =
       await supabase.from("firearm_verifications").select("*");
 
@@ -101,9 +100,9 @@ export default function FirearmsChecklist() {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )[0];
 
-      const withGunsmith = latestVerification?.notes === "With Gunsmith";
+      const withGunsmith = firearm.rental_notes === "With Gunsmith";
       const currentlyRentedOut =
-        latestVerification?.notes === "Currently Rented Out";
+        firearm.rental_notes === "Currently Rented Out";
       const isVerifiedToday = latestVerification?.verification_date === today;
       const isVerified =
         latestVerification?.serial_verified &&
@@ -112,7 +111,7 @@ export default function FirearmsChecklist() {
 
       return {
         ...firearm,
-        notes: latestVerification ? latestVerification.notes : "",
+        notes: firearm.rental_notes,
         morning_checked:
           withGunsmith || currentlyRentedOut || !isVerifiedToday
             ? false
@@ -131,7 +130,6 @@ export default function FirearmsChecklist() {
       };
     });
 
-    // Sort the data by type (handguns first) and then by firearm name
     combinedData.sort((a, b) => {
       if (a.firearm_type === b.firearm_type) {
         return a.firearm_name.localeCompare(b.firearm_name);
@@ -142,26 +140,36 @@ export default function FirearmsChecklist() {
     return combinedData;
   }, []);
 
-  const handleVerificationComplete = (notes: string, firearmId: number) => {
-    setData((prevData) =>
-      prevData.map((item) =>
-        item.id === firearmId
-          ? {
-              ...item,
-              notes,
-              highlight: "text-green-600",
-              morning_checked:
-                notes === "With Gunsmith" || notes === "Currently Rented Out"
-                  ? item.morning_checked
-                  : false,
-              evening_checked:
-                notes === "With Gunsmith" || notes === "Currently Rented Out"
-                  ? item.evening_checked
-                  : false,
-            }
-          : item
-      )
-    );
+  const handleVerificationComplete = async (firearmId: number) => {
+    try {
+      // Update the rental_notes field in the database to "Verified"
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({ rental_notes: "Verified" })
+        .eq("id", firearmId);
+
+      if (error) {
+        console.error("Error updating rental_notes:", error.message);
+        return;
+      }
+
+      // Update the local state to reflect the change
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === firearmId
+            ? {
+                ...item,
+                notes: "Verified", // Set the notes to "Verified"
+                highlight: "text-green-600", // Set highlight to green
+                morning_checked: false,
+                evening_checked: false,
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error("Error in handleVerificationComplete:", error);
+    }
   };
 
   const fetchData = useCallback(async () => {
@@ -304,35 +312,20 @@ export default function FirearmsChecklist() {
     }
   };
 
-  const handleSubmitChecklist = async (shift: "morning" | "evening") => {
-    const today = new Date().toISOString().split("T")[0];
+  const handleSubmitChecklist = async () => {
+    const today = new Date().toISOString();
 
-    // Check if a submission already exists for today and this shift
-    const { data: existingSubmissions, error: existingSubmissionsError } =
-      await supabase
-        .from("checklist_submissions")
-        .select("*")
-        .eq("shift", shift)
-        .eq("submission_date", today);
+    // Ensure all firearms have notes of either "Verified" or "With Gunsmith"
+    const allValid = data.every(
+      (item) => item.notes === "Verified" || item.notes === "With Gunsmith"
+    );
 
-    if (existingSubmissionsError) {
-      console.error(
-        "Error checking for existing submissions:",
-        existingSubmissionsError.message
-      );
-      toast.error("Failed to check for existing submissions.");
-      return;
-    }
-
-    if (existingSubmissions.length > 0) {
-      toast(
-        `A checklist for the ${shift} shift has already been submitted today.`
+    if (!allValid) {
+      toast.error(
+        "All firearms must be either Verified or With Gunsmith before submitting."
       );
       return;
     }
-
-    // Filter firearms with notes
-    const firearmsWithNotes = data.filter((item) => item.notes);
 
     // Ensure no firearms are currently rented out
     const currentlyRentedOut = data.some(
@@ -340,72 +333,42 @@ export default function FirearmsChecklist() {
     );
 
     if (currentlyRentedOut) {
-      toast("There's a firearm still rented out!");
-      return;
-    }
-
-    // Ensure all required firearms are verified
-    const allVerified = data.every(
-      (item) => item.notes || item.morning_checked || item.evening_checked
-    );
-
-    if (!allVerified) {
-      toast(`Please verify all firearms for the ${shift} shift.`);
+      toast.error(
+        "There is a firearm currently rented out. You cannot submit the checklist."
+      );
       return;
     }
 
     try {
-      // Insert the firearms with notes into the checklist_submissions table
-      for (const firearm of firearmsWithNotes) {
+      // Insert the firearms with "Verified" into the checklist_submissions table
+      for (const firearm of data.filter((item) => item.notes === "Verified")) {
         await supabase.from("checklist_submissions").insert({
-          shift,
+          shift: "morning", // Set to a default value since the shift is no longer selected
           submitted_by: userUuid,
           submitted_by_name: userName,
-          submission_date: today,
+          submission_date: today, // Use the current timestamp
           checklist_notes: firearm.notes,
           firearm_name: firearm.firearm_name,
         });
       }
 
-      // Reset verifications for the current day
-      const firearmsToReset = data.filter(
-        (item) =>
-          !item.notes &&
-          item.highlight !== "text-amber" &&
-          item.highlight !== "text-red"
-      );
+      // Reset verifications for firearms with "Verified" status
+      const firearmsToReset = data.filter((item) => item.notes === "Verified");
 
       for (const firearm of firearmsToReset) {
         await supabase
-          .from("firearm_verifications")
-          .update({
-            serial_verified: false,
-            condition_verified: false,
-            magazine_attached: false,
-          })
-          .eq("firearm_id", firearm.id)
-          .eq("verification_date", today)
-          .eq("verification_time", shift);
+          .from("firearms_maintenance")
+          .update({ rental_notes: "" }) // Reset rental_notes to an empty string
+          .eq("id", firearm.id);
       }
 
       // Update in-memory state for firearms that need to be reset
-      const updatedData = data.map((firearm) => {
-        if (
-          !firearm.notes &&
-          firearm.highlight !== "text-amber" &&
-          firearm.highlight !== "text-red"
-        ) {
-          return {
-            ...firearm,
-            morning_checked: false,
-            evening_checked: false,
-          };
-        }
-        return firearm;
-      });
+      const updatedData = data.map((firearm) =>
+        firearm.notes === "Verified" ? { ...firearm, notes: "" } : firearm
+      );
 
       setData(updatedData);
-      toast.success(`Checklist for ${shift} shift submitted successfully.`);
+      toast.success("Checklist submitted successfully.");
     } catch (error) {
       console.error("Error submitting checklist:", error);
       toast.error("Failed to submit checklist.");
@@ -416,32 +379,26 @@ export default function FirearmsChecklist() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin"]}
     >
-      <div className="h-screen flex flex-col">
+      <div className="h-screen max-w-8xl mx-auto flex flex-col">
         <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">
-          <div className="flex items-center justify-between space-y-2">
             <div>
               <h2 className="text-2xl font-bold">
                 <TextGenerateEffect words={words} />
               </h2>
             </div>
+          <div className="flex items-center space-y-2">
+
             <div className="flex space-x-2">
-              <Button
-                variant="linkHover1"
-                onClick={() => handleSubmitChecklist("morning")}
-              >
-                Submit Morning Checklist
+              <Button variant="linkHover1" onClick={handleSubmitChecklist}>
+                Submit Checklist
               </Button>
-              <Button
-                variant="linkHover1"
-                onClick={() => handleSubmitChecklist("evening")}
-              >
-                Submit Evening Checklist
-              </Button>
-            </div>
+
             {["admin", "super admin"].includes(userRole || "") && (
               <AddFirearmForm onAdd={handleAddFirearm} />
             )}
+            </div>
+
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <div className="rounded-md border h-full flex-1 flex flex-col">
@@ -463,7 +420,7 @@ export default function FirearmsChecklist() {
                               ? "red"
                               : item.notes === "Verified"
                               ? "green-600"
-                              : "",
+                              : "", // Ensure this handles the empty string correctly
                         }))}
                         userRole={userRole}
                         userUuid={userUuid}
