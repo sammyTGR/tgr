@@ -1,40 +1,51 @@
-// src/pages/api/syncUser.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { corsHeaders } from '@/utils/cors';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    // Handle CORS preflight request
+    if (req.method === 'OPTIONS') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+        return res.status(200).json({ message: 'CORS preflight request success' });
+    }
+
+    // Set necessary headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
+
     if (req.method === 'POST') {
         const user = req.body;
         console.log('Received user data:', user);
 
         const user_uuid = user.id;
         const email = user.email.toLowerCase();
-        const full_name = user.user_metadata.full_name || '';
-        const avatar_url = user.user_metadata.avatar_url || '';
-        const first_name = full_name.split(' ')[0];
-        const last_name = full_name.split(' ')[1] || '';
+        const first_name = user.user_metadata.full_name?.split(' ')[0] || '';
+        const last_name = user.user_metadata.full_name?.split(' ')[1] || '';
 
         console.log('Processed user data:', { user_uuid, email, first_name, last_name });
 
         try {
+            // Insert the user into the customers table during sign-up
             const { data, error } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: user_uuid,
-                    email,
-                    full_name,
-                    avatar_url,
-                    role: 'customer'
-                });
+              .from('customers')
+              .insert({
+                user_uuid,
+                email,
+                first_name,
+                last_name,
+                role: 'customer',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
 
             if (error) {
-                console.error('Error updating or creating profile:', error);
+                console.error('Error inserting customer:', error);
                 return res.status(500).json({ error: error.message });
             }
 
-            console.log('Profile created or updated successfully:', data);
-
-            res.status(200).json({ message: 'Profile created or updated successfully', data });
+            console.log('Customer inserted successfully:', data);
+            res.status(200).json({ message: 'Customer inserted successfully', data });
         } catch (error) {
             console.error('Unexpected error:', error);
             res.status(500).json({ error: 'An unexpected error occurred' });

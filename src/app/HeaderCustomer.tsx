@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { PersonIcon, ChevronDownIcon } from "@radix-ui/react-icons"; // Add icons import
 
 const accountComponents = [
   {
@@ -28,6 +29,14 @@ const accountComponents = [
     title: "Order History",
     href: "/customer/orders",
     description: "View your past orders and track current ones.",
+  },
+];
+
+const profileMenuItems = [
+  {
+    title: "Settings",
+    href: "/public/profiles",
+    description: "Manage your account settings and preferences.",
   },
 ];
 
@@ -57,15 +66,19 @@ const HeaderCustomer = React.memo(() => {
           <NavigationMenuList className="flex space-x-4 mr-3">
             <NavigationMenuItem>
               <NavigationMenuTrigger>Account</NavigationMenuTrigger>
+              <NavigationMenuTrigger className="flex items-center gap-1">
+                <PersonIcon className="w-6 h-6" />
+                <ChevronDownIcon className="w-4 h-4" />
+              </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {accountComponents.map((component) => (
+                <ul className="p-2">
+                  {profileMenuItems.map((item) => (
                     <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
+                      key={item.title}
+                      title={item.title}
+                      href={item.href}
                     >
-                      {component.description}
+                      {item.description}
                     </ListItem>
                   ))}
                 </ul>

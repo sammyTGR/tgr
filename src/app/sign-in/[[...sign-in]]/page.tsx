@@ -1,4 +1,3 @@
-// app\sign-in\[[...sign-in]]\page.tsx
 "use client";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
@@ -19,9 +18,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { updateProfile } from "@/lib/auth-actions";
 
-// Define the validation schema using Zod
 const schema = z.object({
   email: z
     .string()
@@ -61,11 +58,26 @@ export default function SignIn() {
       if (error) throw error;
 
       if (signInData.user) {
-        await updateProfile(signInData.user); // Call updateProfile after successful sign-in
-      }
+        const user = signInData.user;
 
-      toast.success("Signed in successfully");
-      window.location.href = "/"; // Redirect to home page after sign-in
+        // Fetch the customer's role from the customers table
+        const { data: customerData, error: fetchError } = await supabase
+          .from("customers")
+          .select("role")
+          .eq("user_uuid", user.id)
+          .single();
+
+        if (fetchError) {
+          console.error("Error fetching customer role:", fetchError.message);
+          toast.error("An error occurred. Please try again.");
+          return;
+        }
+
+        if (customerData) {
+          toast.success("Signed in successfully");
+          window.location.href = "/"; // Redirect to home page after sign-in
+        }
+      }
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error signing in:", error.message);
@@ -94,22 +106,20 @@ export default function SignIn() {
         const user = userResponse.data.user;
 
         if (user) {
-          const response = await fetch("/api/syncUser", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(user),
-          });
+          const { data: customerData, error: fetchError } = await supabase
+            .from("customers")
+            .select("role")
+            .eq("user_uuid", user.id)
+            .single();
 
-          if (response.ok) {
-            const result = await response.json();
-            localStorage.setItem("accessToken", result.access_token);
-            localStorage.setItem("refreshToken", result.refresh_token);
-            // Redirect to the intended page or dashboard
+          if (fetchError) {
+            console.error("Error fetching customer role:", fetchError.message);
+            return;
+          }
+
+          if (customerData) {
+            // If role is fetched successfully, redirect to the desired page
             window.location.href = next || "/";
-          } else {
-            console.error("Error syncing user:", await response.text());
           }
         }
       }, 2000);
