@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/utils/supabase/client";
+import { toast } from "sonner"; // Import the toast library
 
 interface VerificationFormProps {
   firearmId: number;
@@ -25,6 +26,7 @@ export function VerificationForm({
   const [conditionVerified, setConditionVerified] = useState(false);
   const [magazineAttached, setMagazineAttached] = useState(false);
   const [notes, setNotes] = useState("");
+  const [showNotes, setShowNotes] = useState(false); // State to control textarea visibility
   const [withGunsmith, setWithGunsmith] = useState(isWithGunsmith);
   const [rentalOnRange, setRentalOnRange] = useState(false);
 
@@ -35,9 +37,18 @@ export function VerificationForm({
 
   const handleSubmit = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent any default form submission behavior
-  
+
     const allVerified = serialVerified && conditionVerified && magazineAttached;
-  
+
+    // Check if not all verified and no notes are provided
+    if (!allVerified && !withGunsmith && !rentalOnRange && !notes) {
+      setShowNotes(true); // Show the textarea if not all checkboxes are selected
+      toast.error(
+        "Please enter a note explaining why the verification was not complete."
+      );
+      return; // Exit early if condition is met
+    }
+
     const noteText = allVerified
       ? "Verified"
       : withGunsmith
@@ -45,7 +56,7 @@ export function VerificationForm({
       : rentalOnRange
       ? "Currently Rented Out"
       : notes;
-  
+
     // Save verification data
     const { error: verificationError } = await supabase
       .from("firearm_verifications")
@@ -59,28 +70,32 @@ export function VerificationForm({
         magazine_attached: magazineAttached,
         notes: noteText,
       });
-  
+
     if (verificationError) {
       console.error("Error saving verification:", verificationError.message);
       return;
     }
-  
+
     // Update firearms maintenance notes
     const { error: maintenanceError } = await supabase
       .from("firearms_maintenance")
       .update({ rental_notes: noteText })
       .eq("id", firearmId);
-  
+
     if (maintenanceError) {
-      console.error("Error updating firearms maintenance:", maintenanceError.message);
+      console.error(
+        "Error updating firearms maintenance:",
+        maintenanceError.message
+      );
       return;
     }
-  
+
     onVerificationComplete(noteText, firearmId); // Close the dialog and update the state
   };
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <div className="space-y-4">
           <div className="flex items-center">
             <Checkbox
@@ -113,7 +128,7 @@ export function VerificationForm({
             </label>
           </div>
         </div>
-        <div className="space-y-4">
+        {/* <div className="space-y-4">
           <div className="flex items-center">
             <Checkbox
               checked={withGunsmith}
@@ -134,9 +149,9 @@ export function VerificationForm({
               Rental On Range
             </label>
           </div>
-        </div>
+        </div> */}
       </div>
-      {!withGunsmith && !rentalOnRange && (
+      {showNotes && !withGunsmith && !rentalOnRange && (
         <div>
           <label htmlFor="notes" className="block text-sm font-medium">
             Notes
@@ -145,7 +160,7 @@ export function VerificationForm({
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Enter any additional notes..."
+            placeholder="Explain details about why the verification was not complete..."
           />
         </div>
       )}

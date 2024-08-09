@@ -340,8 +340,8 @@ export default function FirearmsChecklist() {
     }
 
     try {
-      // Insert the firearms with "Verified" into the checklist_submissions table
-      for (const firearm of data.filter((item) => item.notes === "Verified")) {
+      // Insert the firearms with rental_notes that do not contain "Verified" into the checklist_submissions table
+      for (const firearm of data.filter((item) => item.notes !== "Verified")) {
         await supabase.from("checklist_submissions").insert({
           shift: "morning", // Set to a default value since the shift is no longer selected
           submitted_by: userUuid,
@@ -382,23 +382,21 @@ export default function FirearmsChecklist() {
       <div className="h-screen max-w-8xl mx-auto flex flex-col">
         <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">
-            <div>
-              <h2 className="text-2xl font-bold">
-                <TextGenerateEffect words={words} />
-              </h2>
-            </div>
+          <div>
+            <h2 className="text-2xl font-bold">
+              <TextGenerateEffect words={words} />
+            </h2>
+          </div>
           <div className="flex items-center space-y-2">
-
             <div className="flex space-x-2">
               <Button variant="linkHover1" onClick={handleSubmitChecklist}>
                 Submit Checklist
               </Button>
 
-            {["admin", "super admin"].includes(userRole || "") && (
-              <AddFirearmForm onAdd={handleAddFirearm} />
-            )}
+              {["admin", "super admin"].includes(userRole || "") && (
+                <AddFirearmForm onAdd={handleAddFirearm} />
+              )}
             </div>
-
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <div className="rounded-md border h-full flex-1 flex flex-col">
