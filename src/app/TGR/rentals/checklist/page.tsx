@@ -8,6 +8,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Toaster, toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import AddFirearmForm from "@/app/TGR/gunsmithing/AddFirearmForm";
+import { ProgressBar } from "@/components/ProgressBar";
 
 const words = "Firearms Checklist";
 
@@ -32,6 +33,8 @@ export default function FirearmsChecklist() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAnyFirearmRentedOut, setIsAnyFirearmRentedOut] = useState(false);
+  const [submittingChecklist, setSubmittingChecklist] = useState(false);
+  const [submittingBulkVerify, setSubmittingBulkVerify] = useState(false);
 
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -145,7 +148,7 @@ export default function FirearmsChecklist() {
       // Update the rental_notes field in the database to "Verified"
       const { error } = await supabase
         .from("firearms_maintenance")
-        .update({ rental_notes: "Verified" })
+        .update({ rental_notes: "Verified", verified_status: "Verified" })
         .eq("id", firearmId);
 
       if (error) {
@@ -315,56 +318,54 @@ export default function FirearmsChecklist() {
   const handleSubmitChecklist = async () => {
     const today = new Date().toISOString();
 
-    // Ensure all firearms have notes of either "Verified" or "With Gunsmith"
-    const allValid = data.every(
-      (item) => item.notes === "Verified" || item.notes === "With Gunsmith"
-    );
-
-    if (!allValid) {
-      toast.error(
-        "All firearms must be either Verified or With Gunsmith before submitting."
-      );
-      return;
-    }
-
-    // Ensure no firearms are currently rented out
-    const currentlyRentedOut = data.some(
-      (item) => item.notes === "Currently Rented Out"
-    );
-
-    if (currentlyRentedOut) {
-      toast.error(
-        "There is a firearm currently rented out. You cannot submit the checklist."
-      );
-      return;
-    }
-
     try {
-      // Insert the firearms with rental_notes that do not contain "Verified" into the checklist_submissions table
-      for (const firearm of data.filter((item) => item.notes !== "Verified")) {
+      setSubmittingChecklist(true);
+
+      // Step 1: Filter firearms where `verified_status` is blank, empty, or null
+      const firearmsToSubmit = data.filter(
+        (item) => !item.verified_status || item.verified_status.trim() === ""
+      );
+
+      if (firearmsToSubmit.length === 0) {
+        toast.info("No firearms to submit; all are verified.");
+        setSubmittingChecklist(false);
+        return;
+      }
+
+      // Step 2: Submit only firearms that aren't verified
+      for (const firearm of firearmsToSubmit) {
         await supabase.from("checklist_submissions").insert({
-          shift: "morning", // Set to a default value since the shift is no longer selected
+          shift: "morning",
           submitted_by: userUuid,
           submitted_by_name: userName,
-          submission_date: today, // Use the current timestamp
+          submission_date: today,
           checklist_notes: firearm.notes,
           firearm_name: firearm.firearm_name,
         });
       }
 
-      // Reset verifications for firearms with "Verified" status
-      const firearmsToReset = data.filter((item) => item.notes === "Verified");
+      // Step 3: Clear `rental_notes` and `verified_status` for firearms that are verified
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({ rental_notes: "", verified_status: "" })
+        .in(
+          "id",
+          data
+            .filter((item) => item.verified_status === "Verified")
+            .map((item) => item.id)
+        );
 
-      for (const firearm of firearmsToReset) {
-        await supabase
-          .from("firearms_maintenance")
-          .update({ rental_notes: "" }) // Reset rental_notes to an empty string
-          .eq("id", firearm.id);
+      if (error) {
+        console.error("Error clearing fields:", error.message);
+        toast.error("Failed to clear fields.");
+        return;
       }
 
-      // Update in-memory state for firearms that need to be reset
+      // Step 4: Update local state to reflect the changes
       const updatedData = data.map((firearm) =>
-        firearm.notes === "Verified" ? { ...firearm, notes: "" } : firearm
+        firearm.verified_status === "Verified"
+          ? { ...firearm, notes: "", verified_status: "" }
+          : firearm
       );
 
       setData(updatedData);
@@ -372,6 +373,71 @@ export default function FirearmsChecklist() {
     } catch (error) {
       console.error("Error submitting checklist:", error);
       toast.error("Failed to submit checklist.");
+    } finally {
+      setSubmittingChecklist(false);
+    }
+  };
+
+  const bulkVerifyFirearms = async () => {
+    setSubmittingBulkVerify(true); // Start showing the progress bar for bulk verification
+    try {
+      // Fetch all firearms data
+      const { data: firearmsData, error: firearmsError } = await supabase
+        .from("firearms_maintenance")
+        .select("*");
+
+      if (firearmsError) {
+        console.error("Error fetching firearms data:", firearmsError.message);
+        setSubmittingBulkVerify(false);
+        return;
+      }
+
+      // Filter out firearms that are "With Gunsmith" or "Currently Rented Out"
+      const firearmsToVerify = firearmsData.filter(
+        (firearm) =>
+          firearm.rental_notes !== "With Gunsmith" &&
+          firearm.rental_notes !== "Currently Rented Out"
+      );
+
+      // Bulk verify each firearm
+      for (const firearm of firearmsToVerify) {
+        // Update the rental_notes to "Verified" and the verified_status to "Verified"
+        const { error: maintenanceError } = await supabase
+          .from("firearms_maintenance")
+          .update({
+            rental_notes: "Verified", // Ensure rental_notes is updated
+            verified_status: "Verified", // Update the new verified_status column
+          })
+          .eq("id", firearm.id);
+
+        if (maintenanceError) {
+          console.error(
+            `Error updating rental_notes for firearm ${firearm.firearm_name}:`,
+            maintenanceError.message
+          );
+          continue;
+        }
+
+        // Update local state immediately to reflect the change
+        setData((prevData) =>
+          prevData.map((item) =>
+            item.id === firearm.id
+              ? {
+                  ...item,
+                  notes: "Verified", // Update the notes locally
+                  verified_status: "Verified", // Update the verified_status locally
+                }
+              : item
+          )
+        );
+      }
+
+      toast.success("Bulk verification completed successfully!");
+    } catch (error) {
+      console.error("Error in bulkVerifyFirearms:", error);
+      toast.error("Failed to complete bulk verification.");
+    } finally {
+      setSubmittingBulkVerify(false); // Stop showing the progress bar
     }
   };
 
@@ -389,12 +455,47 @@ export default function FirearmsChecklist() {
           </div>
           <div className="flex items-center space-y-2">
             <div className="flex space-x-2">
-              <Button variant="linkHover1" onClick={handleSubmitChecklist}>
-                Submit Checklist
+              <Button
+                variant="linkHover1"
+                onClick={handleSubmitChecklist}
+                disabled={submittingChecklist} // Disable the button while submitting
+              >
+                {submittingChecklist
+                  ? "Submitting Checklist..."
+                  : "Submit Checklist"}
               </Button>
+
+              {submittingChecklist && (
+                <ProgressBar
+                  value={100}
+                  showAnimation={true}
+                  className="w-full mt-2" // Add some margin-top for spacing
+                />
+              )}
 
               {["admin", "super admin"].includes(userRole || "") && (
                 <AddFirearmForm onAdd={handleAddFirearm} />
+              )}
+              {["super admin"].includes(userRole || "") && (
+                <>
+                  <Button
+                    variant="linkHover1"
+                    onClick={bulkVerifyFirearms}
+                    disabled={submittingBulkVerify} // Disable the button while submitting
+                  >
+                    {submittingBulkVerify
+                      ? "Bulk Verifying Firearms..."
+                      : "Bulk Verify"}
+                  </Button>
+
+                  {submittingBulkVerify && (
+                    <ProgressBar
+                      value={100}
+                      showAnimation={true}
+                      className="w-full mt-2" // Add some margin-top for spacing
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>

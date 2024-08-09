@@ -10,6 +10,7 @@ export interface FirearmsMaintenanceData {
   notes: string; // This field will contain the checklist notes
   maintenance_notes: string; // This field contains the gunsmithing notes
   highlight?: string; // Add this line
+  verified_status: string | null;
 }
 
 // Define columns with the correct order
