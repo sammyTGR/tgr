@@ -17,8 +17,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { DataTable } from "./DataTable";
 import { TimesheetDataTable } from "./TimesheetDataTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toZonedTime, format as formatTZ } from 'date-fns-tz';
-
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 interface ScheduleData {
   id: number;
@@ -43,8 +42,7 @@ interface TimesheetData {
   event_date: string | null;
 }
 
-const timeZone = 'America/Los_Angeles'; // Define the timezone
-
+const timeZone = "America/Los_Angeles"; // Define the timezone
 
 const scheduleColumns: ColumnDef<ScheduleData>[] = [
   {
@@ -68,7 +66,6 @@ const scheduleColumns: ColumnDef<ScheduleData>[] = [
     cell: (info) => info.getValue(),
   },
 ];
-
 
 const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
@@ -103,8 +100,6 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   },
 ];
 
-
-
 const ManageSchedules = () => {
   const { user } = useRole();
   const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>(
@@ -128,7 +123,7 @@ const ManageSchedules = () => {
       console.error("Error fetching reference schedules:", schedulesError);
       return;
     }
-  
+
     const { data: employees, error: employeesError } = await supabase
       .from("employees")
       .select("employee_id, name");
@@ -136,38 +131,47 @@ const ManageSchedules = () => {
       console.error("Error fetching employees:", employeesError);
       return;
     }
-  
+
     const schedulesWithNames = schedules.map((schedule) => {
       const employee = employees.find(
         (emp) => emp.employee_id === schedule.employee_id
       );
-  
-      const startTimeValid = schedule.start_time && !isNaN(Date.parse(`1970-01-01T${schedule.start_time}`));
-      const endTimeValid = schedule.end_time && !isNaN(Date.parse(`1970-01-01T${schedule.end_time}`));
-  
+
+      const startTimeValid =
+        schedule.start_time &&
+        !isNaN(Date.parse(`1970-01-01T${schedule.start_time}`));
+      const endTimeValid =
+        schedule.end_time &&
+        !isNaN(Date.parse(`1970-01-01T${schedule.end_time}`));
+
       return {
         ...schedule,
         employee_name: employee ? employee.name : "Unknown",
         start_time: startTimeValid
           ? formatTZ(
-              toZonedTime(new Date(`1970-01-01T${schedule.start_time}`), timeZone),
+              toZonedTime(
+                new Date(`1970-01-01T${schedule.start_time}`),
+                timeZone
+              ),
               "hh:mma",
               { timeZone }
             )
           : "",
         end_time: endTimeValid
           ? formatTZ(
-              toZonedTime(new Date(`1970-01-01T${schedule.end_time}`), timeZone),
+              toZonedTime(
+                new Date(`1970-01-01T${schedule.end_time}`),
+                timeZone
+              ),
               "hh:mma",
               { timeZone }
             )
           : "",
       };
     });
-  
+
     setReferenceSchedules(schedulesWithNames);
   };
-  
 
   const fetchEmployees = async () => {
     const { data: employees, error: employeesError } = await supabase
@@ -184,36 +188,57 @@ const ManageSchedules = () => {
     const { data: timesheets, error: timesheetsError } = await supabase
       .from("employee_clock_events")
       .select("*");
-  
+
     if (timesheetsError) {
       console.error("Error fetching timesheets:", timesheetsError);
       return;
     }
-  
+
     const formattedTimesheets = timesheets.map((timesheet) => ({
       ...timesheet,
-      start_time: timesheet.start_time 
-        ? formatTZ(toZonedTime(new Date(`1970-01-01T${timesheet.start_time}`), timeZone), "hh:mm a", { timeZone }) 
+      start_time: timesheet.start_time
+        ? formatTZ(
+            toZonedTime(
+              new Date(`1970-01-01T${timesheet.start_time}`),
+              timeZone
+            ),
+            "hh:mm a",
+            { timeZone }
+          )
         : "N/A",
-      lunch_start: timesheet.lunch_start 
-        ? formatTZ(toZonedTime(new Date(`1970-01-01T${timesheet.lunch_start}`), timeZone), "hh:mm a", { timeZone }) 
+      lunch_start: timesheet.lunch_start
+        ? formatTZ(
+            toZonedTime(
+              new Date(`1970-01-01T${timesheet.lunch_start}`),
+              timeZone
+            ),
+            "hh:mm a",
+            { timeZone }
+          )
         : "N/A",
-      lunch_end: timesheet.lunch_end 
-        ? formatTZ(toZonedTime(new Date(`1970-01-01T${timesheet.lunch_end}`), timeZone), "hh:mm a", { timeZone }) 
+      lunch_end: timesheet.lunch_end
+        ? formatTZ(
+            toZonedTime(
+              new Date(`1970-01-01T${timesheet.lunch_end}`),
+              timeZone
+            ),
+            "hh:mm a",
+            { timeZone }
+          )
         : "N/A",
-      end_time: timesheet.end_time 
-        ? formatTZ(toZonedTime(new Date(`1970-01-01T${timesheet.end_time}`), timeZone), "hh:mm a", { timeZone }) 
+      end_time: timesheet.end_time
+        ? formatTZ(
+            toZonedTime(new Date(`1970-01-01T${timesheet.end_time}`), timeZone),
+            "hh:mm a",
+            { timeZone }
+          )
         : "N/A",
     }));
-  
+
     console.log("Formatted Timesheet Data:", formattedTimesheets); // Ensure this logs the correct data
-  
+
     setTimesheets(formattedTimesheets);
   };
-  
-  
-  
-  
 
   const handleEditTimesheet = async (
     id: number,
@@ -237,6 +262,12 @@ const ManageSchedules = () => {
     employeeName: string,
     weeks?: string
   ) => {
+    const employee = employees.find((emp) => emp.name === employeeName);
+    if (!employee) {
+      console.error("Employee not found:", employeeName);
+      return;
+    }
+
     const { error } = await supabase.rpc(
       "generate_schedules_for_employees_by_name",
       {
@@ -244,11 +275,24 @@ const ManageSchedules = () => {
         weeks: parseInt(weeks || "0", 10),
       }
     );
-    if (error) {
-      console.error("Error generating schedules:", error);
+
+    // Add the name field to the schedule
+    if (!error) {
+      const { error: updateError } = await supabase
+        .from("schedules")
+        .update({ name: employee.name })
+        .eq("employee_id", employee.employee_id);
+      if (updateError) {
+        console.error(
+          "Error updating employee name in schedules:",
+          updateError
+        );
+      } else {
+        console.log("Schedules generated successfully.");
+        fetchReferenceSchedules();
+      }
     } else {
-      console.log("Schedules generated successfully.");
-      fetchReferenceSchedules();
+      console.error("Error generating schedules:", error);
     }
   };
 
@@ -291,17 +335,35 @@ const ManageSchedules = () => {
       return;
     }
 
-    const { error } = await supabase.rpc(
+    const { data: schedules, error } = await supabase.rpc(
       "generate_schedules_for_all_employees",
       {
         weeks: parsedWeeks,
       }
     );
+
     if (error) {
       console.error("Error generating schedules:", error);
-    } else {
+      return;
+    }
+
+    if (schedules && schedules.length > 0) {
+      for (const schedule of schedules) {
+        const employee = employees.find(
+          (emp) => emp.employee_id === schedule.employee_id
+        );
+        if (employee) {
+          await supabase
+            .from("schedules")
+            .update({ name: employee.name })
+            .eq("schedule_id", schedule.schedule_id);
+        }
+      }
+
       console.log("Schedules generated for all employees.");
       fetchReferenceSchedules();
+    } else {
+      console.log("No schedules found or generated.");
     }
   };
 
@@ -317,7 +379,7 @@ const ManageSchedules = () => {
       console.error("Employee not found:", employeeName);
       return;
     }
-  
+
     if (date && startTime && endTime) {
       const daysOfWeek = [
         "Sunday",
@@ -329,11 +391,12 @@ const ManageSchedules = () => {
         "Saturday",
       ];
       const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
-  
+
       // Ensure the times are stored as they are entered, without any timezone manipulation
-      const formattedStartTime = startTime.length === 5 ? `${startTime}:00` : startTime;
+      const formattedStartTime =
+        startTime.length === 5 ? `${startTime}:00` : startTime;
       const formattedEndTime = endTime.length === 5 ? `${endTime}:00` : endTime;
-  
+
       const { error } = await supabase.from("schedules").insert({
         employee_id: employee.employee_id,
         schedule_date: date,
@@ -341,8 +404,9 @@ const ManageSchedules = () => {
         end_time: formattedEndTime,
         day_of_week: dayOfWeek,
         status: "added_day",
+        name: employee.name, // Include the employee's name
       });
-  
+
       if (error) {
         console.error("Error adding schedule:", error);
       } else {
@@ -355,7 +419,6 @@ const ManageSchedules = () => {
       );
     }
   };
-  
 
   const table = useReactTable({
     data: referenceSchedules,

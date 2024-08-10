@@ -199,13 +199,11 @@ const EmployeeProfilePage = () => {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const timeZone = 'America/Los_Angeles';
+  const timeZone = "America/Los_Angeles";
   const handleClockIn = async () => {
-    
-const now = toZonedTime(new Date(), timeZone);
-const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
-const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
-
+    const now = toZonedTime(new Date(), timeZone);
+    const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+    const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
 
     const { data: existingData, error: fetchError } = await supabase
       .from("employee_clock_events")
@@ -267,11 +265,10 @@ const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
   };
 
   const handleEndShift = async () => {
-    const timeZone = 'America/Los_Angeles';
-const now = toZonedTime(new Date(), timeZone);
-const endTime = formatTZ(now, "HH:mm:ss", { timeZone });
-const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
-
+    const timeZone = "America/Los_Angeles";
+    const now = toZonedTime(new Date(), timeZone);
+    const endTime = formatTZ(now, "HH:mm:ss", { timeZone });
+    const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
 
     if (!clockInTime) {
       console.error("Invalid clock-in time");
@@ -321,11 +318,10 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
   };
 
   const handleLunchBreak = async () => {
-    const timeZone = 'America/Los_Angeles';
-const now = toZonedTime(new Date(), timeZone);
-const lunchStart = formatTZ(now, "HH:mm:ss", { timeZone });
-const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is the same
-
+    const timeZone = "America/Los_Angeles";
+    const now = toZonedTime(new Date(), timeZone);
+    const lunchStart = formatTZ(now, "HH:mm:ss", { timeZone });
+    const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is the same
 
     const { error } = await supabase
       .from("employee_clock_events")
@@ -344,11 +340,10 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
   };
 
   const handleClockBackInFromLunch = async () => {
-    const timeZone = 'America/Los_Angeles';
-const now = toZonedTime(new Date(), timeZone);
-const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
-const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is the same
-
+    const timeZone = "America/Los_Angeles";
+    const now = toZonedTime(new Date(), timeZone);
+    const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
+    const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is the same
 
     const { error } = await supabase
       .from("employee_clock_events")
@@ -417,7 +412,14 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
 
   const handleReasonChange = (value: string) => {
     setReason(value);
-    setShowOtherTextarea(value === "Other" || value === "Swapping Schedules");
+    const reasonsRequiringTextarea = [
+      "Other",
+      "Swapping Schedules",
+      "Starting Late",
+      "Leaving Early",
+      "Personal",
+    ];
+    setShowOtherTextarea(reasonsRequiringTextarea.includes(value));
   };
 
   const fetchAndCalculateSummary = async (date: Date | null) => {
@@ -516,9 +518,9 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
       toast.error("Please select at least one date.");
       return;
     }
-  
-    const timeZone = 'America/Los_Angeles'; // Define the timezone
-  
+
+    const timeZone = "America/Los_Angeles"; // Define the timezone
+
     const startDate = toZonedTime(
       new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
       timeZone
@@ -527,10 +529,10 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
       new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
       timeZone
     );
-  
+
     const start_date = formatTZ(startDate, "yyyy-MM-dd", { timeZone });
     const end_date = formatTZ(endDate, "yyyy-MM-dd", { timeZone });
-  
+
     const payload = {
       start_date,
       end_date,
@@ -541,22 +543,22 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
       email: employee.contact_info,
       sick_time_year: new Date().getFullYear(),
     };
-  
+
     try {
       const { data, error } = await supabase
         .from("time_off_requests")
         .insert([payload]);
-  
+
       if (error) {
         throw error;
       }
-  
+
       // Reset the form fields
       setSelectedDates([]);
       setReason("");
       setOtherReason("");
       setShowOtherTextarea(false);
-  
+
       toast.success("Time off request submitted successfully!");
     } catch (error) {
       console.error(
@@ -566,7 +568,6 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
       toast.error("Failed to submit time off request.");
     }
   };
-  
 
   const handleViewReview = (review: Review) => {
     setCurrentReview(review);
@@ -1080,7 +1081,16 @@ const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is t
                           <div>{`${format(
                             new Date(currentShift.event_date),
                             "PPP"
-                          )} ${formatTZ(toZonedTime(new Date(`1970-01-01T${currentShift.start_time}Z`), timeZone), "hh:mm a", { timeZone })}
+                          )} ${formatTZ(
+                            toZonedTime(
+                              new Date(
+                                `1970-01-01T${currentShift.start_time}Z`
+                              ),
+                              timeZone
+                            ),
+                            "hh:mm a",
+                            { timeZone }
+                          )}
 `}</div>
                         ) : (
                           <div>Not clocked in</div>

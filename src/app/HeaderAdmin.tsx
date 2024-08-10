@@ -11,6 +11,10 @@ import {
   FileTextIcon,
   CalendarIcon,
   DotFilledIcon,
+  ShadowIcon,
+  SunIcon,
+  MoonIcon,
+  PersonIcon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
@@ -27,6 +31,19 @@ import useUnreadMessages from "@/pages/api/fetch-unread";
 import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
 import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
 import { useRouter } from "next/navigation"; // Import useRouter
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
 
 const auditComponents = [
   {
@@ -60,7 +77,7 @@ const schedComponents = [
   {
     title: "Review Time Off Requests",
     href: "/admin/timeoffreview",
-    description: "DENY THEM ALL!",
+    description: "View All Requests For Time Off",
   },
   {
     title: "Create Schedules",
@@ -109,9 +126,9 @@ const formComps = [
     description: "Report All Submitted Points",
   },
   {
-    title: "Checklist",
+    title: "Rental Firearms Checklist",
     href: "/TGR/rentals/checklist",
-    description: "Daily Rental Checklist",
+    description: "Rental Inventory Check",
   },
 ];
 
@@ -175,9 +192,86 @@ const profileComps = [
   },
 ];
 
+const manageComps = [
+  {
+    title: "Staff Profiles",
+    href: "/admin/dashboard",
+    description: "All Profiles",
+  },
+  {
+    title: "Weekly Agenda",
+    href: "/admin/weeklyagenda",
+    description: "Weekly Agenda Topics",
+  },
+  {
+    title: "Monthly Contest",
+    href: "/admin/audits/contest",
+    description: "Monthly Sales Contest",
+  },
+  {
+    title: "Sales Report",
+    href: "/admin/reports/sales",
+    description: "View Daily Sales",
+  },
+];
+
+const comboComps = [
+  {
+    title: "Safety Waiver",
+    href: "/public/waiver",
+    description: "Submit A Safety Waiver",
+  },
+  {
+    title: "Review Waivers",
+    href: "/sales/waiver/checkin",
+    description: "Review Waivers & Check-Ins",
+  },
+  {
+    title: "View Certifications",
+    href: "/TGR/certifications",
+    description: "View All Certifications",
+  },
+  {
+    title: "Submit Range Walks",
+    href: "/TGR/rangewalk",
+    description: "Submit Daily Range Walks",
+  },
+  {
+    title: "Submit Range Repairs",
+    href: "/TGR/rangewalk/report",
+    description: "View All Range Walks & Repairs",
+  },
+  {
+    title: "Submit Daily Deposits",
+    href: "/TGR/deposits",
+    description: "Daily Deposits",
+  },
+  {
+    title: "Submit Claimed Points",
+    href: "/TGR/crew/points",
+    description: "Report All Submitted Points",
+  },
+  {
+    title: "Submit Special Orders",
+    href: "/sales/orders",
+    description: "Submit Requests For Customers",
+  },
+  {
+    title: "Special Orders Report",
+    href: "/sales/orderreview",
+    description: "View Submitted Orders",
+  },
+  {
+    title: "Rental Firearms Checklist",
+    href: "/TGR/rentals/checklist",
+    description: "Rental Inventory Check",
+  },
+];
+
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const router = useRouter(); // Instantiate useRouter
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -247,7 +341,7 @@ const HeaderAdmin = React.memo(() => {
       <header className="flex justify-between items-center p-2">
         <NavigationMenu>
           <NavigationMenuList className="flex space-x-4 mr-3">
-            <NavigationMenuItem>
+            {/* <NavigationMenuItem>
               <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
@@ -262,7 +356,7 @@ const HeaderAdmin = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem>
+            </NavigationMenuItem> */}
             <NavigationMenuItem>
               <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -280,6 +374,38 @@ const HeaderAdmin = React.memo(() => {
               </NavigationMenuContent>
             </NavigationMenuItem>
             <NavigationMenuItem>
+              <NavigationMenuTrigger>Forms & Reports</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
+                  {comboComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Management</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {manageComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            {/* <NavigationMenuItem>
               <NavigationMenuTrigger>Forms & Tasks</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -310,8 +436,8 @@ const HeaderAdmin = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
+            </NavigationMenuItem> */}
+            {/* <NavigationMenuItem>
               <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -326,7 +452,7 @@ const HeaderAdmin = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem>
+            </NavigationMenuItem> */}
             <NavigationMenuItem>
               <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -343,7 +469,7 @@ const HeaderAdmin = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-            <NavigationMenuItem>
+            {/* <NavigationMenuItem>
               <NavigationMenuTrigger>Sales & Service</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
@@ -358,32 +484,16 @@ const HeaderAdmin = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem>
+            </NavigationMenuItem> */}
           </NavigationMenuList>
         </NavigationMenu>
-        <div className="flex items-center mr-1">
-          {user ? (
-            <>
-              <Button
-                variant="linkHover2"
-                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-                size="sm"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <Link href="/TGR/crew/login">
-              <Button variant="linkHover2">Sign In</Button>
-            </Link>
-          )}
-          <Button variant="linkHover2" size="icon" onClick={handleChatClick}>
+        <div className="flex items-center">
+          {/* <Button variant="linkHover2" size="icon" onClick={handleChatClick}>
             <ChatBubbleIcon />
             {unreadCount > 0 && (
               <DotFilledIcon className="w-4 h-4 text-red-600" />
             )}
-          </Button>
+          </Button> */}
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
               <Button variant="linkHover1" size="icon">
@@ -405,7 +515,67 @@ const HeaderAdmin = React.memo(() => {
               <HomeIcon />
             </Button>
           </Link>
-          <ModeToggle />
+
+          {user ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="linkHover2" size="icon" className="mr-2">
+                    <PersonIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 mr-2">
+                  <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <ShadowIcon className="mr-2 h-4 w-4" />
+                      <span>Change Theme</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          <SunIcon className="mr-2 h-4 w-4" />
+                          <span>Light</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          <MoonIcon className="mr-2 h-4 w-4" />
+                          <span>Dark</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  {/* <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setTheme("light")}>
+                    Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")}>
+                    Dark
+                  </DropdownMenuItem> */}
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleChatClick}>
+                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <DotFilledIcon className="w-4 h-4 text-red-600" />
+                    )}
+                    <span>Messages</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <Link href="/TGR/crew/login">
+              <Button variant="linkHover2">Sign In</Button>
+            </Link>
+          )}
         </div>
       </header>
     </RoleBasedWrapper>

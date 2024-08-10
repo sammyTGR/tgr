@@ -141,10 +141,7 @@ export default function Component() {
           schedule_date: item.schedule_date,
           status: item.status,
           employee_id: item.employee_id,
-      });
-      
-        
-        
+        });
       });
 
       return Object.values(groupedData);
@@ -252,13 +249,11 @@ export default function Component() {
     if (!time || isNaN(Date.parse(`1970-01-01T${time}`))) return "N/A";
     const timeZone = "America/Los_Angeles";
     return formatTZ(
-        toZonedTime(new Date(`1970-01-01T${time}`), timeZone),
-        "hh:mma",
-        { timeZone }
+      toZonedTime(new Date(`1970-01-01T${time}`), timeZone),
+      "hh:mma",
+      { timeZone }
     );
-};
-
-
+  };
 
   const updateScheduleStatus = async (
     employee_id: number,
@@ -336,163 +331,173 @@ export default function Component() {
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
-        eventsByDay[day] = employee.events.filter(
-            (event) => event.day_of_week === day
-        );
+      eventsByDay[day] = employee.events.filter(
+        (event) => event.day_of_week === day
+      );
     });
     const timeZone = "America/Los_Angeles"; // Define your time zone
 
     return (
-        <TableRow key={employee.employee_id}>
-            <TableCell className="font-medium w-12">{employee.name}</TableCell>
-            {daysOfWeek.map((day) => (
-                <TableCell key={day} className="text-left relative group w-12">
-                    {eventsByDay[day].map((event, index) => (
-                        <div key={index} className="relative">
-                        {event.status === "time_off" ? (
-                            <div className="text-purple-600 dark:text-purple-500">
-                                Approved Time Off
-                            </div>
-                        ) : event.status === "called_out" ? (
-                            <div className="text-red-500 dark:text-red-400">
-                                Called Out
-                            </div>
-                        ) : event.status === "left_early" ? (
-                            <div className="text-orange-500 dark:text-orange-400">
-                                Left Early
-                            </div>
-                        ) : event.status && event.status.startsWith("Custom:") ? (
-                            <div className="text-green-500 dark:text-green-400">
-                                {event.status.replace("Custom:", "").trim()}
-                            </div>
-                        ) : event.status === "added_day" ? (
-                            <div className="text-pink-500 dark:text-pink-300">
-                                {`${formatTZ(
-                                    toZonedTime(new Date(`1970-01-01T${event.start_time}`), timeZone),
-                                    "hh:mma",
-                                    { timeZone }
-                                )}-${formatTZ(
-                                    toZonedTime(new Date(`1970-01-01T${event.end_time}`), timeZone),
-                                    "hh:mma",
-                                    { timeZone }
-                                )}`}
-                            </div>
-                        ) : event.start_time && event.end_time ? (
-                            <div
-                                className={
-                                    toZonedTime(
-                                        new Date(`1970-01-01T${event.start_time}`),
-                                        timeZone
-                                    ).getHours() < 12
-                                        ? "text-amber-500 dark:text-amber-400"
-                                        : "text-blue-500 dark:text-blue-400"
-                                }
-                            >
-                                {`${formatTZ(
-                                    toZonedTime(new Date(`1970-01-01T${event.start_time}`), timeZone),
-                                    "hh:mma",
-                                    { timeZone }
-                                )}-${formatTZ(
-                                    toZonedTime(new Date(`1970-01-01T${event.end_time}`), timeZone),
-                                    "hh:mma",
-                                    { timeZone }
-                                )}`}
-                            </div>
-                        ) : (
-                            <div className="text-gray-800 dark:text-gray-300">Off</div>
-                        )}
-                    
-                        {(role === "admin" || role === "super admin") && (
-                            <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="linkHover1">
-                                            <CaretUpIcon className="h-4 w-4" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent>
-                                        <Button
-                                            variant="linkHover2"
-                                            onClick={() =>
-                                                updateScheduleStatus(
-                                                    event.employee_id,
-                                                    event.schedule_date,
-                                                    "called_out"
-                                                )
-                                            }
-                                        >
-                                            Called Out
-                                        </Button>
-                                        <Button
-                                            variant="linkHover2"
-                                            onClick={() =>
-                                                updateScheduleStatus(
-                                                    event.employee_id,
-                                                    event.schedule_date,
-                                                    "left_early"
-                                                )
-                                            }
-                                        >
-                                            Left Early
-                                        </Button>
-                                        <Button
-                                            variant="linkHover2"
-                                            onClick={() =>
-                                                updateScheduleStatus(
-                                                    event.employee_id,
-                                                    event.schedule_date,
-                                                    "Custom:Off"
-                                                )
-                                            }
-                                        >
-                                            Off
-                                        </Button>
-                                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button
-                                                    className="p-4"
-                                                    variant="linkHover2"
-                                                    onClick={() => {
-                                                        setCurrentEvent(event);
-                                                        setDialogOpen(true);
-                                                    }}
-                                                >
-                                                    Custom Status
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogTitle className="p-4">
-                                                    Enter Custom Status
-                                                </DialogTitle>
-                                                <Textarea
-                                                    value={customStatus}
-                                                    onChange={(e) => setCustomStatus(e.target.value)}
-                                                    placeholder="Enter custom status"
-                                                />
-                                                <Button
-                                                    variant="linkHover1"
-                                                    onClick={handleCustomStatusSubmit}
-                                                >
-                                                    Submit
-                                                </Button>
-                                                <DialogClose asChild>
-                                                    <Button variant="linkHover2">Cancel</Button>
-                                                </DialogClose>
-                                            </DialogContent>
-                                        </Dialog>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                        )}
-                    </div>
-                    
-                    ))}
-                </TableCell>
-            ))}
-        </TableRow>
-    );
-};
+      <TableRow key={employee.employee_id}>
+        <TableCell className="font-medium w-12">{employee.name}</TableCell>
+        {daysOfWeek.map((day) => (
+          <TableCell key={day} className="text-left relative group w-12">
+            {eventsByDay[day].map((event, index) => (
+              <div key={index} className="relative">
+                {event.status === "time_off" ? (
+                  <div className="text-purple-600 dark:text-purple-500">
+                    Approved Time Off
+                  </div>
+                ) : event.status === "called_out" ? (
+                  <div className="text-red-500 dark:text-red-400">
+                    Called Out
+                  </div>
+                ) : event.status === "left_early" ? (
+                  <div className="text-orange-500 dark:text-orange-400">
+                    Left Early
+                  </div>
+                ) : event.status && event.status.startsWith("Custom:") ? (
+                  <div className="text-green-500 dark:text-green-400">
+                    {event.status.replace("Custom:", "").trim()}
+                  </div>
+                ) : event.status === "added_day" ? (
+                  <div className="text-pink-500 dark:text-pink-300">
+                    {`${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.start_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}-${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.end_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}`}
+                  </div>
+                ) : event.start_time && event.end_time ? (
+                  <div
+                    className={
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.start_time}`),
+                        timeZone
+                      ).getHours() < 12
+                        ? "text-amber-500 dark:text-amber-400"
+                        : "text-blue-500 dark:text-blue-400"
+                    }
+                  >
+                    {`${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.start_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}-${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.end_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}`}
+                  </div>
+                ) : (
+                  <div className="text-gray-800 dark:text-gray-300">Off</div>
+                )}
 
+                {(role === "admin" || role === "super admin") && (
+                  <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="linkHover1">
+                          <CaretUpIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <Button
+                          variant="linkHover2"
+                          onClick={() =>
+                            updateScheduleStatus(
+                              event.employee_id,
+                              event.schedule_date,
+                              "called_out"
+                            )
+                          }
+                        >
+                          Called Out
+                        </Button>
+                        <Button
+                          variant="linkHover2"
+                          onClick={() =>
+                            updateScheduleStatus(
+                              event.employee_id,
+                              event.schedule_date,
+                              "left_early"
+                            )
+                          }
+                        >
+                          Left Early
+                        </Button>
+                        <Button
+                          variant="linkHover2"
+                          onClick={() =>
+                            updateScheduleStatus(
+                              event.employee_id,
+                              event.schedule_date,
+                              "Custom:Off"
+                            )
+                          }
+                        >
+                          Off
+                        </Button>
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              className="p-4"
+                              variant="linkHover2"
+                              onClick={() => {
+                                setCurrentEvent(event);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              Custom Status
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogTitle className="p-4">
+                              Enter Custom Status
+                            </DialogTitle>
+                            <Textarea
+                              value={customStatus}
+                              onChange={(e) => setCustomStatus(e.target.value)}
+                              placeholder="Enter custom status"
+                            />
+                            <Button
+                              variant="linkHover1"
+                              onClick={handleCustomStatusSubmit}
+                            >
+                              Submit
+                            </Button>
+                            <DialogClose asChild>
+                              <Button variant="linkHover2">Cancel</Button>
+                            </DialogClose>
+                          </DialogContent>
+                        </Dialog>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+            ))}
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  };
 
   return (
     <RoleBasedWrapper
@@ -517,7 +522,7 @@ export default function Component() {
             <Table className="min-w-full overflow-hidden">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-50"/>
+                  <TableHead className="w-50" />
                   {daysOfWeek.map((day) => (
                     <TableHead key={day} className="w-32">
                       {day}
