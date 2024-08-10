@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { useRole } from "@/context/RoleContext"; // Import the useRole hook
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 const title = "Submit Time Off Requests";
 
@@ -68,14 +69,20 @@ export default function TimeOffRequestPage() {
 
   const fetchCalendarData = async () => {
     try {
+      const now = new Date();
+      const timeZone = 'America/Los_Angeles';
+      
+      const startDate = toZonedTime(now, timeZone);
+      const endDate = toZonedTime(now, timeZone);
+  
       const response = await fetch("/api/calendar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          start_date: format(new Date(), "yyyy-MM-dd"),
-          end_date: format(new Date(), "yyyy-MM-dd"),
+          start_date: format(startDate, "yyyy-MM-dd"),
+          end_date: format(endDate, "yyyy-MM-dd"),
         }),
       });
       if (!response.ok) {
@@ -87,6 +94,7 @@ export default function TimeOffRequestPage() {
       console.error("Failed to fetch calendar data:", error.message);
     }
   };
+  
 
   const fetchEmployeeNames = async () => {
     try {
@@ -187,59 +195,63 @@ export default function TimeOffRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDates.length < 1) {
-      toast.error("Please select at least one date.");
-      return;
+        toast.error("Please select at least one date.");
+        return;
     }
-    const start_date = format(
-      new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
-      "yyyy-MM-dd"
+    
+    const timeZone = 'America/Los_Angeles'; // Set to San Francisco time zone
+
+    const start_date = formatTZ(
+        toZonedTime(new Date(Math.min(...selectedDates.map((date) => date.getTime()))), timeZone),
+        "yyyy-MM-dd"
     );
-    const end_date = format(
-      new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
-      "yyyy-MM-dd"
+    
+    const end_date = formatTZ(
+        toZonedTime(new Date(Math.max(...selectedDates.map((date) => date.getTime()))), timeZone),
+        "yyyy-MM-dd"
     );
+
     const payload = {
-      ...timeOffData,
-      start_date,
-      end_date,
+        ...timeOffData,
+        start_date,
+        end_date,
     };
     try {
-      const response = await fetch("/api/time_off", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const errorText = await response.text(); // Fetch response text for better debugging
-        console.error("Server response:", errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
-      // Refresh calendar data after submission
-      fetchCalendarData();
-      // Reset form
-      setTimeOffData({
-        employee_name: "",
-        reason: "",
-        other_reason: "",
-      });
-      setSelectedDates([]);
-      setShowOtherTextarea(false);
-      // Show success toast
-      toast("Your Request Has Been Submitted", {
-        position: "bottom-right",
-        action: {
-          label: "Noice!",
-          onClick: () => {},
-        },
-      });
+        const response = await fetch("/api/time_off", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const errorText = await response.text(); // Fetch response text for better debugging
+            console.error("Server response:", errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        // Refresh calendar data after submission
+        fetchCalendarData();
+        // Reset form
+        setTimeOffData({
+            employee_name: "",
+            reason: "",
+            other_reason: "",
+        });
+        setSelectedDates([]);
+        setShowOtherTextarea(false);
+        // Show success toast
+        toast("Your Request Has Been Submitted", {
+            position: "bottom-right",
+            action: {
+                label: "Noice!",
+                onClick: () => {},
+            },
+        });
     } catch (error: any) {
-      console.error("Failed to submit time off request:", error.message);
+        console.error("Failed to submit time off request:", error.message);
     }
-  };
-
+};
   return (
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}

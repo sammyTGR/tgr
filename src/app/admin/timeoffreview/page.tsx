@@ -5,6 +5,9 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { format } from "date-fns";
+
 
 const title = "Review Time Off Requests";
 
@@ -163,13 +166,14 @@ export default function ApproveRequestsPage() {
     use_sick_time: boolean = false
   ) => {
     try {
-      // Ensure use_sick_time is set to true for the specified actions, including Called Out
+      const timeZone = 'America/Los_Angeles'; // Set your desired timezone
+  
       const shouldUseSickTime =
         use_sick_time &&
         (action === "time_off" ||
           action === "called_out" ||
           action.startsWith("Custom"));
-
+  
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: {
@@ -181,19 +185,19 @@ export default function ApproveRequestsPage() {
           use_sick_time: shouldUseSickTime,
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const result = await response.json();
       const { employee_id, start_date, end_date, email } = result;
       if (!email) {
         throw new Error("Email not found in API response");
       }
-
-      const startDate = new Date(start_date);
-      const endDate = new Date(end_date);
+  
+      const startDate = toZonedTime(new Date(start_date), timeZone);
+      const endDate = toZonedTime(new Date(end_date), timeZone);
       const dates = [];
       for (
         let d = new Date(startDate);
@@ -202,9 +206,9 @@ export default function ApproveRequestsPage() {
       ) {
         dates.push(new Date(d));
       }
-
+  
       for (const date of dates) {
-        const formattedDate = date.toISOString().split("T")[0];
+        const formattedDate = formatTZ(date, "yyyy-MM-dd", { timeZone });
         const dayOfWeek = date.getUTCDay();
         const daysOfWeek = [
           "Sunday",
@@ -216,14 +220,14 @@ export default function ApproveRequestsPage() {
           "Saturday",
         ];
         const dayName = daysOfWeek[dayOfWeek];
-
+  
         const { data: refSchedules, error: refError } = await supabase
           .from("reference_schedules")
           .select("start_time, end_time")
           .eq("employee_id", employee_id)
           .eq("day_of_week", dayName)
           .single();
-
+  
         if (refError) {
           console.error(
             `Error fetching reference schedule for ${dayName}:`,
@@ -231,21 +235,21 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-
+  
         if (
           !refSchedules ||
           (refSchedules.start_time === null && refSchedules.end_time === null)
         ) {
           continue;
         }
-
+  
         const { data: scheduleData, error: scheduleFetchError } = await supabase
           .from("schedules")
           .select("*")
           .eq("employee_id", employee_id)
           .eq("schedule_date", formattedDate)
           .single();
-
+  
         if (scheduleFetchError && scheduleFetchError.code !== "PGRST116") {
           console.error(
             `Error fetching schedule for date ${formattedDate}:`,
@@ -253,7 +257,7 @@ export default function ApproveRequestsPage() {
           );
           continue;
         }
-
+  
         if (!scheduleData) {
           const { error: scheduleInsertError } = await supabase
             .from("schedules")
@@ -263,7 +267,7 @@ export default function ApproveRequestsPage() {
               day_of_week: dayName,
               status: action,
             });
-
+  
           if (scheduleInsertError) {
             console.error(
               `Error inserting schedule for date ${formattedDate}:`,
@@ -276,7 +280,7 @@ export default function ApproveRequestsPage() {
             .update({ status: action })
             .eq("employee_id", employee_id)
             .eq("schedule_date", formattedDate);
-
+  
           if (scheduleUpdateError) {
             console.error(
               `Error updating schedule for date ${formattedDate}:`,
@@ -285,21 +289,21 @@ export default function ApproveRequestsPage() {
           }
         }
       }
-
+  
       if (shouldUseSickTime) {
         const { error: deductSickTimeError } = await supabase.rpc(
           "deduct_sick_time",
           {
             p_emp_id: employee_id,
-            p_start_date: start_date,
-            p_end_date: end_date,
+            p_start_date: formatTZ(startDate, "yyyy-MM-dd", { timeZone }),
+            p_end_date: formatTZ(endDate, "yyyy-MM-dd", { timeZone }),
           }
         );
-
+  
         if (deductSickTimeError) {
           console.error("Error deducting sick time:", deductSickTimeError);
         }
-
+  
         const { error: updateSickTimeError } = await supabase
           .from("time_off_requests")
           .update({
@@ -307,7 +311,7 @@ export default function ApproveRequestsPage() {
             sick_time_year: new Date().getFullYear(),
           })
           .eq("request_id", request_id);
-
+  
         if (updateSickTimeError) {
           console.error(
             `Error updating time_off_requests for use_sick_time:`,
@@ -315,18 +319,18 @@ export default function ApproveRequestsPage() {
           );
         }
       }
-
+  
       if (action !== "pending") {
         const { error: updateError } = await supabase
           .from("time_off_requests")
           .update({ is_read: true })
           .eq("request_id", request_id);
-
+  
         if (updateError) {
           throw new Error(updateError.message);
         }
       }
-
+  
       const subject =
         action === "denied"
           ? "Time Off Request Denied"
@@ -336,13 +340,14 @@ export default function ApproveRequestsPage() {
           ? "You've Left Early"
           : "Time Off Request Approved";
       await sendEmail(email, subject, emailMessage);
-
+  
       // Re-fetch the updated requests after handling the action
       await fetchRequests();
     } catch (error: any) {
       console.error("Failed to handle request:", error.message);
     }
   };
+  
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 interface TimesheetData {
   id: number;
@@ -98,14 +99,19 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
       const selectedEmployee = employees?.find(
         (emp) => emp.employee_id === employeeId
       );
+  
+      // Directly format the time without any timezone manipulation
+      const formattedStartTime = `${startTime}:00`;
+      const formattedEndTime = `${endTime}:00`;
+  
       onSubmit(
         selectedEmployee?.name || "",
         undefined,
         date,
-        startTime,
-        endTime
+        formattedStartTime,
+        formattedEndTime
       );
-
+  
       // Call the update_schedule_status API to send the email
       await fetch("/api/update_schedule_status", {
         method: "POST",
@@ -118,7 +124,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
           status: "added_day", // Or whatever status you wish to use
         }),
       });
-
+  
       toast.success(
         `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
       );
@@ -138,6 +144,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     }
     resetForm();
   };
+  
 
   const resetForm = () => {
     setEmployeeName("");

@@ -91,7 +91,11 @@ export function DataTable<TData>({ columns, data, fetchReferenceSchedules }: Dat
                   </td>
                 ))}
                 <td>
-                  <ScheduleRowActions row={row} fetchReferenceSchedules={fetchReferenceSchedules} />
+                <ScheduleRowActions
+  row={row}
+  fetchReferenceSchedules={fetchReferenceSchedules}
+/>
+
                 </td>
               </tr>
             ))}
