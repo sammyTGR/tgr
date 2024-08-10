@@ -18,6 +18,37 @@ export default function Component() {
         </div>
         <div className="grid gap-8 flex flex-col md:grid-cols-2 lg:grid-cols-3 mt-8">
           <div className="space-y-4">
+            <h3 className="text-xl font-bold">General Questions</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage alt="Main Phone" src="/placeholder-avatar.jpg" />
+                  <AvatarFallback>TGR</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">The Gun Range</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    3479 Orange Grove Ave
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    sales@thegunrange.biz
+                  </a>
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    (916) 972-1484
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
             <h3 className="text-xl font-bold">Class Scheduling</h3>
             <div className="space-y-2">
               <div className="flex text-left gap-3">
@@ -36,15 +67,15 @@ export default function Component() {
                 <p>
                   <span className="font-medium">Email:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
-                    Rod@TheGunRange.Biz
+                    rod@thegunrange.biz
                   </a>
                 </p>
-                <p>
+                {/* <p>
                   <span className="font-medium">Phone:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
                     (234) 567-890
                   </a>
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
@@ -70,7 +101,7 @@ export default function Component() {
                 <p>
                   <span className="font-medium">Email:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
-                    Michelle@TheGunRange.Biz
+                    michelle@thegunrange.biz
                   </a>
                 </p>
                 <p>
@@ -104,7 +135,7 @@ export default function Component() {
                 <p>
                   <span className="font-medium">Email:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
-                    Sam@TheGunRange.Biz
+                    sam@thegunrange.biz
                   </a>
                 </p>
                 <p>
@@ -121,10 +152,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage
-                    alt="Jim Vu"
-                    src="/placeholder-avatar.jpg"
-                  />
+                  <AvatarImage alt="Jim Vu" src="/placeholder-avatar.jpg" />
                   <AvatarFallback>JV</AvatarFallback>
                 </Avatar>
                 <div>
@@ -138,7 +166,7 @@ export default function Component() {
                 <p>
                   <span className="font-medium">Email:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
-                    Jim@TheGunRange.Biz
+                    jim@thegunrange.biz
                   </a>
                 </p>
                 <p>
@@ -155,10 +183,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage
-                    alt="Sammy Lee"
-                    src="/placeholder-avatar.jpg"
-                  />
+                  <AvatarImage alt="Sammy Lee" src="/placeholder-avatar.jpg" />
                   <AvatarFallback>SL</AvatarFallback>
                 </Avatar>
                 <div>
@@ -172,47 +197,13 @@ export default function Component() {
                 <p>
                   <span className="font-medium">Email:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
-                    Sammy@TheGunRange.Biz
+                    sammy@thegunrange.biz
                   </a>
                 </p>
                 <p>
                   <span className="font-medium">Phone:</span>{" "}
                   <a className="text-blue-500 hover:underline" href="#">
                     (916) 972-1484 EXT 9
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">Executive Secretary</h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage
-                    alt="Amanda Weltch"
-                    src="/placeholder-avatar.jpg"
-                  />
-                  <AvatarFallback>AW</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">Amanda Weltch</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Executive Secretary
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="font-medium">Email:</span>{" "}
-                  <a className="text-blue-500 hover:underline" href="#">
-                    Amanda.Weltch@TheGunRange.Biz
-                  </a>
-                </p>
-                <p>
-                  <span className="font-medium">Phone:</span>{" "}
-                  <a className="text-blue-500 hover:underline" href="#">
-                    (916) 972-1484 EXT 7
                   </a>
                 </p>
               </div>
