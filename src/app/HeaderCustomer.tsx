@@ -64,34 +64,50 @@ const HeaderCustomer = React.memo(() => {
       <header className="flex justify-between items-center p-2">
         <NavigationMenu>
           <NavigationMenuList className="flex space-x-4 mr-3">
-            <NavigationMenuItem>
+          {/* <NavigationMenuItem>
               <NavigationMenuTrigger>Account</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {accountComponents.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem> */}
+            <div className="ml-auto">
+            <NavigationMenuItem>
               <NavigationMenuTrigger className="flex items-center gap-1">
-                <PersonIcon className="w-6 h-6" />
-                <ChevronDownIcon className="w-4 h-4" />
+                <PersonIcon />
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <ul className="p-2">
-                  {profileMenuItems.map((item) => (
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {accountComponents.map((component) => (
                     <ListItem
-                      key={item.title}
-                      title={item.title}
-                      href={item.href}
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
                     >
-                      {item.description}
+                      {component.description}
                     </ListItem>
                   ))}
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
+            </div>
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex items-center mr-1 gap-2">
           {user ? (
             <>
               <Button
-                variant="outline"
-                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                variant="gooeyLeft"
+                
                 size="sm"
                 onClick={handleSignOut}
               >
@@ -104,7 +120,7 @@ const HeaderCustomer = React.memo(() => {
             </Link>
           )}
           <Link href="/">
-            <Button variant="outline" size="icon">
+            <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>
           </Link>

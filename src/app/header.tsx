@@ -49,7 +49,7 @@ export default function Header() {
 
       if (roleError || !roleData) {
         const { data: customerData, error: customerError } = await supabase
-          .from("profiles")
+          .from("customers")
           .select("role")
           .eq("email", user?.email)
           .single();

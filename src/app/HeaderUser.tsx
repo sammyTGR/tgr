@@ -194,7 +194,7 @@ const HeaderUser = React.memo(() => {
             </Link>
           )}
           <Link href="/">
-            <Button variant="ghost" size="icon">
+            <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>
           </Link>
