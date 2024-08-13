@@ -74,6 +74,11 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
     cell: (info) => info.getValue(),
   },
   {
+    accessorKey: "event_date",
+    header: "Date",
+    cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : "N/A",
+  },
+  {
     accessorKey: "start_time",
     header: "Start Time",
     cell: (info) => info.getValue(), // Ensure this properly accesses the formatted time
