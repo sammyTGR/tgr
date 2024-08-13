@@ -321,9 +321,37 @@ export default function FirearmsChecklist() {
     try {
       setSubmittingChecklist(true);
 
-      // Step 1: Filter firearms where `verified_status` is blank, empty, or null
+      // Step 1: Check if any firearms are still "Currently Rented Out"
+      const firearmsRentedOut = data.some(
+        (item) => item.notes === "Currently Rented Out"
+      );
+
+      if (firearmsRentedOut) {
+        toast.error(
+          "There are firearms still rented out. The checklist cannot be submitted until all firearms are returned and verified."
+        );
+        setSubmittingChecklist(false);
+        return;
+      }
+
+      // Step 2: Check if all firearms are verified
+      const allFirearmsHandled = data.every(
+        (item) => item.notes === "Verified" || item.notes === "With Gunsmith"
+      );
+
+      if (!allFirearmsHandled) {
+        toast.error(
+          "Not all firearms are verified or with the gunsmith. The checklist cannot be submitted until all firearms are handled."
+        );
+        setSubmittingChecklist(false);
+        return;
+      }
+
+      // Step 3: Filter firearms where verified_status is null or empty
       const firearmsToSubmit = data.filter(
-        (item) => !item.verified_status || item.verified_status.trim() === ""
+        (item) =>
+          (!item.verified_status || item.verified_status.trim() === "") &&
+          item.notes === "With Gunsmith"
       );
 
       if (firearmsToSubmit.length === 0) {
@@ -332,7 +360,7 @@ export default function FirearmsChecklist() {
         return;
       }
 
-      // Step 2: Submit only firearms that aren't verified
+      // Step 4: Submit only firearms that meet the criteria
       for (const firearm of firearmsToSubmit) {
         await supabase.from("checklist_submissions").insert({
           shift: "morning",
@@ -344,7 +372,7 @@ export default function FirearmsChecklist() {
         });
       }
 
-      // Step 3: Clear `rental_notes` and `verified_status` for firearms that are verified
+      // Step 5: Clear rental_notes and verified_status for firearms that are marked as "Verified"
       const { error } = await supabase
         .from("firearms_maintenance")
         .update({ rental_notes: "", verified_status: "" })
@@ -361,7 +389,7 @@ export default function FirearmsChecklist() {
         return;
       }
 
-      // Step 4: Update local state to reflect the changes
+      // Step 6: Update local state to reflect the changes
       const updatedData = data.map((firearm) =>
         firearm.verified_status === "Verified"
           ? { ...firearm, notes: "", verified_status: "" }

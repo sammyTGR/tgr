@@ -76,10 +76,13 @@ export function VerificationForm({
       return;
     }
 
-    // Update firearms maintenance notes
+    // Update firearms maintenance notes and verified_status
     const { error: maintenanceError } = await supabase
       .from("firearms_maintenance")
-      .update({ rental_notes: noteText })
+      .update({
+        rental_notes: noteText,
+        verified_status: allVerified ? "Verified" : "", // Update verified_status based on verification
+      })
       .eq("id", firearmId);
 
     if (maintenanceError) {

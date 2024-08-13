@@ -115,7 +115,7 @@ export function DataTableRowActions({
       // Clear rental notes in the database
       await supabase
         .from("firearms_maintenance")
-        .update({ rental_notes: "" })
+        .update({ rental_notes: "", verified_status: "" })
         .eq("id", firearmId);
 
       // Update the local state to reflect the removal of the "Currently Rented Out" note
@@ -134,7 +134,10 @@ export function DataTableRowActions({
       // Set rental notes to "Currently Rented Out"
       await supabase
         .from("firearms_maintenance")
-        .update({ rental_notes: "Currently Rented Out" })
+        .update({
+          rental_notes: "Currently Rented Out",
+          verified_status: "Currently Rented Out",
+        })
         .eq("id", firearmId);
 
       onNotesChange(firearmId, "Currently Rented Out"); // Update the local state
@@ -226,7 +229,7 @@ export function DataTableRowActions({
                     if (firearm?.rental_notes === "Verified") {
                       await supabase
                         .from("firearms_maintenance")
-                        .update({ rental_notes: "" })
+                        .update({ rental_notes: "", verified_status: "" })
                         .eq("id", task.id);
 
                       // Update the local state to reflect the reset
