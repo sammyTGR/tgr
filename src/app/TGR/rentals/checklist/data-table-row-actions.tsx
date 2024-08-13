@@ -112,7 +112,7 @@ export function DataTableRowActions({
 
   const handleRentalReturned = async (firearmId: number) => {
     try {
-      // Clear rental notes in the database
+      // Clear rental_notes and verified_status in the database
       await supabase
         .from("firearms_maintenance")
         .update({ rental_notes: "", verified_status: "" })
