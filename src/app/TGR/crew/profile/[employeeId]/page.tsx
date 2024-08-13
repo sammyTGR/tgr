@@ -823,39 +823,6 @@ const EmployeeProfilePage = () => {
     };
 
     fetchData();
-
-    // Setup Supabase realtime subscription
-    const employeeId = employee?.employee_id;
-
-    if (employeeId) {
-      const subscription = supabase
-        .channel("employee_clock_events_channel")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "employee_clock_events",
-            filter: `employee_id=eq.${employeeId}`,
-          },
-          (payload) => {
-            if (
-              payload.eventType === "INSERT" ||
-              payload.eventType === "UPDATE"
-            ) {
-              fetchCurrentShift();
-              fetchWeeklySummary();
-              fetchPayPeriodSummary();
-            }
-          }
-        )
-        .subscribe();
-
-      // Cleanup subscription on unmount
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
   }, [employeeId, userUuid]);
 
   if (loading) return <ProgressBar value={progress} showAnimation={true} />;
