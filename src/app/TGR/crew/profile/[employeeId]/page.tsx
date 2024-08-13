@@ -758,49 +758,35 @@ const EmployeeProfilePage = () => {
   };
 
   // Function to fetch pay period summary
+  // Replace your current fetchPayPeriodSummary function with this:
   const fetchPayPeriodSummary = async () => {
-    const startOfPreviousWeek = startOfWeek(subWeeks(new Date(), 1), {
-      weekStartsOn: 0,
-    });
-    const endOfPreviousWeek = endOfWeek(subWeeks(new Date(), 1), {
-      weekStartsOn: 0,
-    });
-    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
-    const endOfCurrentWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
+    // Calculate the start of the current pay period (current Sunday)
+    const startOfPayPeriod = startOfWeek(new Date(), { weekStartsOn: 0 });
 
-    const { data: previousWeekData, error: previousWeekError } = await supabase
+    // Calculate the end of the current pay period (next Saturday)
+    const endOfPayPeriod = endOfWeek(startOfPayPeriod, { weekStartsOn: 6 });
+
+    // Fetch data for the current pay period
+    const { data: payPeriodData, error } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfPreviousWeek, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfPreviousWeek, "yyyy-MM-dd"));
+      .gte("event_date", format(startOfPayPeriod, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfPayPeriod, "yyyy-MM-dd"));
 
-    const { data: currentWeekData, error: currentWeekError } = await supabase
-      .from("employee_clock_events")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfCurrentWeek, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfCurrentWeek, "yyyy-MM-dd"));
-
-    if (previousWeekError || currentWeekError) {
-      console.error(
-        "Error fetching pay period summary:",
-        previousWeekError || currentWeekError
-      );
+    if (error) {
+      console.error("Error fetching pay period summary:", error);
     } else {
-      const totalHours = [...previousWeekData, ...currentWeekData].reduce(
-        (acc, shift) => {
-          if (shift.total_hours) {
-            const [hours, minutes, seconds] = shift.total_hours
-              .split(":")
-              .map(Number);
-            const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
-            return acc + duration;
-          }
-          return acc;
-        },
-        0
-      );
+      const totalHours = payPeriodData.reduce((acc, shift) => {
+        if (shift.total_hours) {
+          const [hours, minutes, seconds] = shift.total_hours
+            .split(":")
+            .map(Number);
+          const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
+          return acc + duration;
+        }
+        return acc;
+      }, 0);
       setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
@@ -1078,20 +1064,18 @@ const EmployeeProfilePage = () => {
                       </CardHeader>
                       <CardContent className="mx-auto">
                         {clockInTime ? (
-                          <div>{`${format(
-                            new Date(currentShift.event_date),
-                            "PPP"
-                          )} ${formatTZ(
-                            toZonedTime(
-                              new Date(
-                                `1970-01-01T${currentShift.start_time}Z`
+                          <div>
+                            {`${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  `${currentShift.event_date}T${currentShift.start_time}`
+                                ),
+                                timeZone
                               ),
-                              timeZone
-                            ),
-                            "hh:mm a",
-                            { timeZone }
-                          )}
-`}</div>
+                              "PPP hh:mm a",
+                              { timeZone }
+                            )}`}
+                          </div>
                         ) : (
                           <div>Not clocked in</div>
                         )}
