@@ -759,48 +759,33 @@ const EmployeeProfilePage = () => {
 
   // Function to fetch pay period summary
   const fetchPayPeriodSummary = async () => {
-    const startOfPreviousWeek = startOfWeek(subWeeks(new Date(), 1), {
-      weekStartsOn: 0,
+    // Define the start and end dates of the current pay period
+    const startOfPayPeriod = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const endOfPayPeriod = endOfWeek(subWeeks(new Date(), -1), {
+      weekStartsOn: 6,
     });
-    const endOfPreviousWeek = endOfWeek(subWeeks(new Date(), 1), {
-      weekStartsOn: 0,
-    });
-    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
-    const endOfCurrentWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
 
-    const { data: previousWeekData, error: previousWeekError } = await supabase
+    // Fetch clock events within the current pay period
+    const { data, error } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfPreviousWeek, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfPreviousWeek, "yyyy-MM-dd"));
+      .gte("event_date", format(startOfPayPeriod, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfPayPeriod, "yyyy-MM-dd"));
 
-    const { data: currentWeekData, error: currentWeekError } = await supabase
-      .from("employee_clock_events")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfCurrentWeek, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfCurrentWeek, "yyyy-MM-dd"));
-
-    if (previousWeekError || currentWeekError) {
-      console.error(
-        "Error fetching pay period summary:",
-        previousWeekError || currentWeekError
-      );
+    if (error) {
+      console.error("Error fetching pay period summary:", error);
     } else {
-      const totalHours = [...previousWeekData, ...currentWeekData].reduce(
-        (acc, shift) => {
-          if (shift.total_hours) {
-            const [hours, minutes, seconds] = shift.total_hours
-              .split(":")
-              .map(Number);
-            const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
-            return acc + duration;
-          }
-          return acc;
-        },
-        0
-      );
+      const totalHours = data.reduce((acc, shift) => {
+        if (shift.total_hours) {
+          const [hours, minutes, seconds] = shift.total_hours
+            .split(":")
+            .map(Number);
+          const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
+          return acc + duration;
+        }
+        return acc;
+      }, 0);
       setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
@@ -823,9 +808,47 @@ const EmployeeProfilePage = () => {
     };
 
     fetchData();
+
+    // Setup Supabase realtime subscription
+    const employeeId = employee?.employee_id;
+
+    if (employeeId) {
+      const subscription = supabase
+        .channel("employee_clock_events_channel")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "employee_clock_events",
+            filter: `employee_id=eq.${employeeId}`,
+          },
+          (payload) => {
+            if (
+              payload.eventType === "INSERT" ||
+              payload.eventType === "UPDATE"
+            ) {
+              fetchCurrentShift();
+              fetchWeeklySummary();
+              fetchPayPeriodSummary();
+            }
+          }
+        )
+        .subscribe();
+
+      // Cleanup subscription on unmount
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    }
   }, [employeeId, userUuid]);
 
   if (loading) return <ProgressBar value={progress} showAnimation={true} />;
+
+  const startDateTime = toZonedTime(
+    new Date(`${currentShift.event_date}T${currentShift.start_time}`),
+    timeZone
+  );
 
   return (
     <RoleBasedWrapper
@@ -1078,20 +1101,9 @@ const EmployeeProfilePage = () => {
                       </CardHeader>
                       <CardContent className="mx-auto">
                         {clockInTime ? (
-                          <div>{`${format(
-                            new Date(currentShift.event_date),
-                            "PPP"
-                          )} ${formatTZ(
-                            toZonedTime(
-                              new Date(
-                                `1970-01-01T${currentShift.start_time}Z`
-                              ),
-                              timeZone
-                            ),
-                            "hh:mm a",
-                            { timeZone }
-                          )}
-`}</div>
+                          <div>{`${formatTZ(startDateTime, "PPP hh:mm a", {
+                            timeZone,
+                          })}`}</div>
                         ) : (
                           <div>Not clocked in</div>
                         )}
@@ -1107,10 +1119,16 @@ const EmployeeProfilePage = () => {
                       <CardContent className="mx-auto">
                         {currentShift?.end_time ? (
                           <div>
-                            {`${format(
-                              new Date(currentShift.event_date),
-                              "PPP"
-                            )} ${currentShift.end_time}`}
+                            {`${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  `${currentShift.event_date}T${currentShift.end_time}`
+                                ),
+                                timeZone
+                              ),
+                              "PPP hh:mm a",
+                              { timeZone }
+                            )}`}
                           </div>
                         ) : (
                           <div>Still on shift</div>
