@@ -1072,7 +1072,7 @@ const EmployeeProfilePage = () => {
                                 ),
                                 timeZone
                               ),
-                              "PPP hh:mm a",
+                              "PPP h:mm a",
                               { timeZone }
                             )}`}
                           </div>
@@ -1091,10 +1091,16 @@ const EmployeeProfilePage = () => {
                       <CardContent className="mx-auto">
                         {currentShift?.end_time ? (
                           <div>
-                            {`${format(
-                              new Date(currentShift.event_date),
-                              "PPP"
-                            )} ${currentShift.end_time}`}
+                            {`${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  `${currentShift.event_date}T${currentShift.end_time}`
+                                ),
+                                timeZone
+                              ),
+                              "PPP h:mm a",
+                              { timeZone }
+                            )}`}
                           </div>
                         ) : (
                           <div>Still on shift</div>
@@ -1110,9 +1116,9 @@ const EmployeeProfilePage = () => {
                       </CardHeader>
                       <CardContent className="mx-auto">
                         {currentShift?.total_hours ? (
-                          <div>{currentShift.total_hours}</div>
+                          <div>{`You've logged ${currentShift.total_hours} hours today!`}</div>
                         ) : (
-                          <div>No shift data</div>
+                          <div>No shift data available</div>
                         )}
                       </CardContent>
                     </Card>
