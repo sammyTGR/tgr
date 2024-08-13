@@ -759,33 +759,48 @@ const EmployeeProfilePage = () => {
 
   // Function to fetch pay period summary
   const fetchPayPeriodSummary = async () => {
-    // Define the start and end dates of the current pay period
-    const startOfPayPeriod = startOfWeek(new Date(), { weekStartsOn: 0 });
-    const endOfPayPeriod = endOfWeek(subWeeks(new Date(), -1), {
-      weekStartsOn: 6,
+    const startOfPreviousWeek = startOfWeek(subWeeks(new Date(), 1), {
+      weekStartsOn: 0,
     });
+    const endOfPreviousWeek = endOfWeek(subWeeks(new Date(), 1), {
+      weekStartsOn: 0,
+    });
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const endOfCurrentWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
 
-    // Fetch clock events within the current pay period
-    const { data, error } = await supabase
+    const { data: previousWeekData, error: previousWeekError } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfPayPeriod, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfPayPeriod, "yyyy-MM-dd"));
+      .gte("event_date", format(startOfPreviousWeek, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfPreviousWeek, "yyyy-MM-dd"));
 
-    if (error) {
-      console.error("Error fetching pay period summary:", error);
+    const { data: currentWeekData, error: currentWeekError } = await supabase
+      .from("employee_clock_events")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .gte("event_date", format(startOfCurrentWeek, "yyyy-MM-dd"))
+      .lte("event_date", format(endOfCurrentWeek, "yyyy-MM-dd"));
+
+    if (previousWeekError || currentWeekError) {
+      console.error(
+        "Error fetching pay period summary:",
+        previousWeekError || currentWeekError
+      );
     } else {
-      const totalHours = data.reduce((acc, shift) => {
-        if (shift.total_hours) {
-          const [hours, minutes, seconds] = shift.total_hours
-            .split(":")
-            .map(Number);
-          const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
-          return acc + duration;
-        }
-        return acc;
-      }, 0);
+      const totalHours = [...previousWeekData, ...currentWeekData].reduce(
+        (acc, shift) => {
+          if (shift.total_hours) {
+            const [hours, minutes, seconds] = shift.total_hours
+              .split(":")
+              .map(Number);
+            const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
+            return acc + duration;
+          }
+          return acc;
+        },
+        0
+      );
       setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
