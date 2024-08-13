@@ -341,7 +341,7 @@ const HeaderAdmin = React.memo(() => {
       <header className="flex justify-between items-center p-2">
         <NavigationMenu>
           <NavigationMenuList className="flex space-x-4 mr-3">
-            {/* <NavigationMenuItem>
+            <NavigationMenuItem>
               <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
@@ -356,7 +356,7 @@ const HeaderAdmin = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem> */}
+            </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuTrigger>Scheduling</NavigationMenuTrigger>
               <NavigationMenuContent>
