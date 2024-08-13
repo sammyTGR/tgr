@@ -1119,16 +1119,10 @@ const EmployeeProfilePage = () => {
                       <CardContent className="mx-auto">
                         {currentShift?.end_time ? (
                           <div>
-                            {`${formatTZ(
-                              toZonedTime(
-                                new Date(
-                                  `${currentShift.event_date}T${currentShift.end_time}`
-                                ),
-                                timeZone
-                              ),
-                              "PPP hh:mm a",
-                              { timeZone }
-                            )}`}
+                            {`${format(
+                              new Date(currentShift.event_date),
+                              "PPP"
+                            )} ${currentShift.end_time}`}
                           </div>
                         ) : (
                           <div>Still on shift</div>
