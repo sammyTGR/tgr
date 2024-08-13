@@ -257,6 +257,11 @@ const comboComps = [
     description: "View Submitted Orders",
   },
   {
+    title: "Gunsmithing",
+    href: "/TGR/gunsmithing",
+    description: "Weekly Gunsmithing Maintenance",
+  },
+  {
     title: "Rental Firearms Checklist",
     href: "/TGR/rentals/checklist",
     description: "Rental Inventory Check",
