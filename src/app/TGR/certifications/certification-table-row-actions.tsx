@@ -1,4 +1,3 @@
-// src/app/TGR/certifications/certification-table-row-actions.tsx
 import { CertificationData } from "./types";
 import { supabase } from "@/utils/supabase/client";
 import {
@@ -6,9 +5,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
+import { useRole } from "@/context/RoleContext"; // Import useRole
+import { PopoverForm } from "./PopoverForm"; // Import PopoverForm for editing
+import { toast } from "sonner";
 
 const CertificationTableRowActions = ({
   certification,
@@ -17,6 +22,8 @@ const CertificationTableRowActions = ({
   certification: CertificationData;
   onUpdate: (id: string, updates: Partial<CertificationData>) => void;
 }) => {
+  const { role } = useRole(); // Get the user's role
+
   const handleUpdate = async (actionStatus: string) => {
     const { error } = await supabase
       .from("certifications")
@@ -27,6 +34,23 @@ const CertificationTableRowActions = ({
       onUpdate(certification.id, { action_status: actionStatus });
     } else {
       console.error("Error updating certification:", error);
+    }
+  };
+
+  const handleDelete = async () => {
+    const { error } = await supabase
+      .from("certifications")
+      .delete()
+      .eq("id", certification.id);
+
+    if (error) {
+      console.error("Error deleting certification:", error);
+      toast.error("Failed to delete certification.");
+    } else {
+      // Call onUpdate with an empty object to remove the certificate from state
+      toast.success("Certification deleted successfully.");
+
+      onUpdate(certification.id, {});
     }
   };
 
@@ -47,6 +71,28 @@ const CertificationTableRowActions = ({
         <DropdownMenuItem onClick={() => handleUpdate("")}>
           Clear Status
         </DropdownMenuItem>
+
+        {/* Conditionally render Delete and Edit options for admins and super admins */}
+        {(role === "admin" || role === "super admin") && (
+          <>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>Edit Certificate</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <PopoverForm
+                  onSubmit={onUpdate}
+                  buttonText="Edit Certificate"
+                  placeholder="Edit the certificate details"
+                  formType="editCertificate"
+                  employees={[]} // Pass the necessary employees data if needed
+                  initialData={certification} // Pass the initial certification data to the form
+                />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuItem onClick={handleDelete}>
+              Delete Certificate
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

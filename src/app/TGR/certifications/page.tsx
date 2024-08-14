@@ -15,6 +15,8 @@ import { CertificationDataTable } from "./certification-data-table";
 import { CertificationTableToolbar } from "./certification-table-toolbar";
 import { certificationColumns } from "./columns";
 import { toast } from "sonner";
+import { useRole } from "@/context/RoleContext"; // Import useRole hook
+import { PopoverForm } from "./PopoverForm";
 
 interface CertificationData {
   id: string;
@@ -35,6 +37,10 @@ const CertificationsPage: React.FC = () => {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "expiration", desc: false },
   ]);
+  const [employees, setEmployees] = useState<
+    { employee_id: number; name: string }[]
+  >([]);
+  const { role } = useRole(); // Get the user's role
 
   const fetchCertificationsData = async (
     pageIndex: number,
@@ -61,29 +67,95 @@ const CertificationsPage: React.FC = () => {
       }
     }
   };
+  const fetchEmployees = async () => {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("employee_id, name");
+
+    if (error) {
+      console.error("Error fetching employees:", error);
+    } else {
+      setEmployees(data);
+    }
+  };
 
   useEffect(() => {
     fetchCertificationsData(pageIndex, pageSize, filters, sorting);
   }, [pageIndex, pageSize, filters, sorting]);
 
   const onUpdate = async (id: string, updates: Partial<CertificationData>) => {
-    const { error } = await supabase
+    if (Object.keys(updates).length === 0) {
+      // Handle deletion case
+      const { error } = await supabase
+        .from("certifications")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error deleting certification:", error);
+        toast.error("Failed to delete certification.");
+      } else {
+        setCertifications((currentCertifications) =>
+          currentCertifications.filter(
+            (certification) => certification.id !== id
+          )
+        );
+        toast.success("Certification deleted successfully.");
+      }
+    } else {
+      // Handle update case
+      const { error } = await supabase
+        .from("certifications")
+        .update(updates)
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error updating certification:", error);
+        toast.error("Failed to update certification.");
+      } else {
+        setCertifications((currentCertifications) =>
+          currentCertifications.map((certification) =>
+            certification.id === id
+              ? { ...certification, ...updates }
+              : certification
+          )
+        );
+        toast.success("Certification updated successfully.");
+      }
+    }
+  };
+
+  const handleAddCertificate = async (
+    id: string, // This parameter will be ignored for adding a new certificate
+    updates: Partial<CertificationData> // This will contain the updates to be made
+  ) => {
+    const { name, certificate, number, expiration, status } = updates;
+
+    if (!name || !certificate || !number || !expiration || !status) {
+      console.error("Missing required fields for adding certification.");
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    const { data, error } = await supabase
       .from("certifications")
-      .update(updates)
-      .eq("id", id);
+      .insert([{ name, certificate, number, expiration, status }])
+      .select(); // Ensure data is returned after insert
 
     if (error) {
-      console.error("Error updating certification:", error);
-      toast.error("Failed to update certification.");
+      console.error("Error adding certification:", error);
+      toast.error("Failed to add certification.");
+    } else if (data && Array.isArray(data) && data.length > 0) {
+      const newCertification = data[0] as CertificationData;
+
+      setCertifications((prevCertifications) => [
+        ...prevCertifications,
+        { ...newCertification, action_status: "" },
+      ]);
+      toast.success("Certification added successfully.");
     } else {
-      setCertifications((currentCertifications) =>
-        currentCertifications.map((certification) =>
-          certification.id === id
-            ? { ...certification, ...updates }
-            : certification
-        )
-      );
-      toast.success("Certification updated successfully.");
+      console.error("No data returned after inserting certification.");
+      toast.error("Failed to add certification.");
     }
   };
 
@@ -116,7 +188,9 @@ const CertificationsPage: React.FC = () => {
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: handleSortingChange,
     onColumnFiltersChange: setFilters,
-    onPaginationChange: (updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
+    onPaginationChange: (
+      updater: PaginationState | ((old: PaginationState) => PaginationState)
+    ) => {
       if (typeof updater === "function") {
         const { pageIndex: newPageIndex, pageSize: newPageSize } = updater({
           pageIndex,
@@ -133,6 +207,22 @@ const CertificationsPage: React.FC = () => {
     pageCount,
   });
 
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id, name");
+
+      if (error) {
+        console.error("Error fetching employees:", error);
+      } else {
+        setEmployees(data);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
   return (
     <div>
       <CertificationTableToolbar
@@ -148,6 +238,8 @@ const CertificationsPage: React.FC = () => {
         pageSize={pageSize}
         setPageSize={setPageSize}
         filters={filters}
+        handleAddCertificate={handleAddCertificate} // Pass the function here
+        employees={employees} // Pass the employees data here
       />
     </div>
   );

@@ -24,7 +24,7 @@ export const certificationColumns = (
       <DataTableColumnHeader column={column} title="Name" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "50px" },
     },
   },
   {
@@ -33,7 +33,7 @@ export const certificationColumns = (
       <DataTableColumnHeader column={column} title="Certificate" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "50px" },
     },
   },
   {
@@ -42,7 +42,7 @@ export const certificationColumns = (
       <DataTableColumnHeader column={column} title="Number" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "90px" },
     },
   },
   {
@@ -55,7 +55,7 @@ export const certificationColumns = (
       return isValid(date) ? format(date, "MM-dd-yyyy") : "Invalid Date";
     },
     meta: {
-      style: { width: "150px" },
+      style: { width: "120px" },
     },
     sortingFn: "datetime",
     filterFn: (row, columnId, filterValue) => {
@@ -73,7 +73,7 @@ export const certificationColumns = (
     ),
     cell: ({ row }) => calculateStatus(row.original.expiration),
     meta: {
-      style: { width: "150px" },
+      style: { width: "100px" },
     },
     filterFn: includesArrayString,
   },
@@ -83,7 +83,7 @@ export const certificationColumns = (
       <DataTableColumnHeader column={column} title="Action Status" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "100px" },
     },
     filterFn: includesArrayString,
   },
@@ -97,7 +97,7 @@ export const certificationColumns = (
       />
     ),
     meta: {
-      style: { width: "100px" },
+      style: { width: "50px" },
     },
   },
 ];
