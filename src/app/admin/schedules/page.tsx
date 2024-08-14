@@ -76,7 +76,10 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
     accessorKey: "event_date",
     header: "Date",
-    cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : "N/A",
+    cell: (info) =>
+      info.getValue()
+        ? new Date(info.getValue() as string).toLocaleDateString()
+        : "N/A",
   },
   {
     accessorKey: "start_time",
@@ -452,7 +455,89 @@ const ManageSchedules = () => {
             <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
             <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
           </TabsList>
+
           <TabsContent value="scheduling">
+            <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-bold">Publish A Schedule</h2>
+                </CardHeader>
+                <CardContent className="flex flex-col mx-auto">
+                  <PopoverForm
+                    onSubmit={(employeeName: string, weeks?: string) =>
+                      handleGenerateSingleSchedule(employeeName, weeks)
+                    }
+                    buttonText="Select Employee"
+                    placeholder="Enter employee name and weeks"
+                    formType="generate"
+                    employees={employees}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-bold">Clear A Schedule</h2>
+                </CardHeader>
+                <CardContent className="flex flex-col mx-auto">
+                  <PopoverForm
+                    onSubmit={(employeeName: string, weeks?: string) =>
+                      handleClearSchedule(employeeName, weeks)
+                    }
+                    buttonText="Select Employee"
+                    placeholder="Enter employee name"
+                    formType="clearSchedule"
+                    employees={employees}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-bold">Generate All Schedules</h2>
+                </CardHeader>
+                <CardContent className="flex flex-col mx-auto">
+                  <PopoverForm
+                    onSubmit={(_, weeks?: string) =>
+                      handleGenerateAllSchedules(weeks)
+                    }
+                    buttonText="Select # Of Weeks"
+                    placeholder="Enter number of weeks"
+                    formType="generateAll"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-bold">Add A Shift</h2>
+                </CardHeader>
+                <CardContent className="flex flex-col mx-auto">
+                  <PopoverForm
+                    onSubmit={(
+                      employeeName: string,
+                      _,
+                      date?: string,
+                      startTime?: string,
+                      endTime?: string
+                    ) =>
+                      handleAddSchedule(
+                        employeeName,
+                        undefined,
+                        date,
+                        startTime,
+                        endTime
+                      )
+                    }
+                    buttonText="Add An Unscheduled Shift"
+                    placeholder="Enter employee name and details"
+                    formType="addSchedule"
+                    employees={employees}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
             <CardContent>
               <DataTable
                 columns={scheduleColumns}
@@ -460,59 +545,9 @@ const ManageSchedules = () => {
                 fetchReferenceSchedules={fetchReferenceSchedules}
               />
               <SchedulePagination table={table} />
-              <div className="flex justify-between items-center">
-                <div className="flex space-x-2">
-                  <PopoverForm
-                    onSubmit={(employeeName: string, weeks?: string) =>
-                      handleGenerateSingleSchedule(employeeName, weeks)
-                    }
-                    buttonText="Publish An Employee's Schedule"
-                    placeholder="Enter employee name and weeks"
-                    formType="generate"
-                    employees={employees}
-                  />
-                  <PopoverForm
-                    onSubmit={(employeeName: string, weeks?: string) =>
-                      handleClearSchedule(employeeName, weeks)
-                    }
-                    buttonText="Clear An Employee's Schedule"
-                    placeholder="Enter employee name"
-                    formType="clearSchedule"
-                    employees={employees}
-                  />
-                </div>
-                <PopoverForm
-                  onSubmit={(_, weeks?: string) =>
-                    handleGenerateAllSchedules(weeks)
-                  }
-                  buttonText="Generate All Staff Schedules"
-                  placeholder="Enter number of weeks"
-                  formType="generateAll"
-                />
-                <PopoverForm
-                  onSubmit={(
-                    employeeName: string,
-                    _,
-                    date?: string,
-                    startTime?: string,
-                    endTime?: string
-                  ) =>
-                    handleAddSchedule(
-                      employeeName,
-                      undefined,
-                      date,
-                      startTime,
-                      endTime
-                    )
-                  }
-                  buttonText="Add A Work Day"
-                  placeholder="Enter employee name and details"
-                  formType="addSchedule"
-                  employees={employees}
-                />
-              </div>
             </CardContent>
           </TabsContent>
+
           <TabsContent value="timesheets">
             <CardContent>
               <TimesheetDataTable
