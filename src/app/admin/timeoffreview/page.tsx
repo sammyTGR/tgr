@@ -153,7 +153,7 @@ export default function ApproveRequestsPage() {
       }
 
       const result = await response.json();
-      console.log("Email sent successfully:", result);
+      // console.log("Email sent successfully:", result);
     } catch (error: any) {
       console.error("Failed to send email:", error.message);
     }

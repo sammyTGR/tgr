@@ -240,7 +240,7 @@ const ManageSchedules = () => {
         : "N/A",
     }));
 
-    console.log("Formatted Timesheet Data:", formattedTimesheets); // Ensure this logs the correct data
+    // console.log("Formatted Timesheet Data:", formattedTimesheets); // Ensure this logs the correct data
 
     setTimesheets(formattedTimesheets);
   };
@@ -258,7 +258,7 @@ const ManageSchedules = () => {
     if (error) {
       console.error("Error updating timesheet:", error);
     } else {
-      console.log("Timesheet updated successfully.");
+      // console.log("Timesheet updated successfully.");
       fetchTimesheets();
     }
   };
@@ -293,7 +293,7 @@ const ManageSchedules = () => {
           updateError
         );
       } else {
-        console.log("Schedules generated successfully.");
+        // console.log("Schedules generated successfully.");
         fetchReferenceSchedules();
       }
     } else {
@@ -328,7 +328,7 @@ const ManageSchedules = () => {
     if (error) {
       console.error("Error clearing schedules:", error);
     } else {
-      console.log("Schedules cleared for employee:", employeeName);
+      // console.log("Schedules cleared for employee:", employeeName);
       fetchReferenceSchedules();
     }
   };
@@ -365,10 +365,10 @@ const ManageSchedules = () => {
         }
       }
 
-      console.log("Schedules generated for all employees.");
+      // console.log("Schedules generated for all employees.");
       fetchReferenceSchedules();
     } else {
-      console.log("No schedules found or generated.");
+      // console.log("No schedules found or generated.");
     }
   };
 
@@ -415,7 +415,7 @@ const ManageSchedules = () => {
       if (error) {
         console.error("Error adding schedule:", error);
       } else {
-        console.log("Schedule added successfully.");
+        // console.log("Schedule added successfully.");
         fetchReferenceSchedules();
       }
     } else {

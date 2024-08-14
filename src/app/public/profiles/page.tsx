@@ -8,19 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/utils/supabase/client";
+import { toast } from "sonner"; // Import toast from Sonner
 
 type ProfileData = {
-  full_name: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  bio: string;
-  avatar_url: string;
 };
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
-  const { register, handleSubmit, setValue, watch } = useForm<ProfileData>();
-  const [avatarUrl, setAvatarUrl] = useState<string>("/placeholder-user.jpg");
-  const avatarRef = useRef<HTMLInputElement | null>(null);
+  const { register, handleSubmit, setValue } = useForm<ProfileData>();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -28,17 +26,16 @@ export default function ProfilePage() {
       if (userData) {
         setUser(userData.user);
 
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userData.user?.id)
+        const { data: customerData } = await supabase
+          .from("customers")
+          .select("first_name, last_name, email")
+          .eq("user_uuid", userData.user?.id)
           .single();
 
-        if (profileData) {
-          setValue("full_name", profileData.full_name);
-          setValue("email", profileData.email);
-          setValue("bio", profileData.bio);
-          setAvatarUrl(profileData.avatar_url || "/placeholder-user.jpg");
+        if (customerData) {
+          setValue("first_name", customerData.first_name);
+          setValue("last_name", customerData.last_name);
+          setValue("email", customerData.email);
         }
       }
     };
@@ -48,53 +45,19 @@ export default function ProfilePage() {
 
   const onSubmit = async (data: ProfileData) => {
     if (user) {
-      let avatarUrlToUpdate = avatarUrl;
-
-      if (
-        avatarRef.current &&
-        avatarRef.current.files &&
-        avatarRef.current.files.length > 0
-      ) {
-        const file = avatarRef.current.files[0];
-        const fileName = `${user.id}/${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(fileName, file);
-
-        if (uploadError) {
-          console.error("Error uploading avatar:", uploadError);
-          alert("Error uploading avatar. Please try again.");
-          return;
-        } else {
-          const publicUrlData: { data: { publicUrl: string }; error?: any } =
-            supabase.storage.from("avatars").getPublicUrl(fileName);
-          if (publicUrlData.error) {
-            console.error(
-              "Error getting public URL for avatar:",
-              publicUrlData.error
-            );
-            alert("Error getting public URL for avatar. Please try again.");
-            return;
-          }
-          avatarUrlToUpdate = publicUrlData.data.publicUrl;
-        }
-      }
-
       const { error } = await supabase
-        .from("profiles")
+        .from("customers")
         .update({
-          full_name: data.full_name,
+          first_name: data.first_name,
+          last_name: data.last_name,
           email: data.email,
-          bio: data.bio,
-          avatar_url: avatarUrlToUpdate,
         })
-        .eq("id", user.id);
+        .eq("user_uuid", user.id);
 
       if (error) {
         console.error("Error updating profile:", error);
       } else {
-        setAvatarUrl(avatarUrlToUpdate);
-        alert("Profile updated successfully!");
+        toast.success("Profile updated successfully!"); // Use toast.success to confirm success
       }
     }
   };
@@ -103,7 +66,7 @@ export default function ProfilePage() {
     <Card className="w-full max-w-3xl mx-auto">
       <header className="bg-gray-100 dark:bg-gray-800 p-6 rounded-t-lg flex items-center gap-4">
         <Avatar className="h-12 w-12">
-          <AvatarImage src={avatarUrl} />
+          <AvatarImage src="/placeholder-user.jpg" />
           <AvatarFallback></AvatarFallback>
         </Avatar>
         <div>
@@ -115,10 +78,23 @@ export default function ProfilePage() {
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="full_name">Name</Label>
+                <Label htmlFor="first_name">First Name</Label>
                 <input
-                  id="full_name"
-                  {...register("full_name")}
+                  id="first_name"
+                  {...register("first_name")}
+                  className="block w-full mt-1 p-2 border rounded"
+                />
+              </div>
+            </div>
+            <Separator />
+          </div>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="last_name">Last Name</Label>
+                <input
+                  id="last_name"
+                  {...register("last_name")}
                   className="block w-full mt-1 p-2 border rounded"
                 />
               </div>
@@ -133,35 +109,6 @@ export default function ProfilePage() {
                   id="email"
                   type="email"
                   {...register("email")}
-                  className="block w-full mt-1 p-2 border rounded"
-                />
-              </div>
-            </div>
-            <Separator />
-          </div>
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="bio">Bio</Label>
-                <textarea
-                  id="bio"
-                  {...register("bio")}
-                  className="block w-full mt-1 p-2 border rounded"
-                />
-              </div>
-            </div>
-            <Separator />
-          </div>
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="avatar_url">Avatar</Label>
-                <input
-                  id="avatar_url"
-                  type="file"
-                  accept="image/*"
-                  {...register("avatar_url")}
-                  ref={avatarRef}
                   className="block w-full mt-1 p-2 border rounded"
                 />
               </div>
