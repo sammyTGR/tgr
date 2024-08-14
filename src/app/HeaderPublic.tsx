@@ -43,15 +43,15 @@ const HeaderPublic = React.memo(() => {
           </NavigationMenuItem> */}
         </NavigationMenuList>
       </NavigationMenu>
-      <div className="flex items-center ">
+      <div className="flex items-center mr-1">
         <Link href="/sign-in">
           <Button variant="linkHover1">Sign In</Button>
         </Link>
-        <Link href="/">
+        {/* <Link href="/">
           <Button variant="linkHover2" size="icon">
             <HomeIcon />
           </Button>
-        </Link>
+        </Link> */}
         <ModeToggle />
       </div>
     </header>
