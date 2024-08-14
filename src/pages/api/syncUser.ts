@@ -16,14 +16,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'POST') {
         const user = req.body;
-        console.log('Received user data:', user);
+        // console.log('Received user data:', user);
 
         const user_uuid = user.id;
         const email = user.email.toLowerCase();
         const first_name = user.user_metadata.full_name?.split(' ')[0] || '';
         const last_name = user.user_metadata.full_name?.split(' ')[1] || '';
 
-        console.log('Processed user data:', { user_uuid, email, first_name, last_name });
+        // console.log('Processed user data:', { user_uuid, email, first_name, last_name });
 
         try {
             // Insert the user into the customers table during sign-up
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ error: error.message });
             }
 
-            console.log('Customer inserted successfully:', data);
+            // console.log('Customer inserted successfully:', data);
             res.status(200).json({ message: 'Customer inserted successfully', data });
         } catch (error) {
             console.error('Unexpected error:', error);

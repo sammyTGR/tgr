@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     const { start_date, end_date } = req.body;
-    console.log(`Received request with start_date: ${start_date}, end_date: ${end_date}`);
+    // console.log(`Received request with start_date: ${start_date}, end_date: ${end_date}`);
     try {
       const data = await getCalendarData(start_date, end_date);
       res.status(200).json(data);

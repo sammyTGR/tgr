@@ -85,7 +85,7 @@ export default function ScheduleGeneratorPage() {
   };
 
   const handleSubmitSchedule = async (schedule: ScheduleData) => {
-    console.log("Submitting schedule:", schedule);
+    // console.log("Submitting schedule:", schedule);
     try {
       const response = await fetch("/api/submit_schedule", {
         method: "POST",
@@ -101,7 +101,7 @@ export default function ScheduleGeneratorPage() {
       });
 
       const result = await response.json();
-      console.log("Server response:", result);
+      // console.log("Server response:", result);
 
       if (!response.ok) {
         throw new Error(
@@ -143,7 +143,7 @@ export default function ScheduleGeneratorPage() {
       });
 
       const result = await response.json();
-      console.log("Server response:", result);
+      // console.log("Server response:", result);
 
       if (!response.ok) {
         throw new Error(

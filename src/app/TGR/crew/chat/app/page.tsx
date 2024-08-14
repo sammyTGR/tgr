@@ -26,7 +26,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/utils/supabase/client";
 
 const title = "TGR Ops Chat";
@@ -165,7 +170,7 @@ export default function ChatClient() {
       presenceChannel.current
         .on("presence", { event: "sync" }, () => {
           const newState = presenceChannel.current?.presenceState();
-          console.log("sync", newState);
+          // console.log("sync", newState);
           // Update the online status of users
           setUsers((prev) =>
             prev.map((u) => ({
@@ -175,10 +180,10 @@ export default function ChatClient() {
           );
         })
         .on("presence", { event: "join" }, ({ key, newPresences }) => {
-          console.log("join", key, newPresences);
+          // console.log("join", key, newPresences);
         })
         .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-          console.log("leave", key, leftPresences);
+          // console.log("leave", key, leftPresences);
         })
         .subscribe(async (status) => {
           if (status !== "SUBSCRIBED") {
@@ -189,7 +194,7 @@ export default function ChatClient() {
             user: user?.id,
             online_at: new Date().toISOString(),
           });
-          console.log(presenceTrackStatus);
+          // console.log(presenceTrackStatus);
         });
     }
 
@@ -346,76 +351,77 @@ export default function ChatClient() {
             <div className="flex-1 flex flex-col">
               <div className="flex-1 overflow-auto p-6">
                 <div className="space-y-6">
-                  {messages.map((msg, i) => (
-                    (!msg.receiver_id || // Group messages
-                      ((msg.sender_id === user.id ||
-                        msg.receiver_id === user.id) &&
-                        (msg.sender_id === selectedUser?.id ||
-                          msg.receiver_id === selectedUser?.id))) && (
-                      <div key={i} className="flex items-start gap-4">
-                        <Avatar className="border w-10 h-10">
-                          <AvatarImage src="/placeholder-user.jpg" />
-                          <AvatarFallback>
-                            {msg.user_name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="grid gap-1 flex-1">
-                          <div className="font-bold">{msg.user_name}</div>
-                          <div className="prose prose-stone">
-                            {editingMessageId === msg.id ? (
-                              <>
-                                <Textarea
-                                  value={editingMessage}
-                                  onChange={(e) =>
-                                    setEditingMessage(e.target.value)
-                                  }
-                                  className="mb-2"
-                                />
-                                <Button onClick={onUpdate} className="mb-2">
-                                  Update
-                                </Button>
-                              </>
-                            ) : (
-                              <p>{msg.message}</p>
-                            )}
+                  {messages.map(
+                    (msg, i) =>
+                      (!msg.receiver_id || // Group messages
+                        ((msg.sender_id === user.id ||
+                          msg.receiver_id === user.id) &&
+                          (msg.sender_id === selectedUser?.id ||
+                            msg.receiver_id === selectedUser?.id))) && (
+                        <div key={i} className="flex items-start gap-4">
+                          <Avatar className="border w-10 h-10">
+                            <AvatarImage src="/placeholder-user.jpg" />
+                            <AvatarFallback>
+                              {msg.user_name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="grid gap-1 flex-1">
+                            <div className="font-bold">{msg.user_name}</div>
+                            <div className="prose prose-stone">
+                              {editingMessageId === msg.id ? (
+                                <>
+                                  <Textarea
+                                    value={editingMessage}
+                                    onChange={(e) =>
+                                      setEditingMessage(e.target.value)
+                                    }
+                                    className="mb-2"
+                                  />
+                                  <Button onClick={onUpdate} className="mb-2">
+                                    Update
+                                  </Button>
+                                </>
+                              ) : (
+                                <p>{msg.message}</p>
+                              )}
+                            </div>
                           </div>
+                          {msg.user_id === user.id && !editingMessageId && (
+                            <div className="flex space-x-2">
+                              <Button
+                                onClick={() => onEdit(msg.id, msg.message)}
+                                variant="ghost"
+                                size="icon"
+                              >
+                                <Pencil1Icon />
+                              </Button>
+                              <Button
+                                onClick={() => onDelete(msg.id)}
+                                variant="ghost"
+                                size="icon"
+                              >
+                                <TrashIcon />
+                              </Button>
+                            </div>
+                          )}
+                          {msg.user_id !== user.id && (
+                            <Button
+                              onClick={() =>
+                                startDirectMessage({
+                                  id: msg.user_id,
+                                  name: msg.user_name,
+                                  is_online: false,
+                                })
+                              }
+                              variant="ghost"
+                              size="icon"
+                            >
+                              <ChatBubbleIcon />
+                            </Button>
+                          )}
                         </div>
-                        {msg.user_id === user.id && !editingMessageId && (
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => onEdit(msg.id, msg.message)}
-                              variant="ghost"
-                              size="icon"
-                            >
-                              <Pencil1Icon />
-                            </Button>
-                            <Button
-                              onClick={() => onDelete(msg.id)}
-                              variant="ghost"
-                              size="icon"
-                            >
-                              <TrashIcon />
-                            </Button>
-                          </div>
-                        )}
-                        {msg.user_id !== user.id && (
-                          <Button
-                            onClick={() =>
-                              startDirectMessage({
-                                id: msg.user_id,
-                                name: msg.user_name,
-                                is_online: false,
-                              })
-                            }
-                            variant="ghost"
-                            size="icon"
-                          >
-                            <ChatBubbleIcon />
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  ))}
+                      )
+                  )}
                 </div>
               </div>
               <div className="border-t border-gray-200 dark:border-gray-800 p-4">

@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw insertError;
       }
 
-      console.log("Data inserted successfully:", data);
+      // console.log("Data inserted successfully:", data);
 
       res.status(200).json({ message: 'Report submitted successfully.' });
     } catch (error: unknown) {

@@ -9,8 +9,10 @@ import { Toaster, toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import AddFirearmForm from "@/app/TGR/gunsmithing/AddFirearmForm";
 import { ProgressBar } from "@/components/ProgressBar";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 const words = "Firearms Checklist";
+const timeZone = "America/Los_Angeles";
 
 interface FirearmVerification {
   firearm_id: number;
@@ -316,7 +318,10 @@ export default function FirearmsChecklist() {
   };
 
   const handleSubmitChecklist = async () => {
-    const today = new Date().toISOString();
+    // Use toZonedTime and formatTZ to get the correct local date-time
+    const now = new Date();
+    const localTime = toZonedTime(now, timeZone);
+    const today = formatTZ(localTime, "yyyy-MM-dd hh:mm:ss a", { timeZone });
 
     try {
       setSubmittingChecklist(true);
@@ -334,7 +339,7 @@ export default function FirearmsChecklist() {
         return;
       }
 
-      // Step 2: Check if all firearms are verified
+      // Step 2: Check if all firearms are verified or with the gunsmith
       const allFirearmsHandled = data.every(
         (item) => item.notes === "Verified" || item.notes === "With Gunsmith"
       );
@@ -347,7 +352,7 @@ export default function FirearmsChecklist() {
         return;
       }
 
-      // Step 3: Filter firearms where verified_status is null or empty
+      // Step 3: Filter firearms where rental_notes is "With Gunsmith" and verified_status is null or empty
       const firearmsToSubmit = data.filter(
         (item) =>
           (!item.verified_status || item.verified_status.trim() === "") &&
@@ -363,7 +368,7 @@ export default function FirearmsChecklist() {
       // Step 4: Submit only firearms that meet the criteria
       for (const firearm of firearmsToSubmit) {
         await supabase.from("checklist_submissions").insert({
-          shift: "morning",
+          shift: "morning", // Adjust if necessary
           submitted_by: userUuid,
           submitted_by_name: userName,
           submission_date: today,
@@ -372,14 +377,14 @@ export default function FirearmsChecklist() {
         });
       }
 
-      // Step 5: Clear rental_notes and verified_status for firearms that are marked as "Verified"
+      // Step 5: Clear rental_notes and verified_status for all firearms marked as "Verified"
       const { error } = await supabase
         .from("firearms_maintenance")
         .update({ rental_notes: "", verified_status: "" })
         .in(
           "id",
           data
-            .filter((item) => item.verified_status === "Verified")
+            .filter((item) => item.notes === "Verified")
             .map((item) => item.id)
         );
 
@@ -391,7 +396,7 @@ export default function FirearmsChecklist() {
 
       // Step 6: Update local state to reflect the changes
       const updatedData = data.map((firearm) =>
-        firearm.verified_status === "Verified"
+        firearm.notes === "Verified"
           ? { ...firearm, notes: "", verified_status: "" }
           : firearm
       );

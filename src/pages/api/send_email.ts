@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     const { email, subject, message } = req.body;
 
-    console.log('Request Body:', req.body);
+    // console.log('Request Body:', req.body);
 
     if (!email || !subject || !message) {
       res.status(400).json({ error: 'Missing required fields', details: req.body });

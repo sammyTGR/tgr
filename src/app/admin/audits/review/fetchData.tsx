@@ -12,7 +12,7 @@ const fetchData = async (): Promise<AuditData[]> => {
     throw new Error(error.message);
   }
 
-  console.log("Data fetched:", data);
+  // console.log("Data fetched:", data);
   return data as AuditData[];
 };
 export default fetchData;

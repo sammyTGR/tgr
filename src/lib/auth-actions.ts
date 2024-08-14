@@ -73,7 +73,7 @@ export async function signout() {
   const supabase = createClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
-    console.log(error);
+    // console.log(error);
     redirect("/error");
   }
 
@@ -93,7 +93,7 @@ export async function signInWithGoogle() {
   });
 
   if (error) {
-    console.log(error);
+    // console.log(error);
     redirect("/error");
   }
 
@@ -113,7 +113,7 @@ export async function handleOAuthUser(user: any) {
     .upsert({ id: user.id, full_name: fullName, email: user.email, role: "customer" });
 
   if (profileError) {
-    console.log(profileError);
+    // console.log(profileError);
     redirect("/error");
   }
 
@@ -142,7 +142,7 @@ export async function handleOAuthUser(user: any) {
       });
 
     if (employeeError) {
-      console.log(employeeError);
+      // console.log(employeeError);
       redirect("/error");
     }
   }
@@ -166,7 +166,7 @@ export async function updateProfile(user: any) {
     });
 
   if (profileError) {
-    console.log(profileError);
+    // console.log(profileError);
     redirect("/error");
   }
 }

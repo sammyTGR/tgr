@@ -1,7 +1,7 @@
 // admin\team\profiles\[employeeId]\page.tsx
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation"; // Correct import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -1050,1121 +1050,1165 @@ const EmployeeProfile = () => {
                     styles.noScroll
                   )}
                 >
-                  <TabsContent value="daily_briefing">
-                    <div className="p-6 space-y-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="new-daily-briefing">
-                          Add a new daily briefing
-                        </Label>
-                        <Textarea
-                          id="new-daily-briefing"
-                          value={newDailyBriefing}
-                          onChange={(e) => setNewDailyBriefing(e.target.value)}
-                          placeholder="Type your daily briefing here..."
-                          className="min-h-[100px]"
-                        />
-                        <Button onClick={() => handleAddNote("daily_briefing")}>
-                          Add Daily Briefing
-                        </Button>
-                      </div>
-                      <div className="grid gap-4">
-                        {notes
-                          .filter(
-                            (note) =>
-                              note.type === "daily_briefing" && !note.reviewed
-                          )
-                          .map((note) => (
-                            <div
-                              key={note.id}
-                              className="flex justify-between items-start"
-                            >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={note.reviewed || false}
-                                  onChange={() =>
-                                    handleReviewNote(
-                                      note.id,
-                                      note.reviewed || false
-                                    )
-                                  }
-                                />
-                                <div>
-                                  <div
-                                    className="text-sm font-medium"
-                                    style={{
-                                      textDecoration: note.reviewed
-                                        ? "line-through"
-                                        : "none",
-                                    }}
-                                  >
-                                    {note.note}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    - {note.created_by} on{" "}
-                                    {new Date(
-                                      note.created_at
-                                    ).toLocaleDateString()}
-                                  </div>
-                                  {note.reviewed && note.reviewed_by && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      Reviewed by {note.reviewed_by} on{" "}
-                                      {note.reviewed_at
-                                        ? new Date(
-                                            note.reviewed_at
-                                          ).toLocaleDateString()
-                                        : ""}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() =>
-                                    handleEditNote(
-                                      note.id,
-                                      prompt(
-                                        "Edit daily briefing:",
-                                        note.note
-                                      ) ?? note.note
-                                    )
-                                  }
-                                >
-                                  <Pencil1Icon />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => handleDeleteNote(note.id)}
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        {notes
-                          .filter(
-                            (note) =>
-                              note.type === "daily_briefing" && note.reviewed
-                          )
-                          .map((note) => (
-                            <div
-                              key={note.id}
-                              className="flex justify-between items-start"
-                            >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={note.reviewed || false}
-                                  onChange={() =>
-                                    handleReviewNote(
-                                      note.id,
-                                      note.reviewed || false
-                                    )
-                                  }
-                                />
-                                <div>
-                                  <div
-                                    className="text-sm font-medium"
-                                    style={{
-                                      textDecoration: note.reviewed
-                                        ? "line-through"
-                                        : "none",
-                                    }}
-                                  >
-                                    {note.note}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    - {note.created_by} on{" "}
-                                    {new Date(
-                                      note.created_at
-                                    ).toLocaleDateString()}
-                                  </div>
-                                  {note.reviewed && note.reviewed_by && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      Reviewed by {note.reviewed_by} on{" "}
-                                      {note.reviewed_at
-                                        ? new Date(
-                                            note.reviewed_at
-                                          ).toLocaleDateString()
-                                        : ""}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() =>
-                                    handleEditNote(
-                                      note.id,
-                                      prompt(
-                                        "Edit daily briefing:",
-                                        note.note
-                                      ) ?? note.note
-                                    )
-                                  }
-                                >
-                                  <Pencil1Icon />
-                                </Button>
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() => handleDeleteNote(note.id)}
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="notes">
-                    <div className="p-6 space-y-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="new-note">Add a new note</Label>
-                        <Textarea
-                          id="new-note"
-                          value={newNote}
-                          onChange={(e) => setNewNote(e.target.value)}
-                          placeholder="Type your note here..."
-                          className="min-h-[100px]"
-                        />
-                        <Button onClick={() => handleAddNote("notes")}>
-                          Add Note
-                        </Button>
-                      </div>
-                      <div className="grid gap-4">
-                        {notes
-                          .filter((note) => note.type === "notes")
-                          .map((note) => (
-                            <div
-                              key={note.id}
-                              className="flex justify-between items-start"
-                            >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={note.reviewed || false}
-                                  onChange={() =>
-                                    handleReviewNote(
-                                      note.id,
-                                      note.reviewed || false
-                                    )
-                                  }
-                                />
-                                <div>
-                                  <div
-                                    className="text-sm font-medium"
-                                    style={{
-                                      textDecoration: note.reviewed
-                                        ? "line-through"
-                                        : "none",
-                                    }}
-                                  >
-                                    {note.note}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    - {note.created_by} on{" "}
-                                    {new Date(
-                                      note.created_at
-                                    ).toLocaleDateString()}
-                                  </div>
-                                  {note.reviewed && note.reviewed_by && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      Reviewed by {note.reviewed_by} on{" "}
-                                      {note.reviewed_at
-                                        ? new Date(
-                                            note.reviewed_at
-                                          ).toLocaleDateString()
-                                        : ""}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() =>
-                                    handleEditNote(
-                                      note.id,
-                                      prompt("Edit note:", note.note) ??
-                                        note.note
-                                    )
-                                  }
-                                >
-                                  <Pencil1Icon />
-                                </Button>
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() => handleDeleteNote(note.id)}
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="absences">
-                    <div className="p-6 space-y-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="new-absence">Add a new absence</Label>
-                        <Textarea
-                          id="new-absence"
-                          value={newAbsence}
-                          onChange={(e) => setNewAbsence(e.target.value)}
-                          placeholder="Enter date and reason for absence (e.g., 2023-12-01 CALLED OUT)"
-                          className="min-h-[100px]"
-                        />
-                        <Button onClick={() => handleAddNote("absence")}>
-                          Add Absence
-                        </Button>
-                      </div>
-                      <div className="grid gap-4">
-                        {absences.map((absence) => (
-                          <div
-                            key={absence.id}
-                            className="flex justify-between items-start"
+                  <Suspense fallback="Loading...">
+                    <TabsContent value="daily_briefing">
+                      <div className="p-6 space-y-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="new-daily-briefing">
+                            Add a new daily briefing
+                          </Label>
+                          <Textarea
+                            id="new-daily-briefing"
+                            value={newDailyBriefing}
+                            onChange={(e) =>
+                              setNewDailyBriefing(e.target.value)
+                            }
+                            placeholder="Type your daily briefing here..."
+                            className="min-h-[100px]"
+                          />
+                          <Button
+                            onClick={() => handleAddNote("daily_briefing")}
                           >
-                            <div>
-                              <div className="text-sm font-medium">
-                                {absence.schedule_date}
-                              </div>
-                              <div className="text-sm">{absence.status}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                - {absence.created_by} on{" "}
-                                {new Date(
-                                  absence.created_at
-                                ).toLocaleDateString()}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="linkHover1"
-                                size="icon"
-                                onClick={() =>
-                                  handleEditNote(
-                                    absence.id,
-                                    prompt(
-                                      "Edit absence:",
-                                      `${absence.schedule_date}\t${absence.status}`
-                                    ) ??
-                                      `${absence.schedule_date}\t${absence.status}`
-                                  )
-                                }
+                            Add Daily Briefing
+                          </Button>
+                        </div>
+                        <div className="grid gap-4">
+                          {notes
+                            .filter(
+                              (note) =>
+                                note.type === "daily_briefing" && !note.reviewed
+                            )
+                            .map((note) => (
+                              <div
+                                key={note.id}
+                                className="flex justify-between items-start"
                               >
-                                <Pencil1Icon />
-                              </Button>
-                              <Button
-                                variant="linkHover1"
-                                size="icon"
-                                onClick={() => handleDeleteNote(absence.id)}
-                              >
-                                <TrashIcon />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Display available sick time */}
-                      <div className="mt-4">
-                        <h3 className="text-lg font-semibold">
-                          Available Sick Time
-                        </h3>
-                        <p className="text-2xl font-medium">
-                          {availableSickTime !== null
-                            ? `${availableSickTime} hours`
-                            : "Loading..."}
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="reviews">
-                    <div className="p-6 space-y-4">
-                      <div className="grid gap-1.5">
-                        <Button
-                          variant="linkHover1"
-                          onClick={handleAddReviewClick}
-                        >
-                          Add Review
-                          <PlusIcon className="ml-2 size-icon" />
-                        </Button>
-                      </div>
-                      <div className="grid gap-4">
-                        {reviews.map((review) => (
-                          <div
-                            key={review.id}
-                            className="flex justify-between items-start"
-                          >
-                            <div>
-                              <div className="text-sm font-medium">
-                                {review.review_quarter} {review.review_year}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                - {review.created_by} on{" "}
-                                {new Date(
-                                  review.created_at
-                                ).toLocaleDateString()}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="linkHover1"
-                                size="icon"
-                                onClick={() => handleEditReview(review.id)}
-                              >
-                                <Pencil1Icon />
-                              </Button>
-                              <Button
-                                variant="linkHover1"
-                                size="icon"
-                                onClick={() => handleDeleteReview(review.id)}
-                              >
-                                <TrashIcon />
-                              </Button>
-                              <Button
-                                variant="linkHover1"
-                                size="icon"
-                                onClick={() => handleViewReview(review)}
-                              >
-                                View
-                              </Button>
-                              {!review.published && (
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() => handlePublishReview(review.id)}
-                                >
-                                  Publish
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <Dialog
-                    open={showReviewDialog}
-                    onOpenChange={setShowReviewDialog}
-                  >
-                    <DialogOverlay className="fixed inset-0 z-50" />
-                    <DialogContent className="fixed inset-0 flex items-center justify-center bg-white dark:bg-black z-50 view-review-dialog">
-                      <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-                        <DialogTitle>
-                          {editMode ? "Edit Review" : "Add Review"}
-                        </DialogTitle>
-                        <DialogDescription>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="review-quarter">Review Title</Label>
-                            <input
-                              type="text"
-                              id="review-quarter"
-                              value={reviewQuarter}
-                              onChange={(e) => setReviewQuarter(e.target.value)}
-                              className="input"
-                            />
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="review-year">Year</Label>
-                            <input
-                              type="number"
-                              id="review-year"
-                              value={reviewYear}
-                              onChange={(e) =>
-                                setReviewYear(Number(e.target.value))
-                              }
-                              className="input"
-                            />
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="overview-performance">
-                              Overview of Performance
-                            </Label>
-                            <Textarea
-                              id="overview-performance"
-                              value={overviewPerformance}
-                              onChange={(e) =>
-                                setOverviewPerformance(e.target.value)
-                              }
-                              className="min-h-[100px]"
-                            />
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="achievements-contributions">
-                              Achievements and Contributions
-                            </Label>
-                            {achievementsContributions.map(
-                              (achievement, index) => (
-                                <div key={index} className="flex items-center ">
-                                  <Textarea
-                                    id={`achievement-${index}`}
-                                    value={achievement}
-                                    onChange={(e) =>
-                                      setAchievementsContributions(
-                                        achievementsContributions.map(
-                                          (ach, i) =>
-                                            i === index ? e.target.value : ach
-                                        )
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={note.reviewed || false}
+                                    onChange={() =>
+                                      handleReviewNote(
+                                        note.id,
+                                        note.reviewed || false
                                       )
                                     }
-                                    className="min-h-[50px] flex-1"
                                   />
+                                  <div>
+                                    <div
+                                      className="text-sm font-medium"
+                                      style={{
+                                        textDecoration: note.reviewed
+                                          ? "line-through"
+                                          : "none",
+                                      }}
+                                    >
+                                      {note.note}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      - {note.created_by} on{" "}
+                                      {new Date(
+                                        note.created_at
+                                      ).toLocaleDateString()}
+                                    </div>
+                                    {note.reviewed && note.reviewed_by && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Reviewed by {note.reviewed_by} on{" "}
+                                        {note.reviewed_at
+                                          ? new Date(
+                                              note.reviewed_at
+                                            ).toLocaleDateString()
+                                          : ""}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover2"
+                                    variant="outline"
                                     size="icon"
                                     onClick={() =>
-                                      setAchievementsContributions([
-                                        ...achievementsContributions,
-                                        "",
-                                      ])
+                                      handleEditNote(
+                                        note.id,
+                                        prompt(
+                                          "Edit daily briefing:",
+                                          note.note
+                                        ) ?? note.note
+                                      )
                                     }
                                   >
-                                    <PlusIcon />
+                                    <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover2"
+                                    variant="outline"
                                     size="icon"
-                                    onClick={() =>
-                                      setAchievementsContributions(
-                                        achievementsContributions.filter(
-                                          (_, i) => i !== index
-                                        )
-                                      )
-                                    }
+                                    onClick={() => handleDeleteNote(note.id)}
                                   >
                                     <TrashIcon />
                                   </Button>
                                 </div>
-                              )
-                            )}
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="attendance-reliability">
-                              Attendance and Reliability
-                            </Label>
-                            {attendanceReliability.map((attendance, index) => (
-                              <div key={index} className="flex items-center ">
-                                <Textarea
-                                  id={`attendance-${index}`}
-                                  value={attendance}
-                                  onChange={(e) =>
-                                    setAttendanceReliability(
-                                      attendanceReliability.map((att, i) =>
-                                        i === index ? e.target.value : att
-                                      )
-                                    )
-                                  }
-                                  className="min-h-[50px] flex-1"
-                                />
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setAttendanceReliability([
-                                      ...attendanceReliability,
-                                      "",
-                                    ])
-                                  }
-                                >
-                                  <PlusIcon />
-                                </Button>
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setAttendanceReliability(
-                                      attendanceReliability.filter(
-                                        (_, i) => i !== index
-                                      )
-                                    )
-                                  }
-                                >
-                                  <TrashIcon />
-                                </Button>
                               </div>
                             ))}
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="quality-work">
-                              Quality of Work
-                            </Label>
-                            {qualityWork.map((quality, index) => (
-                              <div key={index} className="flex items-center ">
-                                <Textarea
-                                  id={`quality-${index}`}
-                                  value={quality}
-                                  onChange={(e) =>
-                                    setQualityWork(
-                                      qualityWork.map((qual, i) =>
-                                        i === index ? e.target.value : qual
-                                      )
-                                    )
-                                  }
-                                  className="min-h-[50px] flex-1"
-                                />
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setQualityWork([...qualityWork, ""])
-                                  }
-                                >
-                                  <PlusIcon />
-                                </Button>
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setQualityWork(
-                                      qualityWork.filter((_, i) => i !== index)
-                                    )
-                                  }
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="communication-collaboration">
-                              Communication & Collaboration
-                            </Label>
-                            {communicationCollaboration.map(
-                              (communication, index) => (
-                                <div key={index} className="flex items-center ">
-                                  <Textarea
-                                    id={`communication-${index}`}
-                                    value={communication}
-                                    onChange={(e) =>
-                                      setCommunicationCollaboration(
-                                        communicationCollaboration.map(
-                                          (comm, i) =>
-                                            i === index ? e.target.value : comm
-                                        )
+                          {notes
+                            .filter(
+                              (note) =>
+                                note.type === "daily_briefing" && note.reviewed
+                            )
+                            .map((note) => (
+                              <div
+                                key={note.id}
+                                className="flex justify-between items-start"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={note.reviewed || false}
+                                    onChange={() =>
+                                      handleReviewNote(
+                                        note.id,
+                                        note.reviewed || false
                                       )
                                     }
-                                    className="min-h-[50px] flex-1"
                                   />
+                                  <div>
+                                    <div
+                                      className="text-sm font-medium"
+                                      style={{
+                                        textDecoration: note.reviewed
+                                          ? "line-through"
+                                          : "none",
+                                      }}
+                                    >
+                                      {note.note}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      - {note.created_by} on{" "}
+                                      {new Date(
+                                        note.created_at
+                                      ).toLocaleDateString()}
+                                    </div>
+                                    {note.reviewed && note.reviewed_by && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Reviewed by {note.reviewed_by} on{" "}
+                                        {note.reviewed_at
+                                          ? new Date(
+                                              note.reviewed_at
+                                            ).toLocaleDateString()
+                                          : ""}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover2"
+                                    variant="linkHover1"
                                     size="icon"
                                     onClick={() =>
-                                      setCommunicationCollaboration([
-                                        ...communicationCollaboration,
-                                        "",
-                                      ])
+                                      handleEditNote(
+                                        note.id,
+                                        prompt(
+                                          "Edit daily briefing:",
+                                          note.note
+                                        ) ?? note.note
+                                      )
                                     }
                                   >
-                                    <PlusIcon />
+                                    <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover2"
+                                    variant="linkHover1"
                                     size="icon"
-                                    onClick={() =>
-                                      setCommunicationCollaboration(
-                                        communicationCollaboration.filter(
-                                          (_, i) => i !== index
-                                        )
-                                      )
-                                    }
+                                    onClick={() => handleDeleteNote(note.id)}
                                   >
                                     <TrashIcon />
                                   </Button>
                                 </div>
-                              )
-                            )}
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="strengths-accomplishments">
-                              Strengths & Accomplishments
-                            </Label>
-                            {strengthsAccomplishments.map((strength, index) => (
-                              <div key={index} className="flex items-center ">
-                                <Textarea
-                                  id={`strength-${index}`}
-                                  value={strength}
-                                  onChange={(e) =>
-                                    setStrengthsAccomplishments(
-                                      strengthsAccomplishments.map((str, i) =>
-                                        i === index ? e.target.value : str
-                                      )
-                                    )
-                                  }
-                                  className="min-h-[50px] flex-1"
-                                />
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setStrengthsAccomplishments([
-                                      ...strengthsAccomplishments,
-                                      "",
-                                    ])
-                                  }
-                                >
-                                  <PlusIcon />
-                                </Button>
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setStrengthsAccomplishments(
-                                      strengthsAccomplishments.filter(
-                                        (_, i) => i !== index
-                                      )
-                                    )
-                                  }
-                                >
-                                  <TrashIcon />
-                                </Button>
                               </div>
                             ))}
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="areas-growth">
-                              Areas for Growth and Development
-                            </Label>
-                            {areasGrowth.map((area, index) => (
-                              <div key={index} className="flex items-center ">
-                                <Textarea
-                                  id={`area-${index}`}
-                                  value={area}
-                                  onChange={(e) =>
-                                    setAreasGrowth(
-                                      areasGrowth.map((ar, i) =>
-                                        i === index ? e.target.value : ar
-                                      )
-                                    )
-                                  }
-                                  className="min-h-[50px] flex-1"
-                                />
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setAreasGrowth([...areasGrowth, ""])
-                                  }
-                                >
-                                  <PlusIcon />
-                                </Button>
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setAreasGrowth(
-                                      areasGrowth.filter((_, i) => i !== index)
-                                    )
-                                  }
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="grid gap-1.5 my-4">
-                            <Label htmlFor="recognition">Recognition</Label>
-                            {recognition.map((rec, index) => (
-                              <div key={index} className="flex items-center ">
-                                <Textarea
-                                  id={`recognition-${index}`}
-                                  value={rec}
-                                  onChange={(e) =>
-                                    setRecognition(
-                                      recognition.map((re, i) =>
-                                        i === index ? e.target.value : re
-                                      )
-                                    )
-                                  }
-                                  className="min-h-[50px] flex-1"
-                                />
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setRecognition([...recognition, ""])
-                                  }
-                                >
-                                  <PlusIcon />
-                                </Button>
-                                <Button
-                                  variant="linkHover2"
-                                  size="icon"
-                                  onClick={() =>
-                                    setRecognition(
-                                      recognition.filter((_, i) => i !== index)
-                                    )
-                                  }
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex justify-end space-x-2 my-4">
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowReviewDialog(false)}
-                            >
-                              Close
-                            </Button>
-                            <Button onClick={handleAddReview}>
-                              {editMode ? "Update Review" : "Submit Review"}
-                            </Button>
-                          </div>
-                        </DialogDescription>
+                        </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                    </TabsContent>
 
-                  <Dialog
-                    open={viewReviewDialog}
-                    onOpenChange={setViewReviewDialog}
-                  >
-                    <DialogOverlay className="fixed inset-0 z-50" />
-                    <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
-                      <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
-                        <DialogTitle className="font-size: 1.35rem font-bold">
-                          Employee Review
-                        </DialogTitle>
-                        <DialogDescription>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="view-label"></Label>
-                            <p>{currentReview?.review_quarter}</p>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">Year</Label>
-                            <p>{currentReview?.review_year}</p>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Overview of Performance
-                            </Label>
-                            <p>{currentReview?.overview_performance}</p>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Achievements and Contributions
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.achievements_contributions.map(
-                                (achievement, index) => (
-                                  <li key={index}>{achievement}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Attendance and Reliability
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.attendance_reliability.map(
-                                (attendance, index) => (
-                                  <li key={index}>{attendance}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Quality of Work
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.quality_work.map(
-                                (quality, index) => (
-                                  <li key={index}>{quality}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Communication & Collaboration
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.communication_collaboration.map(
-                                (communication, index) => (
-                                  <li key={index}>{communication}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Strengths & Accomplishments
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.strengths_accomplishments.map(
-                                (strength, index) => (
-                                  <li key={index}>{strength}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Areas for Growth and Development
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.areas_growth.map(
-                                (area, index) => (
-                                  <li key={index}>{area}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                          <div className="grid gap-1.5 mb-2">
-                            <Label className="text-md font-bold">
-                              Recognition
-                            </Label>
-                            <ul className="list-disc pl-5">
-                              {currentReview?.recognition.map((rec, index) => (
-                                <li key={index}>{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="flex justify-end mt-2 space-x-2">
-                            <Button
-                              variant="linkHover1"
-                              onClick={() => setViewReviewDialog(false)}
-                            >
-                              Close
-                            </Button>
-                          </div>
-                        </DialogDescription>
+                    <TabsContent value="notes">
+                      <div className="p-6 space-y-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="new-note">Add a new note</Label>
+                          <Textarea
+                            id="new-note"
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                            placeholder="Type your note here..."
+                            className="min-h-[100px]"
+                          />
+                          <Button onClick={() => handleAddNote("notes")}>
+                            Add Note
+                          </Button>
+                        </div>
+                        <div className="grid gap-4">
+                          {notes
+                            .filter((note) => note.type === "notes")
+                            .map((note) => (
+                              <div
+                                key={note.id}
+                                className="flex justify-between items-start"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={note.reviewed || false}
+                                    onChange={() =>
+                                      handleReviewNote(
+                                        note.id,
+                                        note.reviewed || false
+                                      )
+                                    }
+                                  />
+                                  <div>
+                                    <div
+                                      className="text-sm font-medium"
+                                      style={{
+                                        textDecoration: note.reviewed
+                                          ? "line-through"
+                                          : "none",
+                                      }}
+                                    >
+                                      {note.note}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      - {note.created_by} on{" "}
+                                      {new Date(
+                                        note.created_at
+                                      ).toLocaleDateString()}
+                                    </div>
+                                    {note.reviewed && note.reviewed_by && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Reviewed by {note.reviewed_by} on{" "}
+                                        {note.reviewed_at
+                                          ? new Date(
+                                              note.reviewed_at
+                                            ).toLocaleDateString()
+                                          : ""}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="linkHover1"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleEditNote(
+                                        note.id,
+                                        prompt("Edit note:", note.note) ??
+                                          note.note
+                                      )
+                                    }
+                                  >
+                                    <Pencil1Icon />
+                                  </Button>
+                                  <Button
+                                    variant="linkHover1"
+                                    size="icon"
+                                    onClick={() => handleDeleteNote(note.id)}
+                                  >
+                                    <TrashIcon />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                    </TabsContent>
 
-                  <TabsContent value="growth">
-                    <div className="p-6 space-y-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="new-growth">
-                          Add a new growth tracking entry
-                        </Label>
-                        <Textarea
-                          id="new-growth"
-                          value={newGrowth}
-                          onChange={(e) => setNewGrowth(e.target.value)}
-                          placeholder="Type your growth tracking entry here..."
-                          className="min-h-[100px]"
-                        />
-                        <Button onClick={() => handleAddNote("growth")}>
-                          Add Entry
-                        </Button>
-                      </div>
-                      <div className="grid gap-4">
-                        {notes
-                          .filter((note) => note.type === "growth")
-                          .map((note) => (
+                    <TabsContent value="absences">
+                      <div className="p-6 space-y-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="new-absence">Add a new absence</Label>
+                          <Textarea
+                            id="new-absence"
+                            value={newAbsence}
+                            onChange={(e) => setNewAbsence(e.target.value)}
+                            placeholder="Enter date and reason for absence (e.g., 2023-12-01 CALLED OUT)"
+                            className="min-h-[100px]"
+                          />
+                          <Button onClick={() => handleAddNote("absence")}>
+                            Add Absence
+                          </Button>
+                        </div>
+                        <div className="grid gap-4">
+                          {absences.map((absence) => (
                             <div
-                              key={note.id}
+                              key={absence.id}
                               className="flex justify-between items-start"
                             >
                               <div>
                                 <div className="text-sm font-medium">
-                                  {note.note}
+                                  {absence.schedule_date}
+                                </div>
+                                <div className="text-sm">{absence.status}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  - {absence.created_by} on{" "}
+                                  {new Date(
+                                    absence.created_at
+                                  ).toLocaleDateString()}
                                 </div>
                               </div>
                               <div className="flex gap-2">
                                 <Button
-                                  variant="outline"
+                                  variant="linkHover1"
                                   size="icon"
                                   onClick={() =>
                                     handleEditNote(
-                                      note.id,
-                                      prompt("Edit note:", note.note) ??
-                                        note.note
+                                      absence.id,
+                                      prompt(
+                                        "Edit absence:",
+                                        `${absence.schedule_date}\t${absence.status}`
+                                      ) ??
+                                        `${absence.schedule_date}\t${absence.status}`
                                     )
                                   }
                                 >
                                   <Pencil1Icon />
                                 </Button>
                                 <Button
-                                  variant="outline"
+                                  variant="linkHover1"
                                   size="icon"
-                                  onClick={() => handleDeleteNote(note.id)}
+                                  onClick={() => handleDeleteNote(absence.id)}
                                 >
                                   <TrashIcon />
                                 </Button>
                               </div>
                             </div>
                           ))}
+                        </div>
+                        {/* Display available sick time */}
+                        <div className="mt-4">
+                          <h3 className="text-lg font-semibold">
+                            Available Sick Time
+                          </h3>
+                          <p className="text-2xl font-medium">
+                            {availableSickTime !== null
+                              ? `${availableSickTime} hours`
+                              : "Loading..."}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="sales">
-                    <h1 className="text-xl font-bold mb-2 ml-2">
-                      <TextGenerateEffect words="Sales Data" />
-                    </h1>
-                    <SalesDataTableEmployee employeeId={employeeId} />{" "}
-                    {/* Include SalesDataTable */}
-                  </TabsContent>
+                    </TabsContent>
 
-                  <TabsContent value="performance">
-                    <h1 className="text-xl font-bold mb-2 ml-2">
-                      <TextGenerateEffect words="Sales Insight" />
-                    </h1>
-                    <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                      <Card className="mt-4">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-2xl font-bold mb-6">
-                            Select A Date
-                          </CardTitle>
-                          {/* Add any icons or elements you want here */}
-                        </CardHeader>
-                        <CardContent>
-                          <Popover>
-                            <PopoverTrigger asChild>
+                    <TabsContent value="reviews">
+                      <div className="p-6 space-y-4">
+                        <div className="grid gap-1.5">
+                          <Button
+                            variant="linkHover1"
+                            onClick={handleAddReviewClick}
+                          >
+                            Add Review
+                            <PlusIcon className="ml-2 size-icon" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-4">
+                          {reviews.map((review) => (
+                            <div
+                              key={review.id}
+                              className="flex justify-between items-start"
+                            >
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {review.review_quarter} {review.review_year}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  - {review.created_by} on{" "}
+                                  {new Date(
+                                    review.created_at
+                                  ).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="linkHover1"
+                                  size="icon"
+                                  onClick={() => handleEditReview(review.id)}
+                                >
+                                  <Pencil1Icon />
+                                </Button>
+                                <Button
+                                  variant="linkHover1"
+                                  size="icon"
+                                  onClick={() => handleDeleteReview(review.id)}
+                                >
+                                  <TrashIcon />
+                                </Button>
+                                <Button
+                                  variant="linkHover1"
+                                  size="icon"
+                                  onClick={() => handleViewReview(review)}
+                                >
+                                  View
+                                </Button>
+                                {!review.published && (
+                                  <Button
+                                    variant="linkHover1"
+                                    size="icon"
+                                    onClick={() =>
+                                      handlePublishReview(review.id)
+                                    }
+                                  >
+                                    Publish
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <Dialog
+                      open={showReviewDialog}
+                      onOpenChange={setShowReviewDialog}
+                    >
+                      <DialogOverlay className="fixed inset-0 z-50" />
+                      <DialogContent className="fixed inset-0 flex items-center justify-center bg-white dark:bg-black z-50 view-review-dialog">
+                        <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                          <DialogTitle>
+                            {editMode ? "Edit Review" : "Add Review"}
+                          </DialogTitle>
+                          <DialogDescription>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="review-quarter">
+                                Review Title
+                              </Label>
+                              <input
+                                type="text"
+                                id="review-quarter"
+                                value={reviewQuarter}
+                                onChange={(e) =>
+                                  setReviewQuarter(e.target.value)
+                                }
+                                className="input"
+                              />
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="review-year">Year</Label>
+                              <input
+                                type="number"
+                                id="review-year"
+                                value={reviewYear}
+                                onChange={(e) =>
+                                  setReviewYear(Number(e.target.value))
+                                }
+                                className="input"
+                              />
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="overview-performance">
+                                Overview of Performance
+                              </Label>
+                              <Textarea
+                                id="overview-performance"
+                                value={overviewPerformance}
+                                onChange={(e) =>
+                                  setOverviewPerformance(e.target.value)
+                                }
+                                className="min-h-[100px]"
+                              />
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="achievements-contributions">
+                                Achievements and Contributions
+                              </Label>
+                              {achievementsContributions.map(
+                                (achievement, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center "
+                                  >
+                                    <Textarea
+                                      id={`achievement-${index}`}
+                                      value={achievement}
+                                      onChange={(e) =>
+                                        setAchievementsContributions(
+                                          achievementsContributions.map(
+                                            (ach, i) =>
+                                              i === index ? e.target.value : ach
+                                          )
+                                        )
+                                      }
+                                      className="min-h-[50px] flex-1"
+                                    />
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setAchievementsContributions([
+                                          ...achievementsContributions,
+                                          "",
+                                        ])
+                                      }
+                                    >
+                                      <PlusIcon />
+                                    </Button>
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setAchievementsContributions(
+                                          achievementsContributions.filter(
+                                            (_, i) => i !== index
+                                          )
+                                        )
+                                      }
+                                    >
+                                      <TrashIcon />
+                                    </Button>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="attendance-reliability">
+                                Attendance and Reliability
+                              </Label>
+                              {attendanceReliability.map(
+                                (attendance, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center "
+                                  >
+                                    <Textarea
+                                      id={`attendance-${index}`}
+                                      value={attendance}
+                                      onChange={(e) =>
+                                        setAttendanceReliability(
+                                          attendanceReliability.map((att, i) =>
+                                            i === index ? e.target.value : att
+                                          )
+                                        )
+                                      }
+                                      className="min-h-[50px] flex-1"
+                                    />
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setAttendanceReliability([
+                                          ...attendanceReliability,
+                                          "",
+                                        ])
+                                      }
+                                    >
+                                      <PlusIcon />
+                                    </Button>
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setAttendanceReliability(
+                                          attendanceReliability.filter(
+                                            (_, i) => i !== index
+                                          )
+                                        )
+                                      }
+                                    >
+                                      <TrashIcon />
+                                    </Button>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="quality-work">
+                                Quality of Work
+                              </Label>
+                              {qualityWork.map((quality, index) => (
+                                <div key={index} className="flex items-center ">
+                                  <Textarea
+                                    id={`quality-${index}`}
+                                    value={quality}
+                                    onChange={(e) =>
+                                      setQualityWork(
+                                        qualityWork.map((qual, i) =>
+                                          i === index ? e.target.value : qual
+                                        )
+                                      )
+                                    }
+                                    className="min-h-[50px] flex-1"
+                                  />
+                                  <Button
+                                    variant="linkHover2"
+                                    size="icon"
+                                    onClick={() =>
+                                      setQualityWork([...qualityWork, ""])
+                                    }
+                                  >
+                                    <PlusIcon />
+                                  </Button>
+                                  <Button
+                                    variant="linkHover2"
+                                    size="icon"
+                                    onClick={() =>
+                                      setQualityWork(
+                                        qualityWork.filter(
+                                          (_, i) => i !== index
+                                        )
+                                      )
+                                    }
+                                  >
+                                    <TrashIcon />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="communication-collaboration">
+                                Communication & Collaboration
+                              </Label>
+                              {communicationCollaboration.map(
+                                (communication, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center "
+                                  >
+                                    <Textarea
+                                      id={`communication-${index}`}
+                                      value={communication}
+                                      onChange={(e) =>
+                                        setCommunicationCollaboration(
+                                          communicationCollaboration.map(
+                                            (comm, i) =>
+                                              i === index
+                                                ? e.target.value
+                                                : comm
+                                          )
+                                        )
+                                      }
+                                      className="min-h-[50px] flex-1"
+                                    />
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setCommunicationCollaboration([
+                                          ...communicationCollaboration,
+                                          "",
+                                        ])
+                                      }
+                                    >
+                                      <PlusIcon />
+                                    </Button>
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setCommunicationCollaboration(
+                                          communicationCollaboration.filter(
+                                            (_, i) => i !== index
+                                          )
+                                        )
+                                      }
+                                    >
+                                      <TrashIcon />
+                                    </Button>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="strengths-accomplishments">
+                                Strengths & Accomplishments
+                              </Label>
+                              {strengthsAccomplishments.map(
+                                (strength, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center "
+                                  >
+                                    <Textarea
+                                      id={`strength-${index}`}
+                                      value={strength}
+                                      onChange={(e) =>
+                                        setStrengthsAccomplishments(
+                                          strengthsAccomplishments.map(
+                                            (str, i) =>
+                                              i === index ? e.target.value : str
+                                          )
+                                        )
+                                      }
+                                      className="min-h-[50px] flex-1"
+                                    />
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setStrengthsAccomplishments([
+                                          ...strengthsAccomplishments,
+                                          "",
+                                        ])
+                                      }
+                                    >
+                                      <PlusIcon />
+                                    </Button>
+                                    <Button
+                                      variant="linkHover2"
+                                      size="icon"
+                                      onClick={() =>
+                                        setStrengthsAccomplishments(
+                                          strengthsAccomplishments.filter(
+                                            (_, i) => i !== index
+                                          )
+                                        )
+                                      }
+                                    >
+                                      <TrashIcon />
+                                    </Button>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="areas-growth">
+                                Areas for Growth and Development
+                              </Label>
+                              {areasGrowth.map((area, index) => (
+                                <div key={index} className="flex items-center ">
+                                  <Textarea
+                                    id={`area-${index}`}
+                                    value={area}
+                                    onChange={(e) =>
+                                      setAreasGrowth(
+                                        areasGrowth.map((ar, i) =>
+                                          i === index ? e.target.value : ar
+                                        )
+                                      )
+                                    }
+                                    className="min-h-[50px] flex-1"
+                                  />
+                                  <Button
+                                    variant="linkHover2"
+                                    size="icon"
+                                    onClick={() =>
+                                      setAreasGrowth([...areasGrowth, ""])
+                                    }
+                                  >
+                                    <PlusIcon />
+                                  </Button>
+                                  <Button
+                                    variant="linkHover2"
+                                    size="icon"
+                                    onClick={() =>
+                                      setAreasGrowth(
+                                        areasGrowth.filter(
+                                          (_, i) => i !== index
+                                        )
+                                      )
+                                    }
+                                  >
+                                    <TrashIcon />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="grid gap-1.5 my-4">
+                              <Label htmlFor="recognition">Recognition</Label>
+                              {recognition.map((rec, index) => (
+                                <div key={index} className="flex items-center ">
+                                  <Textarea
+                                    id={`recognition-${index}`}
+                                    value={rec}
+                                    onChange={(e) =>
+                                      setRecognition(
+                                        recognition.map((re, i) =>
+                                          i === index ? e.target.value : re
+                                        )
+                                      )
+                                    }
+                                    className="min-h-[50px] flex-1"
+                                  />
+                                  <Button
+                                    variant="linkHover2"
+                                    size="icon"
+                                    onClick={() =>
+                                      setRecognition([...recognition, ""])
+                                    }
+                                  >
+                                    <PlusIcon />
+                                  </Button>
+                                  <Button
+                                    variant="linkHover2"
+                                    size="icon"
+                                    onClick={() =>
+                                      setRecognition(
+                                        recognition.filter(
+                                          (_, i) => i !== index
+                                        )
+                                      )
+                                    }
+                                  >
+                                    <TrashIcon />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex justify-end space-x-2 my-4">
                               <Button
                                 variant="outline"
-                                className="w-full pl-3 text-left font-normal"
+                                onClick={() => setShowReviewDialog(false)}
                               >
-                                {selectedDate ? (
-                                  format(selectedDate, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                Close
                               </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <CustomCalendar
-                                selectedDate={selectedDate ?? new Date()}
-                                onDateChange={handleDateChange}
-                                disabledDays={() => false}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </CardContent>
-                      </Card>
+                              <Button onClick={handleAddReview}>
+                                {editMode ? "Update Review" : "Submit Review"}
+                              </Button>
+                            </div>
+                          </DialogDescription>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
 
-                      <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle className="text-2xl font-bold">
-                            Total # Of DROS
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <div className="text-left">
-                            <DataTable
-                              columns={[
-                                { Header: "Total DROS", accessor: "TotalDros" },
-                              ]}
-                              data={summaryData}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle className="text-2xl font-bold">
-                            Points Deducted
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <div className="text-left">
-                            <DataTable
-                              columns={[
-                                {
-                                  Header: "Points Deducted",
-                                  accessor: "PointsDeducted",
-                                },
-                              ]}
-                              data={summaryData}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle className="text-2xl font-bold">
-                            Current Points
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <div className="text-left">
-                            <DataTable
-                              columns={[
-                                {
-                                  Header: "Total Points",
-                                  accessor: "TotalPoints",
-                                },
-                              ]}
-                              data={summaryData}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                    <Dialog
+                      open={viewReviewDialog}
+                      onOpenChange={setViewReviewDialog}
+                    >
+                      <DialogOverlay className="fixed inset-0 z-50" />
+                      <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-white dark:bg-black z-50 view-review-dialog">
+                        <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                          <DialogTitle className="font-size: 1.35rem font-bold">
+                            Employee Review
+                          </DialogTitle>
+                          <DialogDescription>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="view-label"></Label>
+                              <p>{currentReview?.review_quarter}</p>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">Year</Label>
+                              <p>{currentReview?.review_year}</p>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Overview of Performance
+                              </Label>
+                              <p>{currentReview?.overview_performance}</p>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Achievements and Contributions
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.achievements_contributions.map(
+                                  (achievement, index) => (
+                                    <li key={index}>{achievement}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Attendance and Reliability
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.attendance_reliability.map(
+                                  (attendance, index) => (
+                                    <li key={index}>{attendance}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Quality of Work
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.quality_work.map(
+                                  (quality, index) => (
+                                    <li key={index}>{quality}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Communication & Collaboration
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.communication_collaboration.map(
+                                  (communication, index) => (
+                                    <li key={index}>{communication}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Strengths & Accomplishments
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.strengths_accomplishments.map(
+                                  (strength, index) => (
+                                    <li key={index}>{strength}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Areas for Growth and Development
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.areas_growth.map(
+                                  (area, index) => (
+                                    <li key={index}>{area}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="grid gap-1.5 mb-2">
+                              <Label className="text-md font-bold">
+                                Recognition
+                              </Label>
+                              <ul className="list-disc pl-5">
+                                {currentReview?.recognition.map(
+                                  (rec, index) => (
+                                    <li key={index}>{rec}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                            <div className="flex justify-end mt-2 space-x-2">
+                              <Button
+                                variant="linkHover1"
+                                onClick={() => setViewReviewDialog(false)}
+                              >
+                                Close
+                              </Button>
+                            </div>
+                          </DialogDescription>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
 
-                    <Card>
-                      <CardContent>
-                        <table className="w-full">
-                          <thead>
-                            <tr>
-                              <th className="py-2 w-36 text-left">DROS #</th>
-                              {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
-                              {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
-                              <th className="py-2 w-32 text-left">
-                                Trans Date
-                              </th>
-                              {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
-                              <th className="py-2 w-32 text-left">Location</th>
-                              <th className="py-2 w-48 text-left">Details</th>
-                              <th className="py-2 w-64 text-left">Notes</th>
-                              <th className="py-2 w-12 text-left">
-                                Cancelled?
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {audits.map((audit, index) => (
-                              <tr key={index} className="border-t">
-                                <td className="py-2 w-36">
-                                  {audit.dros_number}
-                                </td>
-                                {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
-                                {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
-                                <td className="py-2 w-30">
-                                  {audit.trans_date}
-                                </td>
-                                {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
-                                <td className="py-2 w-32">
-                                  {audit.error_location}
-                                </td>
-                                <td className="py-2 w-48">
-                                  {audit.error_details}
-                                </td>
-                                <td className="py-2 w-64">
-                                  {audit.error_notes}
-                                </td>
-                                <td className="py-2 w-12">
-                                  {audit.dros_cancel}
-                                </td>
-                              </tr>
+                    <TabsContent value="growth">
+                      <div className="p-6 space-y-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="new-growth">
+                            Add a new growth tracking entry
+                          </Label>
+                          <Textarea
+                            id="new-growth"
+                            value={newGrowth}
+                            onChange={(e) => setNewGrowth(e.target.value)}
+                            placeholder="Type your growth tracking entry here..."
+                            className="min-h-[100px]"
+                          />
+                          <Button onClick={() => handleAddNote("growth")}>
+                            Add Entry
+                          </Button>
+                        </div>
+                        <div className="grid gap-4">
+                          {notes
+                            .filter((note) => note.type === "growth")
+                            .map((note) => (
+                              <div
+                                key={note.id}
+                                className="flex justify-between items-start"
+                              >
+                                <div>
+                                  <div className="text-sm font-medium">
+                                    {note.note}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleEditNote(
+                                        note.id,
+                                        prompt("Edit note:", note.note) ??
+                                          note.note
+                                      )
+                                    }
+                                  >
+                                    <Pencil1Icon />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleDeleteNote(note.id)}
+                                  >
+                                    <TrashIcon />
+                                  </Button>
+                                </div>
+                              </div>
                             ))}
-                          </tbody>
-                        </table>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="sales">
+                      <h1 className="text-xl font-bold mb-2 ml-2">
+                        <TextGenerateEffect words="Sales Data" />
+                      </h1>
+                      <SalesDataTableEmployee employeeId={employeeId} />{" "}
+                      {/* Include SalesDataTable */}
+                    </TabsContent>
+
+                    <TabsContent value="performance">
+                      <h1 className="text-xl font-bold mb-2 ml-2">
+                        <TextGenerateEffect words="Sales Insight" />
+                      </h1>
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        <Card className="mt-4">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-2xl font-bold mb-6">
+                              Select A Date
+                            </CardTitle>
+                            {/* Add any icons or elements you want here */}
+                          </CardHeader>
+                          <CardContent>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full pl-3 text-left font-normal"
+                                >
+                                  {selectedDate ? (
+                                    format(selectedDate, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
+                                <CustomCalendar
+                                  selectedDate={selectedDate ?? new Date()}
+                                  onDateChange={handleDateChange}
+                                  disabledDays={() => false}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="mt-4">
+                          <CardHeader>
+                            <CardTitle className="text-2xl font-bold">
+                              Total # Of DROS
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            <div className="text-left">
+                              <DataTable
+                                columns={[
+                                  {
+                                    Header: "Total DROS",
+                                    accessor: "TotalDros",
+                                  },
+                                ]}
+                                data={summaryData}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="mt-4">
+                          <CardHeader>
+                            <CardTitle className="text-2xl font-bold">
+                              Points Deducted
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            <div className="text-left">
+                              <DataTable
+                                columns={[
+                                  {
+                                    Header: "Points Deducted",
+                                    accessor: "PointsDeducted",
+                                  },
+                                ]}
+                                data={summaryData}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="mt-4">
+                          <CardHeader>
+                            <CardTitle className="text-2xl font-bold">
+                              Current Points
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            <div className="text-left">
+                              <DataTable
+                                columns={[
+                                  {
+                                    Header: "Total Points",
+                                    accessor: "TotalPoints",
+                                  },
+                                ]}
+                                data={summaryData}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      <Card>
+                        <CardContent>
+                          <table className="w-full">
+                            <thead>
+                              <tr>
+                                <th className="py-2 w-36 text-left">DROS #</th>
+                                {/* <th className="py-2 w-24 text-left">Sales Rep</th> */}
+                                {/* <th className="py-2 w-24 text-left">Audit Type</th> */}
+                                <th className="py-2 w-32 text-left">
+                                  Trans Date
+                                </th>
+                                {/* <th className="py-2 w-32 text-left">Audit Date</th> */}
+                                <th className="py-2 w-32 text-left">
+                                  Location
+                                </th>
+                                <th className="py-2 w-48 text-left">Details</th>
+                                <th className="py-2 w-64 text-left">Notes</th>
+                                <th className="py-2 w-12 text-left">
+                                  Cancelled?
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {audits.map((audit, index) => (
+                                <tr key={index} className="border-t">
+                                  <td className="py-2 w-36">
+                                    {audit.dros_number}
+                                  </td>
+                                  {/* <td className="py-2 w-24">{audit.salesreps}</td> */}
+                                  {/* <td className="py-2 w-24">{audit.audit_type}</td> */}
+                                  <td className="py-2 w-30">
+                                    {audit.trans_date}
+                                  </td>
+                                  {/* <td className="py-2 w-30">{audit.audit_date}</td> */}
+                                  <td className="py-2 w-32">
+                                    {audit.error_location}
+                                  </td>
+                                  <td className="py-2 w-48">
+                                    {audit.error_details}
+                                  </td>
+                                  <td className="py-2 w-64">
+                                    {audit.error_notes}
+                                  </td>
+                                  <td className="py-2 w-12">
+                                    {audit.dros_cancel}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Suspense>
                 </main>
                 <ScrollBar orientation="vertical" />
               </ScrollArea>

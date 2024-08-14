@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'Invalid weeks parameter' });
         }
 
-        console.log("Calling RPC function with weeks:", weeks);
+        // console.log("Calling RPC function with weeks:", weeks);
 
         // Call the RPC function in Supabase
         const { data, error } = await supabase.rpc('generate_schedules_for_all_employees', { weeks });
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: error.message });
         }
 
-        console.log("RPC response data:", data);
+        // console.log("RPC response data:", data);
 
         res.status(200).json({ message: 'Schedules generated successfully', data });
     } catch (error: any) {

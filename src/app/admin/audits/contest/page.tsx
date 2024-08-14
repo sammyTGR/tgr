@@ -168,7 +168,7 @@ const ContestPage = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_data" },
         (payload) => {
-          console.log("Sales data changed:", payload);
+          // console.log("Sales data changed:", payload);
           fetchData();
         }
       )
@@ -180,7 +180,7 @@ const ContestPage = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "Auditsinput" },
         (payload) => {
-          console.log("Audit data changed:", payload);
+          // console.log("Audit data changed:", payload);
           fetchData();
         }
       )
@@ -211,12 +211,12 @@ const ContestPage = () => {
       ).length;
       let pointsDeducted = 0;
 
-      console.log("Calculating points deducted...");
+      // console.log("Calculating points deducted...");
       employeeSalesData.forEach((sale: SalesData) => {
         if (sale.dros_cancel === "Yes") {
-          console.log(
-            `DROS canceled for sale id ${sale.id}. Deducting 5 points.`
-          );
+          // console.log(
+          //   `DROS canceled for sale id ${sale.id}. Deducting 5 points.`
+          // );
           pointsDeducted += 5;
         }
       });
@@ -226,24 +226,24 @@ const ContestPage = () => {
         if (auditDate <= selectedMonth) {
           pointsCalculation.forEach((point: PointsCalculation) => {
             if (audit.error_location === point.error_location) {
-              console.log(
-                `Deducting ${point.points_deducted} points for error location ${audit.error_location} for audit id ${audit.id}.`
-              );
+              // console.log(
+              //   `Deducting ${point.points_deducted} points for error location ${audit.error_location} for audit id ${audit.id}.`
+              // );
               pointsDeducted += point.points_deducted;
             } else if (
               point.error_location === "dros_cancel_field" &&
               audit.dros_cancel === "Yes"
             ) {
-              console.log(
-                `Deducting ${point.points_deducted} points for DROS cancellation for audit id ${audit.id}.`
-              );
+              // console.log(
+              //   `Deducting ${point.points_deducted} points for DROS cancellation for audit id ${audit.id}.`
+              // );
               pointsDeducted += point.points_deducted;
             }
           });
         }
       });
 
-      console.log("Points deducted:", pointsDeducted);
+      // console.log("Points deducted:", pointsDeducted);
       const totalPoints = 300 - pointsDeducted;
 
       return {

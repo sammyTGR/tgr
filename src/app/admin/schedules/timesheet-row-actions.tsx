@@ -30,9 +30,9 @@ export function TimesheetRowActions({
   const [endTime, setEndTime] = useState(timesheet.end_time || "");
 
   const handleUpdate = async (field: string, value: any) => {
-    console.log(
-      `Updating ${field} to ${value} for timesheet ID ${timesheet.id}`
-    );
+    // console.log(
+    //   `Updating ${field} to ${value} for timesheet ID ${timesheet.id}`
+    // );
     const { error } = await supabase
       .from("employee_clock_events")
       .update({ [field]: value })
@@ -41,17 +41,17 @@ export function TimesheetRowActions({
     if (error) {
       console.error(`Error updating ${field}:`, error);
     } else {
-      console.log(
-        `Successfully updated ${field} to ${value} for timesheet ID ${timesheet.id}`
-      );
+      // console.log(
+      //   `Successfully updated ${field} to ${value} for timesheet ID ${timesheet.id}`
+      // );
       fetchTimesheets(); // Refresh the data
     }
   };
 
   const applyChanges = async () => {
-    console.log(
-      `Applying changes for timesheet ID ${timesheet.id}: Start Time = ${startTime}, Lunch Start = ${lunchStart}, Lunch End = ${lunchEnd}, End Time = ${endTime}`
-    );
+    // console.log(
+    //   `Applying changes for timesheet ID ${timesheet.id}: Start Time = ${startTime}, Lunch Start = ${lunchStart}, Lunch End = ${lunchEnd}, End Time = ${endTime}`
+    // );
     await handleUpdate("start_time", startTime || null);
     await handleUpdate("lunch_start", lunchStart || null);
     await handleUpdate("lunch_end", lunchEnd || null);

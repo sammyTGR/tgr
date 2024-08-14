@@ -138,7 +138,7 @@ const WaiverForm = () => {
         console.error("Error submitting form:", error);
         toast.error("Error submitting form.");
       } else {
-        console.log("Form submitted successfully");
+        // console.log("Form submitted successfully");
         // Reset form fields
         reset({
           first_name: "",

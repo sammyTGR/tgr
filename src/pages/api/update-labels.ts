@@ -80,7 +80,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   try {
     const updatedRows = await updateLabels();
-    console.log(`Updated labels for ${updatedRows} rows`);
+    // console.log(`Updated labels for ${updatedRows} rows`);
     res.status(200).json({ message: `Updated labels for ${updatedRows} rows` });
   } catch (error) {
     console.error('Error updating labels:', error);

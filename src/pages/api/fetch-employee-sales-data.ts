@@ -22,7 +22,7 @@ const fetchEmployeeSalesData = async (req: NextApiRequest, res: NextApiResponse)
     const startDate = new Date(currentDate.setMonth(currentDate.getMonth() - 3)).toISOString().split("T")[0];
     const endDate = new Date().toISOString().split("T")[0];
 
-    console.log(`Fetching sales data from ${startDate} to ${endDate} for Lanid: ${lanid}`);
+    // console.log(`Fetching sales data from ${startDate} to ${endDate} for Lanid: ${lanid}`);
 
     let query = supabase
       .from("sales_data")
@@ -47,7 +47,7 @@ const fetchEmployeeSalesData = async (req: NextApiRequest, res: NextApiResponse)
 
     if (error) throw error;
 
-    console.log(`Fetched ${data.length} records with count: ${count}`);
+    // console.log(`Fetched ${data.length} records with count: ${count}`);
 
     res.status(200).json({ data, count });
   } catch (error) {

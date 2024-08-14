@@ -6,7 +6,7 @@ const fetchSalesDataByRange = async (req: NextApiRequest, res: NextApiResponse) 
   try {
     const { start, end } = req.query;
 
-    console.log(`Fetching sales data from ${start} to ${end}`);
+    // console.log(`Fetching sales data from ${start} to ${end}`);
 
     const { data, error } = await supabase
       .from('sales_data')
@@ -19,7 +19,7 @@ const fetchSalesDataByRange = async (req: NextApiRequest, res: NextApiResponse) 
       throw error;
     }
 
-    console.log("Fetched data:", data);
+    // console.log("Fetched data:", data);
 
     res.status(200).json(data);
   } catch (error) {

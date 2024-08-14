@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     const { employee_id, schedule_date, status } = req.body;
 
-    console.log("Received payload:", req.body); // Log the received payload
+    // console.log("Received payload:", req.body); // Log the received payload
 
     if (!employee_id || !schedule_date || typeof status !== 'string') {
       console.error("Invalid request:", { employee_id, schedule_date, status });
@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (!scheduleData) {
-        console.log(`Inserting new schedule for date ${schedule_date}`);
+        // console.log(`Inserting new schedule for date ${schedule_date}`);
         // Insert new schedule if it doesn't exist
         const { error: scheduleInsertError } = await supabase
           .from('schedules')
@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(500).json({ error: scheduleInsertError.message });
         }
       } else {
-        console.log(`Updating existing schedule for date ${schedule_date}`);
+        // console.log(`Updating existing schedule for date ${schedule_date}`);
         // Update existing schedule
         const { error: scheduleUpdateError } = await supabase
           .from('schedules')
@@ -104,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       try {
         await sendgrid.send(msg);
-        console.log("Email sent successfully");
+        // console.log("Email sent successfully");
       } catch (emailError: any) {
         console.error("Error sending email:", emailError.response?.body || emailError);
         return res.status(500).json({ error: 'Error sending email', details: emailError.message });

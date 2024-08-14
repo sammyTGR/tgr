@@ -67,7 +67,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
         console.error("Error fetching sales data:", error);
         toast.error("Failed to fetch sales data.");
       } else {
-        console.log("Fetched sales data:", data);
+        // console.log("Fetched sales data:", data);
         setSales(data);
         if (count !== undefined) {
           setPageCount(Math.ceil(count / pageSize));
