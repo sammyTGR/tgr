@@ -159,7 +159,7 @@ export default function SignUp() {
                 </span>
               )}
             </div>
-            <Button type="submit" className="w-full">
+            <Button variant="gooeyRight" type="submit" className="w-full">
               Create an account
             </Button>
           </form>

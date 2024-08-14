@@ -194,7 +194,7 @@ export default function SignIn() {
                     </span>
                   )}
                 </div>
-                <Button type="submit" className="w-full">
+                <Button variant="gooeyLeft" type="submit" className="w-full">
                   Sign In
                 </Button>
               </form>
@@ -212,11 +212,11 @@ export default function SignIn() {
             </TabsContent>
             <TabsContent value="employeesLogin">
               <div className="flex flex-col my-4 items-center justify-center">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 my-4">
                   <Label htmlFor="email">Login With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
-                    variant="ringHover"
+                    variant="gooeyRight"
                     className="w-full"
                     disabled={loading}
                   >

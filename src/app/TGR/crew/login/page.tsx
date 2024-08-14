@@ -98,8 +98,8 @@ function LoginComponent() {
               </div>
             </TabsContent>
             <TabsContent value="signup">
-              <div className="flex flex-col my-40 items-center justify-center">
-                <div className="flex flex-col gap-1">
+              <div className="flex flex-col my-auto items-center justify-center">
+                <div className="flex flex-col gap-1 mt-4">
                   <Label htmlFor="email">Sign Up With Your Work Email</Label>
                   <Button
                     onClick={() => loginWithOAuth("google")}
