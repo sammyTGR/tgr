@@ -12,6 +12,7 @@ import { PlusIcon, TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext"; // Adjust the import path if needed
+import { Button } from "@/components/ui/button";
 
 type ColumnType = {
   id: string;
@@ -363,12 +364,12 @@ const Column = ({
               type="text"
               value={newTitle}
               onChange={handleColumnTitleChange}
-              className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm text-neutral-50 focus:outline-0"
+              className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm  focus:outline-0"
             />
             <div className="mt-1.5 flex items-center justify-end gap-1.5">
               <button
                 type="submit"
-                className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+                className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs  transition-colors hover:bg-neutral-300"
               >
                 <span>Save</span>
               </button>
@@ -461,7 +462,7 @@ const Card = ({
         layoutId={id}
         draggable="true"
         onDragStart={(e) => handleDragStart(e, { title, id, column_name })}
-        className="cursor-grab rounded border border-neutral-700 bg-neutral-800 p-3 active:cursor-grabbing group"
+        className="cursor-grab rounded border border-neutral-700  p-3 active:cursor-grabbing group"
         data-before={id} // Add this line
       >
         {isEditing ? (
@@ -470,12 +471,12 @@ const Card = ({
               type="text"
               value={newTitle}
               onChange={handleTitleChange}
-              className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm text-neutral-50 focus:outline-0"
+              className="w-full rounded border border-violet-400  p-1 text-sm  focus:outline-0"
             />
             <div className="mt-1.5 flex items-center justify-end gap-1.5">
               <button
                 type="submit"
-                className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+                className="flex items-center gap-1.5 rounded  px-2 py-1 text-xs  transition-colors hover:bg-neutral-300"
               >
                 <span>Save</span>
               </button>
@@ -483,7 +484,7 @@ const Card = ({
           </form>
         ) : (
           <div className="flex justify-between items-center">
-            <p className="text-sm text-neutral-100">{title}</p>
+            <p className="text-sm ">{title}</p>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               {(role === "super admin" || user.email === created_by) && (
                 <button onClick={handleEdit} className="text-yellow-500">
@@ -579,29 +580,30 @@ const AddCard = ({ column_name, handleAddCard }: AddCardProps) => {
             value={text} // Ensure value is controlled
             autoFocus
             placeholder="Add new task..."
-            className="w-full rounded border border-violet-400 bg-violet-400/20 p-3 text-sm text-neutral-50 placeholder-violet-300 focus:outline-0"
+            className="w-full rounded border border-violet-400 bg-violet-400/20 p-3 text-sm  placeholder-violet-300 focus:outline-0"
           />
           <div className="mt-1.5 flex items-center justify-end gap-1.5">
             <button
               onClick={() => setAdding(false)}
-              className="px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
+              className="px-3 py-1.5 text-xs  transition-colors hover:text-neutral-50"
             >
               Close
             </button>
-            <button
+            <Button
+              variant="linkHover1"
               type="submit"
-              className="flex items-center gap-1.5 rounded bg-neutral-50 px-3 py-1.5 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+              className="flex items-center gap-1.5 rounded  px-3 py-1.5 text-xs  transition-colors hover:bg-neutral-600"
             >
               <span>Add</span>
               <PlusIcon />
-            </button>
+            </Button>
           </div>
         </motion.form>
       ) : (
         <motion.button
           layout
           onClick={() => setAdding(true)}
-          className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
+          className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-500 transition-colors hover:text-neutral-50"
         >
           <span>Add Topic</span>
           <PlusIcon />
@@ -638,7 +640,7 @@ const AddColumn = ({ handleAddColumn }: AddColumnProps) => {
             onChange={(e) => setText(e.target.value)}
             autoFocus
             placeholder="Add new column..."
-            className="rounded border border-violet-400 bg-violet-400/20 p-1 text-sm text-neutral-50 focus:outline-0"
+            className="rounded border border-violet-400 bg-violet-400/20 p-1 text-sm  focus:outline-0"
           />
           <div className="flex items-center gap-1.5">
             <button
@@ -647,13 +649,14 @@ const AddColumn = ({ handleAddColumn }: AddColumnProps) => {
             >
               Close
             </button>
-            <button
+            <Button
+              variant="linkHover1"
               type="submit"
-              className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs text-neutral-950 transition-colors hover:bg-neutral-300"
+              className="flex items-center gap-1.5 rounded  px-2 py-1 text-xs  transition-colors hover:bg-neutral-600"
             >
               <span>Add</span>
               <PlusIcon />
-            </button>
+            </Button>
           </div>
         </motion.form>
       ) : (

@@ -65,11 +65,11 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   const [employeeName, setEmployeeName] = useState("");
   const [weeks, setWeeks] = useState("");
   const [date, setDate] = useState("");
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [lunchStart, setLunchStart] = useState(row?.lunch_start || "");
   const [lunchEnd, setLunchEnd] = useState(row?.lunch_end || "");
-  const [employeeId, setEmployeeId] = useState<number | null>(null);
 
   const handleSubmit = async () => {
     if (formType === "generate" || formType === "clearSchedule") {

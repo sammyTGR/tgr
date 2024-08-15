@@ -117,7 +117,7 @@ export function VerificationForm({
               id="condition-verified"
             />
             <label htmlFor="condition-verified" className="ml-2">
-              Condition Verified
+              Overall Condition Verified
             </label>
           </div>
           <div className="flex items-center">
@@ -131,28 +131,14 @@ export function VerificationForm({
             </label>
           </div>
         </div>
-        {/* <div className="space-y-4">
-          <div className="flex items-center">
-            <Checkbox
-              checked={withGunsmith}
-              onCheckedChange={(checked) => setWithGunsmith(!!checked)}
-              id="with-gunsmith"
-            />
-            <label htmlFor="with-gunsmith" className="ml-2">
-              With Gunsmith
-            </label>
-          </div>
-          <div className="flex items-center">
-            <Checkbox
-              checked={rentalOnRange}
-              onCheckedChange={(checked) => setRentalOnRange(!!checked)}
-              id="rental-on-range"
-            />
-            <label htmlFor="rental-on-range" className="ml-2">
-              Rental On Range
-            </label>
-          </div>
-        </div> */}
+        <div className="space-y-4">
+          <p className="text-sm text-red-500">
+            The overall condition is defined as ensuring the sights or optic are
+            on, aligned and in working order, the frame is in the same
+            condition, the slide/bolt is locked back, and the firearm is
+            cleared.
+          </p>
+        </div>
       </div>
       {showNotes && !withGunsmith && !rentalOnRange && (
         <div>
