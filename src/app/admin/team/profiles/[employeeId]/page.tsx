@@ -43,6 +43,7 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
 import SalesDataTableEmployee from "../../../reports/sales/sales-data-table-employee";
+import PerformanceBarChart from "@/components/PerformanceBarChart";
 
 interface Note {
   id: number;
@@ -2154,6 +2155,18 @@ const EmployeeProfile = () => {
                           </CardContent>
                         </Card>
                       </div>
+
+                      <Card className="mt-4">
+                        <CardHeader>
+                          <CardTitle>Audit Performance Overview</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col border p-4">
+                          <PerformanceBarChart
+                            employeeId={employeeId.toString()} // Convert employeeId to a string
+                            selectedDate={selectedDate}
+                          />
+                        </CardContent>
+                      </Card>
 
                       <Card>
                         <CardContent>
