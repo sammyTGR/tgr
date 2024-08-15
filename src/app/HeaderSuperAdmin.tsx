@@ -208,6 +208,11 @@ const manageComps = [
     href: "/admin/reports/sales",
     description: "View Daily Sales",
   },
+  {
+    title: "Download Reports",
+    href: "/admin/reports/download",
+    description: "Download Various Reports",
+  },
 ];
 
 const comboComps = [
