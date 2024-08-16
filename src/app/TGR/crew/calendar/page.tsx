@@ -35,6 +35,7 @@ import {
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 const title = "TGR Crew Calendar";
+const timeZone = "America/Los_Angeles"; // Define your time zone
 
 interface CalendarEvent {
   day_of_week: string;
@@ -332,83 +333,64 @@ export default function Component() {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
       eventsByDay[day] = employee.events.filter(
-        (event) => event.day_of_week === day
+        (calendarEvent) => calendarEvent.day_of_week === day
       );
     });
-    const timeZone = "America/Los_Angeles"; // Define your time zone
-
+  
     return (
       <TableRow key={employee.employee_id}>
         <TableCell className="font-medium w-12">{employee.name}</TableCell>
         {daysOfWeek.map((day) => (
           <TableCell key={day} className="text-left relative group w-12">
-            {eventsByDay[day].map((event, index) => (
+            {eventsByDay[day].map((calendarEvent, index) => (
               <div key={index} className="relative">
-                {event.status === "time_off" ? (
-                  <div className="text-purple-600 dark:text-purple-500">
-                    Approved Time Off
-                  </div>
-                ) : event.status === "called_out" ? (
-                  <div className="text-red-500 dark:text-red-400">
-                    Called Out
-                  </div>
-                ) : event.status === "left_early" ? (
-                  <div className="text-orange-500 dark:text-orange-400">
-                    Left Early
-                  </div>
-                ) : event.status && event.status.startsWith("Custom:") ? (
-                  <div className="text-green-500 dark:text-green-400">
-                    {event.status.replace("Custom:", "").trim()}
-                  </div>
-                ) : event.status === "added_day" ? (
-                  <div className="text-pink-500 dark:text-pink-300">
-                    {`${formatTZ(
-                      toZonedTime(
-                        new Date(`1970-01-01T${event.start_time}`),
-                        timeZone
-                      ),
-                      "h:mma",
-                      { timeZone }
-                    )}-${formatTZ(
-                      toZonedTime(
-                        new Date(`1970-01-01T${event.end_time}`),
-                        timeZone
-                      ),
-                      "h:mma",
-                      { timeZone }
-                    )}`}
-                  </div>
-                ) : event.start_time && event.end_time ? (
-                  <div
-                    className={
-                      toZonedTime(
-                        new Date(`1970-01-01T${event.start_time}`),
-                        timeZone
-                      ).getHours() < 12
-                        ? "text-amber-500 dark:text-amber-400"
-                        : "text-blue-500 dark:text-blue-400"
-                    }
-                  >
-                    {`${formatTZ(
-                      toZonedTime(
-                        new Date(`1970-01-01T${event.start_time}`),
-                        timeZone
-                      ),
-                      "h:mma",
-                      { timeZone }
-                    )}-${formatTZ(
-                      toZonedTime(
-                        new Date(`1970-01-01T${event.end_time}`),
-                        timeZone
-                      ),
-                      "h:mma",
-                      { timeZone }
-                    )}`}
-                  </div>
-                ) : (
-                  <div className="text-gray-800 dark:text-gray-300">Off</div>
-                )}
+                {calendarEvent.status === "added_day" ? (
+  // Always show added_day status
+  <div className="text-pink-500 dark:text-pink-300">
+    {`${formatTZ(
+      toZonedTime(new Date(`1970-01-01T${calendarEvent.start_time}`), timeZone),
+      "h:mma",
+      { timeZone }
+    )}-${formatTZ(
+      toZonedTime(new Date(`1970-01-01T${calendarEvent.end_time}`), timeZone),
+      "h:mma",
+      { timeZone }
+    )}`}
+  </div>
+) : calendarEvent.start_time && calendarEvent.end_time ? (
+  calendarEvent.status === "time_off" ? (
+    <div className="text-purple-600 dark:text-purple-500">Approved Time Off</div>
+  ) : calendarEvent.status === "called_out" ? (
+    <div className="text-red-500 dark:text-red-400">Called Out</div>
+  ) : calendarEvent.status === "left_early" ? (
+    <div className="text-orange-500 dark:text-orange-400">Left Early</div>
+  ) : calendarEvent.status && calendarEvent.status.startsWith("Custom:") ? (
+    <div className="text-green-500 dark:text-green-400">
+      {calendarEvent.status.replace("Custom:", "").trim()}
+    </div>
+  ) : (
+    <div
+      className={
+        toZonedTime(new Date(`1970-01-01T${calendarEvent.start_time}`), timeZone)
+          .getHours() < 12
+          ? "text-amber-500 dark:text-amber-400"
+          : "text-blue-500 dark:text-blue-400"
+      }
+    >
+      {`${formatTZ(
+        toZonedTime(new Date(`1970-01-01T${calendarEvent.start_time}`), timeZone),
+        "h:mma",
+        { timeZone }
+      )}-${formatTZ(
+        toZonedTime(new Date(`1970-01-01T${calendarEvent.end_time}`), timeZone),
+        "h:mma",
+        { timeZone }
+      )}`}
+    </div>
+  )
+) : null}
 
+  
                 {(role === "admin" || role === "super admin") && (
                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                     <Popover>
@@ -422,8 +404,8 @@ export default function Component() {
                           variant="linkHover2"
                           onClick={() =>
                             updateScheduleStatus(
-                              event.employee_id,
-                              event.schedule_date,
+                              calendarEvent.employee_id,
+                              calendarEvent.schedule_date,
                               "called_out"
                             )
                           }
@@ -434,8 +416,8 @@ export default function Component() {
                           variant="linkHover2"
                           onClick={() =>
                             updateScheduleStatus(
-                              event.employee_id,
-                              event.schedule_date,
+                              calendarEvent.employee_id,
+                              calendarEvent.schedule_date,
                               "left_early"
                             )
                           }
@@ -446,8 +428,8 @@ export default function Component() {
                           variant="linkHover2"
                           onClick={() =>
                             updateScheduleStatus(
-                              event.employee_id,
-                              event.schedule_date,
+                              calendarEvent.employee_id,
+                              calendarEvent.schedule_date,
                               "Custom:Off"
                             )
                           }
@@ -460,7 +442,7 @@ export default function Component() {
                               className="p-4"
                               variant="linkHover2"
                               onClick={() => {
-                                setCurrentEvent(event);
+                                setCurrentEvent(calendarEvent);
                                 setDialogOpen(true);
                               }}
                             >
@@ -498,6 +480,7 @@ export default function Component() {
       </TableRow>
     );
   };
+  
 
   return (
     <RoleBasedWrapper

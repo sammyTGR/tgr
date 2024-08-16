@@ -8,9 +8,8 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { format } from "date-fns";
 
-
 const title = "Review Time Off Requests";
-
+const timeZone = "America/Los_Angeles"; // Set your desired timezone
 interface TimeOffRequest {
   request_id: number;
   employee_id: number;
@@ -64,11 +63,21 @@ export default function ApproveRequestsPage() {
   };
 
   const handleDeny = async (request_id: number) => {
-    await handleRequest(
-      request_id,
-      "denied",
-      "Your Time Off Request Has Been Denied. Please Contact Management Directly For Details."
-    );
+    try {
+      // Handle the request
+      await handleRequest(
+        request_id,
+        "denied",
+        "Your Time Off Request Has Been Denied. Please Contact Management Directly For Details."
+      );
+
+      // Remove the denied request from the state to update the review page
+      setRequests((prevRequests) =>
+        prevRequests.filter((request) => request.request_id !== request_id)
+      );
+    } catch (error) {
+      console.error("Failed to deny request:", error);
+    }
   };
 
   const handleCalledOut = async (request_id: number) => {
@@ -166,8 +175,6 @@ export default function ApproveRequestsPage() {
     use_sick_time: boolean = false
   ) => {
     try {
-      const timeZone = 'America/Los_Angeles'; // Set your desired timezone
-  
       const shouldUseSickTime =
         use_sick_time &&
         (action === "time_off" ||
@@ -196,19 +203,15 @@ export default function ApproveRequestsPage() {
         throw new Error("Email not found in API response");
       }
   
-      const startDate = toZonedTime(new Date(start_date), timeZone);
-      const endDate = toZonedTime(new Date(end_date), timeZone);
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
       const dates = [];
-      for (
-        let d = new Date(startDate);
-        d <= endDate;
-        d.setDate(d.getDate() + 1)
-      ) {
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         dates.push(new Date(d));
       }
   
       for (const date of dates) {
-        const formattedDate = formatTZ(date, "yyyy-MM-dd", { timeZone });
+        const formattedDate = date.toISOString().split("T")[0];
         const dayOfWeek = date.getUTCDay();
         const daysOfWeek = [
           "Sunday",
@@ -240,6 +243,7 @@ export default function ApproveRequestsPage() {
           !refSchedules ||
           (refSchedules.start_time === null && refSchedules.end_time === null)
         ) {
+          // Skip inserting or updating schedules for days the employee isn't scheduled to work
           continue;
         }
   
