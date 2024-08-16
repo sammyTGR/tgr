@@ -63,10 +63,10 @@ export default function ProfilePage() {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto">
-      <header className="bg-gray-100 dark:bg-gray-800 p-6 rounded-t-lg flex items-center gap-4">
+    <Card className="w-full max-w-3xl my-8 mx-auto">
+      <header className="bg-gray-200 dark:bg-gray-800 p-6 rounded-t-lg flex items-center gap-4">
         <Avatar className="h-12 w-12">
-          <AvatarImage src="/placeholder-user.jpg" />
+          <AvatarImage src="/banner.png" />
           <AvatarFallback></AvatarFallback>
         </Avatar>
         <div>
@@ -116,7 +116,9 @@ export default function ProfilePage() {
             <Separator />
           </div>
           <div className="flex justify-end">
-            <Button type="submit">Save Changes</Button>
+            <Button variant="linkHover1" type="submit">
+              Save Changes
+            </Button>
           </div>
         </div>
       </form>

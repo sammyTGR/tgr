@@ -1,7 +1,12 @@
 "use client";
 
 import { Table } from "@tanstack/react-table";
-import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from "@radix-ui/react-icons";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DoubleArrowLeftIcon,
+  DoubleArrowRightIcon,
+} from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,7 +21,9 @@ interface SchedulePaginationProps<TData> {
   table: Table<TData>;
 }
 
-export function SchedulePagination<TData>({ table }: SchedulePaginationProps<TData>) {
+export function SchedulePagination<TData>({
+  table,
+}: SchedulePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2 py-4">
       <div className="flex items-center space-x-2">
@@ -50,7 +57,7 @@ export function SchedulePagination<TData>({ table }: SchedulePaginationProps<TDa
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 40, 50].map((pageSize) => (
+              {[7, 10, 20, 30, 40, 50].map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>

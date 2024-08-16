@@ -210,7 +210,10 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
 
       await fetchCalendarData();
     } catch (error) {
-      console.error("Failed to update schedule status:", (error as Error).message);
+      console.error(
+        "Failed to update schedule status:",
+        (error as Error).message
+      );
     }
   };
 
@@ -240,37 +243,46 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
           <TableCell key={day} className="text-left relative group">
             {eventsByDay[day].map((event, index) => (
               <div key={index} className="relative">
-                {event.status === "time_off" ? (
-                  <div className="text-purple-500 dark:text-purple-400">
-                    Approved Time Off
-                  </div>
-                ) : event.status === "called_out" ? (
-                  <div className="text-red-500 dark:text-red-400">
-                    Called Out
-                  </div>
-                ) : event.status === "left_early" ? (
-                  <div className="text-orange-500 dark:text-orange-400">
-                    Left Early
-                  </div>
-                ) : event.status && event.status.startsWith("Custom:") ? (
-                  <div className="text-green-500 dark:text-green-400">
-                    {event.status.replace("Custom:", "").trim()}
-                  </div>
-                ) : event.start_time === null || event.end_time === null ? (
-                  <div className="text-gray-800 dark:text-gray-300">Off</div>
-                ) : (
-                  <div
-                    className={
-                      new Date(`1970-01-01T${event.start_time}Z`) <=
-                      new Date("1970-01-01T11:30:00Z")
-                        ? "text-amber-500 dark:text-amber-400"
-                        : "text-blue-500 dark:text-blue-400"
-                    }
-                  >
+                {/* Only show the status if it's "added_day" or if start_time and end_time are not null */}
+                {event.status === "added_day" ? (
+                  <div className="text-pink-500 dark:text-pink-300">
                     {`${formatTime(event.start_time)} - ${formatTime(
                       event.end_time
                     )}`}
                   </div>
+                ) : event.start_time !== null && event.end_time !== null ? (
+                  event.status === "time_off" ? (
+                    <div className="text-purple-500 dark:text-purple-400">
+                      Approved Time Off
+                    </div>
+                  ) : event.status === "called_out" ? (
+                    <div className="text-red-500 dark:text-red-400">
+                      Called Out
+                    </div>
+                  ) : event.status === "left_early" ? (
+                    <div className="text-orange-500 dark:text-orange-400">
+                      Left Early
+                    </div>
+                  ) : event.status && event.status.startsWith("Custom:") ? (
+                    <div className="text-green-500 dark:text-green-400">
+                      {event.status.replace("Custom:", "").trim()}
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        new Date(`1970-01-01T${event.start_time}Z`) <=
+                        new Date("1970-01-01T11:30:00Z")
+                          ? "text-amber-500 dark:text-amber-400"
+                          : "text-blue-500 dark:text-blue-400"
+                      }
+                    >
+                      {`${formatTime(event.start_time)} - ${formatTime(
+                        event.end_time
+                      )}`}
+                    </div>
+                  )
+                ) : (
+                  <></> // Hide the status if it's not "added_day" and start_time/end_time are null
                 )}
                 {(role === "admin" || role === "super admin") && (
                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
@@ -366,35 +378,33 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
     <div className="flex flex-col items-center space-y-4 p-4 overflow-hidden">
       {/* <Card className="flex-1 flex flex-col w-full max-w-6xl overflow-hidden">
         <CardContent className="h-full overflow-hidden"> */}
-          <div className="flex justify-between w-full mb-4">
-            <Button variant="linkHover2" onClick={handlePreviousWeek}>
-              <ChevronLeftIcon className="h-4 w-4" />
-              Previous Week
-            </Button>
-            <Button variant="linkHover1" onClick={handleNextWeek}>
-              Next Week
-              <ChevronRightIcon className="h-4 w-4" />
-            </Button>
-          </div>
-          <Table className="min-w-full overflow-hidden">
-            <TableHeader>
-              <TableRow>
-                {daysOfWeek.map((day) => (
-                  <TableHead key={day}>
-                    {day}
-                    <br />
-                    {weekDates[day]}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.calendarData.map((employee) =>
-                renderEmployeeRow(employee)
-              )}
-            </TableBody>
-          </Table>
-        {/* </CardContent>
+      <div className="flex justify-between w-full mb-4">
+        <Button variant="linkHover2" onClick={handlePreviousWeek}>
+          <ChevronLeftIcon className="h-4 w-4" />
+          Previous Week
+        </Button>
+        <Button variant="linkHover1" onClick={handleNextWeek}>
+          Next Week
+          <ChevronRightIcon className="h-4 w-4" />
+        </Button>
+      </div>
+      <Table className="min-w-full overflow-hidden">
+        <TableHeader>
+          <TableRow>
+            {daysOfWeek.map((day) => (
+              <TableHead key={day}>
+                {day}
+                <br />
+                {weekDates[day]}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.calendarData.map((employee) => renderEmployeeRow(employee))}
+        </TableBody>
+      </Table>
+      {/* </CardContent>
       </Card> */}
     </div>
   );

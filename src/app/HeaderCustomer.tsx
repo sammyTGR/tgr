@@ -5,7 +5,13 @@ import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { HomeIcon } from "@radix-ui/react-icons";
+import {
+  AvatarIcon,
+  HomeIcon,
+  MoonIcon,
+  ShadowIcon,
+  SunIcon,
+} from "@radix-ui/react-icons";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -18,6 +24,18 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { PersonIcon, ChevronDownIcon } from "@radix-ui/react-icons"; // Add icons import
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
 
 const accountComponents = [
   {
@@ -42,6 +60,7 @@ const profileMenuItems = [
 
 const HeaderCustomer = React.memo(() => {
   const [user, setUser] = useState<any>(null);
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -61,10 +80,22 @@ const HeaderCustomer = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["customer"]}>
-      <header className="flex justify-between items-center p-2">
+      <header className="flex justify-between items-center">
         <NavigationMenu>
-          <NavigationMenuList className="flex space-x-4 mr-3">
-          {/* <NavigationMenuItem>
+          <NavigationMenuList className="flex mr-3">
+            <NavigationMenuItem>
+              <Link href="/">
+                <Button variant="linkHover2">Home</Button>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link href="/public/classes">
+                <Button variant="linkHover2">Classes</Button>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
               <NavigationMenuTrigger>Account</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -79,52 +110,85 @@ const HeaderCustomer = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem> */}
-            <div className="ml-auto">
-            <NavigationMenuItem>
-              <NavigationMenuTrigger className="flex items-center gap-1">
-                <PersonIcon />
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {accountComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
             </NavigationMenuItem>
-            </div>
+
+            {/* <div className="ml-auto">
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className="flex items-center gap-1">
+                  <PersonIcon />
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {accountComponents.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </div> */}
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex items-center mr-1 gap-2">
           {user ? (
             <>
-              <Button
-                variant="gooeyLeft"
-                
-                size="sm"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="linkHover2" size="icon" className="mr-2">
+                    <PersonIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 mr-2">
+                  <DropdownMenuItem>
+                    <AvatarIcon className="mr-2 h-4 w-4" />
+                    <Link href="/public/profiles">
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <ShadowIcon className="mr-2 h-4 w-4" />
+                      <span>Change Theme</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          <SunIcon className="mr-2 h-4 w-4" />
+                          <span>Light</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          <MoonIcon className="mr-2 h-4 w-4" />
+                          <span>Dark</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <Link href="/sign-in">
               <Button>Sign In</Button>
             </Link>
           )}
-          <Link href="/">
+          {/* <Link href="/">
             <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>
           </Link>
-          <ModeToggle />
+          <ModeToggle /> */}
         </div>
       </header>
     </RoleBasedWrapper>

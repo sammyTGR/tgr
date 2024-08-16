@@ -49,7 +49,7 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
         setProgress(70); // Update progress
 
         if (roleError || !roleData) {
-          // Check the profiles table if not found in employees table
+          // Check the customer table if not found in employees table
           const { data: customerData, error: customerError } = await supabase
             .from("customers")
             .select("role")

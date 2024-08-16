@@ -460,23 +460,6 @@ const ManageSchedules = () => {
             <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-bold">Publish A Schedule</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col mx-auto">
-                  <PopoverForm
-                    onSubmit={(employeeName: string, weeks?: string) =>
-                      handleGenerateSingleSchedule(employeeName, weeks)
-                    }
-                    buttonText="Select Employee"
-                    placeholder="Enter employee name and weeks"
-                    formType="generate"
-                    employees={employees}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
                   <h2 className="text-lg font-bold">Clear A Schedule</h2>
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
@@ -487,6 +470,23 @@ const ManageSchedules = () => {
                     buttonText="Select Employee"
                     placeholder="Enter employee name"
                     formType="clearSchedule"
+                    employees={employees}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-bold">Publish A Schedule</h2>
+                </CardHeader>
+                <CardContent className="flex flex-col mx-auto">
+                  <PopoverForm
+                    onSubmit={(employeeName: string, weeks?: string) =>
+                      handleGenerateSingleSchedule(employeeName, weeks)
+                    }
+                    buttonText="Select Employee"
+                    placeholder="Enter employee name and weeks"
+                    formType="generate"
                     employees={employees}
                   />
                 </CardContent>

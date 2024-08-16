@@ -20,7 +20,11 @@ interface DataTableProps<TData> {
   fetchReferenceSchedules: () => void; // Function to refresh schedules after update
 }
 
-export function DataTable<TData>({ columns, data, fetchReferenceSchedules }: DataTableProps<TData>) {
+export function DataTable<TData>({
+  columns,
+  data,
+  fetchReferenceSchedules,
+}: DataTableProps<TData>) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
@@ -36,6 +40,7 @@ export function DataTable<TData>({ columns, data, fetchReferenceSchedules }: Dat
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: { pagination: { pageSize: 7 } },
   });
 
   const handleResetFilter = () => {
@@ -51,14 +56,14 @@ export function DataTable<TData>({ columns, data, fetchReferenceSchedules }: Dat
           value={searchInput}
           onChange={(event) => {
             setSearchInput(event.target.value);
-            table.getColumn("employee_name")?.setFilterValue(event.target.value);
+            table
+              .getColumn("employee_name")
+              ?.setFilterValue(event.target.value);
           }}
           className="max-w-sm w-full"
         />
         {searchInput && (
-          <Button onClick={handleResetFilter}>
-            Reset Filter
-          </Button>
+          <Button onClick={handleResetFilter}>Reset Filter</Button>
         )}
       </div>
       <div className="overflow-auto">
@@ -91,11 +96,10 @@ export function DataTable<TData>({ columns, data, fetchReferenceSchedules }: Dat
                   </td>
                 ))}
                 <td>
-                <ScheduleRowActions
-  row={row}
-  fetchReferenceSchedules={fetchReferenceSchedules}
-/>
-
+                  <ScheduleRowActions
+                    row={row}
+                    fetchReferenceSchedules={fetchReferenceSchedules}
+                  />
                 </td>
               </tr>
             ))}

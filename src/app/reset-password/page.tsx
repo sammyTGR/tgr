@@ -83,7 +83,7 @@ export default function ResetPassword() {
                     {...field}
                     id="email"
                     type="email"
-                    placeholder="m@example.com"
+                    placeholder="uspsashooter@example.com"
                     required
                   />
                 )}
@@ -94,7 +94,12 @@ export default function ResetPassword() {
                 </span>
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              variant="outline"
+              type="submit"
+              className="w-full"
+              disabled={loading}
+            >
               {loading ? "Sending..." : "Send Reset Email"}
             </Button>
           </form>
