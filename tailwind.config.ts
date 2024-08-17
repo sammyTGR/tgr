@@ -1,3 +1,5 @@
+import { withUt } from "uploadthing/tw";
+
 const defaultTheme = require("tailwindcss/defaultTheme");
 const colors = require("tailwindcss/colors");
 const {
@@ -5,7 +7,7 @@ const {
 } = require("tailwindcss/lib/util/flattenColorPalette");
 
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+module.exports = withUt({
   darkMode: "class",
   content: [
     './pages/**/*.{ts,tsx}',
@@ -134,21 +136,21 @@ module.exports = {
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
-          "shine": {
-          from: { backgroundPosition: '200% 0' },
-          to: { backgroundPosition: '-200% 0' },
-          },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "shine": {
+          from: { backgroundPosition: "200% 0" },
+          to: { backgroundPosition: "-200% 0" },
+        },
         "meteor": {
-          "0%": { transform: "rotate(215deg) translateX(0)", opacity: 1 },
-          "70%": { opacity: 1 },
+          "0%": { transform: "rotate(215deg) translateX(0)", opacity: "1" },
+          "70%": { opacity: "1" },
           "100%": {
             transform: "rotate(215deg) translateX(-500px)",
-            opacity: 0,
+            opacity: "0",
           },
         },
         hide: {
@@ -176,9 +178,7 @@ module.exports = {
           to: { height: "var(--radix-accordion-content-height)" },
         },
         accordionClose: {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0px" },
         },
         dialogOverlayShow: {
@@ -193,6 +193,7 @@ module.exports = {
           to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
         },
       },
+      
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
@@ -284,7 +285,7 @@ module.exports = {
     require('@headlessui/tailwindcss'),
   ],
   addVariablesForColors,
-};
+});
 
 // This plugin adds each Tailwind color as a global CSS variable, e.g. var(--gray-200).
 function addVariablesForColors({ addBase, theme }: any) {

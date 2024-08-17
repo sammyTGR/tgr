@@ -171,6 +171,7 @@ const EmployeeProfilePage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
   const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
+  const [lunchBreakTime, setLunchBreakTime] = useState<string | null>(null);
 
   const calculateDurationWithLunch = (
     start: string,
@@ -231,6 +232,14 @@ const EmployeeProfilePage = () => {
         setClockInTime(now);
         setIsClockedIn(true);
         setCurrentShift(existingData);
+
+        // Calculate lunch break time (5 hours after start time)
+        const lunchBreak = new Date(startTime);
+        lunchBreak.setHours(lunchBreak.getHours() + 5);
+        setLunchBreakTime(
+          formatTZ(toZonedTime(lunchBreak, timeZone), "h:mm a", { timeZone })
+        );
+
         toast.success(`Welcome Back ${employee.name}!`);
       }
     } else {
@@ -251,6 +260,14 @@ const EmployeeProfilePage = () => {
         setClockInTime(now);
         setIsClockedIn(true);
         setCurrentShift(insertData);
+
+        // Calculate lunch break time (5 hours after start time)
+        const lunchBreak = new Date(startTime);
+        lunchBreak.setHours(lunchBreak.getHours() + 5);
+        setLunchBreakTime(
+          formatTZ(toZonedTime(lunchBreak, timeZone), "h:mm a", { timeZone })
+        );
+
         toast.success(`Welcome Back ${employee.name}!`);
       }
     }
@@ -334,6 +351,7 @@ const EmployeeProfilePage = () => {
       console.error("Error starting lunch break:", error);
     } else {
       setOnLunchBreak(true);
+      setLunchBreakTime(formatTZ(now, "h:mm a", { timeZone })); // Update to actual lunch start time
       setPopoverOpen(false);
       toast.success(`Enjoy Your Lunch ${employee.name}!`);
     }
@@ -375,24 +393,42 @@ const EmployeeProfilePage = () => {
 
     if (error && error.code !== "PGRST116") {
       console.error("Error fetching current shift:", error);
+    } else if (data) {
+      setIsClockedIn(!!data.start_time && !data.end_time);
+      setOnLunchBreak(!!data.lunch_start && !data.lunch_end && !data.end_time);
+      setClockInTime(
+        data.start_time ? new Date(`1970-01-01T${data.start_time}Z`) : null
+      );
+      setCurrentShift(data);
     } else {
-      if (data) {
-        setIsClockedIn(!!data.start_time && !data.end_time);
-        setOnLunchBreak(
-          !!data.lunch_start && !data.lunch_end && !data.end_time
-        );
-        setClockInTime(
-          data.start_time ? new Date(`1970-01-01T${data.start_time}Z`) : null
-        );
-        setCurrentShift(data);
-      } else {
-        setIsClockedIn(false);
-        setOnLunchBreak(false);
-        setClockInTime(null);
-        setCurrentShift(null);
-      }
+      // If no current shift exists, assume the user is not clocked in
+      setIsClockedIn(false);
+      setOnLunchBreak(false);
+      setClockInTime(null);
+      setCurrentShift(null);
     }
   };
+
+  // Call fetchCurrentShift in useEffect
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setProgress(0);
+
+      await fetchEmployeeData();
+      await fetchAvailableTimeOff();
+      await fetchAvailableSickTime();
+      await fetchReviews();
+      await fetchWeeklySummary();
+      await fetchPayPeriodSummary();
+      await fetchCurrentShift(); // Ensure this is called to check if the user is clocked in
+
+      setProgress(100); // Final progress
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [employeeId, userUuid]);
 
   const calculateDuration = (start: Date, end: Date): string => {
     const diff = end.getTime() - start.getTime();
@@ -1082,6 +1118,63 @@ const EmployeeProfilePage = () => {
                             </div>
                           ) : (
                             <div>Not clocked in</div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className="mt-4">
+                        <CardHeader className="flex justify-between items-center">
+                          <CardTitle className="text-2xl font-bold">
+                            Lunch Break
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="mx-auto">
+                          {currentShift?.lunch_start &&
+                          currentShift?.lunch_end ? (
+                            <div>{`Your Lunch Break Was From ${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  `1970-01-01T${currentShift.lunch_start}`
+                                ),
+                                timeZone
+                              ),
+                              "h:mm a",
+                              { timeZone }
+                            )} to ${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  `1970-01-01T${currentShift.lunch_end}`
+                                ),
+                                timeZone
+                              ),
+                              "h:mm a",
+                              { timeZone }
+                            )}`}</div>
+                          ) : currentShift?.lunch_start ? (
+                            <div>{`You Clocked Out For Lunch At ${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  `1970-01-01T${currentShift.lunch_start}`
+                                ),
+                                timeZone
+                              ),
+                              "h:mm a",
+                              { timeZone }
+                            )}`}</div>
+                          ) : (
+                            <div>{`Please Start Your Lunch Break By ${formatTZ(
+                              toZonedTime(
+                                new Date(
+                                  new Date(
+                                    `${currentShift.event_date}T${currentShift.start_time}`
+                                  ).getTime() +
+                                    5 * 60 * 60 * 1000
+                                ),
+                                timeZone
+                              ),
+                              "h:mm a",
+                              { timeZone }
+                            )}`}</div>
                           )}
                         </CardContent>
                       </Card>

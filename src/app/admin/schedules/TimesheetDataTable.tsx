@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TimesheetRowActions } from "./timesheet-row-actions"; // Import the correct RowActions component
+import { TimesheetPagination } from "./TimesheetPagination";
 
 interface TimesheetData {
   id: number;
@@ -53,6 +54,7 @@ export function TimesheetDataTable({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: { pagination: { pageSize: 10 } }, // Initialize pagination with a page size of 10
   });
 
   const handleResetFilter = () => {
@@ -118,6 +120,25 @@ export function TimesheetDataTable({
           </tbody>
         </table>
       </div>
+      <TimesheetPagination table={table} />
+      {/* <div className="flex justify-between items-center mt-4 px-6 py-2">
+        <Button
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <span className="text-sm">
+          Page {table.getState().pagination.pageIndex + 1} of{" "}
+          {table.getPageCount()}
+        </span>
+        <Button
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
+      </div> */}
     </div>
   );
 }

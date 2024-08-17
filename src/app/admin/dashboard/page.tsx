@@ -6,6 +6,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { AvatarIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/context/RoleContext";
+import { Input } from "@/components/ui/input";
 
 interface Employee {
   employee_id: number;
@@ -20,8 +21,12 @@ const Dashboard = () => {
   );
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeePosition, setNewEmployeePosition] = useState("");
-
   const { role, user } = useRole(); // Get role and user from context
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredEmployees = employees.filter((employee) =>
+    employee.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     fetchEmployees();
@@ -69,7 +74,7 @@ const Dashboard = () => {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-              Staff Notes
+              Staff Profiles
             </h1>
           </div>
         </div>
@@ -77,8 +82,15 @@ const Dashboard = () => {
       <section className="w-full py-12 md:py-6">
         <div className="container px-4 md:px-6">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-3">
+            <Input
+              className="mb-4 p-2 border rounded w-full"
+              type="text"
+              placeholder="Search employees by name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <div className="col-span-full flex justify-center"></div>
-            {employees.map((employee) => (
+            {filteredEmployees.map((employee) => (
               <div
                 key={employee.employee_id}
                 className="flex flex-col items-center justify-center p-4 border rounded-lg shadow-md"
@@ -95,7 +107,8 @@ const Dashboard = () => {
                 <span className="text-gray-500">{employee.position}</span>
               </div>
             ))}
-            <div className="col-span-full flex justify-center">
+
+            {/* <div className="col-span-full flex justify-center">
               <h2 className="text-2xl font-bold">Create New Employee</h2>
             </div>
             <div className="col-span-full flex flex-col items-center justify-center">
@@ -135,7 +148,7 @@ const Dashboard = () => {
               >
                 Create Employee
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>

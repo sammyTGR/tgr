@@ -7,6 +7,9 @@ import Header from "../app/header";
 import { RoleProvider } from "../context/RoleContext";
 import NotificationsProvider from "@/components/NotificationsProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/pages/api/uploadthing/core";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,6 +33,7 @@ export default function RootLayout({
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
           <body className={inter.className}>
+            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
             <ThemeProvider
               attribute="class"
               defaultTheme="system"

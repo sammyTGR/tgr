@@ -18,6 +18,7 @@ import { DataTable } from "./DataTable";
 import { TimesheetDataTable } from "./TimesheetDataTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { TimesheetPagination } from "./TimesheetPagination";
 
 interface ScheduleData {
   id: number;
@@ -78,7 +79,14 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
     header: "Date",
     cell: (info) =>
       info.getValue()
-        ? new Date(info.getValue() as string).toLocaleDateString()
+        ? formatTZ(
+            toZonedTime(
+              new Date(`${info.getValue()}T00:00:00`),
+              "America/Los_Angeles"
+            ),
+            "M/dd/yyyy", // Change the format string to M/dd/yyyy
+            { timeZone: "America/Los_Angeles" }
+          )
         : "N/A",
   },
   {
@@ -202,48 +210,63 @@ const ManageSchedules = () => {
       return;
     }
 
-    const formattedTimesheets = timesheets.map((timesheet) => ({
-      ...timesheet,
-      start_time: timesheet.start_time
-        ? formatTZ(
-            toZonedTime(
-              new Date(`1970-01-01T${timesheet.start_time}`),
-              timeZone
-            ),
-            "hh:mm a",
-            { timeZone }
+    const formattedTimesheets = timesheets.map((timesheet) => {
+      // No timezone conversion is needed, just format the time
+      const startTime = timesheet.start_time
+        ? new Date(`1970-01-01T${timesheet.start_time}`).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
           )
-        : "N/A",
-      lunch_start: timesheet.lunch_start
-        ? formatTZ(
-            toZonedTime(
-              new Date(`1970-01-01T${timesheet.lunch_start}`),
-              timeZone
-            ),
-            "hh:mm a",
-            { timeZone }
-          )
-        : "N/A",
-      lunch_end: timesheet.lunch_end
-        ? formatTZ(
-            toZonedTime(
-              new Date(`1970-01-01T${timesheet.lunch_end}`),
-              timeZone
-            ),
-            "hh:mm a",
-            { timeZone }
-          )
-        : "N/A",
-      end_time: timesheet.end_time
-        ? formatTZ(
-            toZonedTime(new Date(`1970-01-01T${timesheet.end_time}`), timeZone),
-            "hh:mm a",
-            { timeZone }
-          )
-        : "N/A",
-    }));
+        : "N/A";
 
-    // console.log("Formatted Timesheet Data:", formattedTimesheets); // Ensure this logs the correct data
+      const endTime = timesheet.end_time
+        ? new Date(`1970-01-01T${timesheet.end_time}`).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
+          )
+        : "N/A";
+
+      const lunchStart = timesheet.lunch_start
+        ? new Date(`1970-01-01T${timesheet.lunch_start}`).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
+          )
+        : "N/A";
+
+      const lunchEnd = timesheet.lunch_end
+        ? new Date(`1970-01-01T${timesheet.lunch_end}`).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
+          )
+        : "N/A";
+
+      let totalHours = null;
+      if (timesheet.start_time && timesheet.end_time) {
+        const start = new Date(`1970-01-01T${timesheet.start_time}`).getTime();
+        const end = new Date(`1970-01-01T${timesheet.end_time}`).getTime();
+        const lunchStart = timesheet.lunch_start
+          ? new Date(`1970-01-01T${timesheet.lunch_start}`).getTime()
+          : 0;
+        const lunchEnd = timesheet.lunch_end
+          ? new Date(`1970-01-01T${timesheet.lunch_end}`).getTime()
+          : 0;
+
+        let duration = (end - start) / 1000 / 3600;
+        if (lunchStart && lunchEnd) {
+          duration -= (lunchEnd - lunchStart) / 1000 / 3600;
+        }
+        totalHours = duration.toFixed(2);
+      }
+
+      return {
+        ...timesheet,
+        start_time: startTime,
+        lunch_start: lunchStart,
+        lunch_end: lunchEnd,
+        end_time: endTime,
+        total_hours: totalHours ? `${totalHours} hours` : "N/A",
+      };
+    });
 
     setTimesheets(formattedTimesheets);
   };
