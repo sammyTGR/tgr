@@ -2156,7 +2156,7 @@ const EmployeeProfile = () => {
                         </Card>
                       </div>
 
-                      <Card className="mt-4">
+                      {/* <Card className="mt-4">
                         <CardHeader>
                           <CardTitle>Audit Performance Overview</CardTitle>
                         </CardHeader>
@@ -2166,7 +2166,7 @@ const EmployeeProfile = () => {
                             selectedDate={selectedDate}
                           />
                         </CardContent>
-                      </Card>
+                      </Card> */}
 
                       <Card>
                         <CardContent>
