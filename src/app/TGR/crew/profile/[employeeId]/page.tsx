@@ -1123,61 +1123,57 @@ const EmployeeProfilePage = () => {
                       </Card>
 
                       <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Lunch Break
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {currentShift?.lunch_start &&
-                          currentShift?.lunch_end ? (
-                            <div>{`Your Lunch Break Was From ${formatTZ(
-                              toZonedTime(
-                                new Date(
-                                  `1970-01-01T${currentShift.lunch_start}`
-                                ),
-                                timeZone
-                              ),
-                              "h:mm a",
-                              { timeZone }
-                            )} to ${formatTZ(
-                              toZonedTime(
-                                new Date(
-                                  `1970-01-01T${currentShift.lunch_end}`
-                                ),
-                                timeZone
-                              ),
-                              "h:mm a",
-                              { timeZone }
-                            )}`}</div>
-                          ) : currentShift?.lunch_start ? (
-                            <div>{`You Clocked Out For Lunch At ${formatTZ(
-                              toZonedTime(
-                                new Date(
-                                  `1970-01-01T${currentShift.lunch_start}`
-                                ),
-                                timeZone
-                              ),
-                              "h:mm a",
-                              { timeZone }
-                            )}`}</div>
-                          ) : (
-                            <div>{`Please Start Your Lunch Break By ${formatTZ(
-                              toZonedTime(
-                                new Date(
-                                  new Date(
-                                    `${currentShift.event_date}T${currentShift.start_time}`
-                                  ).getTime() +
-                                    5 * 60 * 60 * 1000
-                                ),
-                                timeZone
-                              ),
-                              "h:mm a",
-                              { timeZone }
-                            )}`}</div>
-                          )}
-                        </CardContent>
-                      </Card>
+  <CardHeader className="flex justify-between items-center">
+    <CardTitle className="text-2xl font-bold">Lunch Break</CardTitle>
+  </CardHeader>
+  <CardContent className="mx-auto">
+    {currentShift ? (
+      currentShift.lunch_start && currentShift.lunch_end ? (
+        <div>{`Your Lunch Break Was From ${formatTZ(
+          toZonedTime(
+            new Date(`1970-01-01T${currentShift.lunch_start}`),
+            timeZone
+          ),
+          "h:mm a",
+          { timeZone }
+        )} to ${formatTZ(
+          toZonedTime(
+            new Date(`1970-01-01T${currentShift.lunch_end}`),
+            timeZone
+          ),
+          "h:mm a",
+          { timeZone }
+        )}`}</div>
+      ) : currentShift.lunch_start ? (
+        <div>{`You Clocked Out For Lunch At ${formatTZ(
+          toZonedTime(
+            new Date(`1970-01-01T${currentShift.lunch_start}`),
+            timeZone
+          ),
+          "h:mm a",
+          { timeZone }
+        )}`}</div>
+      ) : (
+        <div>{`Please Start Your Lunch Break By ${formatTZ(
+          toZonedTime(
+            new Date(
+              new Date(
+                `${currentShift.event_date}T${currentShift.start_time}`
+              ).getTime() +
+                5 * 60 * 60 * 1000
+            ),
+            timeZone
+          ),
+          "h:mm a",
+          { timeZone }
+        )}`}</div>
+      )
+    ) : (
+      <div>Loading...</div> // Handle case when currentShift is null or undefined
+    )}
+  </CardContent>
+</Card>
+
 
                       <Card className="mt-4">
                         <CardHeader className="flex justify-between items-center">
