@@ -49,55 +49,26 @@ export function DataTableRowActions({
 
   const handleSetGunsmithStatus = async (status: string) => {
     try {
-      const today = new Date().toISOString().split("T")[0];
       if (status === "Returned From Gunsmith") {
-        await supabase
-          .from("firearm_verifications")
-          .update({ notes: null })
-          .eq("firearm_id", task.id)
-          .eq("notes", "With Gunsmith");
-
         const { error } = await supabase
           .from("firearms_maintenance")
-          .update({ rental_notes: "" })
+          .update({ rental_notes: "", verified_status: "" })
           .eq("id", task.id);
 
         if (error) {
           throw error;
         }
-
-        // Reset the verification status for both morning and evening
-        await supabase
-          .from("firearm_verifications")
-          .update({
-            serial_verified: false,
-            condition_verified: false,
-            magazine_attached: false,
-          })
-          .eq("firearm_id", task.id)
-          .eq("verification_date", today);
 
         onNotesChange(task.id, ""); // Clear the note in the state
       } else if (status === "With Gunsmith") {
         const { error } = await supabase
           .from("firearms_maintenance")
-          .update({ rental_notes: "With Gunsmith" })
+          .update({ rental_notes: "With Gunsmith", verified_status: null })
           .eq("id", task.id);
 
         if (error) {
           throw error;
         }
-
-        // Clear the verification status for both morning and evening
-        await supabase
-          .from("firearm_verifications")
-          .update({
-            serial_verified: false,
-            condition_verified: false,
-            magazine_attached: false,
-          })
-          .eq("firearm_id", task.id)
-          .eq("verification_date", today);
 
         onNotesChange(task.id, "With Gunsmith"); // Update the local state
       }
@@ -226,7 +197,8 @@ export function DataTableRowActions({
                       throw fetchError;
                     }
 
-                    if (firearm?.rental_notes === "Verified") {
+                    // Reset if rental_notes contains anything other than "With Gunsmith"
+                    if (firearm?.rental_notes !== "With Gunsmith") {
                       await supabase
                         .from("firearms_maintenance")
                         .update({ rental_notes: "", verified_status: "" })

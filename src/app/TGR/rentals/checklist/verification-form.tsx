@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/utils/supabase/client";
-import { toast } from "sonner"; // Import the toast library
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface VerificationFormProps {
   firearmId: number;
@@ -11,7 +21,7 @@ interface VerificationFormProps {
   verificationDate: string;
   verificationTime: string;
   onVerificationComplete: (notes: string, firearmId: number) => void;
-  isWithGunsmith: boolean; // Add this prop to conditionally render form
+  isWithGunsmith: boolean;
 }
 
 export function VerificationForm({
@@ -25,28 +35,24 @@ export function VerificationForm({
   const [serialVerified, setSerialVerified] = useState(false);
   const [conditionVerified, setConditionVerified] = useState(false);
   const [magazineAttached, setMagazineAttached] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [showNotes, setShowNotes] = useState(false); // State to control textarea visibility
   const [withGunsmith, setWithGunsmith] = useState(isWithGunsmith);
   const [rentalOnRange, setRentalOnRange] = useState(false);
+  const [showAlertDialog, setShowAlertDialog] = useState(false); // State to control Alert Dialog visibility
 
   useEffect(() => {
     setWithGunsmith(isWithGunsmith);
-    setRentalOnRange(false); // Initialize rentalOnRange to false
+    setRentalOnRange(false);
   }, [isWithGunsmith]);
 
   const handleSubmit = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent any default form submission behavior
+    e.preventDefault();
 
     const allVerified = serialVerified && conditionVerified && magazineAttached;
 
-    // Check if not all verified and no notes are provided
-    if (!allVerified && !withGunsmith && !rentalOnRange && !notes) {
-      setShowNotes(true); // Show the textarea if not all checkboxes are selected
-      toast.error(
-        "Please enter a note explaining why the verification was not complete."
-      );
-      return; // Exit early if condition is met
+    // Check if not all verified and trigger the Alert Dialog
+    if (!allVerified && !withGunsmith && !rentalOnRange) {
+      setShowAlertDialog(true);
+      return;
     }
 
     const noteText = allVerified
@@ -55,7 +61,7 @@ export function VerificationForm({
       ? "With Gunsmith"
       : rentalOnRange
       ? "Currently Rented Out"
-      : notes;
+      : "";
 
     // Save verification data
     const { error: verificationError } = await supabase
@@ -81,7 +87,7 @@ export function VerificationForm({
       .from("firearms_maintenance")
       .update({
         rental_notes: noteText,
-        verified_status: allVerified ? "Verified" : "", // Update verified_status based on verification
+        verified_status: allVerified ? "Verified" : null,
       })
       .eq("id", firearmId);
 
@@ -140,22 +146,34 @@ export function VerificationForm({
           </p>
         </div>
       </div>
-      {showNotes && !withGunsmith && !rentalOnRange && (
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium">
-            Notes
-          </label>
-          <Textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Explain details about why the verification was not complete..."
-          />
-        </div>
-      )}
+
       <Button variant="linkHover1" onClick={handleSubmit}>
         Submit Verification
       </Button>
+
+      <AlertDialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
+        <AlertDialogTrigger asChild>
+          <Button className="hidden">Trigger</Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Firearm Not Verified</AlertDialogTitle>
+            <AlertDialogDescription>
+              Since this firearm doesn't pass verification, please bring it to
+              management <span className="text-red-500">IMMEDIATELY</span> to report the damage, then mark the firearm
+              as "With Gunsmith".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowAlertDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => setShowAlertDialog(false)}>
+              Got It!
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
