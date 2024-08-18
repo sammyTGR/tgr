@@ -159,9 +159,10 @@ export function VerificationForm({
           <AlertDialogHeader>
             <AlertDialogTitle>Firearm Not Verified</AlertDialogTitle>
             <AlertDialogDescription>
-              Since this firearm doesn&apos;t pass verification, please bring it to
-              management <span className="text-red-500">IMMEDIATELY</span> to report the damage, then mark the firearm
-              as "With Gunsmith".
+              Since this firearm doesn&apos;t pass verification, please bring it
+              to management <span className="text-red-500">IMMEDIATELY</span> to
+              report the damage, then mark the firearm as &quot;With
+              Gunsmith&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
