@@ -1178,7 +1178,7 @@ const EmployeeProfilePage = () => {
                               )}`}</div>
                             )
                           ) : (
-                            <div>Loading...</div> // Handle case when currentShift is null or undefined
+                            <div></div> // Handle case when currentShift is null or undefined
                           )}
                         </CardContent>
                       </Card>
