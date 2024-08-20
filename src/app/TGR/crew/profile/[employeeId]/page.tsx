@@ -334,18 +334,18 @@ const EmployeeProfilePage = () => {
     }
   };
 
+  // Update the handleLunchBreak function
   const handleLunchBreak = async () => {
     const timeZone = "America/Los_Angeles";
     const now = toZonedTime(new Date(), timeZone);
     const lunchStart = formatTZ(now, "HH:mm:ss", { timeZone });
-    const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is the same
 
     const { error } = await supabase
       .from("employee_clock_events")
       .update({
         lunch_start: lunchStart, // Store just the time
       })
-      .eq("id", currentShift.id);
+      .eq("id", currentShift?.id);
 
     if (error) {
       console.error("Error starting lunch break:", error);
@@ -354,6 +354,12 @@ const EmployeeProfilePage = () => {
       setLunchBreakTime(formatTZ(now, "h:mm a", { timeZone })); // Update to actual lunch start time
       setPopoverOpen(false);
       toast.success(`Enjoy Your Lunch ${employee.name}!`);
+
+      // Update the current shift with the new lunch_start time
+      setCurrentShift((prevShift: Shift | null) => ({
+        ...(prevShift as Shift),
+        lunch_start: lunchStart,
+      }));
     }
   };
 

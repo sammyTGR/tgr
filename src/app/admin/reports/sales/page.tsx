@@ -50,6 +50,7 @@ const SalesPage = () => {
   const [totalNetMinusExclusions, setTotalNetMinusExclusions] =
     useState<number>(0);
   const [progress, setProgress] = useState<number>(0);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -211,8 +212,9 @@ const SalesPage = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setFileName(e.target.files[0].name);
     }
   };
 
@@ -456,7 +458,7 @@ const SalesPage = () => {
                 <div className="mt-4 rounded-md border max-w-6xl">
                   <div className="flex items-center gap-2 ml-2">
                     <label className="shadcn-ui-button flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:font-white dark:hover:bg-gray-500 size-icon">
-                      Select File
+                      {fileName ? fileName : "Select File"}
                       <Input
                         type="file"
                         accept=".csv,.xlsx"
@@ -468,7 +470,7 @@ const SalesPage = () => {
                       variant="linkHover1"
                       onClick={handleSubmit}
                       className="mt-4"
-                      disabled={loading} // Disable button when loading
+                      disabled={loading || !file} // Disable button when loading or no file selected
                     >
                       {loading ? "Uploading..." : "Upload and Process"}
                     </Button>

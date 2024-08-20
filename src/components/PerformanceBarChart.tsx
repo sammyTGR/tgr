@@ -18,7 +18,7 @@ const fetchData = async (employeeId: string) => {
   const { data, error } = await supabase
     .from("Auditsinput")
     .select("error_details")
-    .eq("employee_lanid", employeeId);
+    .eq("salesreps", employeeId);
 
   if (error) {
     console.error("Error fetching audit data:", error);
