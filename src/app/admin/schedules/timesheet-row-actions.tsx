@@ -1,7 +1,7 @@
 "use client";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { Row } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,50 +16,66 @@ import { TimesheetData } from "./data-schema";
 
 interface TimesheetRowActionsProps {
   row: Row<TimesheetData>;
-  fetchTimesheets: () => void; // Function to refresh timesheets after update
+  fetchTimesheets: () => void;
+  updateTimesheet: (updatedTimesheet: TimesheetData) => void;
 }
 
 export function TimesheetRowActions({
   row,
   fetchTimesheets,
+  updateTimesheet,
 }: TimesheetRowActionsProps) {
   const timesheet = row.original as TimesheetData;
   const [startTime, setStartTime] = useState(timesheet.start_time || "");
   const [lunchStart, setLunchStart] = useState(timesheet.lunch_start || "");
   const [lunchEnd, setLunchEnd] = useState(timesheet.lunch_end || "");
   const [endTime, setEndTime] = useState(timesheet.end_time || "");
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleUpdate = async (field: string, value: any) => {
-    // console.log(
-    //   `Updating ${field} to ${value} for timesheet ID ${timesheet.id}`
-    // );
-    const { error } = await supabase
-      .from("employee_clock_events")
-      .update({ [field]: value })
-      .eq("id", timesheet.id);
-
-    if (error) {
-      console.error(`Error updating ${field}:`, error);
-    } else {
-      // console.log(
-      //   `Successfully updated ${field} to ${value} for timesheet ID ${timesheet.id}`
-      // );
-      fetchTimesheets(); // Refresh the data
+  useEffect(() => {
+    if (isOpen) {
+      setStartTime(timesheet.start_time || "");
+      setLunchStart(timesheet.lunch_start || "");
+      setLunchEnd(timesheet.lunch_end || "");
+      setEndTime(timesheet.end_time || "");
     }
-  };
+  }, [isOpen, timesheet]);
 
   const applyChanges = async () => {
-    // console.log(
-    //   `Applying changes for timesheet ID ${timesheet.id}: Start Time = ${startTime}, Lunch Start = ${lunchStart}, Lunch End = ${lunchEnd}, End Time = ${endTime}`
-    // );
-    await handleUpdate("start_time", startTime || null);
-    await handleUpdate("lunch_start", lunchStart || null);
-    await handleUpdate("lunch_end", lunchEnd || null);
-    await handleUpdate("end_time", endTime || null);
+    const updates: Partial<TimesheetData> = {};
+
+    if (startTime !== timesheet.start_time) {
+      updates.start_time = startTime || undefined;
+    }
+    if (lunchStart !== timesheet.lunch_start) {
+      updates.lunch_start = lunchStart || null;
+    }
+    if (lunchEnd !== timesheet.lunch_end) {
+      updates.lunch_end = lunchEnd || null;
+    }
+    if (endTime !== timesheet.end_time) {
+      updates.end_time = endTime || null;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { data, error } = await supabase
+        .from("employee_clock_events")
+        .update(updates)
+        .eq("id", timesheet.id)
+        .select();
+
+      if (error) {
+        console.error("Error updating timesheet:", error);
+      } else if (data && data.length > 0) {
+        updateTimesheet(data[0] as TimesheetData);
+      }
+    }
+
+    setIsOpen(false);
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"

@@ -112,7 +112,7 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
     accessorKey: "total_hours",
     header: "Total Hours",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || "",
   },
 ];
 
@@ -217,28 +217,28 @@ const ManageSchedules = () => {
             "en-US",
             { hour: "2-digit", minute: "2-digit" }
           )
-        : "N/A";
+        : "";
 
       const endTime = timesheet.end_time
         ? new Date(`1970-01-01T${timesheet.end_time}`).toLocaleTimeString(
             "en-US",
             { hour: "2-digit", minute: "2-digit" }
           )
-        : "N/A";
+        : "";
 
       const lunchStart = timesheet.lunch_start
         ? new Date(`1970-01-01T${timesheet.lunch_start}`).toLocaleTimeString(
             "en-US",
             { hour: "2-digit", minute: "2-digit" }
           )
-        : "N/A";
+        : "";
 
       const lunchEnd = timesheet.lunch_end
         ? new Date(`1970-01-01T${timesheet.lunch_end}`).toLocaleTimeString(
             "en-US",
             { hour: "2-digit", minute: "2-digit" }
           )
-        : "N/A";
+        : "";
 
       let totalHours = null;
       if (timesheet.start_time && timesheet.end_time) {
@@ -264,7 +264,7 @@ const ManageSchedules = () => {
         lunch_start: lunchStart,
         lunch_end: lunchEnd,
         end_time: endTime,
-        total_hours: totalHours ? `${totalHours} hours` : "N/A",
+        total_hours: totalHours ? `${totalHours} hours` : "",
       };
     });
 

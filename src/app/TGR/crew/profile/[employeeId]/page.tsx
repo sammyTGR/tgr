@@ -38,7 +38,18 @@ import {
   DialogClose,
 } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
-import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  subWeeks,
+  startOfDay,
+  endOfDay,
+  addDays,
+  isSunday,
+  previousSunday,
+  nextSaturday,
+} from "date-fns";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { toast } from "sonner";
 import TimeOffRequestComponent from "@/components/TimeOffRequestComponent";
@@ -172,6 +183,10 @@ const EmployeeProfilePage = () => {
   const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
   const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
   const [lunchBreakTime, setLunchBreakTime] = useState<string | null>(null);
+  const [payPeriodDates, setPayPeriodDates] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
 
   const calculateDurationWithLunch = (
     start: string,
@@ -801,24 +816,37 @@ const EmployeeProfilePage = () => {
   };
 
   // Function to fetch pay period summary
-  // Replace your current fetchPayPeriodSummary function with this:
   const fetchPayPeriodSummary = async () => {
-    // Calculate the start of the current pay period (current Sunday)
-    const startOfPayPeriod = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const timeZone = "America/Los_Angeles";
+    const now = toZonedTime(new Date(), timeZone);
 
-    // Calculate the end of the current pay period (next Saturday)
-    const endOfPayPeriod = endOfWeek(startOfPayPeriod, { weekStartsOn: 6 });
+    // Start date of the first pay period
+    const firstPayPeriodStart = new Date(2024, 7, 18); // August 18, 2024
+
+    // Calculate the current pay period
+    let currentPeriodStart = startOfDay(firstPayPeriodStart);
+    while (currentPeriodStart <= now) {
+      currentPeriodStart = addDays(currentPeriodStart, 14);
+    }
+    currentPeriodStart = addDays(currentPeriodStart, -14);
+
+    const currentPeriodEnd = endOfDay(addDays(currentPeriodStart, 13)); // 13 days later (inclusive)
+
+    // Format dates for query
+    const startDate = formatTZ(currentPeriodStart, "yyyy-MM-dd", { timeZone });
+    const endDate = formatTZ(currentPeriodEnd, "yyyy-MM-dd", { timeZone });
 
     // Fetch data for the current pay period
     const { data: payPeriodData, error } = await supabase
       .from("employee_clock_events")
       .select("*")
       .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfPayPeriod, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfPayPeriod, "yyyy-MM-dd"));
+      .gte("event_date", startDate)
+      .lte("event_date", endDate);
 
     if (error) {
       console.error("Error fetching pay period summary:", error);
+      setPayPeriodSummary(null);
     } else {
       const totalHours = payPeriodData.reduce((acc, shift) => {
         if (shift.total_hours) {
@@ -830,7 +858,14 @@ const EmployeeProfilePage = () => {
         }
         return acc;
       }, 0);
+
       setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
+
+      // Set the pay period dates for display
+      setPayPeriodDates({
+        start: formatTZ(currentPeriodStart, "MMM d, yyyy", { timeZone }),
+        end: formatTZ(currentPeriodEnd, "MMM d, yyyy", { timeZone }),
+      });
     }
   };
 
@@ -926,7 +961,7 @@ const EmployeeProfilePage = () => {
                                           )
                                         )
                                       ),
-                                      "PPP"
+                                      "M/dd"
                                     )}{" "}
                                     -{" "}
                                     {format(
@@ -937,7 +972,7 @@ const EmployeeProfilePage = () => {
                                           )
                                         )
                                       ),
-                                      "PPP"
+                                      "M/dd"
                                     )}
                                   </>
                                 ) : (
@@ -1250,11 +1285,26 @@ const EmployeeProfilePage = () => {
                         <CardHeader className="flex justify-between items-center">
                           <CardTitle className="text-2xl font-bold">
                             Pay Period
+                            {payPeriodSummary !== null && payPeriodDates ? (
+                              <div>
+                                {/* <div>{payPeriodSummary} hours</div> */}
+                                <div className="text-sm text-gray-500">
+                                  {payPeriodDates.start} - {payPeriodDates.end}
+                                </div>
+                              </div>
+                            ) : (
+                              <div>No data</div>
+                            )}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="mx-auto">
-                          {payPeriodSummary !== null ? (
-                            <div>{payPeriodSummary} hours</div>
+                          {payPeriodSummary !== null && payPeriodDates ? (
+                            <div>
+                              <div>{payPeriodSummary} hours</div>
+                              {/* <div className="text-sm text-gray-500">
+                                {payPeriodDates.start} - {payPeriodDates.end}
+                              </div> */}
+                            </div>
                           ) : (
                             <div>No data</div>
                           )}

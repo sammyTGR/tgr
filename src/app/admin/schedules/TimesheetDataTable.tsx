@@ -7,13 +7,22 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
+  getGroupedRowModel,
+  getExpandedRowModel,
+  getSortedRowModel,
   flexRender,
   ColumnFiltersState,
+  ExpandedState,
+  SortingState,
 } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { TimesheetRowActions } from "./timesheet-row-actions"; // Import the correct RowActions component
+import { TimesheetRowActions } from "./timesheet-row-actions";
 import { TimesheetPagination } from "./TimesheetPagination";
+import {
+  DoubleArrowDownIcon,
+  DoubleArrowRightIcon,
+} from "@radix-ui/react-icons";
 
 interface TimesheetData {
   id: number;
@@ -31,30 +40,61 @@ interface TimesheetData {
 interface TimesheetDataTableProps {
   columns: ColumnDef<TimesheetData>[];
   data: TimesheetData[];
-  fetchTimesheets: () => void; // Function to refresh timesheets after update
+  fetchTimesheets: () => void;
 }
 
 export function TimesheetDataTable({
   columns,
-  data,
+  data: initialData,
   fetchTimesheets,
 }: TimesheetDataTableProps) {
+  const [data, setData] = React.useState(initialData);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
   const [searchInput, setSearchInput] = React.useState("");
+  const [expanded, setExpanded] = React.useState<ExpandedState>({});
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "event_date", desc: true },
+  ]);
+
+  React.useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
+  const updateTimesheet = React.useCallback(
+    (updatedTimesheet: TimesheetData) => {
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === updatedTimesheet.id ? updatedTimesheet : item
+        )
+      );
+    },
+    []
+  );
 
   const table = useReactTable({
     data,
     columns,
     state: {
       columnFilters,
+      expanded,
+      sorting,
     },
     onColumnFiltersChange: setColumnFilters,
+    onExpandedChange: setExpanded,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: { pagination: { pageSize: 10 } }, // Initialize pagination with a page size of 10
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    initialState: {
+      pagination: { pageSize: 10 },
+      grouping: ["employee_name"],
+      sorting: [{ id: "event_date", desc: true }],
+    },
   });
 
   const handleResetFilter = () => {
@@ -102,43 +142,52 @@ export function TimesheetDataTable({
             ))}
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            {table.getRowModel().rows.map((row) => {
+              if (row.getIsGrouped()) {
+                return (
+                  <tr
+                    key={row.id}
+                    onClick={() => row.toggleExpanded()}
+                    className="cursor-pointer"
+                  >
+                    <td colSpan={columns.length + 1} className="px-6 py-4">
+                      <div className="flex items-center">
+                        {row.getIsExpanded() ? (
+                          <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
+                        ) : (
+                          <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
+                        )}
+                        <span>{row.getValue("employee_name")}</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  ))}
+                  <td>
+                    <TimesheetRowActions
+                      row={row}
+                      fetchTimesheets={fetchTimesheets}
+                      updateTimesheet={updateTimesheet}
+                    />
                   </td>
-                ))}
-                <td>
-                  <TimesheetRowActions
-                    row={row}
-                    fetchTimesheets={fetchTimesheets}
-                  />
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
       <TimesheetPagination table={table} />
-      {/* <div className="flex justify-between items-center mt-4 px-6 py-2">
-        <Button
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <span className="text-sm">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
-        </span>
-        <Button
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
-      </div> */}
     </div>
   );
 }

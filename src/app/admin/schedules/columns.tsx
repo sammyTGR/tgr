@@ -2,7 +2,10 @@
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { ScheduleColumnHeader } from "./schedule-column-header";
 
-export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<TData, TValue> & {
+export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
+  TData,
+  TValue
+> & {
   meta?: {
     style?: React.CSSProperties;
   };
@@ -17,6 +20,16 @@ export type ScheduleData = {
 };
 
 export const columns: ColumnDef<ScheduleData>[] = [
+  {
+    accessorKey: "employee_name",
+    header: "Employee Name",
+    enableGrouping: true,
+  },
+  {
+    accessorKey: "event_date",
+    header: "Date",
+    sortDescFirst: true,
+  },
   {
     accessorKey: "employee_id",
     header: ({ column }) => (
