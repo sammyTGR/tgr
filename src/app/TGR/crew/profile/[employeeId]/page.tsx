@@ -879,10 +879,10 @@ const EmployeeProfilePage = () => {
               </div>
             </div>
           </header>
-          <Tabs defaultValue="schedules" className="w-full">
+          <Tabs defaultValue="clock" className="w-full">
             <TabsList className="border-b border-gray-200 dark:border-gray-700">
-              <TabsTrigger value="schedules">Scheduling</TabsTrigger>
               <TabsTrigger value="clock">Timesheet</TabsTrigger>
+              <TabsTrigger value="schedules">Scheduling</TabsTrigger>
               <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
