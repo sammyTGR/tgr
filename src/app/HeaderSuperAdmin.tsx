@@ -213,6 +213,11 @@ const manageComps = [
     href: "/admin/reports/download",
     description: "Download Various Reports",
   },
+  {
+    title: "Manage Employee Data",
+    href: "/TGR/employees",
+    description: "Set All Employee Details",
+  },
 ];
 
 const comboComps = [
