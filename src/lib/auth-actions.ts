@@ -78,19 +78,38 @@ export async function handlePostGoogleSignIn() {
 export async function login(formData: FormData) {
   const supabase = createClient();
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const { error } = await supabase.auth.signInWithPassword(data);
+  try {
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    redirect("/error");
+    if (error) throw error;
+    if (!user) throw new Error("User not found");
+
+    // Check the role in both employees and customers tables
+    const [{ data: employeeData }, { data: customerData }] = await Promise.all([
+      supabase.from("employees").select("role").eq("user_uuid", user.id).single(),
+      supabase.from("customers").select("role").eq("user_uuid", user.id).single()
+    ]);
+
+    const role = employeeData?.role || customerData?.role;
+
+    if (role === "blocked") {
+      await supabase.auth.signOut();
+      return { error: "Your account has been blocked. Please contact support for assistance." };
+    }
+
+    if (!role) {
+      return { error: "User account not properly set up. Please contact support." };
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true, role };
+  } catch (error) {
+    console.error("Login error:", error);
+    return { error: error instanceof Error ? error.message : "An unexpected error occurred" };
   }
-
-  revalidatePath("/", "layout");
-  redirect("/");
 }
 
 export async function signup(data: { firstName: string, lastName: string, email: string, password: string }) {

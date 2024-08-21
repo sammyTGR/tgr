@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
+import { useRole } from "@/context/RoleContext"; // Add this import
 
 interface ClassSchedule {
   id: number;
@@ -29,6 +30,9 @@ export default function Component() {
   const [selectedEvent, setSelectedEvent] = useState<ClassSchedule[] | null>(
     null
   );
+  const { role, loading } = useRole(); // Use the RoleContext
+
+  const isAdmin = role === "admin" || role === "super admin";
 
   useEffect(() => {
     const fetchClassSchedules = async () => {
@@ -83,12 +87,14 @@ export default function Component() {
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold mb-8">Available Classes</h1>
-      <AddClassPopover
-        onSubmit={handleAddClass}
-        buttonText="Add A Class"
-        placeholder="Enter class details"
-        setClassSchedules={setClassSchedules} // Pass the state setter function here
-      />
+      {isAdmin && (
+        <AddClassPopover
+          onSubmit={handleAddClass}
+          buttonText="Add A Class"
+          placeholder="Enter class details"
+          setClassSchedules={setClassSchedules}
+        />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="rounded-lg shadow-md p-6">

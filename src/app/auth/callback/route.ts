@@ -1,26 +1,3 @@
-// import { cookies } from 'next/headers'
-// import { NextResponse } from 'next/server'
-// import { createClient } from "@/utils/supabase/server";
-
-// export async function GET(request: Request) {
-//   const { searchParams, origin } = new URL(request.url)
-//   const code = searchParams.get('code')
-//   // if "next" is in param, use it as the redirect URL
-//   const next = searchParams.get('next') ?? '/'
-
-//   if (code) {
-//     const cookieStore = cookies()
-//     const supabase = createClient()
-//     const { error } = await supabase.auth.exchangeCodeForSession(code)
-//     if (!error) {
-//       return NextResponse.redirect(`${origin}${next}`)
-//     }
-//   }
-
-//   // return the user to an error page with instructions
-//   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
-// }
-
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from "@/utils/supabase/server";
@@ -33,9 +10,23 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
+    if (!error && data.user) {
+      // Check if the user is blocked
+      const [{ data: employeeData }, { data: customerData }] = await Promise.all([
+        supabase.from("employees").select("role").eq("user_uuid", data.user.id).single(),
+        supabase.from("customers").select("role").eq("user_uuid", data.user.id).single()
+      ]);
+
+      const role = employeeData?.role || customerData?.role;
+
+      if (role === "blocked") {
+        console.log("User is blocked, preventing login");
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/auth/blocked`);
+      }
+
       // Call the function to insert into the correct table
       await handlePostGoogleSignIn();
 
