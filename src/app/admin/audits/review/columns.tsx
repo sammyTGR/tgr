@@ -59,13 +59,13 @@ export const columns: ColumnDef<AuditData>[] = [
       style: { width: "100px" },
     },
   },
-  {
-    accessorKey: "audit_type",
-    header: "Audit Type",
-    meta: {
-      style: { width: "100px" },
-    },
-  },
+  // {
+  //   accessorKey: "audit_type",
+  //   header: "Audit Type",
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  // },
   {
     accessorKey: "trans_date",
     header: ({ column }) => (
@@ -87,27 +87,27 @@ export const columns: ColumnDef<AuditData>[] = [
       style: { width: "60px" },
     },
   },
-  {
-    accessorKey: "audit_date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Audit Date" />
-    ),
-    cell: ({ row }) => {
-      const label = labels.find((label) => label.value === row.original.label);
+  // {
+  //   accessorKey: "audit_date",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Audit Date" />
+  //   ),
+  //   cell: ({ row }) => {
+  //     const label = labels.find((label) => label.value === row.original.label);
 
-      return (
-        <div className="flex space-x-2">
-          {label && <Badge variant="outline">{label.label}</Badge>}
-          <span className="max-w-[500px] truncate font-medium">
-            {row.getValue("audit_date")}
-          </span>
-        </div>
-      );
-    },
-    meta: {
-      style: { width: "60px" },
-    },
-  },
+  //     return (
+  //       <div className="flex space-x-2">
+  //         {label && <Badge variant="outline">{label.label}</Badge>}
+  //         <span className="max-w-[500px] truncate font-medium">
+  //           {row.getValue("audit_date")}
+  //         </span>
+  //       </div>
+  //     );
+  //   },
+  //   meta: {
+  //     style: { width: "60px" },
+  //   },
+  // },
   {
     accessorKey: "error_location",
     header: "Error Location",
@@ -136,8 +136,8 @@ export const columns: ColumnDef<AuditData>[] = [
       style: { width: "150px" },
     },
   },
-  // {
-  //   id: "actions",
-  //   cell: ({ row }) => <DataTableRowActions row={row} />,
-  // },
+  {
+    id: "actions",
+    cell: ({ row }) => <DataTableRowActions row={row} />,
+  },
 ];

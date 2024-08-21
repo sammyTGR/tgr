@@ -112,7 +112,7 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden rounded-md border w-full sm:w-full md:w-full lg:min-w-[1850px] lg:max-w-[3068px]">
+      <div className="flex-1 overflow-hidden rounded-md border w-full sm:w-full md:w-full lg:min-w-8xl lg:max-w-8xl">
         <div className="h-[calc(100vh-200px)] overflow-auto">
           <Table>
             <TableHeader>

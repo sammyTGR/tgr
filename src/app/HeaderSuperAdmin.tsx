@@ -218,6 +218,11 @@ const manageComps = [
     href: "/TGR/employees",
     description: "Set All Employee Details",
   },
+  {
+    title: "Combo Audits",
+    href: "/admin/audits",
+    description: "Testing Audits",
+  },
 ];
 
 const comboComps = [
