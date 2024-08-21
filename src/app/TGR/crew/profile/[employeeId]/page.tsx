@@ -202,6 +202,7 @@ const EmployeeProfilePage = () => {
 
   const timeZone = "America/Los_Angeles";
   const handleClockIn = async () => {
+    const timeZone = "America/Los_Angeles";
     const now = toZonedTime(new Date(), timeZone);
     const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
     const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
@@ -234,7 +235,7 @@ const EmployeeProfilePage = () => {
         setCurrentShift(existingData);
 
         // Calculate lunch break time (5 hours after start time)
-        const lunchBreak = new Date(startTime);
+        const lunchBreak = new Date(now);
         lunchBreak.setHours(lunchBreak.getHours() + 5);
         setLunchBreakTime(
           formatTZ(toZonedTime(lunchBreak, timeZone), "h:mm a", { timeZone })
@@ -262,7 +263,7 @@ const EmployeeProfilePage = () => {
         setCurrentShift(insertData);
 
         // Calculate lunch break time (5 hours after start time)
-        const lunchBreak = new Date(startTime);
+        const lunchBreak = new Date(now);
         lunchBreak.setHours(lunchBreak.getHours() + 5);
         setLunchBreakTime(
           formatTZ(toZonedTime(lunchBreak, timeZone), "h:mm a", { timeZone })
