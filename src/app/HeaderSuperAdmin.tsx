@@ -218,6 +218,11 @@ const manageComps = [
     href: "/admin/audits",
     description: "Testing Audits",
   },
+  {
+    title: "Upload Files",
+    href: "/admin/upload",
+    description: "Uploadthing",
+  },
 ];
 
 const comboComps = [

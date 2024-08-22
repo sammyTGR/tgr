@@ -1,6 +1,7 @@
 // src/pages/api/fetch-sales-data-aggregated.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { corsHeaders } from '@/utils/cors';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'OPTIONS') {

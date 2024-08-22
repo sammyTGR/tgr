@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { corsHeaders } from '@/utils/cors';
 
 interface TimeOffRequest {
   request_id: number;

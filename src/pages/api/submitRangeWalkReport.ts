@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { corsHeaders } from '@/utils/cors';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'OPTIONS') {

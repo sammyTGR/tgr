@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
 import sendgrid from '@sendgrid/mail';
+import { corsHeaders } from '@/utils/cors';
 
 sendgrid.setApiKey(process.env.SENDGRID_API_KEY as string);
 
