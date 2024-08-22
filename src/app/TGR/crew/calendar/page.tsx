@@ -527,7 +527,7 @@ export default function Component() {
             <div className="overflow-hidden">
               <div className="overflow-x-auto">
                 <Table className="w-full">
-                  <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableHeader className="sticky top-0 bg-background z-5">
                     <TableRow>
                       <TableHead className="w-32" />
                       {daysOfWeek.map((day) => (
@@ -541,7 +541,9 @@ export default function Component() {
                   </TableHeader>
                 </Table>
               </div>
-              <ScrollArea className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}>
+              <ScrollArea
+                className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}
+              >
                 <div className="overflow-x-auto">
                   <Table className="h-full overflow-hidden w-full">
                     <TableBody>

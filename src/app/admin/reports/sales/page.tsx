@@ -51,6 +51,7 @@ const SalesPage = () => {
     useState<number>(0);
   const [progress, setProgress] = useState<number>(0);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [fileInputKey, setFileInputKey] = useState<number>(0);
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -233,6 +234,8 @@ const SalesPage = () => {
         await handleUpdateLabels();
         toast.success("File uploaded and processed successfully!");
         setFile(null); // Clear the uploaded file
+        setFileName(null);
+        setFileInputKey((prevKey) => prevKey + 1);
       } catch (error) {
         toast.error("Failed to upload and process file.");
       } finally {
@@ -457,7 +460,7 @@ const SalesPage = () => {
               <CardContent className="flex flex-col border p-4">
                 <div className="mt-4 rounded-md border max-w-6xl">
                   <div className="flex items-center gap-2 ml-2">
-                    <label className="shadcn-ui-button flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:font-white dark:hover:bg-gray-500 size-icon">
+                    <label className="Button flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:font-white dark:hover:bg-gray-500 size-icon">
                       {fileName ? fileName : "Select File"}
                       <Input
                         type="file"
