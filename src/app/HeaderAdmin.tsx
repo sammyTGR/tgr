@@ -47,14 +47,9 @@ import { useTheme } from "next-themes";
 
 const auditComponents = [
   {
-    title: "Submit Audits",
-    href: "/admin/audits/submit",
-    description: "LesssGOOOOO!!!",
-  },
-  {
-    title: "Review Audits",
-    href: "/admin/audits/review",
-    description: "Take A Gander At Audits",
+    title: "Submit & Review Audits",
+    href: "/admin/audits",
+    description: "Enter New Audits & Review Existing Ones",
   },
   {
     title: "DROS Guidance",

@@ -17,8 +17,7 @@ export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
 };
 
 export type AuditData = {
-  label: string;
-  id: UUID;
+  audits_id: string;
   dros_number: string;
   salesreps: string;
   audit_type: string;
@@ -26,11 +25,13 @@ export type AuditData = {
   audit_date: string;
   error_location: string;
   error_details: string;
-  error_notes?: string;
-  dros_cancel: boolean;
+  error_notes?: string | null;
+  dros_cancel: string | null;
+  label?: string;
+
 };
 
-export const columns: ColumnDef<AuditData>[] = [
+export const createColumns = (refreshData: () => void): ColumnDef<AuditData>[] => [
   {
     accessorKey: "dros_number",
     header: ({ column }) => (
@@ -138,6 +139,8 @@ export const columns: ColumnDef<AuditData>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => (
+      <DataTableRowActions row={row} onAuditUpdated={refreshData} />
+    ),
   },
 ];

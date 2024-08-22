@@ -3,6 +3,7 @@ import { z } from "zod"
 export const auditData = z.object({
     label: z.string().optional().nullable(),
     id: z.string().optional().nullable(),
+    audits_id: z.string().optional().nullable(), // Allow null
     dros_number: z.string(),
     salesreps: z.string(),
     audit_type: z.string(),

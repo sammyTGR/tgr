@@ -28,6 +28,13 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { CalendarIcon, CheckIcon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/ui/faceted-filter";
 import { cn } from "@/lib/cn";
@@ -82,11 +89,16 @@ interface DataRow {
   error_location?: string;
   error_details?: string;
 }
+
+interface SubmitAuditsProps {
+  onAuditSubmitted?: () => void;
+}
+
 const SupportMenu = dynamic(() => import("@/components/ui/SupportNavMenu"), {
   ssr: false,
 });
 
-export default function SubmitAudits() {
+export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
   const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);
   const [auditTypeOptions, setAuditTypeOptions] = useState<OptionType[]>([]);
   const [errorLocationOptions, setErrorLocationOptions] = useState<
@@ -250,6 +262,9 @@ export default function SubmitAudits() {
       toast.success("Audit Submitted Successfully!");
       reset(); // Reset form fields after successful submission
       setResetKey((prevKey) => prevKey + 1);
+      if (onAuditSubmitted) {
+        onAuditSubmitted();
+      }
     } catch (error: any) {
       console.error("Error during form submission:", error);
       toast.success(
@@ -363,221 +378,237 @@ export default function SubmitAudits() {
   return (
     <FormProvider {...methods}>
       <main>
-        <div className="flex flex-row item-center justify-center mx-auto w-full max-w-6xl mt-20">
+        <div className="flex flex-col items-center justify-center mx-auto w-full max-w-6xl">
           <form onSubmit={handleSubmit}>
-            <FormField
-              control={control}
-              name="drosCancel"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md mb-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Cancelled DROS</FormLabel>
-                    <FormDescription>
-                      Only Select When DROS Was Cancelled
-                    </FormDescription>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex flex-col md:flex-row md:space-x-4 mb-4">
-              <FormField
-                name="drosNumber"
-                control={control}
-                render={({ field }) => (
-                  <FormItem className="flex flex-col mb-4 w-full">
-                    <FormLabel>DROS | Acquisition #</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter The 'Dash'" />
-                    </FormControl>
-                    <FormDescription>
-                      Enter DROS | Acquisition | Invoice #
-                    </FormDescription>
-                    <FormMessage>{errors.drosNumber?.message}</FormMessage>
-                  </FormItem>
-                )}
-              />
-              {/* Dropdown For Sales Reps */}
-              <FormField
-                control={control}
-                name="salesRep"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col mb-4 w-full">
-                    <FormLabel>Sales Rep</FormLabel>
-                    <RenderDropdown
-                      field={field}
-                      options={salesRepOptions}
-                      placeholder="Select A Sales Rep"
-                    />
-                    <FormDescription>Who Dun Messed Up</FormDescription>
-                    <FormMessage>{errors.salesRep?.message}</FormMessage>
-                  </FormItem>
-                )}
-              />
+            <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>DROS Cancellation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={control}
+                    name="drosCancel"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Cancelled DROS</FormLabel>
+                          <FormDescription>
+                            Only Select When DROS Was Cancelled
+                          </FormDescription>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-              <FormField
-                control={control}
-                name="transDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col mb-4">
-                    <FormLabel>Transaction Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Select A Date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CustomCalendar
-                          selectedDate={field.value}
-                          onDateChange={(date) => {
-                            field.onChange(date);
-                          }}
-                          disabledDays={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>
-                      The Transaction (Purchase) Date
-                    </FormDescription>
-                  </FormItem>
-                )}
-              />
+              <Card>
+                <CardHeader>
+                  <CardTitle>DROS | Invoice Number</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    name="drosNumber"
+                    control={control}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>DROS | Invoice | FSC</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter The 'Dash'" />
+                        </FormControl>
+                        <FormDescription>
+                          This Can Be For Any Form
+                        </FormDescription>
+                        <FormMessage>{errors.drosNumber?.message}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-              {/* <FormField
-                control={control}
-                name="auditDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col mb-4">
-                    <FormLabel>Audit Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Select Date Of Audit</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CustomCalendar
-                          selectedDate={field.value}
-                          onDateChange={(date) => {
-                            field.onChange(date);
-                          }}
-                          disabledDays={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sales Rep</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={control}
+                    name="salesRep"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Select The Sales Rep</FormLabel>
+                        <RenderDropdown
+                          field={field}
+                          options={salesRepOptions}
+                          placeholder="Select A Sales Rep"
                         />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>
-                      Only Select If Different From Today
-                    </FormDescription>
-                  </FormItem>
-                )}
-              /> */}
+                        <FormDescription>Who Dun Messed Up</FormDescription>
+                        <FormMessage>{errors.salesRep?.message}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transaction Date</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={control}
+                    name="transDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Transaction Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Select A Date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CustomCalendar
+                              selectedDate={field.value}
+                              onDateChange={(date) => {
+                                field.onChange(date);
+                              }}
+                              disabledDays={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          The Transaction (Purchase) Date
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Dropdown For Audit Type, Error Location and Error Details */}
             {fields.map((field, index) => (
-              <div key={field.id}>
-                <div className="flex flex-row md:flex-row md:space-x-4 mb-4">
-                  <Controller
-                    name={`audits.${index}.auditType`}
-                    control={control}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col mb-4 w-full">
-                        <FormLabel>Audit Type</FormLabel>
-                        <RenderDropdown
-                          field={field}
-                          options={auditTypeOptions}
-                          placeholder="Select Audit Type"
-                        />
-                        <FormMessage>
-                          {errors.audits?.[index]?.auditType?.message}
-                        </FormMessage>
-                      </FormItem>
-                    )}
-                  />
-                  <Controller
-                    name={`audits.${index}.errorLocation`}
-                    control={control}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col mb-4 w-full">
-                        <FormLabel>Error Location</FormLabel>
-                        <RenderDropdown
-                          field={field}
-                          options={errorLocationOptions}
-                          placeholder="Where Was The Error"
-                        />
-                        <FormMessage>
-                          {errors.audits?.[index]?.errorLocation?.message}
-                        </FormMessage>
-                      </FormItem>
-                    )}
-                  />
-                  <Controller
-                    name={`audits.${index}.errorDetails`}
-                    control={control}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col mb-4 w-full">
-                        <FormLabel>Error Details</FormLabel>
-                        <RenderDropdown
-                          field={field}
-                          options={errorDetailsOptions}
-                          placeholder="Select The Details"
-                        />
-                        <FormMessage>
-                          {errors.audits?.[index]?.errorDetails?.message}
-                        </FormMessage>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  name={`audits.${index}.errorNotes`}
-                  control={control}
-                  render={({ field }) => (
-                    <Textarea {...field} placeholder="Error Notes" />
-                  )}
-                />
-                <div className="flex justify-between mb-4 mt-4">
+              <div key={field.id} className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Transaction Type</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Controller
+                      name={`audits.${index}.auditType`}
+                      control={control}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Select The Type Of Transaction</FormLabel>
+                          <RenderDropdown
+                            field={field}
+                            options={auditTypeOptions}
+                            placeholder="Select Transaction Type"
+                          />
+                          <FormMessage>
+                            {errors.audits?.[index]?.auditType?.message}
+                          </FormMessage>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Audit Location</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Controller
+                      name={`audits.${index}.errorLocation`}
+                      control={control}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Where Was The Error</FormLabel>
+                          <RenderDropdown
+                            field={field}
+                            options={errorLocationOptions}
+                            placeholder="Where Was The Error"
+                          />
+                          <FormMessage>
+                            {errors.audits?.[index]?.errorLocation?.message}
+                          </FormMessage>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Audit Category</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Controller
+                      name={`audits.${index}.errorDetails`}
+                      control={control}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Category Of The Error</FormLabel>
+                          <RenderDropdown
+                            field={field}
+                            options={errorDetailsOptions}
+                            placeholder="Select The Category"
+                          />
+                          <FormMessage>
+                            {errors.audits?.[index]?.errorDetails?.message}
+                          </FormMessage>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="md:col-span-2 lg:col-span-3">
+                  <CardHeader>
+                    <CardTitle>Auditing Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FormField
+                      name={`audits.${index}.errorNotes`}
+                      control={control}
+                      render={({ field }) => (
+                        <Textarea {...field} placeholder="Details On What Was Audited" />
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="md:col-span-2 lg:col-span-3 flex justify-end">
                   <Button variant="linkHover2" onClick={() => remove(index)}>
-                    Remove
+                    Remove Audit
                   </Button>
                 </div>
               </div>
             ))}
 
-            <div className="flex justify-between mb-4 mt-4">
+            <div className="flex justify-between mt-4">
               <Button
                 variant="linkHover2"
                 type="button"

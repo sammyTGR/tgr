@@ -1,4 +1,3 @@
-"use client";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -8,87 +7,107 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { auditData } from "./data-schema";
-import { useState } from "react";
-import { PopoverForm } from "../submit/PopoverForm";
+import { PopoverForm, SubmitFormData } from "../submit/PopoverForm";
+import { supabase } from "@/utils/supabase/client";
+import { toast } from "sonner";
+import { auditData, Task } from '../review/data-schema';
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
-}
-
-interface AuditData {
-  id: string;
-  dros_number: string;
-  sales_rep: string;
-  trans_date: string;
-  audit_date: string;
-  dros_cancel: boolean;
-  audit_type: string;
-  error_location: string;
-  error_details: string;
-  error_notes?: string;
+  onAuditUpdated: () => void;
 }
 
 export function DataTableRowActions<TData>({
   row,
+  onAuditUpdated,
 }: DataTableRowActionsProps<TData>) {
-  const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false);
   const parsedAudit = auditData.parse(row.original);
-  const audit: AuditData = {
-    id: parsedAudit.id ?? "",
-    dros_number: parsedAudit.dros_number,
-    sales_rep: parsedAudit.salesreps,
-    trans_date: parsedAudit.trans_date,
-    audit_date: parsedAudit.audit_date,
-    dros_cancel: parsedAudit.dros_cancel === "true",
-    audit_type: parsedAudit.audit_type,
-    error_location: parsedAudit.error_location,
-    error_details: parsedAudit.error_details,
-    error_notes: parsedAudit.error_notes ?? undefined,
+  const audit: Task = {
+    ...parsedAudit,
+    audits_id: parsedAudit.audits_id || parsedAudit.id || null,
   };
 
-  const handleSubmit = (formData: any) => {
-    // Handle form submission
+  const handleSubmit = async (formData: SubmitFormData) => {
     console.log("Form submitted:", formData);
-    setIsEditPopoverOpen(false);
+    
+    const auditId = formData.audits_id;
+    console.log("Attempting to update audit with ID:", auditId);
+  
+    if (!auditId) {
+      console.error("No valid audit ID found");
+      toast.error("Failed to update audit: Invalid ID");
+      return;
+    }
+  
+    try {
+      const updatePayload = {
+        dros_number: formData.drosNumber,
+        salesreps: formData.salesRep,
+        trans_date: formData.transDate,
+        audit_date: formData.auditDate,
+        dros_cancel: formData.drosCancel,
+        audit_type: formData.auditType,
+        error_location: formData.errorLocation,
+        error_details: formData.errorDetails,
+        error_notes: formData.errorNotes,
+      };
+      console.log("Update payload:", updatePayload);
+  
+      const { data, error } = await supabase
+        .from('Auditsinput')
+        .update(updatePayload)
+        .eq('audits_id', auditId)
+        .select();
+  
+      // ... rest of the function ...
+    } catch (error) {
+      console.error("Error updating audit:", error);
+      toast.error("Failed to update audit");
+    }
   };
 
-  const handleDelete = () => {
-    // Handle delete action
-    console.log("Delete audit:", audit.id);
+  const handleDelete = async () => {
+    if (!audit.audits_id) {
+      console.error("No valid audit ID found");
+      toast.error("Failed to delete audit: Invalid ID");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('Auditsinput')
+        .delete()
+        .eq('audits_id', audit.audits_id);
+
+      if (error) throw error;
+
+      toast.success("Audit deleted successfully");
+      onAuditUpdated();
+    } catch (error) {
+      console.error("Error deleting audit:", error);
+      toast.error("Failed to delete audit");
+    }
   };
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-          >
-            <DotsHorizontalIcon className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[160px]">
-          <DropdownMenuItem onSelect={() => setIsEditPopoverOpen(true)}>
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleDelete}>Delete</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {isEditPopoverOpen && (
-        <PopoverForm
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+        >
+          <DotsHorizontalIcon className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[160px]">
+      <PopoverForm
           onSubmit={handleSubmit}
-          buttonText="Edit Audit"
-          placeholder="Edit Audit Details"
-          salesRepOptions={[]}
-          auditTypeOptions={[]}
-          errorLocationOptions={[]}
-          errorDetailsOptions={[]}
           audit={audit}
+          placeholder="Edit"
         />
-      )}
-    </>
+        <DropdownMenuItem onSelect={handleDelete}>Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

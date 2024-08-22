@@ -79,7 +79,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="lanid">LAN ID</Label>
+              <Label htmlFor="lanid">LANID</Label>
               <Input
                 id="lanid"
                 name="lanid"
