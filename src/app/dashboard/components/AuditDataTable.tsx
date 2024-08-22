@@ -31,7 +31,7 @@ const AuditDataTable: React.FC<AuditDataTableProps> = ({ data }) => {
       </TableHeader>
       <TableBody>
         {data.map((item) => (
-          <TableRow key={item.id}>
+          <TableRow key={item.audits_id}>
             <TableCell>{item.dros_number}</TableCell>
             <TableCell>{item.salesreps}</TableCell>
             <TableCell>{item.audit_type}</TableCell>

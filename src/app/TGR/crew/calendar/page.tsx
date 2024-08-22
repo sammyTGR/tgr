@@ -336,7 +336,7 @@ export default function Component() {
         (calendarEvent) => calendarEvent.day_of_week === day
       );
     });
-  
+
     return (
       <TableRow key={employee.employee_id}>
         <TableCell className="font-medium w-12">{employee.name}</TableCell>
@@ -345,52 +345,72 @@ export default function Component() {
             {eventsByDay[day].map((calendarEvent, index) => (
               <div key={index} className="relative">
                 {calendarEvent.status === "added_day" ? (
-  // Always show added_day status
-  <div className="text-pink-500 dark:text-pink-300">
-    {`${formatTZ(
-      toZonedTime(new Date(`1970-01-01T${calendarEvent.start_time}`), timeZone),
-      "h:mma",
-      { timeZone }
-    )}-${formatTZ(
-      toZonedTime(new Date(`1970-01-01T${calendarEvent.end_time}`), timeZone),
-      "h:mma",
-      { timeZone }
-    )}`}
-  </div>
-) : calendarEvent.start_time && calendarEvent.end_time ? (
-  calendarEvent.status === "time_off" ? (
-    <div className="text-purple-600 dark:text-purple-500">Approved Time Off</div>
-  ) : calendarEvent.status === "called_out" ? (
-    <div className="text-red-500 dark:text-red-400">Called Out</div>
-  ) : calendarEvent.status === "left_early" ? (
-    <div className="text-orange-500 dark:text-orange-400">Left Early</div>
-  ) : calendarEvent.status && calendarEvent.status.startsWith("Custom:") ? (
-    <div className="text-green-500 dark:text-green-400">
-      {calendarEvent.status.replace("Custom:", "").trim()}
-    </div>
-  ) : (
-    <div
-      className={
-        toZonedTime(new Date(`1970-01-01T${calendarEvent.start_time}`), timeZone)
-          .getHours() < 12
-          ? "text-amber-500 dark:text-amber-400"
-          : "text-blue-500 dark:text-blue-400"
-      }
-    >
-      {`${formatTZ(
-        toZonedTime(new Date(`1970-01-01T${calendarEvent.start_time}`), timeZone),
-        "h:mma",
-        { timeZone }
-      )}-${formatTZ(
-        toZonedTime(new Date(`1970-01-01T${calendarEvent.end_time}`), timeZone),
-        "h:mma",
-        { timeZone }
-      )}`}
-    </div>
-  )
-) : null}
+                  // Always show added_day status
+                  <div className="text-pink-500 dark:text-pink-300">
+                    {`${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${calendarEvent.start_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}-${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${calendarEvent.end_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}`}
+                  </div>
+                ) : calendarEvent.start_time && calendarEvent.end_time ? (
+                  calendarEvent.status === "time_off" ? (
+                    <div className="text-purple-600 dark:text-purple-500">
+                      Approved Time Off
+                    </div>
+                  ) : calendarEvent.status === "called_out" ? (
+                    <div className="text-red-500 dark:text-red-400">
+                      Called Out
+                    </div>
+                  ) : calendarEvent.status === "left_early" ? (
+                    <div className="text-orange-500 dark:text-orange-400">
+                      Left Early
+                    </div>
+                  ) : calendarEvent.status &&
+                    calendarEvent.status.startsWith("Custom:") ? (
+                    <div className="text-green-500 dark:text-green-400">
+                      {calendarEvent.status.replace("Custom:", "").trim()}
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.start_time}`),
+                          timeZone
+                        ).getHours() < 12
+                          ? "text-amber-500 dark:text-amber-400"
+                          : "text-blue-500 dark:text-blue-400"
+                      }
+                    >
+                      {`${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.start_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}-${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.end_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}`}
+                    </div>
+                  )
+                ) : null}
 
-  
                 {(role === "admin" || role === "super admin") && (
                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                     <Popover>
@@ -480,7 +500,6 @@ export default function Component() {
       </TableRow>
     );
   };
-  
 
   return (
     <RoleBasedWrapper
@@ -491,7 +510,7 @@ export default function Component() {
           <TextGenerateEffect words={title} />
         </h1>
         <Card className="flex-1 flex flex-col w-full max-w-7xl overflow-hidden">
-          <CardContent className="h-full overflow-hidden">
+          <CardContent className="h-full overflow-hidden flex flex-col">
             <div className="flex justify-between w-full mb-4">
               <Button variant="linkHover2" onClick={handlePreviousWeek}>
                 <ChevronLeftIcon className="h-4 w-4" />
@@ -502,25 +521,29 @@ export default function Component() {
                 <ChevronRightIcon className="h-4 w-4" />
               </Button>
             </div>
-            <Table className="min-w-full overflow-hidden">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-50" />
-                  {daysOfWeek.map((day) => (
-                    <TableHead key={day} className="w-32">
-                      {day}
-                      <br />
-                      {weekDates[day]}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.calendarData.map((employee) =>
-                  renderEmployeeRow(employee)
-                )}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+                <Table className="min-w-full">
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                      <TableHead className="w-50" />
+                      {daysOfWeek.map((day) => (
+                        <TableHead key={day} className="w-32">
+                          {day}
+                          <br />
+                          {weekDates[day]}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.calendarData.map((employee) =>
+                      renderEmployeeRow(employee)
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
