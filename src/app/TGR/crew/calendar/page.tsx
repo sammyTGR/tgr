@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
@@ -33,6 +33,9 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import styles from "./calendar.module.css"; // Create this CSS module file
+import classNames from "classnames";
 
 const title = "TGR Crew Calendar";
 const timeZone = "America/Los_Angeles"; // Define your time zone
@@ -505,12 +508,12 @@ export default function Component() {
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
     >
-      <div className="flex flex-col items-center space-y-4 p-4 overflow-hidden">
+      <div className="flex flex-col items-center space-y-4 p-4">
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />
         </h1>
-        <Card className="flex-1 flex flex-col w-full max-w-7xl overflow-hidden">
-          <CardContent className="h-full overflow-hidden flex flex-col">
+        <Card className="flex-1 flex flex-col h-full w-full max-w-7xl">
+          <CardContent className="h-full flex flex-col">
             <div className="flex justify-between w-full mb-4">
               <Button variant="linkHover2" onClick={handlePreviousWeek}>
                 <ChevronLeftIcon className="h-4 w-4" />
@@ -521,14 +524,14 @@ export default function Component() {
                 <ChevronRightIcon className="h-4 w-4" />
               </Button>
             </div>
-            <div className="overflow-x-auto">
-              <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
-                <Table className="min-w-full">
+            <div className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table className="w-full">
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
-                      <TableHead className="w-50" />
+                      <TableHead className="w-32" />
                       {daysOfWeek.map((day) => (
-                        <TableHead key={day} className="w-32">
+                        <TableHead key={day} className="w-32 text-left">
                           {day}
                           <br />
                           {weekDates[day]}
@@ -536,13 +539,20 @@ export default function Component() {
                       ))}
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {data.calendarData.map((employee) =>
-                      renderEmployeeRow(employee)
-                    )}
-                  </TableBody>
                 </Table>
               </div>
+              <ScrollArea className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}>
+                <div className="overflow-x-auto">
+                  <Table className="h-full overflow-hidden w-full">
+                    <TableBody>
+                      {data.calendarData.map((employee) =>
+                        renderEmployeeRow(employee)
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
             </div>
           </CardContent>
         </Card>
