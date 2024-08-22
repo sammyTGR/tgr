@@ -144,3 +144,4 @@ export const createColumns = (refreshData: () => void): ColumnDef<AuditData>[] =
     ),
   },
 ];
+export default createColumns;

@@ -70,11 +70,11 @@ export default function TimeOffRequestPage() {
   const fetchCalendarData = async () => {
     try {
       const now = new Date();
-      const timeZone = 'America/Los_Angeles';
-      
+      const timeZone = "America/Los_Angeles";
+
       const startDate = toZonedTime(now, timeZone);
       const endDate = toZonedTime(now, timeZone);
-  
+
       const response = await fetch("/api/calendar", {
         method: "POST",
         headers: {
@@ -94,7 +94,6 @@ export default function TimeOffRequestPage() {
       console.error("Failed to fetch calendar data:", error.message);
     }
   };
-  
 
   const fetchEmployeeNames = async () => {
     try {
@@ -184,9 +183,29 @@ export default function TimeOffRequestPage() {
 
   const handleReasonChange = (value: string) => {
     setTimeOffData({ ...timeOffData, reason: value });
-    setShowOtherTextarea(value === "Other" || value === "Swapping Schedules");
+    const reasonsRequiringTextarea = [
+      "Other",
+      "Swapping Schedules",
+      "Starting Late",
+      "Leaving Early",
+      "Personal",
+    ];
+    setShowOtherTextarea(reasonsRequiringTextarea.includes(value));
   };
-  
+  const getPlaceholderText = (reason: string) => {
+    switch (reason) {
+      case "Swapping Schedules":
+        return "Please specify who you are swapping with";
+      case "Starting Late":
+        return "Please specify the reason for starting late";
+      case "Leaving Early":
+        return "Please specify the reason for leaving early";
+      case "Personal":
+        return "Please provide details for your personal time off";
+      default:
+        return "Please specify your reason";
+    }
+  };
 
   const handleSelectDates = (dates: Date[] | undefined) => {
     setSelectedDates(dates || []);
@@ -195,63 +214,69 @@ export default function TimeOffRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDates.length < 1) {
-        toast.error("Please select at least one date.");
-        return;
+      toast.error("Please select at least one date.");
+      return;
     }
-    
-    const timeZone = 'America/Los_Angeles'; // Set to San Francisco time zone
+
+    const timeZone = "America/Los_Angeles"; // Set to San Francisco time zone
 
     const start_date = formatTZ(
-        toZonedTime(new Date(Math.min(...selectedDates.map((date) => date.getTime()))), timeZone),
-        "yyyy-MM-dd"
+      toZonedTime(
+        new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
+        timeZone
+      ),
+      "yyyy-MM-dd"
     );
-    
+
     const end_date = formatTZ(
-        toZonedTime(new Date(Math.max(...selectedDates.map((date) => date.getTime()))), timeZone),
-        "yyyy-MM-dd"
+      toZonedTime(
+        new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
+        timeZone
+      ),
+      "yyyy-MM-dd"
     );
 
     const payload = {
-        ...timeOffData,
-        start_date,
-        end_date,
+      ...timeOffData,
+      start_date,
+      end_date,
     };
     try {
-        const response = await fetch("/api/time_off", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-        });
-        if (!response.ok) {
-            const errorText = await response.text(); // Fetch response text for better debugging
-            console.error("Server response:", errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result = await response.json();
-        // Refresh calendar data after submission
-        fetchCalendarData();
-        // Reset form
-        setTimeOffData({
-            employee_name: "",
-            reason: "",
-            other_reason: "",
-        });
-        setSelectedDates([]);
-        setShowOtherTextarea(false);
-        // Show success toast
-        toast("Your Request Has Been Submitted", {
-            position: "bottom-right",
-            action: {
-                label: "Noice!",
-                onClick: () => {},
-            },
-        });
+      const response = await fetch("/api/time_off", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const errorText = await response.text(); // Fetch response text for better debugging
+        console.error("Server response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      // Refresh calendar data after submission
+      fetchCalendarData();
+      // Reset form
+      setTimeOffData({
+        employee_name: "",
+        reason: "",
+        other_reason: "",
+      });
+      setSelectedDates([]);
+      setShowOtherTextarea(false);
+      // Show success toast
+      toast("Your Request Has Been Submitted", {
+        position: "bottom-right",
+        action: {
+          label: "Noice!",
+          onClick: () => {},
+        },
+      });
     } catch (error: any) {
-        console.error("Failed to submit time off request:", error.message);
+      console.error("Failed to submit time off request:", error.message);
     }
-};
+  };
   return (
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
@@ -316,18 +341,18 @@ export default function TimeOffRequestPage() {
                 </SelectContent>
               </Select>
               {showOtherTextarea && (
-  <Textarea
-    placeholder={timeOffData.reason === "Swapping Schedules" ? "Please specify who you are swapping with" : "Please specify your reason"}
-    value={timeOffData.other_reason}
-    onChange={(e) =>
-      setTimeOffData({
-        ...timeOffData,
-        other_reason: e.target.value,
-      })
-    }
-    className="textarea"
-  />
-)}
+                <Textarea
+                  placeholder={getPlaceholderText(timeOffData.reason)}
+                  value={timeOffData.other_reason}
+                  onChange={(e) =>
+                    setTimeOffData({
+                      ...timeOffData,
+                      other_reason: e.target.value,
+                    })
+                  }
+                  className="textarea"
+                />
+              )}
 
               <Button type="submit" variant="gooeyRight">
                 Submit Request

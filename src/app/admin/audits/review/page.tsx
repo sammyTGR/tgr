@@ -1,7 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../../utils/supabase/client";
-import { AuditData, columns } from "./columns";
+import createColumns, { AuditData, createColumns as columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
@@ -37,6 +37,8 @@ export default function AuditReview() {
       setLoading(false);
     }
   }, [fetchAuditData]);
+
+  const columns = useMemo(() => createColumns(fetchAuditData), [fetchAuditData]);
 
   useEffect(() => {
     fetchData();
