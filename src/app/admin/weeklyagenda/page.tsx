@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext"; // Adjust the import path if needed
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type ColumnType = {
   id: string;
@@ -194,17 +195,16 @@ export default function Board() {
   };
 
   return (
-    <>
-      <div className="flex flex-col space-y-4 mb-4 p-4">
-        <h1 className="text-2xl font-bold">Weekly Agenda</h1>
+    <Card className="h-full mt-4">
+      <CardHeader>
+        <CardTitle>Weekly Agenda</CardTitle>
         {role === "super admin" && <AddColumn handleAddColumn={addColumn} />}
-      </div>
-      <div className="flex flex-wrap gap-3 p-4">
-        {columns.map((column) => (
-          <div key={column.id} className="w-1/3">
-            {" "}
-            {/* Adjust width here */}
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {columns.map((column) => (
             <Column
+              key={column.id}
               title={column.title}
               column={column}
               headingColor="text-black dark:text-white"
@@ -217,11 +217,11 @@ export default function Board() {
               updateColumnTitle={updateColumnTitle}
               deleteColumn={deleteColumn}
             />
-          </div>
-        ))}
+          ))}
+        </div>
         <BurnBarrel setCards={setCards} />
-      </div>
-    </>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -356,67 +356,74 @@ const Column = ({
   };
 
   return (
-    <div className="w-56 shrink-0">
-      <div className="mb-3 flex items-center justify-between group">
-        {isEditing ? (
-          <form onSubmit={handleColumnTitleSubmit} className="flex-1">
-            <input
-              type="text"
-              value={newTitle}
-              onChange={handleColumnTitleChange}
-              className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm  focus:outline-0"
-            />
-            <div className="mt-1.5 flex items-center justify-end gap-1.5">
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs  transition-colors hover:bg-neutral-300"
-              >
-                <span>Save</span>
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <h3 className={`font-medium ${headingColor}`}>{title}</h3>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {role === "super admin" && (
-                <button onClick={handleEditColumn} className="text-yellow-500">
-                  <Pencil1Icon />
-                </button>
-              )}
-              {role === "super admin" && (
+    <Card className="h-full max-w-sm">
+      <CardContent className="h-full flex flex-col p-4">
+        <div className="mb-3 flex items-center justify-between group">
+          {isEditing ? (
+            <form onSubmit={handleColumnTitleSubmit} className="flex-1">
+              <input
+                type="text"
+                value={newTitle}
+                onChange={handleColumnTitleChange}
+                className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm focus:outline-0"
+              />
+              <div className="mt-1.5 flex items-center justify-end gap-1.5">
                 <button
-                  onClick={() => deleteColumn(column.id)}
-                  className="text-red-500"
+                  type="submit"
+                  className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs transition-colors hover:bg-neutral-300"
                 >
-                  <TrashIcon />
+                  <span>Save</span>
                 </button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`h-full w-full transition-colors ${
-          active ? "bg-neutral-800/50" : "bg-neutral-800/0"
-        }`}
-      >
-        {cards.map((c) => (
-          <Card
-            key={c.id}
-            {...c}
-            handleDragStart={handleDragStart}
-            handleDeleteCard={handleDeleteCard}
-            updateCardTitle={updateCardTitle}
-          />
-        ))}
-        <DropIndicator beforeId={null} column_name={column.title} />
+              </div>
+            </form>
+          ) : (
+            <>
+              <h3 className={`font-medium ${headingColor}`}>{title}</h3>
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                {role === "super admin" && (
+                  <button
+                    onClick={handleEditColumn}
+                    className="text-yellow-500"
+                  >
+                    <Pencil1Icon />
+                  </button>
+                )}
+                {role === "super admin" && (
+                  <button
+                    onClick={() => deleteColumn(column.id)}
+                    className="text-red-500"
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          className={`flex-grow overflow-y-auto ${
+            active ? "bg-neutral-800/50" : "bg-neutral-800/0"
+          }`}
+        >
+          <div className="flex flex-col gap-2">
+            {cards.map((c) => (
+              <KanbanCard
+                key={c.id}
+                {...c}
+                handleDragStart={handleDragStart}
+                handleDeleteCard={handleDeleteCard}
+                updateCardTitle={updateCardTitle}
+              />
+            ))}
+            <DropIndicator beforeId={null} column_name={column.title} />
+          </div>
+        </div>
         <AddCard column_name={column.title} handleAddCard={handleAddCard} />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -426,7 +433,7 @@ type CardProps = CardType & {
   updateCardTitle: (id: string, title: string) => void;
 };
 
-const Card = ({
+const KanbanCard = ({
   title,
   id,
   column_name,
