@@ -34,13 +34,30 @@ const useRealtimeNotifications = () => {
       }
     };
 
-    const handleNewMessage = async (payload: any, isAdminChat = false) => {
+    const fetchGroupChatName = async (groupChatId: number) => {
+      try {
+        const { data, error } = await supabase
+          .from("group_chats")
+          .select("name")
+          .eq("id", groupChatId)
+          .single();
+
+        if (error) throw error;
+        return data.name;
+      } catch (error) {
+        console.error("Error fetching group chat name:", error);
+        return "Group Chat";
+      }
+    };
+
+    const handleNewMessage = async (payload: any, isAdminChat = false, isGroupChat = false) => {
       try {
         if (
-          (payload.new.receiver_id === user.id || isAdminChat) &&
-          payload.new.message.trim() !== ""
+          ((payload.new.receiver_id === user.id || isAdminChat || (isGroupChat && payload.new.sender_id !== user.id)) &&
+          payload.new.message.trim() !== "")
         ) {
           const senderName = await fetchSender(payload.new.sender_id);
+          const chatName = isGroupChat ? await fetchGroupChatName(payload.new.group_chat_id) : senderName;
 
           // Check if the user is on the chat page
           const isOnChatPage = pathname === "/TGR/crew/chat";
@@ -51,15 +68,15 @@ const useRealtimeNotifications = () => {
           if (
             !isOnChatPage ||
             document.hidden ||
-            (currentChat !== payload.new.sender_id && !isAdminChat)
+            (currentChat !== (isGroupChat ? `group_${payload.new.group_chat_id}` : payload.new.sender_id) && !isAdminChat)
           ) {
-            toast(`New message from ${senderName}`, {
+            toast(`New message in ${isGroupChat ? chatName : `from ${chatName}`}`, {
               description: payload.new.message,
               action: {
                 label: "Open",
                 onClick: () => {
                   router.push(
-                    `/TGR/crew/chat${isAdminChat ? "" : `?dm=${payload.new.sender_id}`}`
+                    `/TGR/crew/chat${isAdminChat ? "" : isGroupChat ? `?group=${payload.new.group_chat_id}` : `?dm=${payload.new.sender_id}`}`
                   );
                 },
               },
@@ -72,13 +89,7 @@ const useRealtimeNotifications = () => {
     };
 
     const directMessageChannel = client
-      .channel("direct-messages", {
-        config: {
-          broadcast: {
-            self: true,
-          },
-        },
-      })
+      .channel("direct-messages")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "direct_messages" },
@@ -89,13 +100,7 @@ const useRealtimeNotifications = () => {
       .subscribe();
 
     const adminChatChannel = client
-      .channel("admin-chat", {
-        config: {
-          broadcast: {
-            self: true,
-          },
-        },
-      })
+      .channel("admin-chat")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages" },
@@ -105,11 +110,24 @@ const useRealtimeNotifications = () => {
       )
       .subscribe();
 
+    const groupChatChannel = client
+      .channel("group-chat-messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "group_chat_messages" },
+        async (payload) => {
+          handleNewMessage(payload, false, true);
+        }
+      )
+      .subscribe();
+
     return () => {
       directMessageChannel?.unsubscribe();
       adminChatChannel?.unsubscribe();
+      groupChatChannel?.unsubscribe();
     };
   }, [user, pathname, router]);
 };
+
 
 export default useRealtimeNotifications;

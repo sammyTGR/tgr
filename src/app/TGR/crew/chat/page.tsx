@@ -132,18 +132,13 @@ function ChatContent() {
   const handleGroupChatInsert = async (payload: GroupChatPayload) => {
     const newGroupChat = payload.new;
 
-    // Check if user is null or undefined
-    if (!user) {
-      console.error("User is not available");
-      return;
-    }
-
     // Check if the current user is part of this group chat
-    if (newGroupChat.users.includes(user.id)) {
+    if (user && newGroupChat.users.includes(user.id)) {
+      const validUserIds = newGroupChat.users.filter((id) => id !== null);
       const { data: usersData, error: usersError } = await supabase
         .from("employees")
         .select("user_uuid, name")
-        .in("user_uuid", newGroupChat.users);
+        .in("user_uuid", validUserIds);
 
       if (usersError) {
         console.error("Error fetching group chat users:", usersError.message);
@@ -161,7 +156,7 @@ function ChatContent() {
 
         setDmUsers((prev) => {
           const existingGroupChat = prev.find(
-            (chat) => chat.id === `group_${newGroupChat.id}`
+            (user) => user.id === `group_${newGroupChat.id}`
           );
           if (existingGroupChat) {
             return prev;
@@ -184,74 +179,77 @@ function ChatContent() {
   const handleGroupChatUpdate = async (payload: GroupChatPayload) => {
     const updatedGroupChat = payload.new;
 
-    // Check if user is null or undefined
-    if (!user) {
-      console.error("User is not available");
-      return;
-    }
-
     // Check if the current user has been added to this group chat
-    if (updatedGroupChat.users.includes(user.id)) {
-      // ... rest of the function
+    if (user && updatedGroupChat.users.includes(user.id)) {
+      // Fetch the updated group chat details and add it to dmUsers
+      const { data: groupChatData, error: groupChatError } = await supabase
+        .from("group_chats")
+        .select("*")
+        .eq("id", updatedGroupChat.id)
+        .single();
+
+      if (groupChatError) {
+        console.error(
+          "Error fetching updated group chat:",
+          groupChatError.message
+        );
+        return;
+      }
+
+      if (groupChatData) {
+        setDmUsers((prev) => {
+          const existingGroupChat = prev.find(
+            (user) => user.id === `group_${groupChatData.id}`
+          );
+          if (existingGroupChat) {
+            return prev;
+          }
+
+          return [
+            ...prev,
+            {
+              id: `group_${groupChatData.id}`,
+              name: groupChatData.name,
+              is_online: true,
+              users: groupChatData.users,
+            },
+          ];
+        });
+      }
     }
   };
 
-  // const fetchGroupChats = async () => {
-  //   const { data: groupChats, error: groupChatsError } = await supabase
-  //     .from("group_chats")
-  //     .select("*");
+  useEffect(() => {
+    const fetchGroupChats = async () => {
+      if (!user || !user.id) {
+        console.error("User or user.id is not available");
+        return;
+      }
 
-  //   if (groupChats) {
-  //     const groupChatUsers = await Promise.all(
-  //       groupChats.map(async (chat) => {
-  //         const userIds = chat.users;
-  //         const { data: usersData, error: usersError } = await supabase
-  //           .from("employees")
-  //           .select("user_uuid, name")
-  //           .in("user_uuid", userIds);
+      const { data: groupChats, error } = await supabase
+        .from("group_chats")
+        .select("*")
+        .filter("users", "cs", `{${user.id}}`);
 
-  //         if (usersError) {
-  //           console.error(
-  //             "Error fetching group chat users:",
-  //             usersError.message
-  //           );
-  //         }
+      if (error) {
+        console.error("Error fetching group chats:", error.message);
+      } else if (groupChats) {
+        setDmUsers((prev) => [
+          ...prev,
+          ...groupChats.map((chat) => ({
+            id: `group_${chat.id}`,
+            name: chat.name,
+            is_online: true,
+            users: chat.users,
+          })),
+        ]);
+      }
+    };
 
-  //         // Check if usersData is not null before creating the user map
-  //         const userMap: Record<string, string> = usersData
-  //           ? usersData.reduce((acc, user) => {
-  //               acc[user.user_uuid] = user.name;
-  //               return acc;
-  //             }, {} as Record<string, string>)
-  //           : {};
-
-  //         return {
-  //           id: `group_${chat.id}`,
-  //           name: chat.name,
-  //           is_online: true,
-  //           users: userMap,
-  //         };
-  //       })
-  //     );
-
-  //     setDmUsers((prev) => {
-  //       const newDmUsers = [
-  //         ...prev.filter((user) => !user.id.startsWith("group_")),
-  //       ];
-
-  //       // Add only unique group chats
-  //       groupChatUsers.forEach((chat) => {
-  //         if (!newDmUsers.some((user) => user.id === chat.id)) {
-  //           newDmUsers.push(chat);
-  //         }
-  //       });
-
-  //       return newDmUsers;
-  //     });
-  //   } else {
-  //     console.error("Error fetching group chats:", groupChatsError?.message);
-  //   }
-  // };
+    if (user && user.id) {
+      fetchGroupChats();
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -846,15 +844,22 @@ function ChatContent() {
         { event: "INSERT", schema: "public", table: "group_chat_messages" },
         (payload) => {
           setMessages((prev) => {
-            // Check if the message already exists
             const messageExists = prev.some((msg) => msg.id === payload.new.id);
             if (!messageExists) {
+              // Update unread status for group chats
+              if (payload.new.sender_id !== user.id) {
+                setUnreadStatus((prevStatus) => ({
+                  ...prevStatus,
+                  [`group_${payload.new.group_chat_id}`]: true,
+                }));
+              }
               return [...prev, payload.new];
             }
             return prev;
           });
         }
       )
+      // ... rest of the subscription
       .on<ChatMessage>(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "group_chat_messages" },
