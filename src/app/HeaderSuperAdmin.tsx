@@ -48,7 +48,7 @@ const auditComponents = [
   {
     title: "Submit & Review Audits",
     href: "/admin/audits",
-    description: "Enter New Audits & Review Existing Ones",
+    description: "Enter Audits & Review Existing Ones",
   },
   {
     title: "DROS Guidance",
@@ -214,7 +214,7 @@ const manageComps = [
     description: "Set All Employee Details",
   },
   {
-    title: "Combo Audits",
+    title: "Audit Management",
     href: "/admin/audits",
     description: "Testing Audits",
   },
