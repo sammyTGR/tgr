@@ -76,8 +76,8 @@ export const ourFileRouter = {
     image: { maxFileSize: "4MB" },
     video: { maxFileSize: "16MB" },
     audio: { maxFileSize: "8MB" },
-    pdf: { maxFileSize: "8MB" },
-    text: { maxFileSize: "1MB" },
+    pdf: { maxFileSize: "4MB" },
+    text: { maxFileSize: "64KB" },
   })
   .middleware(async ({ req }) => {
     const user = await auth(req);

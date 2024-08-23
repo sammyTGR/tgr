@@ -36,7 +36,10 @@ const useRealtimeNotifications = () => {
 
     const handleNewMessage = async (payload: any, isAdminChat = false) => {
       try {
-        if (payload.new.receiver_id === user.id || isAdminChat) {
+        if (
+          (payload.new.receiver_id === user.id || isAdminChat) &&
+          payload.new.message.trim() !== ""
+        ) {
           const senderName = await fetchSender(payload.new.sender_id);
 
           // Check if the user is on the chat page
@@ -61,12 +64,6 @@ const useRealtimeNotifications = () => {
                 },
               },
             });
-
-            // if (Notification.permission === "granted") {
-            //   new Notification(`New message from ${senderName}`, {
-            //     body: payload.new.message,
-            //   });
-            // }
           }
         }
       } catch (error) {
@@ -107,10 +104,6 @@ const useRealtimeNotifications = () => {
         }
       )
       .subscribe();
-
-    // if (Notification.permission !== "granted") {
-    //   Notification.requestPermission();
-    // }
 
     return () => {
       directMessageChannel?.unsubscribe();

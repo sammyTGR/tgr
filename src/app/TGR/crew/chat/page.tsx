@@ -28,16 +28,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/utils/supabase/client";
-import { toast, Toaster } from "sonner";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { debounce } from "lodash";
 
 const title = "TGR Ops Chat";
-
-const notify = (message: string) => {
-  toast(message);
-};
 
 interface ChatMessage {
   group_chat_id?: number;
@@ -102,6 +97,10 @@ function ChatContent() {
     }, 300),
     []
   );
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Function to handle chat type selection
   const handleChatTypeSelection = (type: "dm" | "group") => {
@@ -376,7 +375,13 @@ function ChatContent() {
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "direct_messages" },
             async (payload) => {
-              setMessages((prev) => [...prev, payload.new]);
+              setMessages((prev) => {
+                // Check if the message already exists in the state
+                if (prev.some((msg) => msg.id === payload.new.id)) {
+                  return prev;
+                }
+                return [...prev, payload.new];
+              });
 
               if (payload.new.receiver_id === userDataRef.current?.user?.id) {
                 const senderId = payload.new.sender_id;
@@ -391,7 +396,6 @@ function ChatContent() {
                     await fetchSender(senderId);
                   }
                 }
-                notify(`New Message: ${payload.new.message}`);
               }
             }
           )
@@ -482,22 +486,15 @@ function ChatContent() {
     }
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Update the onSend function to include these changes
   const onSend = async () => {
     if (
       !channel.current ||
       message.trim().length === 0 ||
-      username.trim().length === 0 ||
       selectedChat === null
     ) {
       console.warn("Cannot send message:", {
         message,
-        username,
-        channel: channel.current,
         selectedChat,
       });
       return;
@@ -521,7 +518,7 @@ function ChatContent() {
       insertData = {
         ...commonMessageData,
         user_id: user.id, // Only include user_id for chat_messages
-        user_name: username,
+        user_name: user.name,
       };
       tableName = "chat_messages";
     } else if (selectedChat.startsWith("group_")) {
@@ -533,67 +530,20 @@ function ChatContent() {
     } else {
       insertData = {
         ...commonMessageData,
-        user_name: username,
+        user_name: user.name,
       };
       tableName = "direct_messages";
     }
 
-    const { data, error } = await client.from(tableName).insert([insertData]);
+    const { error } = await client.from(tableName).insert([insertData]);
 
     if (error) {
       console.error("Error inserting message:", error.message);
       return;
     }
 
-    if (data) {
-      const newMessages = Array.isArray(data) ? data : [data];
-      setMessages((prev) => [...prev, ...newMessages]);
-
-      // Reset unread status for the selected chat
-      setUnreadStatus((prevStatus) => ({
-        ...prevStatus,
-        [selectedChat]: false,
-      }));
-
-      // Mark all messages in the chat as read by the current user
-      const { data: existingMessages, error: fetchError } = await client
-        .from(tableName)
-        .select("id, read_by")
-        .or(`receiver_id.eq.${selectedChat},sender_id.eq.${user.id}`);
-
-      if (fetchError) {
-        console.error("Error fetching existing messages:", fetchError.message);
-        return;
-      }
-
-      const messageIdsToUpdate = existingMessages
-        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
-        .map((msg) => msg.id);
-
-      if (messageIdsToUpdate.length > 0) {
-        for (const messageId of messageIdsToUpdate) {
-          const { error: updateError } = await client
-            .from(tableName)
-            .update({
-              read_by: [
-                ...(existingMessages.find((msg) => msg.id === messageId)
-                  ?.read_by || []),
-                user.id,
-              ],
-            })
-            .eq("id", messageId);
-
-          if (updateError) {
-            console.error(
-              "Error updating messages as read:",
-              updateError.message
-            );
-          }
-        }
-      }
-    }
-
-    setMessage(""); // Ensure message input is cleared
+    // Clear the message input
+    setMessage("");
     scrollToBottom(); // Scroll to the bottom after sending a message
   };
 
@@ -659,20 +609,7 @@ function ChatContent() {
     setDmUsers((prev) => [...prev, receiver]);
     setSelectedChat(receiver.id);
     setShowUserList(false); // Close the dialog
-
-    const { error } = await supabase.from("direct_messages").insert([
-      {
-        sender_id: user.id,
-        receiver_id: receiver.id,
-        message: "",
-        is_read: false,
-        user_name: username, // Use username of the sender
-      },
-    ]);
-
-    if (error) {
-      console.error("Error inserting direct message user:", error.message);
-    }
+    setSelectedUsers([]); // Clear selected users
   };
 
   const startGroupChat = async (receivers: User[]) => {
@@ -722,18 +659,29 @@ function ChatContent() {
       }
 
       // Update the state with the new group chat
-      setDmUsers((prev) => [
-        ...prev,
-        {
-          id: `group_${newGroupChat.id}`,
-          name: newGroupChat.name,
-          is_online: true,
-        },
-      ]);
+      setDmUsers((prev) => {
+        // Ensure no duplicates
+        const existingGroupChat = prev.find(
+          (user) => user.id === `group_${newGroupChat.id}`
+        );
+        if (existingGroupChat) {
+          return prev;
+        }
+
+        return [
+          ...prev,
+          {
+            id: `group_${newGroupChat.id}`,
+            name: newGroupChat.name,
+            is_online: true,
+          },
+        ];
+      });
 
       // Set the newly created group chat as the selected chat
       setSelectedChat(`group_${newGroupChat.id}`);
     }
+    setSelectedUsers([]); // Clear selected users
   };
 
   const deleteDirectMessage = async (userId: string) => {
@@ -862,11 +810,6 @@ function ChatContent() {
         { event: "INSERT", schema: "public", table: "group_chat_messages" },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
-
-          // Show toast to all receivers of the group message except the sender
-          if (payload.new.sender_id !== user?.id) {
-            notify(`New Group Message: ${payload.new.message}`);
-          }
         }
       )
       .on<ChatMessage>(
@@ -889,55 +832,9 @@ function ChatContent() {
       )
       .subscribe();
 
-    const directMessageSubscription = supabase
-      .channel("direct_messages")
-      .on<ChatMessage>(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages" },
-        async (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
-
-          if (payload.new.receiver_id === user?.id) {
-            const senderId = payload.new.sender_id;
-
-            if (typeof senderId === "string") {
-              setUnreadStatus((prevStatus) => ({
-                ...prevStatus,
-                [senderId]: true,
-              }));
-
-              if (!dmUsers.some((u) => u.id === senderId)) {
-                await fetchSender(senderId);
-              }
-            }
-            notify(`New Message: ${payload.new.message}`);
-          }
-        }
-      )
-      .on<ChatMessage>(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "direct_messages" },
-        (payload) => {
-          setMessages((prev) =>
-            prev.filter((msg) => msg.id !== payload.old.id)
-          );
-        }
-      )
-      .on<ChatMessage>(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "direct_messages" },
-        (payload) => {
-          setMessages((prev) =>
-            prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
-          );
-        }
-      )
-      .subscribe();
-
     return () => {
       groupChatSubscription.unsubscribe();
       groupChatMessageSubscription.unsubscribe();
-      directMessageSubscription.unsubscribe();
     };
   }, [user, dmUsers, unreadStatus]);
 
@@ -1095,13 +992,29 @@ function ChatContent() {
     }
   }, [messages, selectedChat]);
 
+  useEffect(() => {
+    const groupChatChannel = supabase
+      .channel("group-chats")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "group_chats" },
+        handleGroupChatInsert
+      )
+      .subscribe();
+
+    return () => {
+      groupChatChannel.unsubscribe();
+    };
+  }, []);
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
     <>
-      <Toaster />
+      {/* <Toaster /> */}
+
       <RoleBasedWrapper
         allowedRoles={["gunsmith", "admin", "super admin", "auditor"]}
       >
@@ -1190,6 +1103,7 @@ function ChatContent() {
                         </Button>
                       </div>
                     ))}
+
                     {dmUsers
                       .filter((u) => u.id.startsWith("group_"))
                       .map((groupChat) => (

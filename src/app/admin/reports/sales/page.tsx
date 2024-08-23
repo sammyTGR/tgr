@@ -1,6 +1,6 @@
 // admin\reports\sales\page.tsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import SalesDataTable from "./sales-data-table";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { supabase } from "@/utils/supabase/client";
@@ -433,9 +433,11 @@ const SalesPage = () => {
                   </CardContent>
                 </Card>
               </div>
-              <CardContent className="flex flex-col border p-4">
-                <SalesRangeStackedBarChart selectedRange={selectedRange} />
-              </CardContent>
+              <Suspense fallback={<div>Loading...</div>}>
+                <CardContent className="flex flex-col border p-4">
+                  <SalesRangeStackedBarChart selectedRange={selectedRange} />
+                </CardContent>
+              </Suspense>
             </Card>
           </TabsContent>
 
@@ -444,11 +446,13 @@ const SalesPage = () => {
               <CardHeader>
                 <CardTitle>Sales Details</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col border p-2">
-                <div className="flex max-w-8xl w-full justify-start mb-4  md:px-6">
-                  <SalesDataTable />
-                </div>
-              </CardContent>
+              <Suspense fallback={<div>Loading...</div>}>
+                <CardContent className="flex flex-col border p-2">
+                  <div className="flex max-w-8xl w-full justify-start mb-4  md:px-6">
+                    <SalesDataTable />
+                  </div>
+                </CardContent>
+              </Suspense>
             </Card>
           </TabsContent>
 

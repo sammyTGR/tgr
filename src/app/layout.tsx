@@ -43,6 +43,7 @@ export default function RootLayout({
               <NotificationsProvider>
                 <Header />
                 <main>{children}</main>
+
                 <Toaster />
               </NotificationsProvider>
             </ThemeProvider>
