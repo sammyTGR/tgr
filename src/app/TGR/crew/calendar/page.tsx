@@ -36,6 +36,7 @@ import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./calendar.module.css"; // Create this CSS module file
 import classNames from "classnames";
+import { ShiftFilter } from "./ShiftFilter";
 
 const title = "TGR Crew Calendar";
 const timeZone = "America/Los_Angeles"; // Define your time zone
@@ -96,6 +97,49 @@ export default function Component() {
   const [customStatus, setCustomStatus] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<CalendarEvent | null>(null);
+  const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const filterEventsByShiftAndDay = (events: CalendarEvent[]) => {
+    return events.filter((event) => {
+      // Filter by selected day if any
+      if (selectedDay && event.day_of_week !== selectedDay) {
+        return false;
+      }
+
+      // Filter by shift if any are selected
+      if (selectedShifts.length > 0) {
+        const startTime = event.start_time ? new Date(`1970-01-01T${event.start_time}`) : null;
+        if (!startTime) return false;
+        const hours = startTime.getHours();
+        const minutes = startTime.getMinutes();
+        const time = hours + minutes / 60;
+
+        return (
+          (selectedShifts.includes("morning") && time < 10) ||
+          (selectedShifts.includes("mid") && time >= 10 && time < 11.5) ||
+          (selectedShifts.includes("closing") && time >= 11.5)
+        );
+      }
+
+      return true;
+    });
+  };
+
+  const filteredCalendarData = data.calendarData
+    .map((employee) => ({
+      ...employee,
+      events: filterEventsByShiftAndDay(employee.events),
+    }))
+    .filter((employee) => employee.events.length > 0);
+
+  const handleDayClick = (day: string) => {
+    setSelectedDay(prevDay => prevDay === day ? null : day);
+  };
+
+  const handleShiftFilter = (shifts: string[]) => {
+    setSelectedShifts(shifts);
+  };
 
   const fetchCalendarData = useCallback(async (): Promise<
     EmployeeCalendar[]
@@ -332,6 +376,35 @@ export default function Component() {
     }
   };
 
+  const renderTableHeader = () => (
+    <TableRow>
+      <TableHead className="w-32 sticky left-0 z-20 bg-background">Employee</TableHead>
+      {selectedDay ? (
+        <TableHead 
+          key={selectedDay} 
+          className="w-32 text-left hover:bg-gray-600 bg-gray-100"
+          onClick={() => handleDayClick(selectedDay)}
+        >
+          {selectedDay}
+          <br />
+          {weekDates[selectedDay]}
+        </TableHead>
+      ) : (
+        daysOfWeek.map((day) => (
+          <TableHead 
+            key={day} 
+            className="w-32 text-left hover:bg-gray-600"
+            onClick={() => handleDayClick(day)}
+          >
+            {day}
+            <br />
+            {weekDates[day]}
+          </TableHead>
+        ))
+      )}
+    </TableRow>
+  );
+  
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
@@ -342,13 +415,12 @@ export default function Component() {
 
     return (
       <TableRow key={employee.employee_id}>
-        <TableCell className="font-medium w-12">{employee.name}</TableCell>
-        {daysOfWeek.map((day) => (
-          <TableCell key={day} className="text-left relative group w-12">
-            {eventsByDay[day].map((calendarEvent, index) => (
+        <TableCell className="font-medium w-32 sticky left-0 z-5 bg-background">{employee.name}</TableCell>
+        {selectedDay ? (
+          <TableCell key={selectedDay} className="text-left relative group w-32">
+            {eventsByDay[selectedDay].map((calendarEvent, index) => (
               <div key={index} className="relative">
                 {calendarEvent.status === "added_day" ? (
-                  // Always show added_day status
                   <div className="text-pink-500 dark:text-pink-300">
                     {`${formatTZ(
                       toZonedTime(
@@ -413,7 +485,7 @@ export default function Component() {
                     </div>
                   )
                 ) : null}
-
+  
                 {(role === "admin" || role === "super admin") && (
                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                     <Popover>
@@ -499,11 +571,168 @@ export default function Component() {
               </div>
             ))}
           </TableCell>
-        ))}
+        ) : (
+          daysOfWeek.map((day) => (
+            <TableCell key={day} className="text-left relative group w-32">
+              {eventsByDay[day].map((calendarEvent, index) => (
+                <div key={index} className="relative">
+                  {calendarEvent.status === "added_day" ? (
+                    <div className="text-pink-500 dark:text-pink-300">
+                      {`${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.start_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}-${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.end_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}`}
+                    </div>
+                  ) : calendarEvent.start_time && calendarEvent.end_time ? (
+                    calendarEvent.status === "time_off" ? (
+                      <div className="text-purple-600 dark:text-purple-500">
+                        Approved Time Off
+                      </div>
+                    ) : calendarEvent.status === "called_out" ? (
+                      <div className="text-red-500 dark:text-red-400">
+                        Called Out
+                      </div>
+                    ) : calendarEvent.status === "left_early" ? (
+                      <div className="text-orange-500 dark:text-orange-400">
+                        Left Early
+                      </div>
+                    ) : calendarEvent.status &&
+                      calendarEvent.status.startsWith("Custom:") ? (
+                      <div className="text-green-500 dark:text-green-400">
+                        {calendarEvent.status.replace("Custom:", "").trim()}
+                      </div>
+                    ) : (
+                      <div
+                        className={
+                          toZonedTime(
+                            new Date(`1970-01-01T${calendarEvent.start_time}`),
+                            timeZone
+                          ).getHours() < 12
+                            ? "text-amber-500 dark:text-amber-400"
+                            : "text-blue-500 dark:text-blue-400"
+                        }
+                      >
+                        {`${formatTZ(
+                          toZonedTime(
+                            new Date(`1970-01-01T${calendarEvent.start_time}`),
+                            timeZone
+                          ),
+                          "h:mma",
+                          { timeZone }
+                        )}-${formatTZ(
+                          toZonedTime(
+                            new Date(`1970-01-01T${calendarEvent.end_time}`),
+                            timeZone
+                          ),
+                          "h:mma",
+                          { timeZone }
+                        )}`}
+                      </div>
+                    )
+                  ) : null}
+  
+                  {(role === "admin" || role === "super admin") && (
+                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="linkHover1">
+                            <CaretUpIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <Button
+                            variant="linkHover2"
+                            onClick={() =>
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                "called_out"
+                              )
+                            }
+                          >
+                            Called Out
+                          </Button>
+                          <Button
+                            variant="linkHover2"
+                            onClick={() =>
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                "left_early"
+                              )
+                            }
+                          >
+                            Left Early
+                          </Button>
+                          <Button
+                            variant="linkHover2"
+                            onClick={() =>
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                "Custom:Off"
+                              )
+                            }
+                          >
+                            Off
+                          </Button>
+                          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                className="p-4"
+                                variant="linkHover2"
+                                onClick={() => {
+                                  setCurrentEvent(calendarEvent);
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                Custom Status
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogTitle className="p-4">
+                                Enter Custom Status
+                              </DialogTitle>
+                              <Textarea
+                                value={customStatus}
+                                onChange={(e) => setCustomStatus(e.target.value)}
+                                placeholder="Enter custom status"
+                              />
+                              <Button
+                                variant="linkHover1"
+                                onClick={handleCustomStatusSubmit}
+                              >
+                                Submit
+                              </Button>
+                              <DialogClose asChild>
+                                <Button variant="linkHover2">Cancel</Button>
+                              </DialogClose>
+                            </DialogContent>
+                          </Dialog>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </TableCell>
+          ))
+        )}
       </TableRow>
     );
   };
-
+  
   return (
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
@@ -512,53 +741,76 @@ export default function Component() {
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />
         </h1>
-        <Card className="flex-1 flex flex-col h-full w-full max-w-7xl">
-          <CardContent className="h-full flex flex-col">
-            <div className="flex justify-between w-full mb-4">
-              <Button variant="linkHover2" onClick={handlePreviousWeek}>
-                <ChevronLeftIcon className="h-4 w-4" />
-                Previous Week
-              </Button>
-              <Button variant="linkHover1" onClick={handleNextWeek}>
-                Next Week
-                <ChevronRightIcon className="h-4 w-4" />
-              </Button>
+        <div className="w-full max-w-7xl">
+          {(role === "admin" || role === "super admin") && (
+            <div className="self-start mb-2">
+              <ShiftFilter onSelect={handleShiftFilter} />
             </div>
-            <div className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table className="w-full">
-                  <TableHeader className="sticky top-0 bg-background z-5">
-                    <TableRow>
-                      <TableHead className="w-32" />
-                      {daysOfWeek.map((day) => (
-                        <TableHead key={day} className="w-32 text-left">
-                          {day}
-                          <br />
-                          {weekDates[day]}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                </Table>
+          )}
+          <Card className="flex-1 flex flex-col h-full w-full max-w-7xl">
+            <CardContent className="h-full flex flex-col">
+              <div className="flex justify-between w-full mb-4">
+                <Button variant="linkHover2" onClick={handlePreviousWeek}>
+                  <ChevronLeftIcon className="h-4 w-4" />
+                  Previous Week
+                </Button>
+                <Button variant="linkHover1" onClick={handleNextWeek}>
+                  Next Week
+                  <ChevronRightIcon className="h-4 w-4" />
+                </Button>
               </div>
-              <ScrollArea
-                className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}
-              >
+              <div className="overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="h-full overflow-hidden w-full">
-                    <TableBody>
-                      {data.calendarData.map((employee) =>
-                        renderEmployeeRow(employee)
-                      )}
-                    </TableBody>
+                  <Table className="w-full">
+                    <TableHeader className="sticky top-0 bg-background z-5">
+                      <TableRow>
+                        <TableHead className="w-32 sticky left-0 z-20 bg-background">Employee</TableHead>
+                        {selectedDay ? (
+                          <TableHead 
+                            key={selectedDay} 
+                            className="w-32 text-left hover:bg-gray-600 bg-gray-500"
+                            onClick={() => handleDayClick(selectedDay)}
+                          >
+                            {selectedDay}
+                            <br />
+                            {weekDates[selectedDay]}
+                          </TableHead>
+                        ) : (
+                          daysOfWeek.map((day) => (
+                            <TableHead 
+                              key={day} 
+                              className="w-32 text-left hover:bg-gray-600"
+                              onClick={() => handleDayClick(day)}
+                            >
+                              {day}
+                              <br />
+                              {weekDates[day]}
+                            </TableHead>
+                          ))
+                        )}
+                      </TableRow>
+                    </TableHeader>
                   </Table>
                 </div>
-                <ScrollBar orientation="vertical" />
-              </ScrollArea>
-            </div>
-          </CardContent>
-        </Card>
+                <ScrollArea
+                  className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}
+                >
+                  <div className="overflow-x-auto">
+                    <Table className="h-full overflow-hidden w-full">
+                      <TableBody>
+                        {filteredCalendarData.map((employee) =>
+                          renderEmployeeRow(employee)
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </RoleBasedWrapper>
   );
-}
+};
