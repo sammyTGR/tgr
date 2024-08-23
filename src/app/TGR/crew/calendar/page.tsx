@@ -109,7 +109,9 @@ export default function Component() {
 
       // Filter by shift if any are selected
       if (selectedShifts.length > 0) {
-        const startTime = event.start_time ? new Date(`1970-01-01T${event.start_time}`) : null;
+        const startTime = event.start_time
+          ? new Date(`1970-01-01T${event.start_time}`)
+          : null;
         if (!startTime) return false;
         const hours = startTime.getHours();
         const minutes = startTime.getMinutes();
@@ -134,7 +136,9 @@ export default function Component() {
     .filter((employee) => employee.events.length > 0);
 
   const handleDayClick = (day: string) => {
-    setSelectedDay(prevDay => prevDay === day ? null : day);
+    if (role === "admin" || role === "super admin") {
+      setSelectedDay((prevDay) => (prevDay === day ? null : day));
+    }
   };
 
   const handleShiftFilter = (shifts: string[]) => {
@@ -378,10 +382,12 @@ export default function Component() {
 
   const renderTableHeader = () => (
     <TableRow>
-      <TableHead className="w-32 sticky left-0 z-20 bg-background">Employee</TableHead>
+      <TableHead className="w-32 sticky left-0 z-20 bg-background">
+        Employee
+      </TableHead>
       {selectedDay ? (
-        <TableHead 
-          key={selectedDay} 
+        <TableHead
+          key={selectedDay}
           className="w-32 text-left hover:bg-gray-600 bg-gray-100"
           onClick={() => handleDayClick(selectedDay)}
         >
@@ -391,8 +397,8 @@ export default function Component() {
         </TableHead>
       ) : (
         daysOfWeek.map((day) => (
-          <TableHead 
-            key={day} 
+          <TableHead
+            key={day}
             className="w-32 text-left hover:bg-gray-600"
             onClick={() => handleDayClick(day)}
           >
@@ -404,7 +410,7 @@ export default function Component() {
       )}
     </TableRow>
   );
-  
+
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
@@ -415,9 +421,14 @@ export default function Component() {
 
     return (
       <TableRow key={employee.employee_id}>
-        <TableCell className="font-medium w-32 sticky left-0 z-5 bg-background">{employee.name}</TableCell>
+        <TableCell className="font-medium w-32 sticky left-0 z-5 bg-background">
+          {employee.name}
+        </TableCell>
         {selectedDay ? (
-          <TableCell key={selectedDay} className="text-left relative group w-32">
+          <TableCell
+            key={selectedDay}
+            className="text-left relative group w-32"
+          >
             {eventsByDay[selectedDay].map((calendarEvent, index) => (
               <div key={index} className="relative">
                 {calendarEvent.status === "added_day" ? (
@@ -485,7 +496,7 @@ export default function Component() {
                     </div>
                   )
                 ) : null}
-  
+
                 {(role === "admin" || role === "super admin") && (
                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                     <Popover>
@@ -641,7 +652,7 @@ export default function Component() {
                       </div>
                     )
                   ) : null}
-  
+
                   {(role === "admin" || role === "super admin") && (
                     <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                       <Popover>
@@ -687,7 +698,10 @@ export default function Component() {
                           >
                             Off
                           </Button>
-                          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                          <Dialog
+                            open={dialogOpen}
+                            onOpenChange={setDialogOpen}
+                          >
                             <DialogTrigger asChild>
                               <Button
                                 className="p-4"
@@ -706,7 +720,9 @@ export default function Component() {
                               </DialogTitle>
                               <Textarea
                                 value={customStatus}
-                                onChange={(e) => setCustomStatus(e.target.value)}
+                                onChange={(e) =>
+                                  setCustomStatus(e.target.value)
+                                }
                                 placeholder="Enter custom status"
                               />
                               <Button
@@ -732,7 +748,7 @@ export default function Component() {
       </TableRow>
     );
   };
-  
+
   return (
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
@@ -764,36 +780,35 @@ export default function Component() {
                   <Table className="w-full">
                     <TableHeader className="sticky top-0 bg-background z-5">
                       <TableRow>
-                        <TableHead className="w-32 sticky left-0 z-20 bg-background">Employee</TableHead>
-                        {selectedDay ? (
-                          <TableHead 
-                            key={selectedDay} 
-                            className="w-32 text-left hover:bg-gray-600 bg-gray-500"
-                            onClick={() => handleDayClick(selectedDay)}
+                        <TableHead className="w-32 sticky left-0 z-20 bg-background">
+                          Employee
+                        </TableHead>
+                        {daysOfWeek.map((day) => (
+                          <TableHead
+                            key={day}
+                            className={`w-32 text-left ${
+                              selectedDay === day ? "bg-gray-500" : ""
+                            } ${
+                              role === "admin" || role === "super admin"
+                                ? "hover:bg-gray-600 cursor-pointer"
+                                : ""
+                            }`}
+                            onClick={() => handleDayClick(day)}
                           >
-                            {selectedDay}
+                            {day}
                             <br />
-                            {weekDates[selectedDay]}
+                            {weekDates[day]}
                           </TableHead>
-                        ) : (
-                          daysOfWeek.map((day) => (
-                            <TableHead 
-                              key={day} 
-                              className="w-32 text-left hover:bg-gray-600"
-                              onClick={() => handleDayClick(day)}
-                            >
-                              {day}
-                              <br />
-                              {weekDates[day]}
-                            </TableHead>
-                          ))
-                        )}
+                        ))}
                       </TableRow>
                     </TableHeader>
                   </Table>
                 </div>
                 <ScrollArea
-                  className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}
+                  className={classNames(
+                    styles.noScroll,
+                    "h-[calc(100vh-400px)]"
+                  )}
                 >
                   <div className="overflow-x-auto">
                     <Table className="h-full overflow-hidden w-full">
@@ -813,4 +828,4 @@ export default function Component() {
       </div>
     </RoleBasedWrapper>
   );
-};
+}
