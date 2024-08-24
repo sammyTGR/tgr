@@ -20,7 +20,7 @@ import { useRole } from "@/context/RoleContext";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Link from "next/link";
 import { CustomCalendar } from "@/components/ui/calendar";
-import { DataTable } from "../../../audits/contest/data-table";
+import { DataTableProfile } from "../../../audits/contest/data-table-profile";
 import { RenderDropdown } from "../../../audits/contest/dropdown";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import {
@@ -44,7 +44,14 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
 import SalesDataTableEmployee from "../../../reports/sales/sales-data-table-employee";
 import PerformanceBarChart from "@/components/PerformanceBarChart";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 interface Note {
   id: number;
   profile_employee_id: number;
@@ -123,6 +130,39 @@ interface Review {
   created_at: string;
 }
 
+interface SickTimeReport {
+  employee_id: number;
+  name: string; // Change this from employee_name to name
+  available_sick_time: number;
+  used_sick_time: number;
+  used_dates: string[];
+}
+
+interface CalendarEvent {
+  day_of_week: string;
+  start_time: string | null;
+  end_time: string | null;
+  schedule_date: string;
+  status?: string;
+  employee_id: number; // Ensure this is part of the event
+}
+
+interface EmployeeCalendar {
+  employee_id: number; // Ensure this is part of the employee
+  name: string;
+  events: CalendarEvent[];
+}
+
+const daysOfWeek = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
 const EmployeeProfile = () => {
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
@@ -180,6 +220,186 @@ const EmployeeProfile = () => {
     null
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
+  const [selectedAbsenceReason, setSelectedAbsenceReason] = useState<
+    string | null
+  >(null);
+  const [customAbsenceReason, setCustomAbsenceReason] = useState("");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [customStatus, setCustomStatus] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentEvent, setCurrentEvent] = useState<CalendarEvent | null>(null);
+  const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
+  const [data, setData] = useState<{
+    calendarData: EmployeeCalendar[];
+    employeeNames: string[];
+  }>({
+    calendarData: [],
+    employeeNames: [],
+  });
+
+  const fetchCalendarData = useCallback(async (): Promise<
+    EmployeeCalendar[]
+  > => {
+    const timeZone = "America/Los_Angeles";
+    const startOfWeek = toZonedTime(getStartOfWeek(currentDate), timeZone);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    try {
+      const { data, error } = await supabase
+        .from("schedules")
+        .select(
+          `
+          schedule_date,
+          start_time,
+          end_time,
+          day_of_week,
+          status,
+          employee_id,
+          employees:employee_id (name)
+        `
+        )
+        .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
+        .lte("schedule_date", formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone }));
+
+      if (error) {
+        throw error;
+      }
+
+      const groupedData: { [key: number]: EmployeeCalendar } = {};
+
+      data.forEach((item: any) => {
+        if (!groupedData[item.employee_id]) {
+          groupedData[item.employee_id] = {
+            employee_id: item.employee_id,
+            name: item.employees.name,
+            events: [],
+          };
+        }
+
+        const timeZone = "America/Los_Angeles";
+        groupedData[item.employee_id].events.push({
+          day_of_week: item.day_of_week,
+          start_time: item.start_time ? item.start_time : null,
+          end_time: item.end_time ? item.end_time : null,
+          schedule_date: item.schedule_date,
+          status: item.status,
+          employee_id: item.employee_id,
+        });
+      });
+
+      return Object.values(groupedData);
+    } catch (error) {
+      console.error("Failed to fetch calendar data:", (error as Error).message);
+      return [];
+    }
+  }, [currentDate]);
+
+  useEffect(() => {
+    const startOfWeek = getStartOfWeek(currentDate);
+    const weekDatesTemp: { [key: string]: string } = {};
+    daysOfWeek.forEach((day, index) => {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + index);
+      weekDatesTemp[day] = `${date.getMonth() + 1}/${date.getDate()}`;
+    });
+    setWeekDates(weekDatesTemp);
+  }, [currentDate]);
+
+  const getStartOfWeek = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    const diff = start.getDate() - day;
+    return new Date(start.setDate(diff));
+  };
+
+  const updateScheduleStatus = async (
+    employee_id: number,
+    schedule_date: string,
+    status: string
+  ) => {
+    try {
+      const formattedDate = new Date(schedule_date).toISOString().split("T")[0];
+      const response = await fetch("/api/update_schedule_status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_id,
+          schedule_date: formattedDate,
+          status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await fetchCalendarData();
+    } catch (error) {
+      console.error(
+        "Failed to update schedule status:",
+        (error as Error).message
+      );
+    }
+  };
+
+  const handleCustomStatusSubmit = () => {
+    if (currentEvent) {
+      updateScheduleStatus(
+        currentEvent.employee_id,
+        currentEvent.schedule_date,
+        `Custom:${customStatus}`
+      );
+      setDialogOpen(false);
+      setCustomStatus("");
+    }
+  };
+
+  const handleAddAbsence = async () => {
+    if (!selectedDate || (!selectedAbsenceReason && !customAbsenceReason))
+      return;
+
+    const status =
+      selectedAbsenceReason === "custom"
+        ? `Custom:${customAbsenceReason}`
+        : selectedAbsenceReason;
+
+    try {
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
+      await updateScheduleStatus(employeeId, formattedDate, status as string);
+
+      // Refresh the absences list
+      await fetchAbsences();
+
+      // Reset the form
+      setSelectedDate(null);
+      setSelectedAbsenceReason(null);
+      setCustomAbsenceReason("");
+    } catch (error) {
+      console.error("Failed to add absence:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchSickTimeData = async () => {
+      const { data, error } = await supabase.rpc(
+        "get_all_employee_sick_time_usage"
+      );
+      if (error) {
+        console.error("Error fetching sick time data:", error.message);
+      } else {
+        // console.log("Fetched Sick Time Data:", data);
+        setSickTimeData(data as SickTimeReport[]);
+      }
+    };
+
+    fetchSickTimeData();
+  }, []);
 
   const fetchAvailableSickTime = async (employeeId: number) => {
     try {
@@ -1322,78 +1542,175 @@ const EmployeeProfile = () => {
                     </TabsContent>
 
                     <TabsContent value="absences">
-                      <div className="p-6 space-y-4">
-                        <div className="grid gap-1.5">
-                          <Label htmlFor="new-absence">Add a new absence</Label>
-                          <Textarea
-                            id="new-absence"
-                            value={newAbsence}
-                            onChange={(e) => setNewAbsence(e.target.value)}
-                            placeholder="Enter date and reason for absence (e.g., 2023-12-01 CALLED OUT)"
-                            className="min-h-[100px]"
-                          />
-                          <Button onClick={() => handleAddNote("absence")}>
-                            Add Absence
-                          </Button>
-                        </div>
-                        <div className="grid gap-4">
-                          {absences.map((absence) => (
-                            <div
-                              key={absence.id}
-                              className="flex justify-between items-start"
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        <Card className="mt-2">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-2xl font-bold mb-6">
+                              Select A Date
+                            </CardTitle>
+                            {/* Add any icons or elements you want here */}
+                          </CardHeader>
+                          <CardContent>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full pl-3 text-left font-normal"
+                                >
+                                  {selectedDate ? (
+                                    format(selectedDate, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
+                                <CustomCalendar
+                                  selectedDate={selectedDate ?? new Date()}
+                                  onDateChange={handleDateChange}
+                                  disabledDays={() => false}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </CardContent>
+                        </Card>
+
+                        {/* Absence Card */}
+                        <Card className="mt-2">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-2xl font-bold mb-6">
+                              Select A Reason
+                            </CardTitle>
+                            {/* Add any icons or elements you want here */}
+                          </CardHeader>
+                          <CardContent>
+                            <Select
+                              onValueChange={(value) =>
+                                setSelectedAbsenceReason(value)
+                              }
                             >
-                              <div>
-                                <div className="text-sm font-medium">
-                                  {absence.schedule_date}
-                                </div>
-                                <div className="text-sm">{absence.status}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  - {absence.created_by} on{" "}
-                                  {new Date(
-                                    absence.created_at
-                                  ).toLocaleDateString()}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() =>
-                                    handleEditNote(
-                                      absence.id,
-                                      prompt(
-                                        "Edit absence:",
-                                        `${absence.schedule_date}\t${absence.status}`
-                                      ) ??
-                                        `${absence.schedule_date}\t${absence.status}`
-                                    )
-                                  }
-                                >
-                                  <Pencil1Icon />
-                                </Button>
-                                <Button
-                                  variant="linkHover1"
-                                  size="icon"
-                                  onClick={() => handleDeleteNote(absence.id)}
-                                >
-                                  <TrashIcon />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Display available sick time */}
-                        <div className="mt-4">
-                          <h3 className="text-lg font-semibold">
-                            Available Sick Time
-                          </h3>
-                          <p className="text-2xl font-medium">
-                            {availableSickTime !== null
-                              ? `${availableSickTime} hours`
-                              : "Loading..."}
-                          </p>
-                        </div>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a reason" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="called_out">
+                                  Called Out
+                                </SelectItem>
+                                <SelectItem value="left_early">
+                                  Left Early
+                                </SelectItem>
+                                <SelectItem value="off">Off</SelectItem>
+                                <SelectItem value="custom">
+                                  Custom Status
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {selectedAbsenceReason === "custom" && (
+                              <Textarea
+                                id="custom-absence-reason"
+                                value={customAbsenceReason}
+                                onChange={(e) =>
+                                  setCustomAbsenceReason(e.target.value)
+                                }
+                                placeholder="Enter custom absence reason"
+                                className="min-h-[100px] mt-2"
+                              />
+                            )}
+                            <Button
+                              className="mt-2"
+                              variant="linkHover1"
+                              onClick={handleAddAbsence}
+                              disabled={
+                                !selectedDate ||
+                                (!selectedAbsenceReason && !customAbsenceReason)
+                              }
+                            >
+                              Add Absence
+                            </Button>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="mt-2">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-2xl  font-bold mb-6">
+                              Available Sick Time
+                            </CardTitle>
+                            {/* Add any icons or elements you want here */}
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {/* Display available sick time */}
+
+                            <p className="text-2xl font-medium">
+                              {availableSickTime !== null
+                                ? `${availableSickTime} hours`
+                                : "Loading..."}
+                            </p>
+                          </CardContent>
+                        </Card>
                       </div>
+                      {/* End of Cards Grid */}
+
+                      {/* Occurrences Card */}
+                      <div className="grid p-2 gap-4 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-1">
+                        <Card className="mt-2">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-2xl font-bold mb-6">
+                              All Occurrences
+                            </CardTitle>
+                            {/* Add any icons or elements you want here */}
+                          </CardHeader>
+                          <CardContent>
+                            <ScrollArea className="h-[calc(75vh-500px)]">
+                              <div
+                                className={classNames(
+                                  "grid gap-4 max-h-[300px] max-w-full overflow-hidden overflow-y-auto mt-2 p-6",
+                                  styles.noScroll
+                                )}
+                              >
+                                {absences
+                                  .sort(
+                                    (a, b) =>
+                                      new Date(b.schedule_date).getTime() -
+                                      new Date(a.schedule_date).getTime()
+                                  )
+                                  .map((absence) => (
+                                    <div
+                                      key={absence.id}
+                                      className="grid grid-cols-3 gap-4 items-center"
+                                    >
+                                      {/* Left column: Absence status */}
+                                      <div className="text-sm font-medium">
+                                        {absence.status}
+                                      </div>
+
+                                      {/* Middle column: Schedule date */}
+                                      <div className="text-sm text-center">
+                                        {absence.schedule_date}
+                                      </div>
+
+                                      {/* Right column: Created by and date */}
+                                      <div className="text-xs text-right text-gray-500 dark:text-gray-400">
+                                        {absence.created_by} on{" "}
+                                        {new Date(
+                                          absence.created_at
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                              <ScrollBar orientation="vertical" />
+                            </ScrollArea>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* <Card className="mt-2">
+                        <SickTimeTable data={sickTimeData} />
+                      </Card> */}
                     </TabsContent>
 
                     <TabsContent value="reviews">
@@ -2102,7 +2419,7 @@ const EmployeeProfile = () => {
                           </CardHeader>
                           <CardContent className="p-4">
                             <div className="text-left">
-                              <DataTable
+                              <DataTableProfile
                                 columns={[
                                   {
                                     Header: "Total DROS",
@@ -2114,6 +2431,7 @@ const EmployeeProfile = () => {
                             </div>
                           </CardContent>
                         </Card>
+
                         <Card className="mt-4">
                           <CardHeader>
                             <CardTitle className="text-2xl font-bold">
@@ -2122,7 +2440,7 @@ const EmployeeProfile = () => {
                           </CardHeader>
                           <CardContent className="p-4">
                             <div className="text-left">
-                              <DataTable
+                              <DataTableProfile
                                 columns={[
                                   {
                                     Header: "Points Deducted",
@@ -2142,7 +2460,7 @@ const EmployeeProfile = () => {
                           </CardHeader>
                           <CardContent className="p-4">
                             <div className="text-left">
-                              <DataTable
+                              <DataTableProfile
                                 columns={[
                                   {
                                     Header: "Total Points",
@@ -2155,18 +2473,6 @@ const EmployeeProfile = () => {
                           </CardContent>
                         </Card>
                       </div>
-
-                      {/* <Card className="mt-4">
-                        <CardHeader>
-                          <CardTitle>Audit Performance Overview</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col border p-4">
-                          <PerformanceBarChart
-                            employeeId={employeeId.toString()} // Convert employeeId to a string
-                            selectedDate={selectedDate}
-                          />
-                        </CardContent>
-                      </Card> */}
 
                       <Card>
                         <CardContent>
