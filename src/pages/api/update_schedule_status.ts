@@ -15,9 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
 
   if (req.method === 'POST') {
-    const { employee_id, schedule_date, status } = req.body;
-
-    // console.log("Received payload:", req.body); // Log the received payload
+    const { employee_id, schedule_date, status, start_time, end_time } = req.body;
 
     if (!employee_id || !schedule_date || typeof status !== 'string') {
       console.error("Invalid request:", { employee_id, schedule_date, status });
@@ -54,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Update existing schedule
         const { error: scheduleUpdateError } = await supabase
           .from('schedules')
-          .update({ status })
+          .update({ status, start_time, end_time })
           .eq('employee_id', employee_id)
           .eq('schedule_date', schedule_date);
 
@@ -81,18 +79,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const scheduleDayOfWeek = new Date(schedule_date).toLocaleString('en-US', { weekday: 'long' });
 
       let subject = "Your Schedule Has Been Updated";
-      let message = `Your Scheduled Shift On ${schedule_date} Has Been Changed To Reflect That You're Off For That Day. Please Contact Management Directly With Any Questions.`;
+      let message = `Your scheduled shift on ${scheduleDayOfWeek}, ${schedule_date} has been updated.`;
 
-      if (status === "called_out") {
-        subject = "You've Called Out";
-        message = `Your Schedule Has Been Updated To Reflect That You Called Out For ${schedule_date}.`;
-      } else if (status === "left_early") {
-        subject = "You've Left Early";
-        message = `Your Schedule Has Been Updated To Reflect That You Left Early On ${schedule_date}.`;
-      } else if (status.startsWith("Custom:")) {
-        message = `Your Schedule For ${schedule_date} Has Been Updated To: ${status.replace("Custom:", "").trim()}`;
-      } else if (status === "added_day") {
-        message = `A shift has been added to your work schedule for ${scheduleDayOfWeek}, ${schedule_date}!`;
+      if (status === "added_day") {
+        message = `A new shift has been added to your work schedule for ${scheduleDayOfWeek}, ${schedule_date} from ${start_time} to ${end_time}.`;
+      } else if (status === "updated_shift") {
+        message = `Your shift on ${scheduleDayOfWeek}, ${schedule_date} has been updated. Your new shift time is from ${start_time} to ${end_time}.`;
       }
 
       const msg = {

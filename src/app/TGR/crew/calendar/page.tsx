@@ -330,35 +330,6 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Remove this block
-      /*
-      const employeeResponse = await supabase
-        .from("employees")
-        .select("contact_info")
-        .eq("employee_id", employee_id)
-        .single();
-  
-      if (employeeResponse.error || !employeeResponse.data.contact_info) {
-        throw new Error("Failed to fetch employee email");
-      }
-  
-      const email = employeeResponse.data.contact_info;
-      let subject = "Your Schedule Has Been Updated";
-      let message = `Your Scheduled Shift On ${formattedDate} Has Been Changed To Reflect That You're Off For That Day. Please Contact Management Directly With Any Questions.`;
-  
-      if (status === "called_out") {
-        subject = "You've Called Out";
-        message = `Your Schedule Has Been Updated To Reflect That You Called Out For ${formattedDate}.`;
-      } else if (status === "left_early") {
-        subject = "You've Left Early";
-        message = `Your Schedule Has Been Updated To Reflect That You Left Early On ${formattedDate}.`;
-      } else if (status.startsWith("Custom:")) {
-        message = `Your Time Off Request For ${formattedDate} Has Been Approved!`;
-      }
-  
-      await sendEmail(email, subject, message);
-      */
-
       await fetchCalendarData();
     } catch (error) {
       console.error(
@@ -462,6 +433,24 @@ export default function Component() {
                     <div className="text-orange-500 dark:text-orange-400">
                       Left Early
                     </div>
+                  ) : calendarEvent.status === "updated_shift" ? (
+                    <div className="text-orange-500 dark:text-orange-400">
+                      {`${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.start_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}-${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${calendarEvent.end_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}`}
+                    </div>
                   ) : calendarEvent.status &&
                     calendarEvent.status.startsWith("Custom:") ? (
                     <div className="text-green-500 dark:text-green-400">
@@ -542,7 +531,10 @@ export default function Component() {
                         >
                           Off
                         </Button>
-                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <Dialog
+                          open={dialogOpen}
+                          onOpenChange={setDialogOpen}
+                        >
                           <DialogTrigger asChild>
                             <Button
                               className="p-4"
@@ -561,7 +553,9 @@ export default function Component() {
                             </DialogTitle>
                             <Textarea
                               value={customStatus}
-                              onChange={(e) => setCustomStatus(e.target.value)}
+                              onChange={(e) =>
+                                setCustomStatus(e.target.value)
+                              }
                               placeholder="Enter custom status"
                             />
                             <Button
@@ -617,6 +611,24 @@ export default function Component() {
                     ) : calendarEvent.status === "left_early" ? (
                       <div className="text-orange-500 dark:text-orange-400">
                         Left Early
+                      </div>
+                    ) : calendarEvent.status === "updated_shift" ? (
+                      <div className="text-orange-500 dark:text-orange-400">
+                        {`${formatTZ(
+                          toZonedTime(
+                            new Date(`1970-01-01T${calendarEvent.start_time}`),
+                            timeZone
+                          ),
+                          "h:mma",
+                          { timeZone }
+                        )}-${formatTZ(
+                          toZonedTime(
+                            new Date(`1970-01-01T${calendarEvent.end_time}`),
+                            timeZone
+                          ),
+                          "h:mma",
+                          { timeZone }
+                        )}`}
                       </div>
                     ) : calendarEvent.status &&
                       calendarEvent.status.startsWith("Custom:") ? (

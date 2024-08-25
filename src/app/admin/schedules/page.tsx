@@ -19,6 +19,7 @@ import { TimesheetDataTable } from "./TimesheetDataTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { TimesheetPagination } from "./TimesheetPagination";
+import { toast } from "sonner";
 
 interface ScheduleData {
   id: number;
@@ -451,6 +452,49 @@ const ManageSchedules = () => {
     }
   };
 
+  const handleUpdateSchedule = async (
+    employeeName: string,
+    _: string | undefined,
+    date?: string,
+    startTime?: string,
+    endTime?: string
+  ) => {
+    const employee = employees.find((emp) => emp.name === employeeName);
+    if (!employee || !date || !startTime || !endTime) {
+      console.error("Missing required information for updating schedule");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("schedules")
+      .update({ start_time: startTime, end_time: endTime })
+      .eq("employee_id", employee.employee_id)
+      .eq("schedule_date", date);
+
+    if (error) {
+      console.error("Error updating schedule:", error);
+      toast.error("Failed to update schedule");
+    } else {
+      toast.success(`Updated schedule for ${employeeName} on ${date}`);
+      fetchReferenceSchedules();
+    }
+  };
+
+  const fetchSchedule = async (employeeId: number, date: string) => {
+    const { data, error } = await supabase
+      .from("schedules")
+      .select("start_time, end_time")
+      .eq("employee_id", employeeId)
+      .eq("schedule_date", date)
+      .single();
+
+    if (error) {
+      console.error("Error fetching schedule:", error);
+      return null;
+    }
+    return data;
+  };
+
   const table = useReactTable({
     data: referenceSchedules,
     columns: scheduleColumns,
@@ -480,7 +524,7 @@ const ManageSchedules = () => {
           </TabsList>
 
           <TabsContent value="scheduling">
-            <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-5">
               <Card>
                 <CardHeader>
                   <h2 className="text-lg font-bold">Clear A Schedule</h2>
@@ -556,6 +600,36 @@ const ManageSchedules = () => {
                     placeholder="Enter employee name and details"
                     formType="addSchedule"
                     employees={employees}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h2 className="text-lg font-bold">Update A Shift</h2>
+                </CardHeader>
+                <CardContent className="flex flex-col mx-auto">
+                  <PopoverForm
+                    onSubmit={(
+                      employeeName: string,
+                      _,
+                      date?: string,
+                      startTime?: string,
+                      endTime?: string
+                    ) =>
+                      handleUpdateSchedule(
+                        employeeName,
+                        undefined,
+                        date,
+                        startTime,
+                        endTime
+                      )
+                    }
+                    buttonText="Update Existing Shift"
+                    placeholder="Enter employee name and details"
+                    formType="updateSchedule"
+                    employees={employees}
+                    fetchSchedule={fetchSchedule}
                   />
                 </CardContent>
               </Card>

@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 interface TimesheetData {
   id: number;
@@ -50,8 +49,10 @@ interface PopoverFormProps {
     | "addSchedule"
     | "generateAll"
     | "clearSchedule"
-    | "editTimesheet";
-  row?: TimesheetData; // Add this for timesheet editing
+    | "editTimesheet"
+    | "updateSchedule";
+  row?: TimesheetData;
+  fetchSchedule?: (employeeId: number, date: string) => Promise<{ start_time: string; end_time: string } | null>;
 }
 
 export const PopoverForm: React.FC<PopoverFormProps> = ({
@@ -61,6 +62,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   employees,
   formType,
   row,
+  fetchSchedule,
 }) => {
   const [employeeName, setEmployeeName] = useState("");
   const [weeks, setWeeks] = useState("");
@@ -90,7 +92,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         `${weeks} weeks of schedules have been published for the crew!`
       );
     } else if (
-      formType === "addSchedule" &&
+      (formType === "addSchedule" || formType === "updateSchedule") &&
       employeeId &&
       date &&
       startTime &&
@@ -100,7 +102,6 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         (emp) => emp.employee_id === employeeId
       );
 
-      // Directly format the time without any timezone manipulation
       const formattedStartTime = `${startTime}:00`;
       const formattedEndTime = `${endTime}:00`;
 
@@ -112,7 +113,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         formattedEndTime
       );
 
-      // Call the update_schedule_status API to send the email
+      // Call the update_schedule_status API for both add and update
       await fetch("/api/update_schedule_status", {
         method: "POST",
         headers: {
@@ -121,13 +122,21 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         body: JSON.stringify({
           employee_id: employeeId,
           schedule_date: date,
-          status: "added_day", // Or whatever status you wish to use
+          status: formType === "addSchedule" ? "added_day" : "updated_shift",
+          start_time: formattedStartTime,
+          end_time: formattedEndTime,
         }),
       });
 
-      toast.success(
-        `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
-      );
+      if (formType === "addSchedule") {
+        toast.success(
+          `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
+        );
+      } else {
+        toast.success(
+          `Updated shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
+        );
+      }
     } else if (formType === "editTimesheet") {
       onSubmit(
         row?.employee_name || "",
@@ -154,6 +163,22 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     setLunchStart("");
     setLunchEnd("");
     setEmployeeId(null);
+  };
+
+  const handleDateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setDate(newDate);
+
+    if (formType === "updateSchedule" && employeeId && fetchSchedule) {
+      const schedule = await fetchSchedule(employeeId, newDate);
+      if (schedule) {
+        setStartTime(schedule.start_time.slice(0, 5));
+        setEndTime(schedule.end_time.slice(0, 5));
+      } else {
+        setStartTime("");
+        setEndTime("");
+      }
+    }
   };
 
   return (
@@ -188,15 +213,13 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                 value={lunchEnd}
                 onChange={(e) => setLunchEnd(e.target.value)}
               />
-              <Button className="mt-2" onClick={handleSubmit}>
-                Submit
-              </Button>
             </>
           ) : (
             <>
               {(formType === "generate" ||
                 formType === "clearSchedule" ||
-                formType === "addSchedule") &&
+                formType === "addSchedule" ||
+                formType === "updateSchedule") &&
                 employees && (
                   <div>
                     <Label>Employee</Label>
@@ -228,14 +251,14 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                   className="mt-2"
                 />
               )}
-              {formType === "addSchedule" && (
+              {(formType === "addSchedule" || formType === "updateSchedule") && (
                 <>
                   <div>
                     <Label>Date</Label>
                     <Input
                       type="date"
                       value={date}
-                      onChange={(e) => setDate(e.target.value)}
+                      onChange={handleDateChange}
                     />
                   </div>
                   <div>
