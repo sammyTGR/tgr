@@ -385,12 +385,14 @@ const EmployeeProfilePage = () => {
     const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
     const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone }); // Ensure date is the same
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("employee_clock_events")
       .update({
         lunch_end: lunchEnd, // Store just the time
       })
-      .eq("id", currentShift.id);
+      .eq("id", currentShift.id)
+      .select()
+      .single();
 
     if (error) {
       console.error("Error ending lunch break:", error);
@@ -398,6 +400,7 @@ const EmployeeProfilePage = () => {
       setOnLunchBreak(false);
       setDialogOpen(false);
       setPopoverOpen(false);
+      setCurrentShift(data);
       toast.success("Let's Get Dis Bread!");
     }
   };
