@@ -215,6 +215,11 @@ const manageComps = [
     description: "Monthly Sales Contest",
   },
   {
+    title: "Download Reports",
+    href: "/admin/reports/download",
+    description: "Download Various Reports",
+  },
+  {
     title: "Sales Report",
     href: "/admin/reports/sales",
     description: "View Daily Sales",
@@ -322,7 +327,10 @@ const HeaderAdmin = React.memo(() => {
     }
 
     if (groupError) {
-      console.error("Error fetching unread group messages:", groupError.message);
+      console.error(
+        "Error fetching unread group messages:",
+        groupError.message
+      );
     }
 
     const counts: Record<string, number> = {};
@@ -350,15 +358,17 @@ const HeaderAdmin = React.memo(() => {
   useEffect(() => {
     fetchUserAndEmployee();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        fetchUserAndEmployee();
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setEmployeeId(null);
-        setTotalUnreadCount(0);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN") {
+          fetchUserAndEmployee();
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setEmployeeId(null);
+          setTotalUnreadCount(0);
+        }
       }
-    });
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -376,7 +386,7 @@ const HeaderAdmin = React.memo(() => {
           { event: "INSERT", schema: "public", table: "group_chat_messages" },
           (payload) => {
             if (
-              payload.new.sender_id !== user.id && 
+              payload.new.sender_id !== user.id &&
               (!payload.new.read_by || !payload.new.read_by.includes(user.id))
             ) {
               fetchUnreadCounts();
