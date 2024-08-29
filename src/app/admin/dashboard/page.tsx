@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 interface Employee {
   employee_id: number;
   name: string;
-  position: string;
+  pay_rate: string;
 }
 
 const Dashboard = () => {
@@ -35,7 +35,7 @@ const Dashboard = () => {
   const fetchEmployees = async () => {
     let query = supabase
       .from("employees")
-      .select("employee_id, name, position");
+      .select("employee_id, name, pay_rate");
 
     // If the user's role is 'admin', filter out other 'admin' and 'super admin'
     if (role === "admin" || role === "auditor") {
@@ -57,7 +57,7 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from("employees")
       .insert([{ name: newEmployeeName, position: newEmployeePosition }])
-      .select("employee_id, name, position");
+      .select("employee_id, name, pay_rate");
 
     if (error) {
       console.error("Error creating employee:", error);
@@ -104,7 +104,7 @@ const Dashboard = () => {
                     {employee.name}
                   </Button>
                 </Link>
-                <span className="text-gray-500">{employee.position}</span>
+                {/* <span className="text-gray-500">{employee.pay_rate}</span> */}
               </div>
             ))}
 

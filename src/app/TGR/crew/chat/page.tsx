@@ -874,58 +874,62 @@ function ChatContent() {
     }
   };
 
+  const fetchUnreadCounts = useCallback(async () => {
+    if (!user) return;
 
-    const fetchUnreadCounts = useCallback(async () => {
-      if (!user) return;
-    
-      // Fetch unread direct messages
-      const { data: dmData, error: dmError } = await supabase
-        .from("direct_messages")
-        .select("sender_id, is_read")
-        .eq("receiver_id", user.id)
-        .eq("is_read", false);
-    
-      // Fetch unread group messages
-      const { data: groupData, error: groupError } = await supabase
-        .from("group_chat_messages")
-        .select("group_chat_id, read_by")
-        .not("read_by", "cs", `{${user.id}}`);
-    
-      if (dmError) {
-        console.error("Error fetching unread direct messages:", dmError.message);
-      }
-    
-      if (groupError) {
-        console.error("Error fetching unread group messages:", groupError.message);
-      }
-    
-      const counts: Record<string, number> = {};
-    
-      // Count unread direct messages
-      if (dmData) {
-        dmData.forEach((msg) => {
-          counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
-        });
-      }
-    
-      // Count unread group messages
-      if (groupData) {
-        groupData.forEach((msg) => {
-          const groupId = `group_${msg.group_chat_id}`;
-          counts[groupId] = (counts[groupId] || 0) + 1;
-        });
-      }
-    
-      setUnreadCounts(counts);
-    
-      // Calculate total unread count
-      const totalUnreadCount = Object.values(counts).reduce((a, b) => a + b, 0);
-      setTotalUnreadCount(totalUnreadCount);
-    }, [user, supabase]);
+    // Fetch unread direct messages
+    const { data: dmData, error: dmError } = await supabase
+      .from("direct_messages")
+      .select("sender_id, is_read")
+      .eq("receiver_id", user.id)
+      .eq("is_read", false);
 
+    // Fetch unread group messages
+    const { data: groupData, error: groupError } = await supabase
+      .from("group_chat_messages")
+      .select("group_chat_id, read_by")
+      .not("read_by", "cs", `{${user.id}}`);
 
-    useEffect(() => {
-      fetchUnreadCounts();
+    // Handle errors
+    if (dmError) {
+      console.error("Error fetching unread direct messages:", dmError.message);
+      return; // Exit if there's an error
+    }
+
+    if (groupError) {
+      console.error(
+        "Error fetching unread group messages:",
+        groupError.message
+      );
+      return; // Exit if there's an error
+    }
+
+    const counts: Record<string, number> = {};
+
+    // Count unread direct messages
+    if (dmData && dmData.length > 0) {
+      dmData.forEach((msg) => {
+        counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+      });
+    }
+
+    // Count unread group messages
+    if (groupData && groupData.length > 0) {
+      groupData.forEach((msg) => {
+        const groupId = `group_${msg.group_chat_id}`;
+        counts[groupId] = (counts[groupId] || 0) + 1;
+      });
+    }
+
+    setUnreadCounts(counts);
+
+    // Calculate total unread count
+    const totalUnreadCount = Object.values(counts).reduce((a, b) => a + b, 0);
+    setTotalUnreadCount(totalUnreadCount);
+  }, [user, supabase]);
+
+  useEffect(() => {
+    fetchUnreadCounts();
 
     const groupChatMessageSubscription = supabase
       .channel("group_chat_messages")

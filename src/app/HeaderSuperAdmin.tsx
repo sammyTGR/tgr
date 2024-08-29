@@ -348,7 +348,10 @@ const HeaderSuperAdmin = React.memo(() => {
     }
 
     if (groupError) {
-      console.error("Error fetching unread group messages:", groupError.message);
+      console.error(
+        "Error fetching unread group messages:",
+        groupError.message
+      );
     }
 
     const counts: Record<string, number> = {};
@@ -376,15 +379,17 @@ const HeaderSuperAdmin = React.memo(() => {
   useEffect(() => {
     fetchUserAndEmployee();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        fetchUserAndEmployee();
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setEmployeeId(null);
-        setTotalUnreadCount(0);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN") {
+          fetchUserAndEmployee();
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setEmployeeId(null);
+          setTotalUnreadCount(0);
+        }
       }
-    });
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -402,7 +407,7 @@ const HeaderSuperAdmin = React.memo(() => {
           { event: "INSERT", schema: "public", table: "group_chat_messages" },
           (payload) => {
             if (
-              payload.new.sender_id !== user.id && 
+              payload.new.sender_id !== user.id &&
               (!payload.new.read_by || !payload.new.read_by.includes(user.id))
             ) {
               fetchUnreadCounts();
@@ -444,16 +449,16 @@ const HeaderSuperAdmin = React.memo(() => {
         .from("direct_messages")
         .select("id, read_by")
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-  
+
       if (fetchError) {
         console.error("Error fetching messages to update:", fetchError.message);
         return;
       }
-  
+
       const messageIdsToUpdate = messagesToUpdate
         .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
         .map((msg) => msg.id);
-  
+
       if (messageIdsToUpdate.length > 0) {
         for (const messageId of messageIdsToUpdate) {
           const { error: updateError } = await supabase
@@ -466,7 +471,7 @@ const HeaderSuperAdmin = React.memo(() => {
               ],
             })
             .eq("id", messageId);
-  
+
           if (updateError) {
             console.error(
               "Error updating messages as read:",
@@ -475,10 +480,10 @@ const HeaderSuperAdmin = React.memo(() => {
           }
         }
       }
-  
+
       // Reset the unread count
       setTotalUnreadCount(0);
-  
+
       // Navigate to the chat page
       router.push("/TGR/crew/chat");
     }
@@ -504,6 +509,14 @@ const HeaderSuperAdmin = React.memo(() => {
       title: "Your Profile",
       href: employeeId ? `/TGR/crew/profile/${employeeId}` : "#",
       description: "Your Personal Profile",
+    },
+  ];
+
+  const aimComps = [
+    {
+      title: "AIM",
+      href: "/aim",
+      description: "API Testing",
     },
   ];
 
@@ -581,6 +594,22 @@ const HeaderSuperAdmin = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                   {sopComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>AIM</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {aimComps.map((component) => (
                     <ListItem
                       key={component.title}
                       title={component.title}
