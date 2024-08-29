@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -43,6 +43,21 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
+
+interface HeaderSuperAdminProps {
+  totalUnreadCount: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender_id: string;
+  receiver_id?: string;
+  group_chat_id?: string;
+  message: string;
+  created_at: string;
+  is_read?: boolean;
+  read_by?: string[];
+}
 
 const auditComponents = [
   {
@@ -287,30 +302,134 @@ const HeaderSuperAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const router = useRouter();
-  const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
   const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
   const { setTheme } = useTheme();
 
-  useEffect(() => {
-    const fetchUserAndEmployee = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData && userData.user) {
-        setUser(userData.user);
-        const { data: employeeData, error } = await supabase
-          .from("employees")
-          .select("employee_id")
-          .eq("user_uuid", userData.user.id)
-          .single();
-        if (error) {
-          console.error("Error fetching employee data:", error.message);
-        } else {
-          setEmployeeId(employeeData.employee_id);
-        }
+  const fetchUserAndEmployee = useCallback(async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData && userData.user) {
+      setUser(userData.user);
+      const { data: employeeData, error } = await supabase
+        .from("employees")
+        .select("employee_id")
+        .eq("user_uuid", userData.user.id)
+        .single();
+      if (error) {
+        console.error("Error fetching employee data:", error.message);
+      } else {
+        setEmployeeId(employeeData.employee_id);
       }
-    };
-    fetchUserAndEmployee();
+    } else {
+      setUser(null);
+      setEmployeeId(null);
+    }
   }, []);
+
+  const fetchUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    // Fetch unread direct messages
+    const { data: dmData, error: dmError } = await supabase
+      .from("direct_messages")
+      .select("sender_id, is_read")
+      .eq("receiver_id", user.id)
+      .eq("is_read", false);
+
+    // Fetch unread group messages
+    const { data: groupData, error: groupError } = await supabase
+      .from("group_chat_messages")
+      .select("group_chat_id, read_by")
+      .not("read_by", "cs", `{${user.id}}`);
+
+    if (dmError) {
+      console.error("Error fetching unread direct messages:", dmError.message);
+    }
+
+    if (groupError) {
+      console.error("Error fetching unread group messages:", groupError.message);
+    }
+
+    const counts: Record<string, number> = {};
+
+    // Count unread direct messages
+    if (dmData) {
+      dmData.forEach((msg) => {
+        counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+      });
+    }
+
+    // Count unread group messages
+    if (groupData) {
+      groupData.forEach((msg) => {
+        const groupId = `group_${msg.group_chat_id}`;
+        counts[groupId] = (counts[groupId] || 0) + 1;
+      });
+    }
+
+    // Calculate total unread count
+    const totalUnread = Object.values(counts).reduce((a, b) => a + b, 0);
+    setTotalUnreadCount(totalUnread);
+  }, [user]);
+
+  useEffect(() => {
+    fetchUserAndEmployee();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        fetchUserAndEmployee();
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setEmployeeId(null);
+        setTotalUnreadCount(0);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [fetchUserAndEmployee]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCounts();
+
+      const groupChatMessageSubscription = supabase
+        .channel("group_chat_messages")
+        .on<ChatMessage>(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "group_chat_messages" },
+          (payload) => {
+            if (
+              payload.new.sender_id !== user.id && 
+              (!payload.new.read_by || !payload.new.read_by.includes(user.id))
+            ) {
+              fetchUnreadCounts();
+            }
+          }
+        )
+        .subscribe();
+
+      const directMessageSubscription = supabase
+        .channel("direct_messages")
+        .on<ChatMessage>(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "direct_messages" },
+          (payload) => {
+            if (payload.new.receiver_id === user.id && !payload.new.is_read) {
+              fetchUnreadCounts();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        groupChatMessageSubscription.unsubscribe();
+        directMessageSubscription.unsubscribe();
+      };
+    }
+  }, [user, fetchUnreadCounts]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -320,20 +439,21 @@ const HeaderSuperAdmin = React.memo(() => {
 
   const handleChatClick = async () => {
     if (user) {
+      // Mark all messages as read in the database
       const { data: messagesToUpdate, error: fetchError } = await supabase
         .from("direct_messages")
         .select("id, read_by")
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-
+  
       if (fetchError) {
         console.error("Error fetching messages to update:", fetchError.message);
         return;
       }
-
+  
       const messageIdsToUpdate = messagesToUpdate
         .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
         .map((msg) => msg.id);
-
+  
       if (messageIdsToUpdate.length > 0) {
         for (const messageId of messageIdsToUpdate) {
           const { error: updateError } = await supabase
@@ -346,7 +466,7 @@ const HeaderSuperAdmin = React.memo(() => {
               ],
             })
             .eq("id", messageId);
-
+  
           if (updateError) {
             console.error(
               "Error updating messages as read:",
@@ -355,7 +475,10 @@ const HeaderSuperAdmin = React.memo(() => {
           }
         }
       }
-
+  
+      // Reset the unread count
+      setTotalUnreadCount(0);
+  
       // Navigate to the chat page
       router.push("/TGR/crew/chat");
     }
@@ -504,8 +627,17 @@ const HeaderSuperAdmin = React.memo(() => {
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="linkHover2" size="icon" className="mr-2">
+                  <Button
+                    variant="linkHover2"
+                    size="icon"
+                    className="mr-2 relative"
+                  >
                     <PersonIcon />
+                    {totalUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
+                        {totalUnreadCount}
+                      </span>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 mr-2">
@@ -541,10 +673,12 @@ const HeaderSuperAdmin = React.memo(() => {
 
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                    {unreadCount > 0 && (
-                      <DotFilledIcon className="w-4 h-4 text-red-600" />
-                    )}
                     <span>Messages</span>
+                    {totalUnreadCount > 0 && (
+                      <span className="ml-auto text-red-500 font-bold">
+                        {totalUnreadCount}
+                      </span>
+                    )}
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />

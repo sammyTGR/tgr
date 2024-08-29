@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import React, { useState } from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Employee } from './types';
+import { Employee } from "./types";
 
 interface PopoverFormProps {
   employee: Employee;
@@ -16,9 +20,12 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditedEmployee(prev => ({
+    setEditedEmployee((prev) => ({
       ...prev,
-      [name]: name === 'rank' || name === 'pay_rate' ? parseFloat(value) || null : value
+      [name]:
+        name === "rank" || name === "pay_rate"
+          ? parseFloat(value) || null
+          : value,
     }));
   };
 
@@ -56,7 +63,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
               <Input
                 id="department"
                 name="department"
-                value={editedEmployee.department || ''}
+                value={editedEmployee.department || ""}
                 onChange={handleInputChange}
               />
             </div>
@@ -65,7 +72,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
               <Input
                 id="role"
                 name="role"
-                value={editedEmployee.role || ''}
+                value={editedEmployee.role || ""}
                 onChange={handleInputChange}
               />
             </div>
@@ -74,7 +81,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
               <Input
                 id="contact_info"
                 name="contact_info"
-                value={editedEmployee.contact_info || ''}
+                value={editedEmployee.contact_info || ""}
                 onChange={handleInputChange}
               />
             </div>
@@ -83,7 +90,16 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
               <Input
                 id="lanid"
                 name="lanid"
-                value={editedEmployee.lanid || ''}
+                value={editedEmployee.lanid || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pay_type">Pay Type</Label>
+              <Input
+                id="pay_type"
+                name="pay_type"
+                value={editedEmployee.pay_type || ""}
                 onChange={handleInputChange}
               />
             </div>
@@ -93,7 +109,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
                 id="rank"
                 name="rank"
                 type="number"
-                value={editedEmployee.rank || ''}
+                value={editedEmployee.rank || ""}
                 onChange={handleInputChange}
               />
             </div>
@@ -104,12 +120,14 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
                 name="pay_rate"
                 type="number"
                 step="0.01"
-                value={editedEmployee.pay_rate || ''}
+                value={editedEmployee.pay_rate || ""}
                 onChange={handleInputChange}
               />
             </div>
           </div>
-          <Button className="mt-4" type="submit">Save changes</Button>
+          <Button className="mt-4" type="submit">
+            Save changes
+          </Button>
         </form>
       </PopoverContent>
     </Popover>

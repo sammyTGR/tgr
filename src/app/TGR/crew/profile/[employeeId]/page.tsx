@@ -191,21 +191,24 @@ const EmployeeProfilePage = () => {
   const calculateDurationWithLunch = (
     start: string,
     end: string,
-    lunchStart: string,
-    lunchEnd: string
+    lunchStart: string | null,
+    lunchEnd: string | null
   ): string => {
     const startTime = new Date(`1970-01-01T${start}Z`).getTime();
     const endTime = new Date(`1970-01-01T${end}Z`).getTime();
-    const lunchStartTime = new Date(`1970-01-01T${lunchStart}Z`).getTime();
-    const lunchEndTime = new Date(`1970-01-01T${lunchEnd}Z`).getTime();
 
-    const workDuration = endTime - startTime;
-    const lunchDuration = lunchEndTime - lunchStartTime;
-    const netDuration = workDuration - lunchDuration;
+    let totalDuration = endTime - startTime;
 
-    if (netDuration < 0) return "00:00:00";
+    if (lunchStart && lunchEnd) {
+      const lunchStartTime = new Date(`1970-01-01T${lunchStart}Z`).getTime();
+      const lunchEndTime = new Date(`1970-01-01T${lunchEnd}Z`).getTime();
+      const lunchDuration = lunchEndTime - lunchStartTime;
+      totalDuration -= lunchDuration;
+    }
 
-    const totalSeconds = Math.floor(netDuration / 1000);
+    if (totalDuration < 0) return "00:00:00";
+
+    const totalSeconds = Math.floor(totalDuration / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -1261,8 +1264,15 @@ const EmployeeProfilePage = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="mx-auto">
-                          {currentShift?.total_hours ? (
-                            <div>{`You've logged ${currentShift.total_hours} hours today!`}</div>
+                          {currentShift ? (
+                            <div>
+                              {`You've logged ${calculateDurationWithLunch(
+                                currentShift.start_time,
+                                currentShift.end_time || format(new Date(), 'HH:mm:ss'),
+                                currentShift.lunch_start,
+                                currentShift.lunch_end
+                              )} hours today!`}
+                            </div>
                           ) : (
                             <div>No shift data available</div>
                           )}

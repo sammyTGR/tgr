@@ -12,28 +12,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Employee } from "./types";
-import { DataTableColumnHeader } from "./data-table-column-header"
-import { EmployeeTableRowActions } from "./employee-table-row-actions"
+import { DataTableColumnHeader } from "./data-table-column-header";
+import { EmployeeTableRowActions } from "./employee-table-row-actions";
 
 export const columns: ColumnDef<Employee>[] = [
-    {
-        accessorKey: "name",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Name" />
-        ),
-      },
-      {
-        accessorKey: "department",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Department" />
-        ),
-      },
-      {
-        accessorKey: "role",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Role" />
-        ),
-      },
+  {
+    accessorKey: "name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
+  },
+  {
+    accessorKey: "department",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Department" />
+    ),
+  },
+  {
+    accessorKey: "role",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Role" />
+    ),
+  },
   {
     accessorKey: "contact_info",
     header: "Contact Info",
@@ -43,20 +43,24 @@ export const columns: ColumnDef<Employee>[] = [
     header: "LANID",
   },
   {
+    accessorKey: "pay_type",
+    header: "Pay Type",
+  },
+  {
     accessorKey: "pay_rate",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Pay Rate" />
     ),
     cell: ({ row }) => {
       const pay_rate = row.getValue("pay_rate");
-    //   console.log("Full row data:", row.original);
-    //   console.log("Pay rate value:", pay_rate, typeof pay_rate);
-      
+      //   console.log("Full row data:", row.original);
+      //   console.log("Pay rate value:", pay_rate, typeof pay_rate);
+
       if (pay_rate === null || pay_rate === undefined) return "";
-      
+
       const numericPayRate = parseFloat(pay_rate as string);
       if (isNaN(numericPayRate)) return "Invalid";
-      
+
       if (numericPayRate >= 1000) {
         // Assume it's a salary
         const formatted = new Intl.NumberFormat("en-US", {

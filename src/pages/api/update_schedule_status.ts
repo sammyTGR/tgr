@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
-import sendgrid from '@sendgrid/mail';
+import { Resend } from 'resend';
 import { corsHeaders } from '@/utils/cors';
+import ShiftAdded from './../../../emails/ShiftAdded';
+import ShiftUpdated from './../../../emails/ShiftUpdated';
 
-sendgrid.setApiKey(process.env.SENDGRID_API_KEY as string);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'OPTIONS') {
@@ -78,28 +80,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const employeeName = employeeData.name;
       const scheduleDayOfWeek = new Date(schedule_date).toLocaleString('en-US', { weekday: 'long' });
 
-      let subject = "Your Schedule Has Been Updated";
-      let message = `Your scheduled shift on ${scheduleDayOfWeek}, ${schedule_date} has been updated.`;
+      let subject: string;
+      let EmailTemplate: React.ComponentType<any>;
+      let templateData: any;
 
-      if (status === "added_day") {
-        message = `A new shift has been added to your work schedule for ${scheduleDayOfWeek}, ${schedule_date} from ${start_time} to ${end_time}.`;
-      } else if (status === "updated_shift") {
-        message = `Your shift on ${scheduleDayOfWeek}, ${schedule_date} has been updated. Your new shift time is from ${start_time} to ${end_time}.`;
+      switch (status) {
+        case "added_day":
+          subject = "New Shift Added to Your Schedule";
+          EmailTemplate = ShiftAdded;
+          templateData = {
+            name: employeeName,
+            date: `${scheduleDayOfWeek}, ${schedule_date}`,
+            startTime: start_time,
+            endTime: end_time
+          };
+          break;
+        case "updated_shift":
+          subject = "Your Shift Has Been Updated";
+          EmailTemplate = ShiftUpdated;
+          templateData = {
+            name: employeeName,
+            date: `${scheduleDayOfWeek}, ${schedule_date}`,
+            startTime: start_time,
+            endTime: end_time
+          };
+          break;
+        default:
+          throw new Error('Invalid status');
       }
 
-      const msg = {
-        to: email,
-        from: 'samlee@thegunrange.biz', // Your verified sender
-        subject: subject,
-        text: message,
-        html: `<strong>${message}</strong>`, // Optional: Include HTML content
-      };
-
       try {
-        await sendgrid.send(msg);
-        // console.log("Email sent successfully");
+        const resendRes = await resend.emails.send({
+          from: `TGR <scheduling@${process.env.RESEND_DOMAIN}>`,
+          to: [email],
+          subject: subject,
+          react: EmailTemplate(templateData),
+        });
+
+        console.log("Email sent successfully:", resendRes);
       } catch (emailError: any) {
-        console.error("Error sending email:", emailError.response?.body || emailError);
+        console.error("Error sending email:", emailError.message);
         return res.status(500).json({ error: 'Error sending email', details: emailError.message });
       }
 

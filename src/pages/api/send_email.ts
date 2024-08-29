@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import sendgrid from '@sendgrid/mail';
+import { Resend } from 'resend';
 import { corsHeaders } from '@/utils/cors';
+import TimeOffApproved from './../../../emails/TimeOffApproved';
+import TimeOffDenied from './../../../emails/TimeOffDenied';
+import CalledOut from './../../../emails/CalledOut';
+import LeftEarly from './../../../emails/LeftEarly';
 
-sendgrid.setApiKey(process.env.SENDGRID_API_KEY as string);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'OPTIONS') {
@@ -14,28 +18,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
 
   if (req.method === 'POST') {
-    const { email, subject, message } = req.body;
+    const { email, subject, templateName, templateData } = req.body;
 
-    // console.log('Request Body:', req.body);
+    console.log('Received data:', { email, subject, templateName, templateData });
 
-    if (!email || !subject || !message) {
+    if (!email || !subject || !templateName) {
+      console.log('Missing fields:', { email, subject, templateName });
       res.status(400).json({ error: 'Missing required fields', details: req.body });
       return;
     }
 
     try {
-      const msg = {
-        to: email,
-        from: 'samlee@thegunrange.biz', // Your verified sender
-        subject: subject,
-        text: message,
-        html: `<strong>${message}</strong>`, // Optional: Include HTML content
-      };
+      let emailTemplate;
+      switch (templateName) {
+        case 'TimeOffApproved':
+          emailTemplate = TimeOffApproved(templateData);
+          break;
+        case 'TimeOffDenied':
+          emailTemplate = TimeOffDenied(templateData);
+          break;
+        case 'CalledOut':
+          emailTemplate = CalledOut(templateData);
+          break;
+        case 'LeftEarly':
+          emailTemplate = LeftEarly(templateData);
+          break;
+        default:
+          throw new Error('Invalid template name');
+      }
 
-      await sendgrid.send(msg);
-      res.status(200).json({ message: 'Email sent successfully' });
+      const resendRes = await resend.emails.send({
+        from: `TGR <scheduling@${process.env.RESEND_DOMAIN}>`,
+        to: [email],
+        subject: subject,
+        react: emailTemplate,
+      });
+
+      console.log('Resend response:', resendRes);
+
+      if (resendRes.error) {
+        throw new Error(resendRes.error.message);
+      }
+
+      res.status(200).json({ message: 'Email sent successfully', data: resendRes });
     } catch (error: any) {
-      console.error('Error sending email:', error.response?.body || error);
+      console.error('Error sending email:', error);
       res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   } else {

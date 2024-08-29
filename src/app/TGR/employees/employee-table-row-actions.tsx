@@ -1,36 +1,60 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Row } from "@tanstack/react-table"
-import { MoreHorizontal, Pen, Trash } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { Row } from "@tanstack/react-table";
+import { MoreHorizontal, Pen, Trash, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Employee } from "./types"
-import { toast } from "sonner"
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Employee } from "./types";
+import { toast } from "sonner";
+import { EditScheduleDialog } from "./EditScheduleDialog";
+import { supabase } from "@/utils/supabase/client";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface EmployeeTableRowActionsProps<TData> {
-  row: Row<TData>
-  onEdit: (employee: Employee) => void
-  onDelete: (employeeId: number) => void
+  row: Row<TData>;
+  onEdit: (employee: Employee) => void;
+  onDelete: (employeeId: number) => void;
+  onUpdateSchedule: (
+    employeeId: number,
+    schedules: WeeklySchedule
+  ) => Promise<void>;
+}
+
+interface WeeklySchedule {
+  [day: string]: { start_time: string | null; end_time: string | null };
 }
 
 export function EmployeeTableRowActions<TData>({
   row,
   onEdit,
   onDelete,
+  onUpdateSchedule,
 }: EmployeeTableRowActionsProps<TData>) {
-  const employee = row.original as Employee
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const employee = row.original as Employee;
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [editedEmployee, setEditedEmployee] = useState<Employee>(employee)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -54,24 +78,49 @@ export function EmployeeTableRowActions<TData>({
     }
   }
 
-  const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this employee?")) {
-      setIsLoading(true)
-      try {
-        await onDelete(employee.employee_id)
-        toast.success("Employee Deleted", {
-          description: "The employee has been successfully removed.",
-        })
-      } catch (error) {
-        console.error("Error deleting employee:", error)
-        toast.error("Delete Failed", {
-          description: "There was an error deleting the employee.",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+  const handleUpdateSchedule = async (schedules: WeeklySchedule) => {
+    try {
+      await onUpdateSchedule(employee.employee_id, schedules);
+      setIsScheduleDialogOpen(false);
+      // toast.success("Schedule updated successfully");
+    } catch (error) {
+      console.error("Error updating schedule:", error);
+      toast.error("Failed to update schedule");
     }
-  }
+  };
+
+  const fetchWeeklySchedule = async (
+    employeeId: number
+  ): Promise<WeeklySchedule> => {
+    const { data, error } = await supabase
+      .from("reference_schedules")
+      .select("day_of_week, start_time, end_time")
+      .eq("employee_id", employeeId);
+
+    if (error) {
+      console.error("Error fetching weekly schedule:", error);
+      return {};
+    }
+
+    const weeklySchedule: WeeklySchedule = {
+      Monday: { start_time: null, end_time: null },
+      Tuesday: { start_time: null, end_time: null },
+      Wednesday: { start_time: null, end_time: null },
+      Thursday: { start_time: null, end_time: null },
+      Friday: { start_time: null, end_time: null },
+      Saturday: { start_time: null, end_time: null },
+      Sunday: { start_time: null, end_time: null },
+    };
+
+    data.forEach((schedule) => {
+      weeklySchedule[schedule.day_of_week] = {
+        start_time: schedule.start_time,
+        end_time: schedule.end_time,
+      };
+    });
+
+    return weeklySchedule;
+  };
 
   return (
     <>
@@ -87,6 +136,10 @@ export function EmployeeTableRowActions<TData>({
             <Pen className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsScheduleDialogOpen(true)}>
+            <Calendar className="mr-2 h-4 w-4" />
+            Edit Schedule
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onDelete(employee.employee_id)}>
             <Trash className="mr-2 h-4 w-4" />
@@ -95,6 +148,7 @@ export function EmployeeTableRowActions<TData>({
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Existing Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -169,6 +223,23 @@ export function EmployeeTableRowActions<TData>({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="pay_type" className="text-right">
+                Pay Type
+              </Label>
+              <Select
+                value={editedEmployee.pay_type}
+                onValueChange={(value) => setEditedEmployee({ ...editedEmployee, pay_type: value as 'Hourly' | 'Salary' })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select pay type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Hourly">Hourly</SelectItem>
+                  <SelectItem value="Salary">Salary</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="pay_rate" className="text-right">
                 Pay Rate
               </Label>
@@ -192,6 +263,16 @@ export function EmployeeTableRowActions<TData>({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* New Schedule Dialog */}
+      <EditScheduleDialog
+        isOpen={isScheduleDialogOpen}
+        onClose={() => setIsScheduleDialogOpen(false)}
+        employeeId={employee.employee_id}
+        employeeName={employee.name}
+        fetchWeeklySchedule={fetchWeeklySchedule}
+        onUpdateSchedule={handleUpdateSchedule}
+      />
     </>
-  )
+  );
 }
