@@ -25,6 +25,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { supabase } from "@/utils/supabase/client";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface TimesheetReport {
   id: number;
@@ -44,6 +45,7 @@ interface TimesheetTableProps {
 
 export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [employees, setEmployees] = useState<
     { employee_id: number; name: string }[]
@@ -112,9 +114,23 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
     }));
   };
 
+  const handleExpandCollapseAll = () => {
+    const allEmployeeIds = Object.keys(groupedData).map(Number);
+    if (isAllExpanded) {
+      setExpandedRows({});
+    } else {
+      const expandAll = allEmployeeIds.reduce((acc, id) => {
+        acc[id] = true;
+        return acc;
+      }, {} as Record<number, boolean>);
+      setExpandedRows(expandAll);
+    }
+    setIsAllExpanded(!isAllExpanded);
+  };
+
   return (
     <div>
-      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
         <Card className="mb-4">
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Select Date Range</CardTitle>
@@ -196,11 +212,18 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
             </Button>
           </CardContent>
         </Card>
+
+        <div className="mr-2 ml-auto">
+          <Button variant="linkHover1" onClick={handleExpandCollapseAll}>
+            {isAllExpanded ? "Collapse All" : "Expand All"}
+          </Button>
+        </div>
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead></TableHead>
             <TableHead>Employee Name</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Start Time</TableHead>
@@ -221,6 +244,13 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
                   onClick={() => toggleExpand(parseInt(employee_id))}
                   className="cursor-pointer"
                 >
+                  <TableCell>
+                    {isExpanded ? (
+                      <ChevronDown size={20} />
+                    ) : (
+                      <ChevronRight size={20} />
+                    )}
+                  </TableCell>
                   <TableCell>{firstRow.name}</TableCell>
                   <TableCell>
                     {firstRow.event_date
@@ -274,6 +304,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
                 {isExpanded &&
                   employeeRows.slice(1).map((row) => (
                     <TableRow key={row.id}>
+                      <TableCell></TableCell>
                       <TableCell>{row.name}</TableCell>
                       <TableCell>
                         {row.event_date

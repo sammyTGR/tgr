@@ -125,7 +125,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
               />
             </div>
           </div>
-          <Button className="mt-4" type="submit">
+          <Button variant="linkHover2" className="mt-4" type="submit">
             Save changes
           </Button>
         </form>

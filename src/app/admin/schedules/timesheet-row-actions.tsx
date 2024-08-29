@@ -1,7 +1,7 @@
 "use client";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { Row } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/utils/supabase/client";
 import { TimesheetData } from "./data-schema";
+import { X } from "lucide-react";
 
 interface TimesheetRowActionsProps {
   row: Row<TimesheetData>;
@@ -32,28 +33,76 @@ export function TimesheetRowActions({
   const [endTime, setEndTime] = useState(timesheet.end_time || "");
   const [isOpen, setIsOpen] = useState(false);
 
+  const formatTimeForInput = useCallback(
+    (timeString: string | null): string => {
+      if (!timeString) return "";
+      return timeString.slice(0, 5); // This will return the first 5 characters, which should be HH:mm
+    },
+    []
+  );
+
+  const updateTimeFields = useCallback(() => {
+    setStartTime(formatTimeForInput(timesheet.start_time));
+    setLunchStart(formatTimeForInput(timesheet.lunch_start));
+    setLunchEnd(formatTimeForInput(timesheet.lunch_end));
+    setEndTime(formatTimeForInput(timesheet.end_time));
+  }, [timesheet, formatTimeForInput]);
+
   useEffect(() => {
-    if (isOpen) {
-      setStartTime(timesheet.start_time || "");
-      setLunchStart(timesheet.lunch_start || "");
-      setLunchEnd(timesheet.lunch_end || "");
-      setEndTime(timesheet.end_time || "");
+    updateTimeFields();
+  }, [timesheet, updateTimeFields]);
+
+  const handleDropdownOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      updateTimeFields();
     }
-  }, [isOpen, timesheet]);
+  };
+
+  const clearField = async (field: keyof TimesheetData) => {
+    const updates: Partial<TimesheetData> = { [field]: null };
+
+    const { data, error } = await supabase
+      .from("employee_clock_events")
+      .update(updates)
+      .eq("id", timesheet.id)
+      .select();
+
+    if (error) {
+      console.error(`Error clearing ${field}:`, error);
+    } else if (data && data.length > 0) {
+      updateTimesheet(data[0] as TimesheetData);
+      // Update local state
+      switch (field) {
+        case "start_time":
+          setStartTime("");
+          break;
+        case "lunch_start":
+          setLunchStart("");
+          break;
+        case "lunch_end":
+          setLunchEnd("");
+          break;
+        case "end_time":
+          setEndTime("");
+          break;
+      }
+    }
+  };
 
   const applyChanges = async () => {
     const updates: Partial<TimesheetData> = {};
 
-    if (startTime !== timesheet.start_time) {
+    if (startTime !== formatTimeForInput(timesheet.start_time)) {
       updates.start_time = startTime || undefined;
     }
-    if (lunchStart !== timesheet.lunch_start) {
+    if (lunchStart !== formatTimeForInput(timesheet.lunch_start)) {
       updates.lunch_start = lunchStart || null;
     }
-    if (lunchEnd !== timesheet.lunch_end) {
+    if (lunchEnd !== formatTimeForInput(timesheet.lunch_end)) {
       updates.lunch_end = lunchEnd || null;
     }
-    if (endTime !== timesheet.end_time) {
+    if (endTime !== formatTimeForInput(timesheet.end_time)) {
       updates.end_time = endTime || null;
     }
 
@@ -68,6 +117,7 @@ export function TimesheetRowActions({
         console.error("Error updating timesheet:", error);
       } else if (data && data.length > 0) {
         updateTimesheet(data[0] as TimesheetData);
+        fetchTimesheets(); // Refresh the entire timesheet data
       }
     }
 
@@ -75,7 +125,7 @@ export function TimesheetRowActions({
   };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu open={isOpen} onOpenChange={handleDropdownOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -85,46 +135,82 @@ export function TimesheetRowActions({
           <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[240px] p-2">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Start Time
-          </label>
-          <Input
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-          />
+      <DropdownMenuContent align="end" className="w-[300px] p-2">
+        <div className="flex items-center space-x-2 mb-2">
+          <div className="flex-grow">
+            <label className="block text-sm font-medium ">Start Time</label>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => clearField("start_time")}
+            className="mt-5"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Clear start time</span>
+          </Button>
         </div>
-        <div className="mt-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Lunch Start
-          </label>
-          <Input
-            type="time"
-            value={lunchStart}
-            onChange={(e) => setLunchStart(e.target.value)}
-          />
+        <div className="flex items-center space-x-2 mb-2">
+          <div className="flex-grow">
+            <label className="block text-sm font-medium ">Lunch Start</label>
+            <Input
+              type="time"
+              value={lunchStart}
+              onChange={(e) => setLunchStart(e.target.value)}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => clearField("lunch_start")}
+            className="mt-5"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Clear lunch start</span>
+          </Button>
         </div>
-        <div className="mt-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Lunch End
-          </label>
-          <Input
-            type="time"
-            value={lunchEnd}
-            onChange={(e) => setLunchEnd(e.target.value)}
-          />
+        <div className="flex items-center space-x-2 mb-2">
+          <div className="flex-grow">
+            <label className="block text-sm font-medium ">Lunch End</label>
+            <Input
+              type="time"
+              value={lunchEnd}
+              onChange={(e) => setLunchEnd(e.target.value)}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => clearField("lunch_end")}
+            className="mt-5"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Clear lunch end</span>
+          </Button>
         </div>
-        <div className="mt-2">
-          <label className="block text-sm font-medium text-gray-700">
-            End Time
-          </label>
-          <Input
-            type="time"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-          />
+        <div className="flex items-center space-x-2 mb-2">
+          <div className="flex-grow">
+            <label className="block text-sm font-medium ">End Time</label>
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => clearField("end_time")}
+            className="mt-5"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Clear end time</span>
+          </Button>
         </div>
         <DropdownMenuSeparator className="my-2" />
         <DropdownMenuItem onClick={applyChanges}>Apply</DropdownMenuItem>

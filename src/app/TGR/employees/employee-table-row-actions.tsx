@@ -55,28 +55,26 @@ export function EmployeeTableRowActions<TData>({
   const employee = row.original as Employee;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [editedEmployee, setEditedEmployee] = useState<Employee>(employee)
-  const [isLoading, setIsLoading] = useState(false)
-
-
+  const [editedEmployee, setEditedEmployee] = useState<Employee>(employee);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleEdit = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await onEdit(editedEmployee)
-      setIsEditDialogOpen(false)
+      await onEdit(editedEmployee);
+      setIsEditDialogOpen(false);
       toast.success("Employee Updated", {
         description: "The employee information has been successfully updated.",
-      })
+      });
     } catch (error) {
-      console.error("Error updating employee:", error)
+      console.error("Error updating employee:", error);
       toast.error("Update Failed", {
         description: "There was an error updating the employee information.",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleUpdateSchedule = async (schedules: WeeklySchedule) => {
     try {
@@ -162,7 +160,9 @@ export function EmployeeTableRowActions<TData>({
               <Input
                 id="name"
                 value={editedEmployee.name}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, name: e.target.value })}
+                onChange={(e) =>
+                  setEditedEmployee({ ...editedEmployee, name: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -172,8 +172,13 @@ export function EmployeeTableRowActions<TData>({
               </Label>
               <Input
                 id="department"
-                value={editedEmployee.department || ''}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, department: e.target.value })}
+                value={editedEmployee.department || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    department: e.target.value,
+                  })
+                }
                 className="col-span-3"
               />
             </div>
@@ -183,8 +188,10 @@ export function EmployeeTableRowActions<TData>({
               </Label>
               <Input
                 id="role"
-                value={editedEmployee.role || ''}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, role: e.target.value })}
+                value={editedEmployee.role || ""}
+                onChange={(e) =>
+                  setEditedEmployee({ ...editedEmployee, role: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -194,8 +201,13 @@ export function EmployeeTableRowActions<TData>({
               </Label>
               <Input
                 id="contact_info"
-                value={editedEmployee.contact_info || ''}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, contact_info: e.target.value })}
+                value={editedEmployee.contact_info || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    contact_info: e.target.value,
+                  })
+                }
                 className="col-span-3"
               />
             </div>
@@ -205,8 +217,13 @@ export function EmployeeTableRowActions<TData>({
               </Label>
               <Input
                 id="lanid"
-                value={editedEmployee.lanid || ''}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, lanid: e.target.value })}
+                value={editedEmployee.lanid || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    lanid: e.target.value,
+                  })
+                }
                 className="col-span-3"
               />
             </div>
@@ -217,8 +234,13 @@ export function EmployeeTableRowActions<TData>({
               <Input
                 id="rank"
                 type="number"
-                value={editedEmployee.rank || ''}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, rank: parseInt(e.target.value) || null })}
+                value={editedEmployee.rank || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    rank: parseInt(e.target.value) || null,
+                  })
+                }
                 className="col-span-3"
               />
             </div>
@@ -228,7 +250,12 @@ export function EmployeeTableRowActions<TData>({
               </Label>
               <Select
                 value={editedEmployee.pay_type}
-                onValueChange={(value) => setEditedEmployee({ ...editedEmployee, pay_type: value as 'Hourly' | 'Salary' })}
+                onValueChange={(value) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    pay_type: value as "Hourly" | "Salary",
+                  })
+                }
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select pay type" />
@@ -247,17 +274,26 @@ export function EmployeeTableRowActions<TData>({
                 id="pay_rate"
                 type="number"
                 step="0.01"
-                value={editedEmployee.pay_rate || ''}
-                onChange={(e) => setEditedEmployee({ ...editedEmployee, pay_rate: parseFloat(e.target.value) || null })}
+                value={editedEmployee.pay_rate || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    pay_rate: parseFloat(e.target.value) || null,
+                  })
+                }
                 className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setIsEditDialogOpen(false)} variant="outline">
+            <Button onClick={() => setIsEditDialogOpen(false)} variant="ghost">
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={isLoading}>
+            <Button
+              variant="linkHover2"
+              onClick={handleEdit}
+              disabled={isLoading}
+            >
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

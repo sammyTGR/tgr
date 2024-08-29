@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SickTimeTable } from "./SickTimeTable"; // Import the SickTimeTable component
 import { TimesheetTable } from "./TimesheetTable"; // Import the TimesheetTable component
 import { supabase } from "@/utils/supabase/client";
@@ -34,6 +34,7 @@ const AdminReportsPage = () => {
   const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
   const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
   const [activeTab, setActiveTab] = useState("sick-time");
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   useEffect(() => {
     const fetchSickTimeData = async () => {
@@ -93,6 +94,10 @@ const AdminReportsPage = () => {
     saveAs(new Blob([wbout], { type: "application/octet-stream" }), fileName);
   };
 
+  const handleExpandCollapseAll = () => {
+    setIsAllExpanded(!isAllExpanded);
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
@@ -117,7 +122,17 @@ const AdminReportsPage = () => {
 
           <TabsContent value="sick-time">
             <Card>
-              <SickTimeTable data={sickTimeData} />
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Sick Time Report</CardTitle>
+                <Button variant="linkHover1" onClick={handleExpandCollapseAll}>
+                  {isAllExpanded ? "Collapse All" : "Expand All"}
+                </Button>
+              </CardHeader>
+              <SickTimeTable
+                data={sickTimeData}
+                isAllExpanded={isAllExpanded}
+                onExpandCollapseAll={handleExpandCollapseAll}
+              />
             </Card>
           </TabsContent>
 
