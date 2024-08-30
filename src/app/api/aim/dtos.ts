@@ -25,7 +25,7 @@ export class BaseSecureRequest extends BaseRequest {
 }
 
 // @DataContract
-export class SearchInventoryRequest extends BaseSecureRequest {
+export class SearchInventoryRequest extends BaseSecureRequest implements IReturn<SearchInventoryResponse> {
     public LocFk?: number;
     public MfgFk?: number;
     public CatFk?: number;
@@ -57,6 +57,11 @@ export class SearchInventoryRequest extends BaseSecureRequest {
     constructor(init?: Partial<SearchInventoryRequest>) {
         super(init);
         Object.assign(this, init);
+    }
+
+    // Implement the createResponse method
+    public createResponse(): SearchInventoryResponse {
+        return new SearchInventoryResponse(); // Return a new instance of SearchInventoryResponse
     }
 }
 

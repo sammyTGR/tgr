@@ -41,3 +41,26 @@ export async function GET(request: Request) {
     }
   }
 }
+
+export async function POST(request: Request) {
+    const body = await request.json();
+    const action = body.action; // Ensure you are extracting the action correctly
+
+    try {
+        if (action === 'search') {
+            const result = await searchInventory(body.SearchStr);
+            return NextResponse.json(result);
+        } else {
+            return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+        }
+    } catch (error: unknown) {
+        console.error('Error in inventory API:', error);
+        
+        // Type guard to check if error is an instance of Error
+        if (error instanceof Error) {
+            return NextResponse.json({ error: 'An error occurred', details: error.message }, { status: 500 });
+        } else {
+            return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
+        }
+    }
+}

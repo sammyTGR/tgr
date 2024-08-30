@@ -8,12 +8,12 @@ import {
   SearchInventoryResponse
 } from './dtos';
 
-const API_KEY = process.env.SERVICESTACK_API_KEY || '';
-const OAUTH_TOKEN = process.env.OAUTH_TOKEN || '';
-const APP_ID = process.env.APP_ID || '';
-const TOKEN = process.env.TOKEN || '';
-const API_USERNAME = process.env.API_USERNAME || '';
-const API_PASSWORD = process.env.API_PASSWORD || '';
+const API_KEY = process.env.ApiKey! || '';
+const OAUTH_TOKEN = process.env.OAuthToken! || '';
+const APP_ID = process.env.AppId! || '';
+const TOKEN = process.env.Token! || '';
+const API_USERNAME = process.env.Username! || '';
+const API_PASSWORD = process.env.Password! || '';
 const BASE_URL = 'https://10846.active-e.net:7890';
 
 // Function to get inventory detail
