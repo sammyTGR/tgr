@@ -353,7 +353,7 @@ export default function Component() {
 
   const renderTableHeader = () => (
     <TableRow>
-      <TableHead className="w-32 sticky left-0 z-20 bg-background">
+      <TableHead className="w-32 sticky left-0 z-5 bg-background">
         Employee
       </TableHead>
       {selectedDay ? (
@@ -531,10 +531,7 @@ export default function Component() {
                         >
                           Off
                         </Button>
-                        <Dialog
-                          open={dialogOpen}
-                          onOpenChange={setDialogOpen}
-                        >
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
                               className="p-4"
@@ -553,9 +550,7 @@ export default function Component() {
                             </DialogTitle>
                             <Textarea
                               value={customStatus}
-                              onChange={(e) =>
-                                setCustomStatus(e.target.value)
-                              }
+                              onChange={(e) => setCustomStatus(e.target.value)}
                               placeholder="Enter custom status"
                             />
                             <Button

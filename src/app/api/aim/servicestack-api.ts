@@ -7,13 +7,16 @@ import {
   SearchInventoryRequest,
   SearchInventoryResponse
 } from './dtos';
+import dotenv from 'dotenv';
 
-const API_KEY = process.env.ApiKey! || '';
-const OAUTH_TOKEN = process.env.OAuthToken! || '';
-const APP_ID = process.env.AppId! || '';
-const TOKEN = process.env.Token! || '';
-const API_USERNAME = process.env.Username! || '';
-const API_PASSWORD = process.env.Password! || '';
+dotenv.config();
+
+const API_KEY = process.env.ApiKey!;
+const OAUTH_TOKEN = process.env.OAuthToken!;
+const APP_ID = process.env.AppId!;
+const TOKEN = process.env.Token! ;
+const API_USERNAME = process.env.Username!;
+const API_PASSWORD = process.env.Password!;
 const BASE_URL = 'https://10846.active-e.net:7890';
 
 // Function to get inventory detail
@@ -73,20 +76,21 @@ export async function lookupInventory(item: string, locationCode?: string): Prom
 // Function to search inventory
 export async function searchInventory(searchStr: string): Promise<SearchInventoryResponse> {
   try {
-    const response = await axios.get(`${BASE_URL}/api/SearchInventory`, {
+    const requestBody = {
+      Username: process.env.Username, // Use environment variables
+      Password: process.env.Password,
+      SearchStr: searchStr,
+      StartOffset: 0,
+      RecordCount: 100 // You can adjust this value as needed
+    };
+
+    const response = await axios.post(`${BASE_URL}/api/SearchInventory?Username=${API_USERNAME}&Password=${API_PASSWORD}`, requestBody, {
       headers: {
-        'ApiKey': API_KEY,
-        'OAuthToken': OAUTH_TOKEN,
-        'AppId': APP_ID,
-        'Token': TOKEN,
+        'ApiKey': process.env.ApiKey,
+        'OAuthToken': process.env.OAuthToken,
+        'AppId': process.env.AppId,
+        'Token': process.env.Token,
         'Accept': 'application/json'
-      },
-      params: {
-        Username: encodeURIComponent(API_USERNAME),
-        Password: encodeURIComponent(API_PASSWORD),
-        SearchStr: searchStr,
-        StartOffset: 0,
-        RecordCount: 100 // You can adjust this value as needed
       }
     });
 
