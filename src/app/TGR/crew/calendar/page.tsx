@@ -784,10 +784,10 @@ export default function Component() {
               </div>
               <div className="overflow-hidden">
                 <div className="overflow-x-auto">
-                  <Table className="w-full">
-                    <TableHeader className="sticky top-0 bg-background z-5">
+                  <Table className="h-full overflow-hidden w-full">
+                    <TableHeader className="bg-background z-5">
                       <TableRow>
-                        <TableHead className="w-32 sticky left-0 z-20 bg-background">
+                        <TableHead className="w-32 bg-background">
                           Employee
                         </TableHead>
                         {daysOfWeek.map((day) => (
@@ -827,6 +827,7 @@ export default function Component() {
                     </Table>
                   </div>
                   <ScrollBar orientation="vertical" />
+                  <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
             </CardContent>
