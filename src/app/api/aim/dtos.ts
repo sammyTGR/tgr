@@ -4,27 +4,95 @@ export interface IReturn<T> {
 
 // @DataContract
 export class BaseRequest {
-    public ApiKey?: string;
+    public ApiKey: string = '';
     public OAuthToken?: string;
 
-    public constructor(init?: Partial<BaseRequest>) { Object.assign(this, init); }
+    constructor(init?: Partial<BaseRequest>) {
+        Object.assign(this, init);
+    }
 }
 
 // @DataContract
 export class BaseSecureRequest extends BaseRequest {
     public Token?: string;
     public DeviceId?: string;
-    public AppId?: string;
-    public OAuthToken?: string; // Add this line
+    public AppId: string = '';
 
-    public constructor(init?: Partial<BaseSecureRequest>) { super(init); Object.assign(this, init); }
+    constructor(init?: Partial<BaseSecureRequest>) {
+        super(init);
+        Object.assign(this, init);
+    }
+}
+
+// @DataContract
+export class SearchInventoryRequest extends BaseSecureRequest {
+    public LocFk?: number;
+    public MfgFk?: number;
+    public CatFk?: number;
+    public SubFk?: number;
+    public SelFk?: number;
+    public Cat?: number;
+    public Sub?: number;
+    public SelectionCode?: string;
+    public Mfg?: string;
+    public IncludeSerials?: boolean;
+    public IncludeMedia?: boolean;
+    public IncludeAccessories?: boolean;
+    public IncludePackages?: boolean;
+    public SearchStr?: string;
+    public ExactModel?: boolean;
+    public StartOffset?: number;
+    public RecordCount?: number;
+    public IncludeIconImage?: boolean;
+    public CatIdList?: number[];
+    public SubIdList?: number[];
+    public MfgIdList?: number[];
+    public SelIdList?: number[];
+    public IncludeDeleted?: boolean;
+    public ChangedDate?: string;
+    public IncludePackageLineItems?: boolean;
+    public IncludeDetails?: boolean;
+    public MinimumAvailableQuantity?: number;
+
+    constructor(init?: Partial<SearchInventoryRequest>) {
+        super(init);
+        Object.assign(this, init);
+    }
+}
+
+// @DataContract
+export class SearchInventoryResponse {
+    public StartOffset: number = 0;
+    public RecordCount: number = 0;
+    public RemainingRecords: number = 0;
+    public TotalRecords: number = 0;
+    public Records?: SearchInventoryApiResult[];
+    public Status?: BaseResponseResult;
+
+    constructor(init?: Partial<SearchInventoryResponse>) {
+        Object.assign(this, init);
+    }
+}
+
+// @DataContract
+export class SearchInventoryApiResult {
+    public Detail?: InventoryDetail;
+    public IconImage?: ImageInfo;
+    public CustomerPrice: number = 0;
+    // ... add other properties from SearchInventoryResultSet here
+
+    constructor(init?: Partial<SearchInventoryApiResult>) {
+        Object.assign(this, init);
+    }
 }
 
 // @DataContract
 export class BaseResponse {
     public Status?: BaseResponseResult;
 
-    public constructor(init?: Partial<BaseResponse>) { Object.assign(this, init); }
+    constructor(init?: Partial<BaseResponse>) {
+        Object.assign(this, init);
+    }
 }
 
 // @DataContract
@@ -51,7 +119,10 @@ export class InventoryDetailResponse extends BaseResponse {
     public Unit?: string;
     public ShipCharge?: number;
 
-    public constructor(init?: Partial<InventoryDetailResponse>) { super(init); Object.assign(this, init); }
+    constructor(init?: Partial<InventoryDetailResponse>) {
+        super(init);
+        Object.assign(this, init);
+    }
 }
 
 // @DataContract
@@ -63,7 +134,10 @@ export class InventoryDetailRequest extends BaseSecureRequest implements IReturn
     public IncludeSerialInfo?: boolean;
     public CustomerAcct?: number;
 
-    public constructor(init?: Partial<InventoryDetailRequest>) { super(init); Object.assign(this, init); }
+    constructor(init?: Partial<InventoryDetailRequest>) {
+        super(init);
+        Object.assign(this, init);
+    }
     public getTypeName() { return 'InventoryDetailRequest'; }
     public getMethod() { return 'POST'; }
     public createResponse() { return new InventoryDetailResponse(); }
@@ -87,14 +161,19 @@ export class InventoryLookupObj {
     public ADBookItem?: boolean;
     public LocationCode?: string;
 
-    public constructor(init?: Partial<InventoryLookupObj>) { Object.assign(this, init); }
+    constructor(init?: Partial<InventoryLookupObj>) {
+        Object.assign(this, init);
+    }
 }
 
 // @DataContract
 export class InventoryLookupResponse extends BaseResponse {
     public Results?: InventoryLookupObj[];
 
-    public constructor(init?: Partial<InventoryLookupResponse>) { super(init); Object.assign(this, init); }
+    constructor(init?: Partial<InventoryLookupResponse>) {
+        super(init);
+        Object.assign(this, init);
+    }
 }
 
 // @DataContract
@@ -102,7 +181,10 @@ export class InventoryLookupRequest extends BaseSecureRequest implements IReturn
     public Item?: string;
     public LocationCode?: string;
 
-    public constructor(init?: Partial<InventoryLookupRequest>) { super(init); Object.assign(this, init); }
+    constructor(init?: Partial<InventoryLookupRequest>) {
+        super(init);
+        Object.assign(this, init);
+    }
     public getTypeName() { return 'InventoryLookupRequest'; }
     public getMethod() { return 'GET'; }
     public createResponse() { return new InventoryLookupResponse(); }
@@ -110,12 +192,25 @@ export class InventoryLookupRequest extends BaseSecureRequest implements IReturn
 
 // Add BaseResponseResult if it's not defined elsewhere
 export class BaseResponseResult {
-    // Add properties as needed
+    public StatusCode?: string;
+    public Login?: string;
+    public ErrorCode?: string;
+    public ErrorDisplayText?: string;
+    public ErrorMessage?: string;
+    public DomainName?: string;
+    public IpAddress?: string;
+
+    constructor(init?: Partial<BaseResponseResult>) {
+        Object.assign(this, init);
+    }
 }
 
 // Additional classes that were referenced but not defined
 export class ImageInfo {
-    // Add properties as needed
+    // Add properties for ImageInfo if needed
+    constructor(init?: Partial<ImageInfo>) {
+        Object.assign(this, init);
+    }
 }
 
 export class InventoryDetailByVariant {
@@ -128,4 +223,13 @@ export class AddOnDetail {
 
 export class ActiveEInfo {
     // Add properties as needed
+}
+
+// Define or import InventoryDetail if it's defined elsewhere
+// For now, we'll define it as an interface with some sample properties
+interface InventoryDetail {
+    // Add properties as needed
+    id: number;
+    name: string;
+    // ... other properties
 }

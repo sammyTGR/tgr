@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getInventoryDetail, lookupInventory } from '../aim/servicestack-api';
+import { getInventoryDetail, lookupInventory, searchInventory } from '../aim/servicestack-api';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,23 +7,27 @@ export async function GET(request: Request) {
   const model = searchParams.get('model');
   const item = searchParams.get('item');
   const locationCode = searchParams.get('locationCode');
-
-  console.log('API Key in route:', process.env.SERVICESTACK_API_KEY); // Log the API key (remove in production)
+  const searchStr = searchParams.get('searchStr');
 
   console.log('Request URL:', request.url);
   console.log('Action:', action);
   console.log('Model:', model);
   console.log('Item:', item);
   console.log('Location Code:', locationCode);
+  console.log('Search String:', searchStr);
 
   try {
     if (action === 'detail' && model) {
       console.log('Fetching inventory detail for model:', model);
       const result = await getInventoryDetail(model);
       return NextResponse.json(result);
-    } else if (action === 'lookup' && item && locationCode) {
-      console.log('Looking up inventory for item:', item, 'and location:', locationCode);
-      const result = await lookupInventory(item, locationCode);
+    } else if (action === 'lookup' && item) {
+      console.log('Looking up inventory for item:', item, 'and location:', locationCode || 'Not specified');
+      const result = await lookupInventory(item, locationCode || undefined);
+      return NextResponse.json(result);
+    } else if (action === 'search' && searchStr) {
+      console.log('Searching inventory for:', searchStr);
+      const result = await searchInventory(searchStr);
       return NextResponse.json(result);
     } else {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
