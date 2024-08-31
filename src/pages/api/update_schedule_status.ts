@@ -4,6 +4,9 @@ import { Resend } from 'resend';
 import { corsHeaders } from '@/utils/cors';
 import ShiftAdded from './../../../emails/ShiftAdded';
 import ShiftUpdated from './../../../emails/ShiftUpdated';
+import LeftEarly from './../../../emails/LeftEarly';
+import CustomStatus from './../../../emails/CustomStatus'; // You'll need to create this template
+import CalledOut from './../../../emails/CalledOut';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -105,8 +108,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             endTime: end_time
           };
           break;
+        case "left_early":
+          subject = "Left Early Notification";
+          EmailTemplate = LeftEarly;
+          templateData = {
+            name: employeeName,
+            date: `${scheduleDayOfWeek}, ${schedule_date}`,
+          };
+          break;
+        case "called_out":
+          subject = "Called Out Confirmation";
+          EmailTemplate = CalledOut;
+          templateData = {
+            name: employeeName,
+            date: `${scheduleDayOfWeek}, ${schedule_date}`,
+          };
+          break;
         default:
-          throw new Error('Invalid status');
+          if (status.startsWith('Custom:')) {
+            subject = "Custom Status Update";
+            EmailTemplate = CustomStatus;
+            templateData = {
+              name: employeeName,
+              date: `${scheduleDayOfWeek}, ${schedule_date}`,
+              status: status.replace('Custom:', '').trim()
+            };
+          } else {
+            throw new Error('Invalid status');
+          }
       }
 
       try {

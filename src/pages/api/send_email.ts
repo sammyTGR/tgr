@@ -5,6 +5,7 @@ import TimeOffApproved from './../../../emails/TimeOffApproved';
 import TimeOffDenied from './../../../emails/TimeOffDenied';
 import CalledOut from './../../../emails/CalledOut';
 import LeftEarly from './../../../emails/LeftEarly';
+import CustomStatus from './../../../emails/CustomStatus'; // Import the new CustomStatus template
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -42,6 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           break;
         case 'LeftEarly':
           emailTemplate = LeftEarly(templateData);
+          break;
+        case 'CustomStatus':
+          emailTemplate = CustomStatus({
+            name: templateData.name,
+            date: templateData.date,
+            status: templateData.status || templateData.customMessage // Use status or customMessage, whichever is provided
+          });
           break;
         default:
           throw new Error('Invalid template name');

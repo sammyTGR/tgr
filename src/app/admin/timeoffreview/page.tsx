@@ -26,7 +26,13 @@ interface TimeOffRequest {
   created_at: string; // Add this line
 }
 
-type RequestAction = 'approve' | 'deny' | 'called_out' | 'left_early' | 'pending' | `Custom: ${string}`;
+type RequestAction =
+  | "approve"
+  | "deny"
+  | "called_out"
+  | "left_early"
+  | "pending"
+  | `Custom: ${string}`;
 
 export default function ApproveRequestsPage() {
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
@@ -52,8 +58,8 @@ export default function ApproveRequestsPage() {
         // console.log("Request created_at:", request.created_at);
         // console.log("Parsed created_at:", parseISO(request.created_at));
         // console.log(
-          // "Zoned created_at:",
-          // toZonedTime(parseISO(request.created_at), timeZone)
+        // "Zoned created_at:",
+        // toZonedTime(parseISO(request.created_at), timeZone)
         // );
       });
       setRequests(data);
@@ -160,7 +166,12 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  const sendEmail = async (email: string, subject: string, templateName: string, templateData: any) => {
+  const sendEmail = async (
+    email: string,
+    subject: string,
+    templateName: string,
+    templateData: any
+  ) => {
     try {
       const response = await fetch("/api/send_email", {
         method: "POST",
@@ -188,46 +199,54 @@ export default function ApproveRequestsPage() {
     use_sick_time: boolean = false
   ) => {
     try {
-      const request = requests.find(req => req.request_id === request_id);
+      const request = requests.find((req) => req.request_id === request_id);
       if (!request) {
-        throw new Error('Request not found');
+        throw new Error("Request not found");
       }
 
       let templateName: string;
       let templateData: any;
-      
+
       switch (action) {
-        case 'approve':
-          templateName = 'TimeOffApproved';
-          templateData = { name: request.name, startDate: request.start_date, endDate: request.end_date };
+        case "approve":
+          templateName = "TimeOffApproved";
+          templateData = {
+            name: request.name,
+            startDate: request.start_date,
+            endDate: request.end_date,
+          };
           break;
-        case 'deny':
-          templateName = 'TimeOffDenied';
-          templateData = { name: request.name, startDate: request.start_date, endDate: request.end_date };
+        case "deny":
+          templateName = "TimeOffDenied";
+          templateData = {
+            name: request.name,
+            startDate: request.start_date,
+            endDate: request.end_date,
+          };
           break;
-        case 'called_out':
-          templateName = 'CalledOut';
+        case "called_out":
+          templateName = "CalledOut";
           templateData = { name: request.name, date: request.start_date };
           break;
-        case 'left_early':
-          templateName = 'LeftEarly';
+        case "left_early":
+          templateName = "LeftEarly";
           templateData = { name: request.name, date: request.start_date };
           break;
-        case 'pending':
-          templateName = 'Pending'; // Define a default template name for pending
+        case "pending":
+          templateName = "Pending"; // Define a default template name for pending
           templateData = { name: request.name }; // Add any relevant data
           break;
         default:
-          if (action.startsWith('Custom: ')) {
-            templateName = 'TimeOffApproved'; // Or create a custom template
-            templateData = { 
-              name: request.name, 
-              startDate: request.start_date, 
+          if (action.startsWith("Custom: ")) {
+            templateName = "CustomStatus"; // Or create a custom template
+            templateData = {
+              name: request.name,
+              startDate: request.start_date,
               endDate: request.end_date,
-              customMessage: action.slice(8) // Remove 'Custom: ' prefix
+              customMessage: action.slice(8), // Remove 'Custom: ' prefix
             };
           } else {
-            throw new Error('Invalid action');
+            throw new Error("Invalid action");
           }
       }
 
@@ -240,12 +259,17 @@ export default function ApproveRequestsPage() {
           ? "You've Left Early"
           : action === "approve"
           ? "Time Off Request Approved"
-          : action.startsWith('Custom: ')
+          : action.startsWith("Custom: ")
           ? "Time Off Request Custom Approval"
           : "Time Off Request Status Update";
 
-      if (action !== 'pending') {
-        console.log('Sending email with:', { email: request.email, subject, templateName, templateData });
+      if (action !== "pending") {
+        console.log("Sending email with:", {
+          email: request.email,
+          subject,
+          templateName,
+          templateData,
+        });
         await sendEmail(request.email, subject, templateName, templateData);
       }
 
@@ -428,10 +452,7 @@ export default function ApproveRequestsPage() {
         </h1>
         <div className="space-y-4">
           {requests.map((request) => (
-            <div
-              key={request.request_id}
-              className="p-4 rounded-lg shadow-lg"
-            >
+            <div key={request.request_id} className="p-4 rounded-lg shadow-lg">
               <div className="flex justify-between">
                 <div>
                   <p className="font-medium">Employee: {request.name}</p>
@@ -568,4 +589,3 @@ export default function ApproveRequestsPage() {
     </RoleBasedWrapper>
   );
 }
-
