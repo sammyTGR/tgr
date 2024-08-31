@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getInventoryDetail, lookupInventory, searchInventory } from '../aim/servicestack-api';
+import axios from 'axios';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -17,24 +18,30 @@ export async function GET(request: Request) {
   console.log('Search String:', searchStr);
 
   try {
+    let result;
     if (action === 'detail' && model) {
       console.log('Fetching inventory detail for model:', model);
-      const result = await getInventoryDetail(model);
-      return NextResponse.json(result);
+      result = await getInventoryDetail(model);
     } else if (action === 'lookup' && item) {
       console.log('Looking up inventory for item:', item, 'and location:', locationCode || 'Not specified');
-      const result = await lookupInventory(item, locationCode || undefined);
-      return NextResponse.json(result);
+      result = await lookupInventory(item, locationCode || undefined);
     } else if (action === 'search' && searchStr) {
       console.log('Searching inventory for:', searchStr);
-      const result = await searchInventory(searchStr);
-      return NextResponse.json(result);
+      result = await searchInventory(searchStr);
     } else {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     console.error('Error in inventory API:', error);
-    if (error instanceof Error) {
+    if (axios.isAxiosError(error)) {
+      return NextResponse.json({ 
+        error: 'An error occurred', 
+        details: error.response?.data || error.message,
+        status: error.response?.status
+      }, { status: error.response?.status || 500 });
+    } else if (error instanceof Error) {
       return NextResponse.json({ error: 'An error occurred', details: error.message }, { status: 500 });
     } else {
       return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
