@@ -351,37 +351,6 @@ export default function Component() {
     }
   };
 
-  const renderTableHeader = () => (
-    <TableRow>
-      <TableHead className="w-32 sticky left-0 z-5 bg-background">
-        Employee
-      </TableHead>
-      {selectedDay ? (
-        <TableHead
-          key={selectedDay}
-          className="w-32 text-left hover:bg-gray-600 bg-gray-100"
-          onClick={() => handleDayClick(selectedDay)}
-        >
-          {selectedDay}
-          <br />
-          {weekDates[selectedDay]}
-        </TableHead>
-      ) : (
-        daysOfWeek.map((day) => (
-          <TableHead
-            key={day}
-            className="w-32 text-left hover:bg-gray-600"
-            onClick={() => handleDayClick(day)}
-          >
-            {day}
-            <br />
-            {weekDates[day]}
-          </TableHead>
-        ))
-      )}
-    </TableRow>
-  );
-
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
@@ -392,15 +361,17 @@ export default function Component() {
 
     return (
       <TableRow key={employee.employee_id}>
-        <TableCell className="font-medium w-32 sticky left-0 z-5 bg-background">
+        <TableCell className="font-medium w-20 sticky max-w-sm left-0 z-5 bg-background">
           {employee.name}
         </TableCell>
-        {selectedDay ? (
+        {daysOfWeek.map((day) => (
           <TableCell
-            key={selectedDay}
-            className="text-left relative group w-32"
+            key={day}
+            className={`text-left relative group w-20 max-w-sm ${
+              selectedDay && day !== selectedDay ? "hidden" : ""
+            }`}
           >
-            {eventsByDay[selectedDay].map((calendarEvent, index) => (
+            {eventsByDay[day].map((calendarEvent, index) => (
               <div key={index} className="relative">
                 {calendarEvent.status === "added_day" ? (
                   <div className="text-pink-500 dark:text-pink-300">
@@ -571,187 +542,7 @@ export default function Component() {
               </div>
             ))}
           </TableCell>
-        ) : (
-          daysOfWeek.map((day) => (
-            <TableCell key={day} className="text-left relative group w-32">
-              {eventsByDay[day].map((calendarEvent, index) => (
-                <div key={index} className="relative">
-                  {calendarEvent.status === "added_day" ? (
-                    <div className="text-pink-500 dark:text-pink-300">
-                      {`${formatTZ(
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.start_time}`),
-                          timeZone
-                        ),
-                        "h:mma",
-                        { timeZone }
-                      )}-${formatTZ(
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.end_time}`),
-                          timeZone
-                        ),
-                        "h:mma",
-                        { timeZone }
-                      )}`}
-                    </div>
-                  ) : calendarEvent.start_time && calendarEvent.end_time ? (
-                    calendarEvent.status === "time_off" ? (
-                      <div className="text-purple-600 dark:text-purple-500">
-                        Approved Time Off
-                      </div>
-                    ) : calendarEvent.status === "called_out" ? (
-                      <div className="text-red-500 dark:text-red-400">
-                        Called Out
-                      </div>
-                    ) : calendarEvent.status === "left_early" ? (
-                      <div className="text-orange-500 dark:text-orange-400">
-                        Left Early
-                      </div>
-                    ) : calendarEvent.status === "updated_shift" ? (
-                      <div className="text-orange-500 dark:text-orange-400">
-                        {`${formatTZ(
-                          toZonedTime(
-                            new Date(`1970-01-01T${calendarEvent.start_time}`),
-                            timeZone
-                          ),
-                          "h:mma",
-                          { timeZone }
-                        )}-${formatTZ(
-                          toZonedTime(
-                            new Date(`1970-01-01T${calendarEvent.end_time}`),
-                            timeZone
-                          ),
-                          "h:mma",
-                          { timeZone }
-                        )}`}
-                      </div>
-                    ) : calendarEvent.status &&
-                      calendarEvent.status.startsWith("Custom:") ? (
-                      <div className="text-green-500 dark:text-green-400">
-                        {calendarEvent.status.replace("Custom:", "").trim()}
-                      </div>
-                    ) : (
-                      <div
-                        className={
-                          toZonedTime(
-                            new Date(`1970-01-01T${calendarEvent.start_time}`),
-                            timeZone
-                          ).getHours() < 12
-                            ? "text-amber-500 dark:text-amber-400"
-                            : "text-blue-500 dark:text-blue-400"
-                        }
-                      >
-                        {`${formatTZ(
-                          toZonedTime(
-                            new Date(`1970-01-01T${calendarEvent.start_time}`),
-                            timeZone
-                          ),
-                          "h:mma",
-                          { timeZone }
-                        )}-${formatTZ(
-                          toZonedTime(
-                            new Date(`1970-01-01T${calendarEvent.end_time}`),
-                            timeZone
-                          ),
-                          "h:mma",
-                          { timeZone }
-                        )}`}
-                      </div>
-                    )
-                  ) : null}
-
-                  {(role === "admin" || role === "super admin") && (
-                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="linkHover1">
-                            <CaretUpIcon className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent>
-                          <Button
-                            variant="linkHover2"
-                            onClick={() =>
-                              updateScheduleStatus(
-                                calendarEvent.employee_id,
-                                calendarEvent.schedule_date,
-                                "called_out"
-                              )
-                            }
-                          >
-                            Called Out
-                          </Button>
-                          <Button
-                            variant="linkHover2"
-                            onClick={() =>
-                              updateScheduleStatus(
-                                calendarEvent.employee_id,
-                                calendarEvent.schedule_date,
-                                "left_early"
-                              )
-                            }
-                          >
-                            Left Early
-                          </Button>
-                          <Button
-                            variant="linkHover2"
-                            onClick={() =>
-                              updateScheduleStatus(
-                                calendarEvent.employee_id,
-                                calendarEvent.schedule_date,
-                                "Custom:Off"
-                              )
-                            }
-                          >
-                            Off
-                          </Button>
-                          <Dialog
-                            open={dialogOpen}
-                            onOpenChange={setDialogOpen}
-                          >
-                            <DialogTrigger asChild>
-                              <Button
-                                className="p-4"
-                                variant="linkHover2"
-                                onClick={() => {
-                                  setCurrentEvent(calendarEvent);
-                                  setDialogOpen(true);
-                                }}
-                              >
-                                Custom Status
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogTitle className="p-4">
-                                Enter Custom Status
-                              </DialogTitle>
-                              <Textarea
-                                value={customStatus}
-                                onChange={(e) =>
-                                  setCustomStatus(e.target.value)
-                                }
-                                placeholder="Enter custom status"
-                              />
-                              <Button
-                                variant="linkHover1"
-                                onClick={handleCustomStatusSubmit}
-                              >
-                                Submit
-                              </Button>
-                              <DialogClose asChild>
-                                <Button variant="linkHover2">Cancel</Button>
-                              </DialogClose>
-                            </DialogContent>
-                          </Dialog>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </TableCell>
-          ))
-        )}
+        ))}
       </TableRow>
     );
   };
@@ -783,42 +574,50 @@ export default function Component() {
                 </Button>
               </div>
               <div className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table className="h-full overflow-hidden w-full">
-                    <TableHeader className="bg-background z-5">
-                      <TableRow>
-                        <TableHead className="w-32 bg-background">
-                          Employee
-                        </TableHead>
-                        {daysOfWeek.map((day) => (
-                          <TableHead
-                            key={day}
-                            className={`w-32 text-left ${
-                              selectedDay === day ? "bg-gray-500" : ""
-                            } ${
-                              role === "admin" || role === "super admin"
-                                ? "hover:bg-gray-600 cursor-pointer"
-                                : ""
-                            }`}
-                            onClick={() => handleDayClick(day)}
-                          >
-                            {day}
-                            <br />
-                            {weekDates[day]}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                  </Table>
-                </div>
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
                     "h-[calc(100vh-400px)]"
                   )}
                 >
-                  <div className="overflow-x-auto">
-                    <Table className="h-full overflow-hidden w-full">
+                  <div
+                    className={`overflow-x-auto ${
+                      selectedDay ? "max-w-sm mr-auto" : ""
+                    }`}
+                  >
+                    <Table
+                      className={`h-full overflow-hidden ${
+                        selectedDay ? "w-full" : "w-full"
+                      }`}
+                    >
+                      <TableHeader className="bg-background z-5">
+                        <TableRow>
+                          <TableHead className="w-20 max-w-sm bg-background sticky top-0 z-5">
+                            Employee
+                          </TableHead>
+                          {daysOfWeek.map((day) => (
+                            <TableHead
+                              key={day}
+                              className={`w-20 max-w-sm text-left ${
+                                selectedDay === day ? "bg-muted" : ""
+                              } ${
+                                role === "admin" || role === "super admin"
+                                  ? "hover:bg-muted cursor-pointer"
+                                  : ""
+                              } sticky top-0 z-5 ${
+                                selectedDay && day !== selectedDay
+                                  ? "hidden"
+                                  : ""
+                              }`}
+                              onClick={() => handleDayClick(day)}
+                            >
+                              {day}
+                              <br />
+                              {weekDates[day]}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
                       <TableBody>
                         {filteredCalendarData.map((employee) =>
                           renderEmployeeRow(employee)
