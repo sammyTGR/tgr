@@ -144,7 +144,7 @@ export function TimesheetDataTable({
         >
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="sticky top-0 bg-background z-10">
+              <thead className="sticky top-0 bg-background z-5">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
