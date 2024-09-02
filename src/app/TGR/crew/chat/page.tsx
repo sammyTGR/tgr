@@ -446,7 +446,6 @@ function ChatContent() {
               name: newGroupChat.name,
               is_online: true,
               users: userMap,
-              created_by: newGroupChat.created_by,
             },
           ];
         });
