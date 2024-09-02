@@ -305,6 +305,20 @@ const HeaderSuperAdmin = React.memo(() => {
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
   const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
+  const [isChatActive, setIsChatActive] = useState(false);
+
+useEffect(() => {
+  const handleChatActiveChange = (event: CustomEvent) => {
+    setIsChatActive(event.detail.isActive);
+  };
+
+  window.addEventListener("chatActiveChange", handleChatActiveChange as EventListener);
+
+  return () => {
+    window.removeEventListener("chatActiveChange", handleChatActiveChange as EventListener);
+  };
+}, []);
+
   const { setTheme } = useTheme();
 
   const fetchUserAndEmployee = useCallback(async () => {
@@ -328,7 +342,10 @@ const HeaderSuperAdmin = React.memo(() => {
   }, []);
 
   const fetchUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!user || isChatActive) {
+      setTotalUnreadCount(0);
+      return;
+    }
 
     // Fetch unread direct messages
     const { data: dmData, error: dmError } = await supabase
@@ -374,7 +391,7 @@ const HeaderSuperAdmin = React.memo(() => {
     // Calculate total unread count
     const totalUnread = Object.values(counts).reduce((a, b) => a + b, 0);
     setTotalUnreadCount(totalUnread);
-  }, [user]);
+  }, [user, isChatActive]);
 
   useEffect(() => {
     fetchUserAndEmployee();
@@ -398,6 +415,7 @@ const HeaderSuperAdmin = React.memo(() => {
 
   useEffect(() => {
     if (user) {
+      
       fetchUnreadCounts();
 
       const groupChatMessageSubscription = supabase
@@ -407,6 +425,7 @@ const HeaderSuperAdmin = React.memo(() => {
           { event: "INSERT", schema: "public", table: "group_chat_messages" },
           (payload) => {
             if (
+              !isChatActive &&
               payload.new.sender_id !== user.id &&
               (!payload.new.read_by || !payload.new.read_by.includes(user.id))
             ) {
@@ -422,7 +441,7 @@ const HeaderSuperAdmin = React.memo(() => {
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "direct_messages" },
           (payload) => {
-            if (payload.new.receiver_id === user.id && !payload.new.is_read) {
+            if (!isChatActive && payload.new.receiver_id === user.id && !payload.new.is_read) {
               fetchUnreadCounts();
             }
           }
@@ -434,7 +453,7 @@ const HeaderSuperAdmin = React.memo(() => {
         directMessageSubscription.unsubscribe();
       };
     }
-  }, [user, fetchUnreadCounts]);
+  }, [user, fetchUnreadCounts, isChatActive]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -483,11 +502,26 @@ const HeaderSuperAdmin = React.memo(() => {
 
       // Reset the unread count
       setTotalUnreadCount(0);
+      // Set chat as active
+    setIsChatActive(true);
 
       // Navigate to the chat page
       router.push("/TGR/crew/chat");
     }
   };
+
+  useEffect(() => {
+    const handleRouteChange = () => {
+      if (!window.location.pathname.includes('/TGR/crew/chat')) {
+        setIsChatActive(false);
+      }
+    };
+  
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, []);
 
   const profileComps = [
     {

@@ -27,7 +27,7 @@ interface TimeOffRequest {
 }
 
 type RequestAction =
-  | "approve"
+  | "time_off"
   | "deny"
   | "called_out"
   | "left_early"
@@ -74,7 +74,7 @@ export default function ApproveRequestsPage() {
     if (request) {
       handleRequest(
         request_id,
-        "approve",
+        "time_off",
         `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
         request.use_sick_time // Pass the use_sick_time parameter
       );
@@ -208,7 +208,7 @@ export default function ApproveRequestsPage() {
       let templateData: any;
 
       switch (action) {
-        case "approve":
+        case "time_off":
           templateName = "TimeOffApproved";
           templateData = {
             name: request.name,
@@ -257,7 +257,7 @@ export default function ApproveRequestsPage() {
           ? "You've Called Out"
           : action === "left_early"
           ? "You've Left Early"
-          : action === "approve"
+          : action === "time_off"
           ? "Time Off Request Approved"
           : action.startsWith("Custom: ")
           ? "Time Off Request Custom Approval"
@@ -275,7 +275,7 @@ export default function ApproveRequestsPage() {
 
       const shouldUseSickTime =
         use_sick_time &&
-        (action === "approve" ||
+        (action === "time_off" ||
           action === "called_out" ||
           action.startsWith("Custom"));
 
