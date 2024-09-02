@@ -1154,22 +1154,24 @@ useEffect(() => {
   };
 
   // Filter messages to avoid duplicates
-  const filteredMessages: ChatMessage[] = selectedChat
+// Filter messages to include group messages for all participants
+const filteredMessages: ChatMessage[] = selectedChat
   ? messages.filter((msg) => {
-        if (selectedChat === "Admin Chat") {
-          return !msg.receiver_id && !msg.group_chat_id;
-        }
+      if (selectedChat === "Admin Chat") {
+        return !msg.receiver_id && !msg.group_chat_id;
+      }
 
-        if (selectedChat.startsWith("group_")) {
-          return msg.group_chat_id === parseInt(selectedChat.split("_")[1], 10);
-        }
+      if (selectedChat.startsWith("group_")) {
+        const groupId = parseInt(selectedChat.split("_")[1], 10);
+        return msg.group_chat_id === groupId;
+      }
 
-        return (
-          (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
-          (msg.sender_id === selectedChat && msg.receiver_id === user.id)
-        );
-      })
-    : [];
+      return (
+        (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
+        (msg.sender_id === selectedChat && msg.receiver_id === user.id)
+      );
+    })
+  : [];
 
   const getUserName = (userId: string | undefined) => {
     if (!userId) return "Unknown User";
