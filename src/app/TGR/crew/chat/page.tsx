@@ -408,7 +408,7 @@ function ChatContent() {
 
   const handleGroupChatInsert = async (payload: GroupChatPayload) => {
     const newGroupChat = payload.new;
-
+  
     // Check if the current user is part of this group chat
     if (user && newGroupChat.users.includes(user.id)) {
       const validUserIds = newGroupChat.users.filter((id) => id !== null);
@@ -416,12 +416,12 @@ function ChatContent() {
         .from("employees")
         .select("user_uuid, name")
         .in("user_uuid", validUserIds);
-
+  
       if (usersError) {
         console.error("Error fetching group chat users:", usersError.message);
         return;
       }
-
+  
       if (usersData) {
         const userMap: Record<string, string> = usersData.reduce(
           (acc, user) => {
@@ -430,7 +430,7 @@ function ChatContent() {
           },
           {} as Record<string, string>
         );
-
+  
         setDmUsers((prev) => {
           const existingGroupChat = prev.find(
             (user) => user.id === `group_${newGroupChat.id}`
@@ -438,7 +438,7 @@ function ChatContent() {
           if (existingGroupChat) {
             return prev;
           }
-
+  
           return [
             ...prev,
             {
@@ -503,12 +503,12 @@ function ChatContent() {
         console.error("User or user.id is not available");
         return;
       }
-
+  
       const { data: groupChats, error } = await supabase
         .from("group_chats")
         .select("*")
-        .filter("users", "cs", `{${user.id}}`);
-
+        .contains("users", [user.id]);
+  
       if (error) {
         console.error("Error fetching group chats:", error.message);
       } else if (groupChats) {
@@ -524,7 +524,7 @@ function ChatContent() {
         ]);
       }
     };
-
+  
     if (user && user.id) {
       fetchGroupChats();
     }
@@ -1211,35 +1211,35 @@ const filteredMessages: ChatMessage[] = selectedChat
         console.error("User is not defined");
         return;
       }
-
+  
       // Prevent re-fetching if the selected chat is already the current one
       if (selectedChat === chatId) {
         return;
       }
-
+  
       // Immediately set the selected chat
       setSelectedChat(chatId);
-
+  
       // Reset unread status for the selected chat
       if (unreadStatus[chatId]) {
         setUnreadStatus((prevStatus) => ({
           ...prevStatus,
           [chatId]: false,
         }));
-
+  
         let tableName = chatId.startsWith("group_")
           ? "group_chat_messages"
           : "direct_messages";
         let condition = chatId.startsWith("group_")
           ? `group_chat_id.eq.${chatId.split("_")[1]}`
           : `or(receiver_id.eq.${chatId},sender_id.eq.${chatId})`;
-
+  
         // Mark messages as read in the database
         const { data: messagesToUpdate, error: fetchError } = await supabase
           .from(tableName)
           .select("id, read_by")
           .or(condition);
-
+  
         if (fetchError) {
           console.error(
             "Error fetching messages to update:",
@@ -1247,11 +1247,11 @@ const filteredMessages: ChatMessage[] = selectedChat
           );
           return;
         }
-
+  
         const messageIdsToUpdate = messagesToUpdate
           .filter((msg) => !msg.read_by || !msg.read_by.includes(user.id))
           .map((msg) => msg.id);
-
+  
         if (messageIdsToUpdate.length > 0) {
           for (const messageId of messageIdsToUpdate) {
             const { error: updateError } = await supabase
@@ -1264,7 +1264,7 @@ const filteredMessages: ChatMessage[] = selectedChat
                 ],
               })
               .eq("id", messageId);
-
+  
             if (updateError) {
               console.error(
                 "Error updating messages as read:",
@@ -1274,33 +1274,35 @@ const filteredMessages: ChatMessage[] = selectedChat
           }
         }
       }
-// Mark messages as read
-const isGroupChat = chatId.startsWith('group_');
-const tableName = isGroupChat ? 'group_chat_messages' : 'direct_messages';
-const condition = isGroupChat
-  ? { group_chat_id: parseInt(chatId.split('_')[1], 10) }
-  : { receiver_id: user?.id, sender_id: chatId };
-
-const { error } = await supabase
-  .from(tableName)
-  .update({ is_read: true, read_by: supabase.rpc('array_append', { arr: 'read_by', elem: user?.id }) })
-  .match(condition);
-
-if (error) {
-  console.error('Error marking messages as read:', error);
-}
-  // Reset unread count for the selected chat
-  setUnreadCounts((prev) => {
-    const newCounts = { ...prev };
-    delete newCounts[chatId];
-    const newTotalUnread = Object.values(newCounts).reduce((sum, count) => sum + count, 0);
-    updateTotalUnreadCount(newTotalUnread);
-    return newCounts;
-  });
-
-    // Mark all messages in the selected chat as read
-    await markAllMessagesAsRead(chatId);
-
+  
+      // Mark messages as read
+      const isGroupChat = chatId.startsWith('group_');
+      const tableName = isGroupChat ? 'group_chat_messages' : 'direct_messages';
+      const condition = isGroupChat
+        ? { group_chat_id: parseInt(chatId.split('_')[1], 10) }
+        : { receiver_id: user?.id, sender_id: chatId };
+  
+      const { error } = await supabase
+        .from(tableName)
+        .update({ is_read: true, read_by: supabase.rpc('array_append', { arr: 'read_by', elem: user?.id }) })
+        .match(condition);
+  
+      if (error) {
+        console.error('Error marking messages as read:', error);
+      }
+  
+      // Reset unread count for the selected chat
+      setUnreadCounts((prev) => {
+        const newCounts = { ...prev };
+        delete newCounts[chatId];
+        const newTotalUnread = Object.values(newCounts).reduce((sum, count) => sum + count, 0);
+        updateTotalUnreadCount(newTotalUnread);
+        return newCounts;
+      });
+  
+      // Mark all messages in the selected chat as read
+      await markAllMessagesAsRead(chatId);
+  
       // Ensure the receiver's nav list updates to show the new DM
       if (!dmUsers.some((u) => u.id === chatId)) {
         const { data: userData, error: userError } = await supabase
@@ -1308,7 +1310,7 @@ if (error) {
           .select("user_uuid, name, is_online")
           .eq("user_uuid", chatId)
           .single();
-
+  
         if (userData) {
           setDmUsers((prev) => [
             ...prev,
@@ -1322,11 +1324,11 @@ if (error) {
           console.error("Error fetching user:", userError?.message);
         }
       }
-
+  
       // Fetch messages for the selected chat
       let messagesData: any[] = [];
       let messagesError;
-
+  
       try {
         if (chatId.startsWith("group_")) {
           const groupChatId = parseInt(chatId.split("_")[1], 10);
@@ -1357,14 +1359,14 @@ if (error) {
           messagesError = new Error("Unexpected error occurred");
         }
       }
-
+  
       if (messagesError) {
         console.error("Error fetching messages:", messagesError.message);
         return;
       }
-
+  
       setMessagesWithoutDuplicates(messagesData);
-
+  
       // Store the current chat ID in localStorage
       localStorage.setItem("currentChat", chatId);
       scrollToBottom();
@@ -1381,6 +1383,15 @@ if (error) {
       markAllMessagesAsRead,
     ]
   );
+
+  useEffect(() => {
+    if (user) {
+      const currentChat = localStorage.getItem("currentChat");
+      if (currentChat) {
+        handleChatClick(currentChat);
+      }
+    }
+  }, [user, handleChatClick]);
 
 
 
