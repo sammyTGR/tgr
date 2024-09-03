@@ -122,6 +122,8 @@ function ChatContent() {
   const [isChatActive, setIsChatActive] = useState(true);
   const [showOptions, setShowOptions] = useState<string | null>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+  const [showDMOptions, setShowDMOptions] = useState<string | null>(null);
+  const [showGroupOptions, setShowGroupOptions] = useState<string | null>(null);
   const debouncedSetMessages = useCallback(debounce(setMessages, 300), [
     setMessages,
   ]);
@@ -1544,10 +1546,10 @@ function ChatContent() {
       }
 
       setMessagesWithoutDuplicates(messagesData);
+      scrollToBottom();
 
       // Store the current chat ID in localStorage
       localStorage.setItem("currentChat", chatId);
-      scrollToBottom();
     },
     [
       dmUsers,
@@ -1626,7 +1628,7 @@ function ChatContent() {
                       role === "auditor" ||
                       role === "super admin") && (
                       <div
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                        className={`flex items-center gap-3 rounded-md px-3 py-3 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
                           selectedChat === "Admin Chat"
                             ? "bg-gray-200 dark:bg-neutral-800"
                             : ""
@@ -1664,69 +1666,77 @@ function ChatContent() {
                               : ""
                           }`}
                         >
-                          <Link
-                            href="#"
-                            onClick={() => handleChatClick(u.id)}
-                            prefetch={false}
-                            className="flex-1 flex items-center gap-3"
-                          >
-                            {"is_online" in u && u.is_online && (
-                              <DotFilledIcon className="text-green-600" />
-                            )}
-                            <span className="flex-1 truncate">{u.name}</span>
-                            {unreadStatus[u.id] && (
-                              <span className="ml-2">
-                                <DotFilledIcon className="w-4 h-4 text-red-600" />
-                              </span>
-                            )}
-                            {"is_online" in u && u.is_online && (
-                              <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
-                                Online
-                              </span>
-                            )}
-                          </Link>
-                          {(("created_by" in u && u.created_by === user.id) ||
-                            role === "admin" ||
-                            role === "super admin" ||
-                            (!("created_by" in u) && u.id === user.id)) && (
-                            <div className="relative" ref={optionsRef}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowOptions(
-                                    showOptions === u.id ? null : u.id
-                                  );
-                                }}
-                              >
-                                <DotsVerticalIcon className="w-4 h-4" />
-                              </Button>
-                              {showOptions === u.id && (
-                                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5">
-                                  <div
-                                    className="py-1"
-                                    role="menu"
-                                    aria-orientation="vertical"
-                                    aria-labelledby="options-menu"
-                                  >
-                                    <Button
-                                      variant="ghost"
-                                      className="flex w-full items-center px-4 py-2 text-sm"
-                                      onClick={() => {
-                                        setChatToDelete(u.id);
-                                        setShowDeleteAlert(true);
-                                        setShowOptions(null);
-                                      }}
-                                    >
-                                      <TrashIcon className="mr-3 h-5 w-5" />
-                                      Delete Chat
-                                    </Button>
-                                  </div>
-                                </div>
+                          <div className="flex-1 flex items-center gap-3">
+                            <Link
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleChatClick(u.id);
+                              }}
+                              prefetch={false}
+                              className="flex-1 flex items-center gap-3"
+                            >
+                              {"is_online" in u && u.is_online && (
+                                <DotFilledIcon className="text-green-600" />
                               )}
-                            </div>
-                          )}
+                              <span className="flex-1 truncate">{u.name}</span>
+                              {unreadStatus[u.id] && (
+                                <span className="ml-2">
+                                  <DotFilledIcon className="w-4 h-4 text-red-600" />
+                                </span>
+                              )}
+                              {"is_online" in u && u.is_online && (
+                                <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
+                                  Online
+                                </span>
+                              )}
+                            </Link>
+                            {(("created_by" in u && u.created_by === user.id) ||
+                              role === "admin" ||
+                              role === "super admin" ||
+                              (!("created_by" in u) && u.id === user.id)) && (
+                              <div className="relative ml-2" ref={optionsRef}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setShowDMOptions(
+                                      showDMOptions === u.id ? null : u.id
+                                    );
+                                  }}
+                                >
+                                  <DotsVerticalIcon className="w-4 h-4" />
+                                </Button>
+                                {showDMOptions === u.id && (
+                                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-muted ring-1 ring-black ring-opacity-5">
+                                    <div
+                                      className="py-1"
+                                      role="menu"
+                                      aria-orientation="vertical"
+                                      aria-labelledby="options-menu"
+                                    >
+                                      <Button
+                                        variant="ghost"
+                                        className="flex w-full items-center px-4 py-2 text-sm"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setChatToDelete(u.id);
+                                          setShowDeleteAlert(true);
+                                          setShowDMOptions(null);
+                                        }}
+                                      >
+                                        <TrashIcon className="mr-3 h-4 w-4" />
+                                        Delete Chat
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
 
@@ -1741,80 +1751,90 @@ function ChatContent() {
                               : ""
                           }`}
                         >
-                          <Link
-                            href="#"
-                            onClick={() => handleChatClick(groupChat.id)}
-                            prefetch={false}
-                            className="flex-1 flex items-center gap-3"
-                          >
-                            <DotFilledIcon className="w-4 h-4" />
-                            <span className="flex-1 truncate">
-                              {groupChat.name}
-                            </span>
-                          </Link>
-                          {((groupChat as GroupChat).created_by === user.id ||
-                            role === "admin" ||
-                            role === "super admin") && (
-                            <div className="relative" ref={optionsRef}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowOptions(
-                                    showOptions === groupChat.id
-                                      ? null
-                                      : groupChat.id
-                                  );
-                                }}
-                              >
-                                <DotsVerticalIcon className="w-4 h-4" />
-                              </Button>
-                              {showOptions === groupChat.id && (
-                                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5">
-                                  <div
-                                    className="py-1"
-                                    role="menu"
-                                    aria-orientation="vertical"
-                                    aria-labelledby="options-menu"
-                                  >
-                                    <Button
-                                      variant="ghost"
-                                      className="flex w-full items-center px-4 py-2 text-sm"
-                                      onClick={() => {
-                                        setChatToDelete(groupChat.id);
-                                        setShowDeleteAlert(true);
-                                        setShowOptions(null);
-                                      }}
+                          <div className="flex-1 flex items-center gap-3">
+                            <Link
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleChatClick(groupChat.id);
+                              }}
+                              prefetch={false}
+                              className="flex-1 flex items-center gap-3"
+                            >
+                              <DotFilledIcon className="w-4 h-4" />
+                              <span className="flex-1 truncate">
+                                {groupChat.name}
+                              </span>
+                            </Link>
+                            {((groupChat as GroupChat).created_by === user.id ||
+                              role === "admin" ||
+                              role === "super admin") && (
+                              <div className="relative ml-2" ref={optionsRef}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setShowGroupOptions(
+                                      showGroupOptions === groupChat.id
+                                        ? null
+                                        : groupChat.id
+                                    );
+                                  }}
+                                >
+                                  <DotsVerticalIcon className="w-4 h-4" />
+                                </Button>
+                                {showGroupOptions === groupChat.id && (
+                                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-muted ring-1 ring-black ring-opacity-5">
+                                    <div
+                                      className="py-1"
+                                      role="menu"
+                                      aria-orientation="vertical"
+                                      aria-labelledby="options-menu"
                                     >
-                                      <TrashIcon className="mr-3 h-5 w-5" />
-                                      Delete Chat
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      className="flex w-full items-center px-4 py-2 text-sm"
-                                      onClick={() => {
-                                        const newName = prompt(
-                                          "Enter new group name:",
-                                          groupChat.name
-                                        );
-                                        if (newName) {
-                                          handleEditGroupName(
-                                            groupChat.id,
-                                            newName
+                                      <Button
+                                        variant="ghost"
+                                        className="flex w-full items-center px-4 py-2 text-sm"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setChatToDelete(groupChat.id);
+                                          setShowDeleteAlert(true);
+                                          setShowGroupOptions(null);
+                                        }}
+                                      >
+                                        <TrashIcon className="mr-3 h-4 w-4" />
+                                        Delete Chat
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        className="flex w-full items-center px-4 py-2 text-sm"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          const newName = prompt(
+                                            "Enter new group name:",
+                                            groupChat.name
                                           );
-                                        }
-                                        setShowOptions(null);
-                                      }}
-                                    >
-                                      <Pencil1Icon className="mr-3 h-5 w-5" />
-                                      Edit Group Name
-                                    </Button>
+                                          if (newName) {
+                                            handleEditGroupName(
+                                              groupChat.id,
+                                              newName
+                                            );
+                                          }
+                                          setShowGroupOptions(null);
+                                        }}
+                                      >
+                                        <Pencil1Icon className="mr-3 h-4 w-4" />
+                                        Edit Group Name
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                   </nav>
