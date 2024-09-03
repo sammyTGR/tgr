@@ -98,7 +98,7 @@ function ChatContent() {
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [dmUsers, setDmUsers] = useState<DmUser[]>([]);
+  const [dmUsers, setDmUsers] = useState<(User | GroupChat)[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null); // Change initial state to null
   const { user, role, loading } = useRole();
   const [username, setUsername] = useState<string>("");
@@ -208,6 +208,12 @@ function ChatContent() {
       });
     }
   };
+
+  useEffect(() => {
+    if (dmUsers.length > 0 && selectedChat) {
+      handleChatClick(selectedChat);
+    }
+  }, [dmUsers, selectedChat]);
 
   useEffect(() => {
     if (user && user.id) {
@@ -407,7 +413,7 @@ function ChatContent() {
   }, []);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchAllChats = async () => {
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
       if (userError) {
@@ -419,8 +425,8 @@ function ChatContent() {
         userDataRef.current = {
           user: {
             id: userData.user.id,
-            name: "", // Placeholder, will be updated with real name below
-            is_online: false, // Placeholder, will be updated below
+            name: "",
+            is_online: false,
           },
         };
 
@@ -445,24 +451,7 @@ function ChatContent() {
         }
       }
 
-      const { data: usersData, error: usersError } = await supabase
-        .from("employees")
-        .select("user_uuid, name, is_online")
-        .or(
-          "role.eq.admin,role.eq.super admin,role.eq.gunsmith,role.eq.auditor"
-        );
-      if (usersData) {
-        setUsers(
-          usersData.map((user) => ({
-            id: user.user_uuid,
-            name: user.name,
-            is_online: user.is_online,
-          }))
-        );
-      } else {
-        console.error("Error fetching users:", usersError?.message);
-      }
-
+      // Fetch Direct Messages
       const { data: dmUsersData, error: dmUsersError } = await supabase
         .from("direct_messages")
         .select("receiver_id, sender_id, user_name")
@@ -483,103 +472,145 @@ function ChatContent() {
             .in("user_uuid", userIds);
 
         if (dmUsersDetails) {
-          setDmUsers(
-            dmUsersDetails.map((user) => ({
+          setDmUsers((prev) => {
+            const newUsers = dmUsersDetails.map((user) => ({
               id: user.user_uuid,
               is_online: user.is_online,
               name: user.name,
-            }))
-          );
+            }));
+
+            // Filter out duplicates
+            const uniqueUsers = newUsers.filter(
+              (newUser) =>
+                !prev.some((existingUser) => existingUser.id === newUser.id)
+            );
+
+            return [...prev, ...uniqueUsers];
+          });
         } else {
           console.error(
-            "Error fetching direct message users:",
+            "Error fetching DM users:",
             dmUsersDetailsError?.message
           );
         }
-        // Fetch group chats
-        const { data: groupChats, error: groupChatsError } = await supabase
-          .from("group_chats")
-          .select("*")
-          .filter("users", "cs", `{${userData.user.id}}`);
+      }
 
-        if (groupChatsError) {
-          console.error("Error fetching group chats:", groupChatsError.message);
-        } else if (groupChats && groupChats.length > 0) {
-          const groupChatUsers = await Promise.all(
-            groupChats.map(async (chat) => {
-              const { data: usersData, error: usersError } = await supabase
-                .from("employees")
-                .select("user_uuid, name")
-                .in("user_uuid", chat.users);
+      // Fetch Group Chats
+      const { data: groupChats, error: groupChatsError } = await supabase
+        .from("group_chats")
+        .select("*")
+        .filter("users", "cs", `{${userData?.user?.id}}`);
 
-              if (usersError) {
-                console.error(
-                  "Error fetching group chat users:",
-                  usersError.message
-                );
-                return null;
-              }
+      if (groupChatsError) {
+        console.error("Error fetching group chats:", groupChatsError.message);
+      } else if (groupChats && groupChats.length > 0) {
+        const groupChatUsers = await Promise.all(
+          groupChats.map(async (chat) => {
+            const { data: usersData, error: usersError } = await supabase
+              .from("employees")
+              .select("user_uuid, name")
+              .in("user_uuid", chat.users);
 
-              const userMap = usersData.reduce<Record<string, string>>(
-                (acc, user) => {
-                  acc[user.user_uuid] = user.name;
-                  return acc;
-                },
-                {}
-              );
-
-              return {
-                id: `group_${chat.id}`,
-                name: chat.name,
-                is_online: true,
-                users: userMap,
-                created_by: chat.created_by,
-              } as GroupChat;
-            })
-          );
-
-          setDmUsers((prev) => [
-            ...prev,
-            ...groupChatUsers.filter(
-              (chat): chat is GroupChat => chat !== null
-            ),
-          ]);
-
-          // Fetch initial messages for all group chats
-          for (const groupChat of groupChats) {
-            const { data: groupMessages, error: groupMessagesError } =
-              await supabase
-                .from("group_chat_messages")
-                .select("*")
-                .eq("group_chat_id", groupChat.id)
-                .order("created_at", { ascending: true });
-
-            if (groupMessagesError) {
+            if (usersError) {
               console.error(
-                "Error fetching group messages:",
-                groupMessagesError.message
+                "Error fetching group chat users:",
+                usersError.message
               );
-            } else if (groupMessages) {
-              setMessagesWithoutDuplicates(groupMessages);
+              return null;
             }
+
+            const userMap = usersData.reduce<Record<string, string>>(
+              (acc, user) => {
+                acc[user.user_uuid] = user.name;
+                return acc;
+              },
+              {}
+            );
+
+            return {
+              id: `group_${chat.id}`,
+              name: chat.name,
+              is_online: true,
+              users: userMap,
+              created_by: chat.created_by,
+            } as GroupChat;
+          })
+        );
+
+        setDmUsers((prev) => [
+          ...prev,
+          ...groupChatUsers.filter((chat): chat is GroupChat => chat !== null),
+        ]);
+
+        // Fetch initial messages for all group chats
+        for (const groupChat of groupChats) {
+          const { data: groupMessages, error: groupMessagesError } =
+            await supabase
+              .from("group_chat_messages")
+              .select("*")
+              .eq("group_chat_id", groupChat.id)
+              .order("created_at", { ascending: true });
+
+          if (groupMessagesError) {
+            console.error(
+              "Error fetching group messages:",
+              groupMessagesError.message
+            );
+          } else if (groupMessages) {
+            setMessagesWithoutDuplicates(groupMessages);
           }
         }
-
-        // Set the initial selected chat (e.g., to the first group chat or direct message)
-        if (groupChats && groupChats.length > 0) {
-          setSelectedChat(`group_${groupChats[0].id}`);
-        } else if (dmUsersData && dmUsersData.length > 0) {
-          const firstDmUserId =
-            dmUsersData[0].sender_id === userData.user.id
-              ? dmUsersData[0].receiver_id
-              : dmUsersData[0].sender_id;
-          setSelectedChat(firstDmUserId);
-        }
       }
+
+      // Fetch other users (admins, super admins, etc.)
+      const { data: usersData, error: usersError } = await supabase
+        .from("employees")
+        .select("user_uuid, name, is_online")
+        .or(
+          "role.eq.admin,role.eq.super admin,role.eq.gunsmith,role.eq.auditor"
+        );
+
+      if (usersData) {
+        setUsers(
+          usersData.map((user) => ({
+            id: user.user_uuid,
+            name: user.name,
+            is_online: user.is_online,
+          }))
+        );
+      } else {
+        console.error("Error fetching users:", usersError?.message);
+      }
+
+      // Set initial selected chat
+      setDmUsers((prev) => {
+        if (prev.length > 0) {
+          setSelectedChat(prev[0].id);
+        }
+        return prev;
+      });
     };
 
-    fetchInitialData();
-  }, []); // Only run this once when the component mounts
+    if (user && user.id) {
+      fetchAllChats();
+    }
+    scrollToBottom();
+
+    // Set up isChatActive and event listeners
+    setIsChatActive(true);
+    localStorage.setItem("isChatActive", "true");
+    window.dispatchEvent(
+      new CustomEvent("chatActiveChange", { detail: { isActive: true } })
+    );
+
+    return () => {
+      setIsChatActive(false);
+      localStorage.setItem("isChatActive", "false");
+      window.dispatchEvent(
+        new CustomEvent("chatActiveChange", { detail: { isActive: false } })
+      );
+    };
+  }, [user, setMessagesWithoutDuplicates]);
 
   useEffect(() => {
     const client = supabase;
@@ -842,7 +873,9 @@ function ChatContent() {
     }
 
     if (data) {
+      const newMessage = data[0];
       setMessagesWithoutDuplicates([...messages, data[0]]);
+      setMessages((prevMessages) => [...prevMessages, data[0]]);
       // Clear the message input
       setMessage("");
       scrollToBottom();
@@ -1823,24 +1856,26 @@ function ChatContent() {
                         <div className="grid gap-1 flex-1">
                           <div className="font-bold relative group">
                             {msg.user_name || getUserName(msg.sender_id)}
-                            {msg.sender_id !== user.id && !msg.receiver_id && (
-                              <Button
-                                className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  startDirectMessage({
-                                    id: msg.sender_id!,
-                                    name:
-                                      msg.user_name ||
-                                      getUserName(msg.sender_id),
-                                    is_online: false,
-                                  })
-                                }
-                              >
-                                <ChatBubbleIcon />
-                              </Button>
-                            )}
+                            {msg.sender_id !== user.id &&
+                              !msg.receiver_id &&
+                              !msg.group_chat_id && (
+                                <Button
+                                  className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    startDirectMessage({
+                                      id: msg.sender_id!,
+                                      name:
+                                        msg.user_name ||
+                                        getUserName(msg.sender_id),
+                                      is_online: false,
+                                    })
+                                  }
+                                >
+                                  <ChatBubbleIcon />
+                                </Button>
+                              )}
                           </div>
                           <div className="prose prose-stone">
                             {editingMessageId === msg.id ? (
