@@ -74,9 +74,9 @@ const auditComponents = [
 
 const schedComponents = [
   {
-    title: "Calendar",
+    title: "Company Calendar",
     href: "/TGR/crew/calendar",
-    description: "Where Dey At",
+    description: "Who's Working & When",
   },
   {
     title: "Submit Time Off",
@@ -89,9 +89,9 @@ const schedComponents = [
     description: "View All Requests For Time Off",
   },
   {
-    title: "Create | Manage Schedules",
+    title: "Schedule Management",
     href: "/admin/schedules",
-    description: "Manage Schedules & Timesheets",
+    description: "Create, Edit, Delete Schedules",
   },
   {
     title: "Staff Profiles",
@@ -148,7 +148,7 @@ const formComps = [
 
 const sopComps = [
   {
-    title: "TGR SOPs",
+    title: "Team SOPs",
     href: "/TGR/sop",
     description: "SOPs For Front Of The House",
   },
@@ -224,9 +224,9 @@ const manageComps = [
     description: "Download Various Reports",
   },
   {
-    title: "Manage Employee Data",
+    title: "Staff Management",
     href: "/TGR/employees",
-    description: "Set All Employee Details",
+    description: "Manage Profiles, Schedules, etc.",
   },
   {
     title: "Audit Management",
@@ -303,9 +303,10 @@ const HeaderSuperAdmin = React.memo(() => {
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const router = useRouter();
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
-  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
-  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
+  const unreadOrderCount = useUnreadOrders();
+  const unreadTimeOffCount = useUnreadTimeOffRequests();
   const { setTheme } = useTheme();
+  const [isChatActive, setIsChatActive] = useState(false);
 
   const fetchUserAndEmployee = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -330,49 +331,25 @@ const HeaderSuperAdmin = React.memo(() => {
   const fetchUnreadCounts = useCallback(async () => {
     if (!user) return;
 
-    // Fetch unread direct messages
     const { data: dmData, error: dmError } = await supabase
       .from("direct_messages")
-      .select("sender_id, is_read")
+      .select("id")
       .eq("receiver_id", user.id)
       .eq("is_read", false);
 
-    // Fetch unread group messages
     const { data: groupData, error: groupError } = await supabase
       .from("group_chat_messages")
-      .select("group_chat_id, read_by")
+      .select("id")
       .not("read_by", "cs", `{${user.id}}`);
 
-    if (dmError) {
-      console.error("Error fetching unread direct messages:", dmError.message);
-    }
-
-    if (groupError) {
+    if (dmError) console.error("Error fetching unread DMs:", dmError.message);
+    if (groupError)
       console.error(
         "Error fetching unread group messages:",
         groupError.message
       );
-    }
 
-    const counts: Record<string, number> = {};
-
-    // Count unread direct messages
-    if (dmData) {
-      dmData.forEach((msg) => {
-        counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
-      });
-    }
-
-    // Count unread group messages
-    if (groupData) {
-      groupData.forEach((msg) => {
-        const groupId = `group_${msg.group_chat_id}`;
-        counts[groupId] = (counts[groupId] || 0) + 1;
-      });
-    }
-
-    // Calculate total unread count
-    const totalUnread = Object.values(counts).reduce((a, b) => a + b, 0);
+    const totalUnread = (dmData?.length || 0) + (groupData?.length || 0);
     setTotalUnreadCount(totalUnread);
   }, [user]);
 
@@ -397,33 +374,53 @@ const HeaderSuperAdmin = React.memo(() => {
   }, [fetchUserAndEmployee]);
 
   useEffect(() => {
-    if (user) {
+    const checkChatActive = () => {
+      const isActive = localStorage.getItem("isChatActive") === "true";
+      setIsChatActive(isActive);
+    };
+
+    checkChatActive(); // Check initially
+    window.addEventListener("chatActiveChange", checkChatActive);
+
+    return () => {
+      window.removeEventListener("chatActiveChange", checkChatActive);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user && !isChatActive) {
       fetchUnreadCounts();
 
       const groupChatMessageSubscription = supabase
-        .channel("group_chat_messages")
-        .on<ChatMessage>(
+        .channel("group-chat-changes")
+        .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "group_chat_messages" },
           (payload) => {
-            if (
-              payload.new.sender_id !== user.id &&
-              (!payload.new.read_by || !payload.new.read_by.includes(user.id))
-            ) {
-              fetchUnreadCounts();
+            if (!isChatActive) {
+              const newMessage = payload.new as ChatMessage;
+              if (
+                newMessage.sender_id !== user.id &&
+                (!newMessage.read_by || !newMessage.read_by.includes(user.id))
+              ) {
+                setTotalUnreadCount((prev) => prev + 1);
+              }
             }
           }
         )
         .subscribe();
 
       const directMessageSubscription = supabase
-        .channel("direct_messages")
-        .on<ChatMessage>(
+        .channel("direct-message-changes")
+        .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "direct_messages" },
           (payload) => {
-            if (payload.new.receiver_id === user.id && !payload.new.is_read) {
-              fetchUnreadCounts();
+            if (!isChatActive) {
+              const newMessage = payload.new as ChatMessage;
+              if (newMessage.receiver_id === user.id && !newMessage.is_read) {
+                setTotalUnreadCount((prev) => prev + 1);
+              }
             }
           }
         )
@@ -434,17 +431,16 @@ const HeaderSuperAdmin = React.memo(() => {
         directMessageSubscription.unsubscribe();
       };
     }
-  }, [user, fetchUnreadCounts]);
+  }, [user, fetchUnreadCounts, isChatActive]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    window.location.href = "/"; // Redirect to sign-in page after sign-out
+    window.location.href = "/";
   };
 
   const handleChatClick = async () => {
     if (user) {
-      // Mark all messages as read in the database
       const { data: messagesToUpdate, error: fetchError } = await supabase
         .from("direct_messages")
         .select("id, read_by")
@@ -481,10 +477,8 @@ const HeaderSuperAdmin = React.memo(() => {
         }
       }
 
-      // Reset the unread count
       setTotalUnreadCount(0);
 
-      // Navigate to the chat page
       router.push("/TGR/crew/chat");
     }
   };
@@ -512,35 +506,11 @@ const HeaderSuperAdmin = React.memo(() => {
     },
   ];
 
-  const aimComps = [
-    {
-      title: "AIM",
-      href: "/aim",
-      description: "API Testing",
-    },
-  ];
-
   return (
     <RoleBasedWrapper allowedRoles={["super admin"]}>
       <header className="flex justify-between items-center p-2">
         <NavigationMenu>
           <NavigationMenuList className="flex space-x-4 mr-3">
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                  {auditComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuTrigger>Staff Management</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -605,31 +575,9 @@ const HeaderSuperAdmin = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>AIM</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                  {aimComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex items-center">
-          {/* <Button variant="linkHover2" size="icon" onClick={handleChatClick}>
-            <ChatBubbleIcon />
-            {unreadCount > 0 && (
-              <DotFilledIcon className="w-4 h-4 text-red-600" />
-            )}
-          </Button> */}
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
               <Button variant="linkHover1" size="icon">
@@ -660,6 +608,7 @@ const HeaderSuperAdmin = React.memo(() => {
                     variant="linkHover2"
                     size="icon"
                     className="mr-2 relative"
+                    onClick={handleChatClick}
                   >
                     <PersonIcon />
                     {totalUnreadCount > 0 && (
@@ -691,13 +640,6 @@ const HeaderSuperAdmin = React.memo(() => {
                       </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
-                  {/* <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setTheme("light")}>
-                    Light
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    Dark
-                  </DropdownMenuItem> */}
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleChatClick}>

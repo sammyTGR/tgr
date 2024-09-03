@@ -369,7 +369,7 @@ const SalesPage = () => {
                     <CardTitle className="text-sm font-medium">
                       Select A Date To Review
                     </CardTitle>
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    {/* <CalendarIcon className="h-4 w-4 text-muted-foreground" /> */}
                   </CardHeader>
                   <CardContent>
                     <Popover>
