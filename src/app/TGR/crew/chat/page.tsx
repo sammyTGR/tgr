@@ -43,6 +43,7 @@ import { supabase } from "@/utils/supabase/client";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { debounce } from "lodash";
+import { toast } from "sonner";
 
 const title = "Ops Chat";
 
@@ -74,13 +75,21 @@ interface GroupChat {
 }
 
 interface GroupChatPayload {
-  new: {
+  new?: {
     id: number;
     created_by: string;
     name: string;
     users: string[];
     created_at: string;
   };
+  old?: {
+    id: number;
+    created_by: string;
+    name: string;
+    users: string[];
+    created_at: string;
+  };
+  eventType: "INSERT" | "UPDATE" | "DELETE";
 }
 
 type DmUser = User | GroupChat;
@@ -102,6 +111,7 @@ function ChatContent() {
   const [unreadStatus, setUnreadStatus] = useState<Record<string, boolean>>({});
   const channel = useRef<RealtimeChannel | null>(null);
   const presenceChannel = useRef<RealtimeChannel | null>(null);
+  const groupChatChannelRef = useRef<RealtimeChannel | null>(null);
   const searchParams = useSearchParams();
   const dm = searchParams ? searchParams.get("dm") : null;
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
@@ -164,7 +174,7 @@ function ChatContent() {
     const newGroupChat = payload.new;
 
     // Check if the current user is part of this group chat
-    if (user && newGroupChat.users.includes(user.id)) {
+    if (user && newGroupChat?.users.includes(user.id)) {
       const validUserIds = newGroupChat.users.filter((id) => id !== null);
       const { data: usersData, error: usersError } = await supabase
         .from("employees")
@@ -187,7 +197,7 @@ function ChatContent() {
 
         setDmUsers((prev) => {
           const existingGroupChat = prev.find(
-            (user) => user.id === `group_${newGroupChat.id}`
+            (chat) => chat.id === `group_${newGroupChat.id}`
           );
           if (existingGroupChat) {
             return prev;
@@ -200,6 +210,7 @@ function ChatContent() {
               name: newGroupChat.name,
               is_online: true,
               users: userMap,
+              created_by: newGroupChat.created_by,
             },
           ];
         });
@@ -210,9 +221,7 @@ function ChatContent() {
   const handleGroupChatUpdate = async (payload: GroupChatPayload) => {
     const updatedGroupChat = payload.new;
 
-    // Check if the current user has been added to this group chat
-    if (user && updatedGroupChat.users.includes(user.id)) {
-      // Fetch the updated group chat details and add it to dmUsers
+    if (user && updatedGroupChat?.users.includes(user.id)) {
       const { data: groupChatData, error: groupChatError } = await supabase
         .from("group_chats")
         .select("*")
@@ -229,26 +238,68 @@ function ChatContent() {
 
       if (groupChatData) {
         setDmUsers((prev) => {
-          const existingGroupChat = prev.find(
-            (user) => user.id === `group_${groupChatData.id}`
+          const existingIndex = prev.findIndex(
+            (chat) => chat.id === `group_${groupChatData.id}`
           );
-          if (existingGroupChat) {
-            return prev;
-          }
-
-          return [
-            ...prev,
-            {
-              id: `group_${groupChatData.id}`,
+          if (existingIndex !== -1) {
+            // Update existing group chat
+            const updatedDmUsers = [...prev];
+            updatedDmUsers[existingIndex] = {
+              ...updatedDmUsers[existingIndex],
               name: groupChatData.name,
-              is_online: true,
               users: groupChatData.users,
-              created_by: groupChatData.created_by,
-            },
-          ];
+            };
+            return updatedDmUsers;
+          } else {
+            // Add new group chat
+            return [
+              ...prev,
+              {
+                id: `group_${groupChatData.id}`,
+                name: groupChatData.name,
+                is_online: true,
+                users: groupChatData.users,
+                created_by: groupChatData.created_by,
+              },
+            ];
+          }
         });
       }
     }
+  };
+
+  const handleGroupChatDelete = async (payload: GroupChatPayload) => {
+    const deletedGroupChatId = payload.old?.id;
+
+    if (!deletedGroupChatId || !user) {
+      console.log("Invalid payload or user not available");
+      return;
+    }
+
+    setDmUsers((prev) => {
+      const updatedDmUsers = prev.filter(
+        (chat) => chat.id !== `group_${deletedGroupChatId}`
+      );
+
+      if (updatedDmUsers.length < prev.length) {
+        console.log(`Group chat ${deletedGroupChatId} removed from dmUsers`);
+      } else {
+        console.log(`Group chat ${deletedGroupChatId} not found in dmUsers`);
+      }
+
+      return updatedDmUsers;
+    });
+
+    // If the deleted chat was the currently selected chat, clear the selection
+    if (selectedChat === `group_${deletedGroupChatId}`) {
+      setSelectedChat(null);
+      setMessages([]); // Clear the messages
+      console.log(
+        `Cleared selection and messages for deleted group chat ${deletedGroupChatId}`
+      );
+    }
+
+    console.log(`Group chat ${deletedGroupChatId} deletion handled`);
   };
 
   const handleEditGroupName = async (groupId: string, newName: string) => {
@@ -283,36 +334,53 @@ function ChatContent() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchGroupChats = async () => {
-      if (!user || !user.id) {
-        console.error("User or user.id is not available");
-        return;
-      }
+  const fetchGroupChats = async () => {
+    if (!user || !user.id) {
+      console.error("User or user.id is not available");
+      return;
+    }
 
-      const { data: groupChats, error } = await supabase
-        .from("group_chats")
-        .select("*")
-        .filter("users", "cs", `{${user.id}}`);
+    const { data: groupChats, error } = await supabase
+      .from("group_chats")
+      .select("*")
+      .filter("users", "cs", `{${user.id}}`);
 
-      if (error) {
-        console.error("Error fetching group chats:", error.message);
-      } else if (groupChats) {
-        setDmUsers((prev) => [
-          ...prev,
-          ...groupChats.map((chat) => ({
+    if (error) {
+      console.error("Error fetching group chats:", error.message);
+    } else if (groupChats) {
+      setDmUsers((prev) => {
+        const existingGroupChatIds = prev
+          .filter((u) => u.id.startsWith("group_"))
+          .map((u) => u.id);
+
+        const newGroupChats = groupChats
+          .filter((chat) => !existingGroupChatIds.includes(`group_${chat.id}`))
+          .map((chat) => ({
             id: `group_${chat.id}`,
             name: chat.name,
             is_online: true,
             users: chat.users,
             created_by: chat.created_by,
-          })),
-        ]);
-      }
-    };
+          }));
 
+        return [...prev, ...newGroupChats];
+      });
+    }
+  };
+
+  useEffect(() => {
     if (user && user.id) {
       fetchGroupChats();
+
+      const handleFocus = () => {
+        fetchGroupChats();
+      };
+
+      window.addEventListener("focus", handleFocus);
+
+      return () => {
+        window.removeEventListener("focus", handleFocus);
+      };
     }
   }, [user]);
 
@@ -579,6 +647,40 @@ function ChatContent() {
       }
     };
 
+    if (!groupChatChannelRef.current) {
+      groupChatChannelRef.current = client
+        .channel("group-chats")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "group_chats" },
+          (payload) => {
+            const newGroupChat = payload.new;
+            handleGroupChatInsert({ new: newGroupChat } as GroupChatPayload);
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "group_chats" },
+          (payload) => {
+            const updatedGroupChat = payload.new;
+            handleGroupChatUpdate({
+              new: updatedGroupChat,
+            } as GroupChatPayload);
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "group_chats" },
+          (payload) => {
+            const deletedGroupChat = payload.old;
+            handleGroupChatDelete({
+              old: deletedGroupChat,
+            } as GroupChatPayload);
+          }
+        )
+        .subscribe();
+    }
+
     setupSubscriptions();
 
     return () => {
@@ -588,6 +690,8 @@ function ChatContent() {
       presenceChannel.current = null;
       directMessageChannelRef.current?.unsubscribe();
       directMessageChannelRef.current = null;
+      groupChatChannelRef.current?.unsubscribe();
+      groupChatChannelRef.current = null;
     };
   }, [dmUsers, unreadStatus, user]);
 
@@ -1056,6 +1160,7 @@ function ChatContent() {
 
     markMessagesAsRead();
     fetchUnreadCounts();
+
     const handleMessageChange = (payload: any, chatType: string) => {
       console.log(`${chatType} message change:`, payload); // For debugging
       if (payload.eventType === "INSERT") {
@@ -1093,6 +1198,17 @@ function ChatContent() {
         setMessages((prev) =>
           prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
         );
+      }
+    };
+
+    const handleGroupChatChange = (payload: any) => {
+      console.log("Group chat change:", payload); // For debugging
+      if (payload.eventType === "INSERT") {
+        handleGroupChatInsert(payload as GroupChatPayload);
+      } else if (payload.eventType === "UPDATE") {
+        handleGroupChatUpdate(payload as GroupChatPayload);
+      } else if (payload.eventType === "DELETE") {
+        handleGroupChatDelete(payload as GroupChatPayload);
       }
     };
 
@@ -1140,6 +1256,8 @@ function ChatContent() {
     setUnreadStatus,
     setUnreadCounts,
     setTotalUnreadCount,
+    handleGroupChatInsert, // Add this dependency
+    handleGroupChatUpdate,
   ]);
 
   const handleChatClick = useCallback(
@@ -1288,6 +1406,8 @@ function ChatContent() {
       setMessagesWithoutDuplicates,
       setUnreadStatus,
       setSelectedChat,
+      handleGroupChatInsert, // Add this dependency
+      handleGroupChatUpdate,
     ]
   );
 
