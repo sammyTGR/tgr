@@ -1306,6 +1306,11 @@ function ChatContent() {
                 ...prevStatus,
                 [groupChatId]: true,
               }));
+              setUnreadCounts((prevCounts) => ({
+                ...prevCounts,
+                [groupChatId]: (prevCounts[groupChatId] || 0) + 1,
+              }));
+              setTotalUnreadCount((prev) => prev + 1);
               // If this is a new group chat, add it to dmUsers
               if (!dmUsers.some((u) => u.id === groupChatId)) {
                 fetchGroupChatDetails(payload.new.group_chat_id);
@@ -1320,6 +1325,11 @@ function ChatContent() {
                   ...prevStatus,
                   [senderId]: true,
                 }));
+                setUnreadCounts((prevCounts) => ({
+                  ...prevCounts,
+                  [senderId]: (prevCounts[senderId] || 0) + 1,
+                }));
+                setTotalUnreadCount((prev) => prev + 1);
                 if (!dmUsers.some((u) => u.id === senderId)) {
                   fetchSender(senderId);
                 }
@@ -1394,6 +1404,7 @@ function ChatContent() {
     setTotalUnreadCount,
     handleGroupChatInsert, // Add this dependency
     handleGroupChatUpdate,
+    selectedChat,
   ]);
 
   const handleChatClick = useCallback(

@@ -340,7 +340,7 @@ const HeaderSuperAdmin = React.memo(() => {
     // Fetch unread group messages
     const { data: groupData, error: groupError } = await supabase
       .from("group_chat_messages")
-      .select("group_chat_id, read_by")
+      .select("id, group_chat_id, read_by")
       .not("read_by", "cs", `{${user.id}}`);
 
     if (dmError) {
@@ -354,25 +354,18 @@ const HeaderSuperAdmin = React.memo(() => {
       );
     }
 
-    const counts: Record<string, number> = {};
+    let totalUnread = 0;
 
     // Count unread direct messages
     if (dmData) {
-      dmData.forEach((msg) => {
-        counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
-      });
+      totalUnread += dmData.length;
     }
 
     // Count unread group messages
     if (groupData) {
-      groupData.forEach((msg) => {
-        const groupId = `group_${msg.group_chat_id}`;
-        counts[groupId] = (counts[groupId] || 0) + 1;
-      });
+      totalUnread += groupData.length;
     }
 
-    // Calculate total unread count
-    const totalUnread = Object.values(counts).reduce((a, b) => a + b, 0);
     setTotalUnreadCount(totalUnread);
   }, [user]);
 
@@ -410,7 +403,7 @@ const HeaderSuperAdmin = React.memo(() => {
               payload.new.sender_id !== user.id &&
               (!payload.new.read_by || !payload.new.read_by.includes(user.id))
             ) {
-              fetchUnreadCounts();
+              setTotalUnreadCount((prev) => prev + 1);
             }
           }
         )
@@ -423,7 +416,7 @@ const HeaderSuperAdmin = React.memo(() => {
           { event: "INSERT", schema: "public", table: "direct_messages" },
           (payload) => {
             if (payload.new.receiver_id === user.id && !payload.new.is_read) {
-              fetchUnreadCounts();
+              setTotalUnreadCount((prev) => prev + 1);
             }
           }
         )
