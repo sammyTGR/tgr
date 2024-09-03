@@ -15,6 +15,7 @@ import {
   DotFilledIcon,
   ChatBubbleIcon,
   CrossCircledIcon,
+  DotsVerticalIcon,
 } from "@radix-ui/react-icons";
 import {
   AlertDialog,
@@ -42,7 +43,6 @@ import { supabase } from "@/utils/supabase/client";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { debounce } from "lodash";
-import { DotsVerticalIcon } from "@radix-ui/react-icons";
 
 const title = "Ops Chat";
 
