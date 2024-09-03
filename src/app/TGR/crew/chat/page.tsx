@@ -1034,6 +1034,7 @@ function ChatContent() {
       } else {
         setMessagesWithoutDuplicates(initialMessages || []);
       }
+      scrollToBottom();
     }
     setSelectedUsers([]); // Clear selected users
   };
