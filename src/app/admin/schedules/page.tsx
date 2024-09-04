@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { TimesheetPagination } from "./TimesheetPagination";
 import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
 
 interface ScheduleData {
   id: number;
@@ -118,6 +119,7 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
 ];
 
 const ManageSchedules = () => {
+  const [actualSchedules, setActualSchedules] = useState<ScheduleData[]>([]);
   const { user } = useRole();
   const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>(
     []
@@ -128,9 +130,53 @@ const ManageSchedules = () => {
   const [timesheets, setTimesheets] = useState<TimesheetData[]>([]);
   useEffect(() => {
     fetchReferenceSchedules();
+    fetchActualSchedules();
     fetchEmployees();
     fetchTimesheets();
   }, []);
+
+  const fetchActualSchedules = async () => {
+    const { data: schedules, error: schedulesError } = await supabase
+      .from("schedules")
+      .select("*")
+      .or("status.eq.scheduled,status.eq.added_day");
+
+    if (schedulesError) {
+      console.error("Error fetching actual schedules:", schedulesError);
+      return;
+    }
+
+    const formattedSchedules = formatSchedules(schedules);
+    setActualSchedules(formattedSchedules);
+  };
+
+  // Helper function to format schedules (used for both reference and actual schedules)
+  const formatSchedules = (schedules: any) => {
+    return schedules.map((schedule: any) => {
+      const employee = employees.find(
+        (emp) => emp.employee_id === schedule.employee_id
+      );
+
+      return {
+        ...schedule,
+        employee_name: employee ? employee.name : "Unknown",
+        start_time: formatTime(schedule.start_time),
+        end_time: formatTime(schedule.end_time),
+      };
+    });
+  };
+
+  const formatTime = (time: string | null): string => {
+    if (!time) return "";
+    try {
+      const date = parseISO(`1970-01-01T${time}`);
+      const zonedDate = toZonedTime(date, timeZone);
+      return format(zonedDate, "h:mm a");
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "";
+    }
+  };
 
   const fetchReferenceSchedules = async () => {
     const { data: schedules, error: schedulesError } = await supabase
@@ -443,7 +489,8 @@ const ManageSchedules = () => {
         console.error("Error adding schedule:", error);
       } else {
         // console.log("Schedule added successfully.");
-        fetchReferenceSchedules();
+        fetchActualSchedules();
+        toast.success("Schedule added successfully.");
       }
     } else {
       console.error(
@@ -638,8 +685,9 @@ const ManageSchedules = () => {
             <CardContent>
               <DataTable
                 columns={scheduleColumns}
-                data={referenceSchedules}
+                data={[...referenceSchedules, ...actualSchedules]}
                 fetchReferenceSchedules={fetchReferenceSchedules}
+                fetchActualSchedules={fetchActualSchedules}
               />
               <SchedulePagination table={table} />
             </CardContent>

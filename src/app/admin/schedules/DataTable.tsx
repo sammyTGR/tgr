@@ -18,12 +18,14 @@ interface DataTableProps<TData> {
   columns: ColumnDef<TData>[];
   data: TData[];
   fetchReferenceSchedules: () => void; // Function to refresh schedules after update
+  fetchActualSchedules: () => void; // Function to refresh schedules after update
 }
 
 export function DataTable<TData>({
   columns,
   data,
   fetchReferenceSchedules,
+  fetchActualSchedules,
 }: DataTableProps<TData>) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []

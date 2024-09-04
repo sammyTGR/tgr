@@ -284,6 +284,40 @@ export function EmployeeTableRowActions<TData>({
                 className="col-span-3"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="hire_date" className="text-right">
+                Hire Date
+              </Label>
+              <Input
+                id="hire_date"
+                type="date"
+                value={editedEmployee.hire_date || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    hire_date: e.target.value,
+                  })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="birthday" className="text-right">
+                Birthday
+              </Label>
+              <Input
+                id="birthday"
+                type="date"
+                value={editedEmployee.birthday || ""}
+                onChange={(e) =>
+                  setEditedEmployee({
+                    ...editedEmployee,
+                    birthday: e.target.value,
+                  })
+                }
+                className="col-span-3"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setIsEditDialogOpen(false)} variant="ghost">

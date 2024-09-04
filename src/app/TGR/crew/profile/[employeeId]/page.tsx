@@ -842,6 +842,8 @@ const EmployeeProfilePage = () => {
     const startDate = formatTZ(currentPeriodStart, "yyyy-MM-dd", { timeZone });
     const endDate = formatTZ(currentPeriodEnd, "yyyy-MM-dd", { timeZone });
 
+    // console.log(`Fetching pay period data from ${startDate} to ${endDate}`);
+
     // Fetch data for the current pay period
     const { data: payPeriodData, error } = await supabase
       .from("employee_clock_events")
@@ -853,26 +855,46 @@ const EmployeeProfilePage = () => {
     if (error) {
       console.error("Error fetching pay period summary:", error);
       setPayPeriodSummary(null);
-    } else {
-      const totalHours = payPeriodData.reduce((acc, shift) => {
-        if (shift.total_hours) {
-          const [hours, minutes, seconds] = shift.total_hours
-            .split(":")
-            .map(Number);
-          const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
-          return acc + duration;
-        }
-        return acc;
-      }, 0);
-
-      setPayPeriodSummary(totalHours.toFixed(2)); // Round to 2 decimal places
-
-      // Set the pay period dates for display
-      setPayPeriodDates({
-        start: formatTZ(currentPeriodStart, "MMM d, yyyy", { timeZone }),
-        end: formatTZ(currentPeriodEnd, "MMM d, yyyy", { timeZone }),
-      });
+      return;
     }
+
+    // console.log(`Fetched ${payPeriodData.length} clock events`);
+
+    let totalHours = 0;
+    payPeriodData.forEach((shift, index) => {
+      if (shift.total_hours) {
+        const [hours, minutes, seconds] = shift.total_hours
+          .split(":")
+          .map(Number);
+        const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
+        // console.log(
+        //   `Shift ${index + 1}: ${shift.total_hours} (${duration.toFixed(
+        //     2
+        //   )} hours)`
+        // );
+        totalHours += duration;
+      } else {
+        // console.log(`Shift ${index + 1}: No total_hours recorded`);
+      }
+    });
+
+    // console.log(`Total hours calculated: ${totalHours.toFixed(2)}`);
+
+    if (totalHours > 336) {
+      // Max possible hours in 14 days (24 * 14)
+      console.error(
+        `Unrealistic total hours: ${totalHours.toFixed(2)}. Setting to 0.`
+      );
+      totalHours = 0;
+    }
+
+    setPayPeriodSummary(totalHours.toFixed(2));
+
+    // Set the pay period dates for display
+    setPayPeriodDates({
+      start: formatTZ(currentPeriodStart, "MMM d, yyyy", { timeZone }),
+      end: formatTZ(currentPeriodEnd, "MMM d, yyyy", { timeZone }),
+    });
   };
 
   useEffect(() => {
@@ -1268,7 +1290,8 @@ const EmployeeProfilePage = () => {
                             <div>
                               {`You've logged ${calculateDurationWithLunch(
                                 currentShift.start_time,
-                                currentShift.end_time || format(new Date(), 'HH:mm:ss'),
+                                currentShift.end_time ||
+                                  format(new Date(), "HH:mm:ss"),
                                 currentShift.lunch_start,
                                 currentShift.lunch_end
                               )} hours today!`}

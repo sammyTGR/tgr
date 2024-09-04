@@ -8,6 +8,16 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { format } from "date-fns";
 import { parseISO } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const title = "Review Time Off Requests";
 const timeZone = "America/Los_Angeles"; // Set your desired timezone
@@ -24,6 +34,10 @@ interface TimeOffRequest {
   use_sick_time: boolean; // New field
   available_sick_time: number; // New field
   created_at: string; // Add this line
+  pay_type: "hourly" | "salary";
+  vacation_time: number;
+  use_vacation_time: boolean;
+  hire_date: string;
 }
 
 type RequestAction =
@@ -47,36 +61,39 @@ export default function ApproveRequestsPage() {
   }, []);
 
   const fetchRequests = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch("/api/time_off_requests?sort=created_at");
+      const response = await fetch(
+        "/api/time_off_requests?sort=created_at&order=asc"
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      // console.log("Raw data from API:", data);
-      data.forEach((request: TimeOffRequest) => {
-        // console.log("Request created_at:", request.created_at);
-        // console.log("Parsed created_at:", parseISO(request.created_at));
-        // console.log(
-        // "Zoned created_at:",
-        // toZonedTime(parseISO(request.created_at), timeZone)
-        // );
-      });
+      console.log("Fetched and sorted data:", data);
       setRequests(data);
-      setIsLoading(false);
     } catch (error: any) {
       console.error("Failed to fetch time off requests:", error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleApprove = (request_id: number) => {
     const request = requests.find((req) => req.request_id === request_id);
     if (request) {
+      if (request.use_sick_time && request.use_vacation_time) {
+        alert(
+          "Cannot use both sick time and vacation time for the same request"
+        );
+        return;
+      }
       handleRequest(
         request_id,
         "time_off",
         `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
-        request.use_sick_time // Pass the use_sick_time parameter
+        request.use_sick_time,
+        request.use_vacation_time
       );
     }
   };
@@ -196,7 +213,8 @@ export default function ApproveRequestsPage() {
     request_id: number,
     action: RequestAction,
     emailMessage: string,
-    use_sick_time: boolean = false
+    use_sick_time: boolean = false,
+    use_vacation_time: boolean = false
   ) => {
     try {
       const request = requests.find((req) => req.request_id === request_id);
@@ -279,6 +297,11 @@ export default function ApproveRequestsPage() {
           action === "called_out" ||
           action.startsWith("Custom"));
 
+      const shouldUseVacationTime =
+        use_vacation_time &&
+        action === "time_off" &&
+        request.pay_type === "salary";
+
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: {
@@ -287,7 +310,8 @@ export default function ApproveRequestsPage() {
         body: JSON.stringify({
           request_id,
           action,
-          use_sick_time: shouldUseSickTime,
+          use_sick_time,
+          use_vacation_time,
         }),
       });
 
@@ -296,6 +320,7 @@ export default function ApproveRequestsPage() {
       }
 
       const result = await response.json();
+      console.log("API response:", result);
       const { employee_id, start_date, end_date, email } = result;
       if (!email) {
         throw new Error("Email not found in API response");
@@ -347,6 +372,38 @@ export default function ApproveRequestsPage() {
         ) {
           // Skip inserting or updating schedules for days the employee isn't scheduled to work
           continue;
+        }
+
+        if (shouldUseVacationTime) {
+          const { error: deductVacationTimeError } = await supabase.rpc(
+            "deduct_vacation_time",
+            {
+              p_emp_id: employee_id,
+              p_start_date: formatTZ(startDate, "yyyy-MM-dd", { timeZone }),
+              p_end_date: formatTZ(endDate, "yyyy-MM-dd", { timeZone }),
+            }
+          );
+
+          if (deductVacationTimeError) {
+            console.error(
+              "Error deducting vacation time:",
+              deductVacationTimeError
+            );
+          }
+
+          const { error: updateVacationTimeError } = await supabase
+            .from("time_off_requests")
+            .update({
+              use_vacation_time: true,
+            })
+            .eq("request_id", request_id);
+
+          if (updateVacationTimeError) {
+            console.error(
+              `Error updating time_off_requests for use_vacation_time:`,
+              updateVacationTimeError
+            );
+          }
         }
 
         const { data: scheduleData, error: scheduleFetchError } = await supabase
@@ -450,114 +507,172 @@ export default function ApproveRequestsPage() {
         <h1 className="text-2xl font-bold mb-6">
           <TextGenerateEffect words={title} />
         </h1>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {requests.map((request) => (
-            <div key={request.request_id} className="p-4 rounded-lg shadow-lg">
-              <div className="flex justify-between">
-                <div>
-                  <p className="font-medium">Employee: {request.name}</p>
-                  <p>
-                    Start Date:{" "}
-                    {formatTZ(
-                      toZonedTime(parseISO(request.start_date), timeZone),
-                      "M-dd",
-                      { timeZone }
-                    )}
-                  </p>
-                  <p>
-                    End Date:{" "}
-                    {formatTZ(
-                      toZonedTime(parseISO(request.end_date), timeZone),
-                      "M-dd",
-                      { timeZone }
-                    )}
-                  </p>
-                  <p>Reason: {request.reason}</p>
-                  {request.other_reason && (
-                    <p>Details: {request.other_reason}</p>
+            <Card key={request.request_id}>
+              <CardHeader>
+                <CardTitle>Time Off Request - {request.name}</CardTitle>
+                <CardDescription>
+                  Submitted on{" "}
+                  {formatTZ(
+                    toZonedTime(parseISO(request.created_at), timeZone),
+                    "MMM d, yyyy 'at' h:mm a",
+                    { timeZone }
                   )}
-                  <p>
-                    Available Sick Time: {request.available_sick_time} Hours
-                  </p>{" "}
-                  {/* Display available sick time */}
-                  <p>
-                    Submitted On{" "}
-                    {formatTZ(
-                      toZonedTime(parseISO(request.created_at), timeZone),
-                      "M-d-yy",
-                      { timeZone }
-                    )}{" "}
-                    At{" "}
-                    {formatTZ(
-                      toZonedTime(parseISO(request.created_at), timeZone),
-                      "h:mm a",
-                      { timeZone }
-                    )}
-                  </p>
-                  <label>
-                    <input
-                      className="mr-2"
-                      type="checkbox"
-                      checked={request.use_sick_time}
-                      onChange={(e) =>
-                        setRequests((prevRequests) =>
-                          prevRequests.map((req) =>
-                            req.request_id === request.request_id
-                              ? { ...req, use_sick_time: e.target.checked }
-                              : req
-                          )
-                        )
-                      }
-                    />
-                    Use Sick Time
-                  </label>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleApprove(request.request_id)}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDeny(request.request_id)}
-                    >
-                      Deny
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleCalledOut(request.request_id)}
-                    >
-                      Called Out
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleLeftEarly(request.request_id)}
-                    >
-                      Left Early
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleCustomApproval(request.request_id)}
-                    >
-                      Custom Approval
-                    </Button>
-                  </div>
-                  <div className="flex">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleMarkAsDuplicate(request.request_id)}
-                    >
-                      Mark As Duplicate
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="details">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="time">Use Sick Or Vacation</TabsTrigger>
+                    <TabsTrigger value="actions">Actions</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="details">
+                    <div className="space-y-2">
+                      <p>
+                        <strong>Start Date:</strong>{" "}
+                        {formatTZ(
+                          toZonedTime(parseISO(request.start_date), timeZone),
+                          "MMM d, yyyy",
+                          { timeZone }
+                        )}
+                      </p>
+                      <p>
+                        <strong>End Date:</strong>{" "}
+                        {formatTZ(
+                          toZonedTime(parseISO(request.end_date), timeZone),
+                          "MMM d, yyyy",
+                          { timeZone }
+                        )}
+                      </p>
+                      <p>
+                        <strong>Reason:</strong> {request.reason}
+                      </p>
+                      {request.other_reason && (
+                        <p>
+                          <strong>Details:</strong> {request.other_reason}
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="time">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p>
+                          <strong>Available Sick Time:</strong>{" "}
+                          {request.available_sick_time} Hours
+                        </p>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <Switch
+                            checked={request.use_sick_time}
+                            onCheckedChange={(checked) =>
+                              setRequests((prevRequests) =>
+                                prevRequests.map((req) =>
+                                  req.request_id === request.request_id
+                                    ? {
+                                        ...req,
+                                        use_sick_time: checked,
+                                        use_vacation_time: false,
+                                      }
+                                    : req
+                                )
+                              )
+                            }
+                            disabled={request.use_vacation_time}
+                          />
+                          <span>Use Sick Time</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p>
+                          <strong>Available Vacation Time:</strong>{" "}
+                          {request.vacation_time} Hours
+                        </p>
+                        {request.pay_type?.toLowerCase() === "salary" ? (
+                          <div className="flex items-center space-x-2 mt-2">
+                            <Switch
+                              checked={request.use_vacation_time}
+                              onCheckedChange={(checked) =>
+                                setRequests((prevRequests) =>
+                                  prevRequests.map((req) =>
+                                    req.request_id === request.request_id
+                                      ? {
+                                          ...req,
+                                          use_vacation_time: checked,
+                                          use_sick_time: false,
+                                        }
+                                      : req
+                                  )
+                                )
+                              }
+                              disabled={request.use_sick_time}
+                            />
+                            <span>Use Vacation Time</span>
+                          </div>
+                        ) : (
+                          <p className="text-sm  mt-2">
+                            Not applicable for non-salaried employees
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="actions">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => handleApprove(request.request_id)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => handleDeny(request.request_id)}
+                      >
+                        Deny
+                      </Button>
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => handleCustomApproval(request.request_id)}
+                      >
+                        Custom Approval
+                      </Button>
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => handleCalledOut(request.request_id)}
+                      >
+                        Called Out
+                      </Button>
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => handleLeftEarly(request.request_id)}
+                      >
+                        Left Early
+                      </Button>
+
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() =>
+                          handleMarkAsDuplicate(request.request_id)
+                        }
+                      >
+                        Mark As Duplicate
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           ))}
         </div>
+
         {showCustomApprovalModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 ">
             <div className="bg-muted dark:bg-muted p-6 rounded-lg shadow-lg">

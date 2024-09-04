@@ -98,22 +98,75 @@ export default function EmployeesPage() {
       return;
     }
 
-    for (const [day, times] of Object.entries(schedules)) {
-      const { error } = await supabase.from("reference_schedules").upsert(
-        {
+    const daysOfWeek = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+
+    for (const day of daysOfWeek) {
+      const times = schedules[day] || { start_time: null, end_time: null };
+
+      // First, try to select the existing record
+      const { data: existingRecord, error: selectError } = await supabase
+        .from("reference_schedules")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("day_of_week", day)
+        .single();
+
+      if (selectError && selectError.code !== "PGRST116") {
+        console.error(
+          `Error checking existing record for ${day}:`,
+          selectError
+        );
+        toast.error(
+          `Failed to check existing record for ${day}: ${selectError.message}`
+        );
+        return;
+      }
+
+      let error;
+      if (existingRecord) {
+        // If record exists, update it
+        const { error: updateError } = await supabase
+          .from("reference_schedules")
+          .update({
+            start_time: times.start_time,
+            end_time: times.end_time,
+            name: employee.name,
+          })
+          .eq("id", existingRecord.id);
+        error = updateError;
+      } else {
+        // If record doesn't exist, insert a new one
+        const { error: insertError } = await supabase
+          .from("reference_schedules")
+          .insert({
+            id: existingRecord?.id,
+            employee_id: employeeId,
+            day_of_week: day,
+            start_time: times.start_time,
+            end_time: times.end_time,
+            name: employee.name,
+          });
+        error = insertError;
+      }
+
+      if (error) {
+        console.error(`Error updating/inserting schedule for ${day}:`, error);
+        console.log("Attempted operation:", {
           employee_id: employeeId,
           day_of_week: day,
           start_time: times.start_time,
           end_time: times.end_time,
-        },
-        {
-          onConflict: "employee_id,day_of_week",
-        }
-      );
-
-      if (error) {
-        console.error(`Error updating schedule for ${day}:`, error);
-        toast.error(`Failed to update schedule for ${day}`);
+          name: employee.name,
+        });
+        toast.error(`Failed to update schedule for ${day}: ${error.message}`);
         return;
       }
     }
