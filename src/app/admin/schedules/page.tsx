@@ -455,9 +455,10 @@ const ManageSchedules = () => {
     const employee = employees.find((emp) => emp.name === employeeName);
     if (!employee) {
       console.error("Employee not found:", employeeName);
+      toast.error("Employee not found");
       return;
     }
-
+  
     if (date && startTime && endTime) {
       const daysOfWeek = [
         "Sunday",
@@ -469,33 +470,63 @@ const ManageSchedules = () => {
         "Saturday",
       ];
       const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
-
-      // Ensure the times are stored as they are entered, without any timezone manipulation
+  
       const formattedStartTime =
         startTime.length === 5 ? `${startTime}:00` : startTime;
       const formattedEndTime = endTime.length === 5 ? `${endTime}:00` : endTime;
-
-      const { error } = await supabase.from("schedules").insert({
+  
+      const scheduleData = {
         employee_id: employee.employee_id,
         schedule_date: date,
         start_time: formattedStartTime,
         end_time: formattedEndTime,
         day_of_week: dayOfWeek,
         status: "added_day",
-        name: employee.name, // Include the employee's name
-      });
-
-      if (error) {
-        console.error("Error adding schedule:", error);
+        name: employeeName,
+      };
+  
+      // Check if a schedule already exists for this employee and date
+      const { data: existingSchedule, error: fetchError } = await supabase
+        .from("schedules")
+        .select()
+        .match({ employee_id: employee.employee_id, schedule_date: date })
+        .single();
+  
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error fetching existing schedule:", fetchError);
+        toast.error("Failed to check existing schedule");
+        return;
+      }
+  
+      let result;
+      if (existingSchedule) {
+        // Update existing schedule
+        result = await supabase
+          .from("schedules")
+          .update(scheduleData)
+          .match({ schedule_id: existingSchedule.schedule_id })
+          .select();
       } else {
-        // console.log("Schedule added successfully.");
+        // Insert new schedule
+        result = await supabase
+          .from("schedules")
+          .insert(scheduleData)
+          .select();
+      }
+  
+      if (result.error) {
+        console.error("Error adding/updating schedule:", result.error);
+        toast.error("Failed to add/update schedule");
+      } else {
+        console.log("Schedule added/updated successfully:", result.data);
         fetchActualSchedules();
-        toast.success("Schedule added successfully.");
+        toast.success("Schedule added/updated successfully");
       }
     } else {
       console.error(
         "Date, Start Time, and End Time are required to add a schedule."
       );
+      toast.error("Missing required information");
     }
   };
 
