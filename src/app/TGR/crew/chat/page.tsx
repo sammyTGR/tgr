@@ -838,7 +838,7 @@ function ChatContent() {
     }
 
     if (data) {
-      setMessagesWithoutDuplicates([data[0]]);
+      setMessages((prevMessages) => [...prevMessages, data[0]]);
       setMessage("");
       scrollToBottom();
     }
@@ -939,12 +939,14 @@ function ChatContent() {
 
   const startDirectMessage = async (receiver: User) => {
     if (dmUsers.some((u) => u.id === receiver.id)) {
+      setSelectedChat(receiver.id);
       setShowUserList(false);
       return;
     }
 
     setDmUsers((prev) => [...prev, receiver]);
-    handleChatClick(receiver.id);
+    setSelectedChat(receiver.id);
+
     setShowUserList(false);
     setSelectedUsers([]);
   };
@@ -1219,35 +1221,24 @@ function ChatContent() {
             (newMessage.sender_id === selectedChat ||
               newMessage.receiver_id === selectedChat));
 
-        if (isCurrentChat) {
-          setMessagesWithoutDuplicates([newMessage]);
-          scrollToBottom();
-        }
+        setMessages((prevMessages) => {
+          // Check if the message already exists in the state
+          if (prevMessages.some((msg) => msg.id === newMessage.id)) {
+            return prevMessages;
+          }
+          const updatedMessages = [...prevMessages, newMessage];
+          if (isCurrentChat) {
+            scrollToBottom();
+          }
+          return updatedMessages;
+        });
 
         if (newMessage.sender_id !== user.id) {
           const isChatActiveNow =
             localStorage.getItem("isChatActive") === "true";
 
-          if (!isChatActiveNow) {
-            if (chatType === "group") {
-              const groupChatId = `group_${newMessage.group_chat_id}`;
-              setUnreadStatus((prevStatus) => ({
-                ...prevStatus,
-                [groupChatId]: true,
-              }));
-              setUnreadCounts((prevCounts) => ({
-                ...prevCounts,
-                [groupChatId]: (prevCounts[groupChatId] || 0) + 1,
-              }));
-              setTotalUnreadCount((prev) => prev + 1);
-
-              if (!dmUsers.some((u) => u.id === groupChatId)) {
-                fetchGroupChatDetails(newMessage.group_chat_id);
-              }
-            } else if (
-              chatType === "direct" &&
-              newMessage.receiver_id === user.id
-            ) {
+          if (!isChatActiveNow || !isCurrentChat) {
+            if (chatType === "direct" && newMessage.receiver_id === user.id) {
               const senderId = newMessage.sender_id;
               if (typeof senderId === "string") {
                 setUnreadStatus((prevStatus) => ({
@@ -1280,11 +1271,9 @@ function ChatContent() {
       selectedChat,
       user?.id,
       dmUsers,
-      fetchGroupChatDetails,
       fetchSender,
       fetchUnreadCounts,
       scrollToBottom,
-      setMessagesWithoutDuplicates,
       setMessages,
       setUnreadStatus,
       setUnreadCounts,
@@ -1423,7 +1412,7 @@ function ChatContent() {
         return;
       }
 
-      setMessagesWithoutDuplicates(messagesData);
+      setMessages(messagesData);
       scrollToBottom();
       localStorage.setItem("currentChat", chatId);
     },
@@ -1432,7 +1421,7 @@ function ChatContent() {
       unreadStatus,
       user,
       selectedChat,
-      setMessagesWithoutDuplicates,
+      setMessages,
       setUnreadStatus,
       setSelectedChat,
       fetchGroupChatDetails,
@@ -1565,21 +1554,9 @@ function ChatContent() {
     };
   }, [
     user,
-    dmUsers,
-    unreadStatus,
-    fetchUnreadCounts,
-    setMessagesWithoutDuplicates,
-    setMessages,
-    setUnreadStatus,
-    setUnreadCounts,
-    setTotalUnreadCount,
     handleGroupChatInsert,
     handleGroupChatUpdate,
     handleGroupChatDelete,
-    fetchGroupChatDetails,
-    fetchGroupChatUsers,
-    selectedChat,
-    scrollToBottom,
     handleMessageChange,
   ]);
 
