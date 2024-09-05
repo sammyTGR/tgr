@@ -16,10 +16,10 @@ const LandingPagePublic: React.FC = React.memo(() => {
     <div className="flex flex-col min-h-[100vh]">
       <main className="flex-1">
         <TracingBeam className="w-full py-12 md:py-24 lg:py-32 border-y">
-          <div className="flex items-start justify-start">
+          <div className="flex items-center justify-center py-6 md:py-6 lg:py-12">
             <div className="w-full max-w-xl">
               <Image
-                src="/Banner.png"
+                src="/TestBanner.png"
                 alt="Banner"
                 layout="responsive"
                 width={1000}
@@ -29,7 +29,7 @@ const LandingPagePublic: React.FC = React.memo(() => {
               />
             </div>
           </div>
-          <section className="w-full  ">
+          <section className="w-full py-6 md:py-12 lg:py-12 ">
             <h1 className="lg:leading-tighter text-center text-xl font-bold tracking-tighter sm:text-2xl md:text-3xl xl:text-[3rem] 2xl:text-[2.75rem]">
               <TextGenerateEffect words={sub} />
             </h1>

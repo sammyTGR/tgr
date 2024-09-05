@@ -238,6 +238,11 @@ const manageComps = [
     href: "/admin/upload",
     description: "Uploadthing",
   },
+  {
+    title: "Onboarding",
+    href: "/admin/onboarding",
+    description: "Trial Onboarding",
+  },
 ];
 
 const comboComps = [

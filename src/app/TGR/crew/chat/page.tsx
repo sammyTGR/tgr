@@ -16,6 +16,8 @@ import {
   ChatBubbleIcon,
   CrossCircledIcon,
   DotsVerticalIcon,
+  AvatarIcon,
+  CaretUpIcon,
 } from "@radix-ui/react-icons";
 import {
   AlertDialog,
@@ -517,12 +519,8 @@ function ChatContent() {
       }
 
       // Set initial selected chat
-      setDmUsers((prev) => {
-        if (prev.length > 0) {
-          setSelectedChat(prev[0].id);
-        }
-        return prev;
-      });
+      setDmUsers((prev) => prev);
+      setSelectedChat(null);
     };
 
     if (user && user.id) {
@@ -1441,10 +1439,6 @@ function ChatContent() {
   // Filter messages to avoid duplicates
   const filteredMessages = selectedChat
     ? messages.filter((msg) => {
-        if (selectedChat === "Admin Chat") {
-          return !msg.receiver_id && !msg.group_chat_id;
-        }
-
         if (selectedChat.startsWith("group_")) {
           return msg.group_chat_id === parseInt(selectedChat.split("_")[1], 10);
         }
@@ -1580,34 +1574,9 @@ function ChatContent() {
                 </div>
                 <div className="flex-1 overflow-auto">
                   <nav className="space-y-1 p-4">
-                    {(role === "admin" ||
-                      role === "auditor" ||
-                      role === "super admin") && (
-                      <div
-                        className={`flex items-center gap-3 rounded-md px-3 py-3 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                          selectedChat === "Admin Chat"
-                            ? "bg-gray-200 dark:bg-neutral-800"
-                            : ""
-                        }`}
-                      >
-                        <Link
-                          href="#"
-                          onClick={() => setSelectedChat("Admin Chat")}
-                          prefetch={false}
-                          className="flex-1 flex items-center gap-3"
-                        >
-                          <DotFilledIcon className="w-4 h-4" />
-                          <span className="flex-1 truncate"># Admins</span>
-                        </Link>
-                        {role === "super admin" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={deleteAdminChat}
-                          >
-                            <CrossCircledIcon />
-                          </Button>
-                        )}
+                    {dmUsers.length === 0 && (
+                      <div className="text-center py-4 text-gray-500">
+                        No messages yet. Start a new chat!
                       </div>
                     )}
 
@@ -1618,7 +1587,7 @@ function ChatContent() {
                           key={u.id}
                           className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
                             selectedChat === u.id
-                              ? "bg-gray-200 dark:bg-neutral-800"
+                              ? "bg-muted dark:bg-muted"
                               : ""
                           }`}
                         >
@@ -1703,7 +1672,7 @@ function ChatContent() {
                           key={`${groupChat.id}-${index}`}
                           className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
                             selectedChat === groupChat.id
-                              ? "bg-gray-200 dark:bg-neutral-800"
+                              ? "bg-muted dark:bg-muted"
                               : ""
                           }`}
                         >
@@ -1833,8 +1802,11 @@ function ChatContent() {
                   <div className="space-y-6">
                     {filteredMessages.map((msg, i) => (
                       <div key={i} className="flex items-start gap-4">
-                        <Avatar className="border w-10 h-10">
-                          <AvatarImage src="/placeholder-user.jpg" />
+                        <Avatar className="border items-center justify-center">
+                          <AvatarImage
+                            src="/Circular.png"
+                            className="w-full h-full"
+                          />
                           <AvatarFallback>
                             {msg.user_name?.charAt(0) ||
                               msg.sender_id?.charAt(0)}
@@ -1928,9 +1900,10 @@ function ChatContent() {
                       type="submit"
                       size="icon"
                       className="absolute top-3 right-3 w-8 h-8"
+                      variant="ghost"
                       onClick={onSend}
                     >
-                      <ArrowUpIcon className="w-4 h-4" />
+                      <CaretUpIcon className="w-4 h-4" />
                       <span className="sr-only">Send</span>
                     </Button>
                   </div>

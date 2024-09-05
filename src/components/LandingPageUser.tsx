@@ -48,13 +48,13 @@ const LandingPageUser: React.FC = React.memo(() => {
             <p className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
               <TextGenerateEffect words={subwords} />
             </p>
-            <Image
+            {/* <Image
               src="/Sales Winner.png"
               alt="WinnaWinna"
               width={600}
               height={400}
               className="rounded-lg shadow-md"
-            />
+            /> */}
           </div>
         </div>
       </section>
