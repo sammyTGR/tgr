@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/utils/supabase/client";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import React from "react";
 
 interface TimesheetReport {
   id: number;
@@ -103,7 +104,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
     groupedData[parseInt(employee_id)].sort((a, b) => {
       const dateA = a.event_date ? new Date(a.event_date) : new Date();
       const dateB = b.event_date ? new Date(b.event_date) : new Date();
-      return dateA.getTime() - dateB.getTime();
+      return dateB.getTime() - dateA.getTime();
     });
   });
 
@@ -238,7 +239,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
             const isExpanded = expandedRows[parseInt(employee_id)];
 
             return (
-              <>
+              <React.Fragment key={`employee-${employee_id}`}>
                 <TableRow
                   key={firstRow.id}
                   onClick={() => toggleExpand(parseInt(employee_id))}
@@ -303,7 +304,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
                 </TableRow>
                 {isExpanded &&
                   employeeRows.slice(1).map((row) => (
-                    <TableRow key={row.id}>
+                    <TableRow key={`row-${row.id}`}>
                       <TableCell></TableCell>
                       <TableCell>{row.name}</TableCell>
                       <TableCell>
@@ -357,7 +358,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
                       </TableCell>
                     </TableRow>
                   ))}
-              </>
+              </React.Fragment>
             );
           })}
         </TableBody>
