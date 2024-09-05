@@ -21,6 +21,7 @@ import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { TimesheetPagination } from "./TimesheetPagination";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
+import AddTimesheetForm from "./AddTimesheetForm";
 
 interface ScheduleData {
   id: number;
@@ -445,6 +446,87 @@ const ManageSchedules = () => {
     }
   };
 
+  const handleAddTimeSheetEntry = async (
+    employeeId: number,
+    date: string,
+    startTime: string,
+    lunchStart: string | null,
+    lunchEnd: string | null,
+    endTime: string | null
+  ) => {
+    const employee = employees.find((emp) => emp.employee_id === employeeId);
+    if (!employee) {
+      console.error("Employee not found:", employeeId);
+      toast.error("Employee not found");
+      return;
+    }
+
+    if (date && startTime) {
+      const formatTime = (time: string | null): string | null => {
+        if (!time) return null;
+        return time.length === 5 ? `${time}:00` : time;
+      };
+
+      // Format the date to ensure it's in YYYY-MM-DD format
+      const formattedDate = new Date(date + "T00:00:00")
+        .toISOString()
+        .split("T")[0];
+
+      const timesheetData = {
+        employee_id: employeeId,
+        employee_name: employee.name,
+        event_date: formattedDate,
+        start_time: formatTime(startTime),
+        lunch_start: formatTime(lunchStart),
+        lunch_end: formatTime(lunchEnd),
+        end_time: formatTime(endTime),
+      };
+
+      // Check if a timesheet entry already exists for this employee and date
+      const { data: existingEntry, error: fetchError } = await supabase
+        .from("employee_clock_events")
+        .select()
+        .match({ employee_id: employeeId, event_date: formattedDate })
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        console.error("Error fetching existing timesheet entry:", fetchError);
+        toast.error("Failed to check existing timesheet entry");
+        return;
+      }
+
+      let result;
+      if (existingEntry) {
+        // Update existing timesheet entry
+        result = await supabase
+          .from("employee_clock_events")
+          .update(timesheetData)
+          .match({ id: existingEntry.id })
+          .select();
+      } else {
+        // Insert new timesheet entry
+        result = await supabase
+          .from("employee_clock_events")
+          .insert(timesheetData)
+          .select();
+      }
+
+      if (result.error) {
+        console.error("Error adding/updating timesheet entry:", result.error);
+        toast.error("Failed to add/update timesheet entry");
+      } else {
+        console.log("Timesheet entry added/updated successfully:", result.data);
+        fetchTimesheets();
+        toast.success("Timesheet entry added/updated successfully");
+      }
+    } else {
+      console.error(
+        "Date and Start Time are required to add a timesheet entry."
+      );
+      toast.error("Missing required information");
+    }
+  };
+
   const handleAddSchedule = async (
     employeeName: string,
     _: string | undefined,
@@ -458,7 +540,7 @@ const ManageSchedules = () => {
       toast.error("Employee not found");
       return;
     }
-  
+
     if (date && startTime && endTime) {
       const daysOfWeek = [
         "Sunday",
@@ -470,11 +552,11 @@ const ManageSchedules = () => {
         "Saturday",
       ];
       const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
-  
+
       const formattedStartTime =
         startTime.length === 5 ? `${startTime}:00` : startTime;
       const formattedEndTime = endTime.length === 5 ? `${endTime}:00` : endTime;
-  
+
       const scheduleData = {
         employee_id: employee.employee_id,
         schedule_date: date,
@@ -484,20 +566,20 @@ const ManageSchedules = () => {
         status: "added_day",
         name: employeeName,
       };
-  
+
       // Check if a schedule already exists for this employee and date
       const { data: existingSchedule, error: fetchError } = await supabase
         .from("schedules")
         .select()
         .match({ employee_id: employee.employee_id, schedule_date: date })
         .single();
-  
-      if (fetchError && fetchError.code !== 'PGRST116') {
+
+      if (fetchError && fetchError.code !== "PGRST116") {
         console.error("Error fetching existing schedule:", fetchError);
         toast.error("Failed to check existing schedule");
         return;
       }
-  
+
       let result;
       if (existingSchedule) {
         // Update existing schedule
@@ -508,12 +590,9 @@ const ManageSchedules = () => {
           .select();
       } else {
         // Insert new schedule
-        result = await supabase
-          .from("schedules")
-          .insert(scheduleData)
-          .select();
+        result = await supabase.from("schedules").insert(scheduleData).select();
       }
-  
+
       if (result.error) {
         console.error("Error adding/updating schedule:", result.error);
         toast.error("Failed to add/update schedule");
@@ -726,6 +805,20 @@ const ManageSchedules = () => {
 
           <TabsContent value="timesheets">
             <CardContent>
+              <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <Card>
+                  <CardHeader>
+                    <h2 className="text-lg font-bold">Add Timesheet Entry</h2>
+                  </CardHeader>
+                  <CardContent className="flex flex-col mx-auto">
+                    <AddTimesheetForm
+                      employees={employees}
+                      onTimesheetAdded={handleAddTimeSheetEntry}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+
               <TimesheetDataTable
                 columns={timesheetColumns}
                 data={timesheets}
