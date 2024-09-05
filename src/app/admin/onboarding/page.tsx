@@ -1,6 +1,6 @@
 import OnboardingWizard from "./OnboradingWizard";
 
-export function OnboardingPage() {
+export default function Page() {
   return (
     <div className="container mx-auto py-10 flex flex-col items-center justify-center w-full">
       <h1 className="text-3xl font-bold mb-6 text-center">
@@ -10,4 +10,3 @@ export function OnboardingPage() {
     </div>
   );
 }
-export default OnboardingPage;
