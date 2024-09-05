@@ -194,8 +194,13 @@ const EmployeeProfilePage = () => {
     lunchStart: string | null,
     lunchEnd: string | null
   ): string => {
-    const startTime = new Date(`1970-01-01T${start}Z`).getTime();
-    const endTime = new Date(`1970-01-01T${end}Z`).getTime();
+    let startTime = new Date(`1970-01-01T${start}Z`).getTime();
+    let endTime = new Date(`1970-01-01T${end}Z`).getTime();
+
+    // If end time is earlier than start time, assume it's the next day
+    if (endTime < startTime) {
+      endTime += 24 * 60 * 60 * 1000; // Add 24 hours
+    }
 
     let totalDuration = endTime - startTime;
 
@@ -206,7 +211,10 @@ const EmployeeProfilePage = () => {
       totalDuration -= lunchDuration;
     }
 
-    if (totalDuration < 0) return "00:00:00";
+    if (totalDuration < 0 || totalDuration > 24 * 60 * 60 * 1000) {
+      console.error("Invalid duration calculated:", totalDuration);
+      return "00:00:00";
+    }
 
     const totalSeconds = Math.floor(totalDuration / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -320,7 +328,12 @@ const EmployeeProfilePage = () => {
         currentShift.lunch_end
       );
     } else {
-      duration = calculateDuration(clockInTime, now);
+      duration = calculateDurationWithLunch(
+        currentShift.start_time,
+        endTime,
+        null,
+        null
+      );
     }
 
     if (duration !== "00:00:00") {
@@ -817,6 +830,14 @@ const EmployeeProfilePage = () => {
         }
         return acc;
       }, 0);
+
+      // Add a final check
+      if (totalHours > 100) {
+        // Max possible hours in a week
+        toast.error("Unrealistic total hours:", totalHours);
+        return 0; // or some default value
+      }
+
       setWeeklySummary(totalHours.toFixed(2)); // Round to 2 decimal places
     }
   };
