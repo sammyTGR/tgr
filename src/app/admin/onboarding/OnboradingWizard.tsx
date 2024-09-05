@@ -167,7 +167,7 @@ export default function OnboardingWizard() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="additionalInfo">
-                Any additional information you'd like to share?
+                Any additional information you&apos;d like to share?
               </Label>
               <Textarea
                 id="additionalInfo"
