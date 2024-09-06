@@ -46,6 +46,7 @@ import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { debounce } from "lodash";
 import { toast } from "sonner";
+import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const title = "Ops Chat";
 
@@ -108,7 +109,6 @@ function ChatContent() {
   const [editingMessage, setEditingMessage] = useState<string>("");
   const [showUserList, setShowUserList] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
-  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [unreadStatus, setUnreadStatus] = useState<Record<string, boolean>>({});
   const channel = useRef<RealtimeChannel | null>(null);
@@ -126,6 +126,9 @@ function ChatContent() {
   const optionsRef = useRef<HTMLDivElement>(null);
   const [showDMOptions, setShowDMOptions] = useState<string | null>(null);
   const [showGroupOptions, setShowGroupOptions] = useState<string | null>(null);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const { resetUnreadCounts, setTotalUnreadCount: setGlobalUnreadCount } =
+    useUnreadCounts();
 
   const userDataRef = useRef<{ user: User | null }>({ user: null });
   const directMessageChannelRef = useRef<RealtimeChannel | null>(null);
@@ -146,6 +149,19 @@ function ChatContent() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
+
+  const localResetUnreadCounts = useCallback(async () => {
+    await resetUnreadCounts();
+    setTotalUnreadCount(0);
+  }, [resetUnreadCounts]);
+
+  useEffect(() => {
+    localResetUnreadCounts();
+  }, [localResetUnreadCounts]);
+
+  useEffect(() => {
+    resetUnreadCounts();
+  }, [resetUnreadCounts]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -375,6 +391,63 @@ function ChatContent() {
   }, [user]);
 
   useEffect(() => {
+    const markAllMessagesAsRead = async () => {
+      if (!user || !user.id) return;
+
+      try {
+        // Mark direct messages as read
+        const { error: dmError } = await supabase
+          .from("direct_messages")
+          .update({ is_read: true })
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+
+        if (dmError) {
+          console.error("Error marking direct messages as read:", dmError);
+        }
+
+        // Mark group messages as read
+        const { data: groupChats, error: groupChatsError } = await supabase
+          .from("group_chats")
+          .select("id")
+          .contains("users", [user.id]);
+
+        if (groupChatsError) {
+          console.error("Error fetching group chats:", groupChatsError);
+        } else if (groupChats) {
+          for (const chat of groupChats) {
+            const { error: groupMsgError } = await supabase
+              .from("group_chat_messages")
+              .update({
+                read_by: supabase.rpc("array_append", {
+                  arr: "read_by",
+                  elem: user.id,
+                }),
+              })
+              .eq("group_chat_id", chat.id)
+              .not("read_by", "cs", `{${user.id}}`);
+
+            if (groupMsgError) {
+              console.error(
+                `Error marking messages as read for group ${chat.id}:`,
+                groupMsgError
+              );
+            }
+          }
+        }
+
+        // Reset unread counts and status
+        setUnreadCounts({});
+        setUnreadStatus({});
+        setTotalUnreadCount(0);
+
+        // Notify other components (like the header) that unread counts have changed
+        window.dispatchEvent(new Event("unreadCountsChanged"));
+      } catch (err) {
+        console.error("Error during markAllMessagesAsRead:", err);
+      }
+    };
+
     const fetchAllChats = async () => {
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
@@ -554,10 +627,14 @@ function ChatContent() {
       // Set initial selected chat
       setDmUsers((prev) => prev);
       setSelectedChat(null);
+
+      // Call markAllMessagesAsRead after fetching chats
+      await markAllMessagesAsRead();
     };
 
     if (user && user.id) {
       fetchAllChats();
+      markAllMessagesAsRead();
     }
     scrollToBottom();
 
@@ -574,7 +651,7 @@ function ChatContent() {
         new CustomEvent("chatActiveChange", { detail: { isActive: false } })
       );
     };
-  }, [user, setMessagesWithoutDuplicates]);
+  }, [user, setMessagesWithoutDuplicates, setTotalUnreadCount]);
 
   useEffect(() => {
     const client = supabase;
@@ -1352,6 +1429,24 @@ function ChatContent() {
 
       setSelectedChat(chatId);
 
+      // Reset unread status for this chat
+      setUnreadStatus((prevStatus) => ({
+        ...prevStatus,
+        [chatId]: false,
+      }));
+
+      // Update the total unread count
+      setUnreadCounts((prevCounts) => {
+        const newCounts = { ...prevCounts };
+        delete newCounts[chatId];
+        const newTotalCount = Object.values(newCounts).reduce(
+          (a, b) => a + b,
+          0
+        );
+        setTotalUnreadCount(newTotalCount);
+        return newCounts;
+      });
+
       if (unreadStatus[chatId]) {
         setUnreadStatus((prevStatus) => ({
           ...prevStatus,
@@ -1479,6 +1574,8 @@ function ChatContent() {
       unreadStatus,
       user,
       selectedChat,
+      setUnreadCounts,
+      setTotalUnreadCount,
       setMessages,
       setUnreadStatus,
       setSelectedChat,

@@ -10,6 +10,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { UnreadCountsProvider } from "../components/UnreadCountsContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -40,12 +41,13 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <NotificationsProvider>
-                <Header />
-                <main>{children}</main>
-
-                <Toaster />
-              </NotificationsProvider>
+              <UnreadCountsProvider>
+                <NotificationsProvider>
+                  <Header />
+                  <main>{children}</main>
+                  <Toaster />
+                </NotificationsProvider>
+              </UnreadCountsProvider>
             </ThemeProvider>
           </body>
         </html>

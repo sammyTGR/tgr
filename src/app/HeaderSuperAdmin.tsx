@@ -43,6 +43,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
+import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 interface HeaderSuperAdminProps {
   totalUnreadCount: number;
@@ -311,6 +312,8 @@ const HeaderSuperAdmin = React.memo(() => {
   const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
   const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
   const { setTheme } = useTheme();
+  const { resetUnreadCounts } = useUnreadCounts();
+  const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
 
   const fetchUserAndEmployee = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -331,6 +334,29 @@ const HeaderSuperAdmin = React.memo(() => {
       setEmployeeId(null);
     }
   }, []);
+
+  useEffect(() => {
+    setTotalUnreadCount(globalUnreadCount);
+  }, [globalUnreadCount]);
+
+  useEffect(() => {
+    const handleUnreadCountsChanged = () => {
+      setTotalUnreadCount(globalUnreadCount);
+    };
+
+    window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
+
+    return () => {
+      window.removeEventListener(
+        "unreadCountsChanged",
+        handleUnreadCountsChanged
+      );
+    };
+  }, [globalUnreadCount]);
+
+  const handleChatClick = () => {
+    router.push("/TGR/crew/chat");
+  };
 
   const fetchUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -440,99 +466,10 @@ const HeaderSuperAdmin = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
-  const resetUnreadCounts = useCallback(async () => {
-    if (!user) return;
-
-    // Reset unread direct messages
-    const { error: dmError } = await supabase
-      .from("direct_messages")
-      .update({ is_read: true })
-      .eq("receiver_id", user.id)
-      .eq("is_read", false);
-
-    if (dmError) {
-      console.error("Error resetting unread direct messages:", dmError.message);
-    }
-
-    // Reset unread group messages
-    const { data: groupData, error: groupFetchError } = await supabase
-      .from("group_chat_messages")
-      .select("id, read_by")
-      .not("read_by", "cs", `{${user.id}}`);
-
-    if (groupFetchError) {
-      console.error(
-        "Error fetching unread group messages:",
-        groupFetchError.message
-      );
-    } else if (groupData) {
-      // Update each unread group message
-      for (const message of groupData) {
-        const updatedReadBy = [...(message.read_by || []), user.id];
-        const { error: groupUpdateError } = await supabase
-          .from("group_chat_messages")
-          .update({ read_by: updatedReadBy })
-          .eq("id", message.id);
-
-        if (groupUpdateError) {
-          console.error(
-            "Error updating group message:",
-            groupUpdateError.message
-          );
-        }
-      }
-    }
-
-    // Reset the unread count in the state
-    setTotalUnreadCount(0);
-  }, [user]);
-
-  const handleChatClick = async () => {
-    if (user) {
-      // Mark all messages as read in the database
-      const { data: messagesToUpdate, error: fetchError } = await supabase
-        .from("direct_messages")
-        .select("id, read_by")
-        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-
-      if (fetchError) {
-        console.error("Error fetching messages to update:", fetchError.message);
-        return;
-      }
-
-      const messageIdsToUpdate = messagesToUpdate
-        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
-        .map((msg) => msg.id);
-
-      if (messageIdsToUpdate.length > 0) {
-        for (const messageId of messageIdsToUpdate) {
-          const { error: updateError } = await supabase
-            .from("direct_messages")
-            .update({
-              read_by: [
-                ...(messagesToUpdate.find((msg) => msg.id === messageId)
-                  ?.read_by || []),
-                user.id,
-              ],
-            })
-            .eq("id", messageId);
-
-          if (updateError) {
-            console.error(
-              "Error updating messages as read:",
-              updateError.message
-            );
-          }
-        }
-      }
-
-      // Reset the unread count
-      setTotalUnreadCount(0);
-
-      // Navigate to the chat page
-      router.push("/TGR/crew/chat");
-    }
-  };
+  // Synchronize local state with global state
+  useEffect(() => {
+    setTotalUnreadCount(globalUnreadCount);
+  }, [globalUnreadCount]);
 
   const profileComps = [
     {
