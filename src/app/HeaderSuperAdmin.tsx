@@ -440,8 +440,54 @@ const HeaderSuperAdmin = React.memo(() => {
     window.location.href = "/"; // Redirect to sign-in page after sign-out
   };
 
+  const resetUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    // Reset unread direct messages
+    const { error: dmError } = await supabase
+      .from("direct_messages")
+      .update({ is_read: true })
+      .eq("receiver_id", user.id)
+      .eq("is_read", false);
+
+    if (dmError) {
+      console.error("Error resetting unread direct messages:", dmError.message);
+    }
+
+    // Reset unread group messages
+    const { data: groupData, error: groupFetchError } = await supabase
+      .from("group_chat_messages")
+      .select("id, read_by")
+      .not("read_by", "cs", `{${user.id}}`);
+
+    if (groupFetchError) {
+      console.error(
+        "Error fetching unread group messages:",
+        groupFetchError.message
+      );
+    } else if (groupData) {
+      for (const message of groupData) {
+        const { error: groupUpdateError } = await supabase
+          .from("group_chat_messages")
+          .update({ read_by: [...(message.read_by || []), user.id] })
+          .eq("id", message.id);
+
+        if (groupUpdateError) {
+          console.error(
+            "Error updating group message:",
+            groupUpdateError.message
+          );
+        }
+      }
+    }
+
+    // Reset the unread count in the state
+    setTotalUnreadCount(0);
+  }, [user]);
+
   const handleChatClick = async () => {
     if (user) {
+      await resetUnreadCounts();
       // Mark all messages as read in the database
       const { data: messagesToUpdate, error: fetchError } = await supabase
         .from("direct_messages")

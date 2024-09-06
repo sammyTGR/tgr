@@ -4,18 +4,25 @@ import { useEffect, useState } from "react";
 import { AddClassPopover } from "./AddClassPopover";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { ChevronRightIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
+} from "@radix-ui/react-icons";
 import {
   format,
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
   isSameDay,
+  addMonths,
+  subMonths,
 } from "date-fns";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { useRole } from "@/context/RoleContext"; // Add this import
+import { EditClassPopover } from "./EditClassPopover";
 
 interface ClassSchedule {
   id: number;
@@ -26,7 +33,9 @@ interface ClassSchedule {
 }
 
 export default function Component() {
+  const [editingClass, setEditingClass] = useState<ClassSchedule | null>(null);
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<ClassSchedule[] | null>(
     null
   );
@@ -63,26 +72,81 @@ export default function Component() {
     id: string,
     updates: Partial<ClassSchedule>
   ) => {
-    // console.log("handleAddClass triggered with data:", updates);
+    // Remove the id from the updates object
+    const { id: _, ...classData } = updates;
+
+    console.log("Data being sent to Supabase:", classData);
 
     const { data, error } = await supabase
       .from("class_schedules")
-      .insert([{ ...updates }]);
-
-    // console.log("Supabase insert response:", { data, error }); // Debugging line
+      .insert([classData])
+      .select(); // Add .select() to return the inserted data
 
     if (error) {
       console.error("Error adding class:", error);
     } else {
-      // console.log("Class added successfully, updating state...");
+      console.log("Inserted data:", data);
       setClassSchedules((prev) => [...prev, ...(data || [])]);
     }
   };
 
   const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(new Date()),
-    end: endOfMonth(new Date()),
+    start: startOfMonth(currentMonth),
+    end: endOfMonth(currentMonth),
   });
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth((prevMonth) => subMonths(prevMonth, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth((prevMonth) => addMonths(prevMonth, 1));
+  };
+
+  const handleEditClass = async (updatedClass: ClassSchedule) => {
+    const { data, error } = await supabase
+      .from("class_schedules")
+      .update(updatedClass)
+      .eq("id", updatedClass.id)
+      .select();
+
+    if (error) {
+      console.error("Error updating class:", error);
+    } else {
+      console.log("Updated data:", data);
+      setClassSchedules((prevSchedules) =>
+        prevSchedules.map((schedule) =>
+          schedule.id === updatedClass.id ? updatedClass : schedule
+        )
+      );
+      setSelectedEvent((prevEvents) =>
+        prevEvents
+          ? prevEvents.map((event) =>
+              event.id === updatedClass.id ? updatedClass : event
+            )
+          : null
+      );
+      setEditingClass(null);
+    }
+  };
+
+  const handleDeleteClass = async (classId: number) => {
+    const { error } = await supabase
+      .from("class_schedules")
+      .delete()
+      .eq("id", classId);
+
+    if (error) {
+      console.error("Error deleting class:", error);
+    } else {
+      setClassSchedules((prevSchedules) =>
+        prevSchedules.filter((schedule) => schedule.id !== classId)
+      );
+      setSelectedEvent((prevEvents) =>
+        prevEvents ? prevEvents.filter((event) => event.id !== classId) : null
+      );
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -99,12 +163,23 @@ export default function Component() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Calendar</h2>
-            <div className="flex items-center space-x-4">
-              <button className="hover:focus:outline-none" title="Next Month">
-                <ChevronRightIcon className="h-6 w-6" />
-              </button>
-            </div>
+            <button
+              className="hover:focus:outline-none"
+              title="Previous Month"
+              onClick={goToPreviousMonth}
+            >
+              <ChevronLeftIcon className="h-6 w-6" />
+            </button>
+            <h2 className="text-2xl font-bold">
+              {format(currentMonth, "MMMM yyyy")}
+            </h2>
+            <button
+              className="hover:focus:outline-none"
+              title="Next Month"
+              onClick={goToNextMonth}
+            >
+              <ChevronRightIcon className="h-6 w-6" />
+            </button>
           </div>
           <div className="grid grid-cols-7 gap-4">
             {daysInMonth.map((day) => {
@@ -162,12 +237,29 @@ export default function Component() {
                       {new Date(event.start_time).toLocaleTimeString()}
                     </p>
                   </div>
-                  <Link
-                    className="bg-primary-500 rounded-lg px-4 py-2 hover:bg-primary-600 focus:outline-none"
-                    href="#"
-                  >
-                    Pay Now
-                  </Link>
+                  <div className="flex flex-col space-y-2">
+                    <Link
+                      className="bg-primary-500 rounded-lg px-4 py-2 hover:bg-primary-600 focus:outline-none"
+                      href="#"
+                    >
+                      Pay Now
+                    </Link>
+                    {isAdmin && (
+                      <>
+                        <EditClassPopover
+                          classData={event}
+                          onSubmit={handleEditClass}
+                          onClose={() => setEditingClass(null)}
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDeleteClass(event.id)}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (

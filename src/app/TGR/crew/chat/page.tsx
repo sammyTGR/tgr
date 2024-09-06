@@ -130,6 +130,23 @@ function ChatContent() {
   const userDataRef = useRef<{ user: User | null }>({ user: null });
   const directMessageChannelRef = useRef<RealtimeChannel | null>(null);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsChatActive(isVisible);
+      localStorage.setItem("isChatActive", isVisible.toString());
+      window.dispatchEvent(
+        new CustomEvent("chatActiveChange", { detail: { isActive: isVisible } })
+      );
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -203,7 +220,7 @@ function ChatContent() {
           }
 
           return [
-            ...prev,
+            ...prev.filter((u) => u.id !== `group_${newGroupChat.id}`),
             {
               id: `group_${newGroupChat.id}`,
               name: newGroupChat.name,
@@ -298,6 +315,7 @@ function ChatContent() {
     console.log(`Group chat ${deletedGroupChatId} deletion handled`);
   };
 
+  // Update the fetchGroupChats function
   const fetchGroupChats = async () => {
     if (!user || !user.id) {
       console.error("User or user.id is not available");
@@ -313,12 +331,14 @@ function ChatContent() {
       console.error("Error fetching group chats:", error.message);
     } else if (groupChats) {
       setDmUsers((prev) => {
-        const existingGroupChatIds = prev
-          .filter((u) => u.id.startsWith("group_"))
-          .map((u) => u.id);
+        // Create a set of existing group chat IDs
+        const existingGroupChatIds = new Set(
+          prev.filter((u) => u.id.startsWith("group_")).map((u) => u.id)
+        );
 
+        // Filter out any duplicate group chats and add only new ones
         const newGroupChats = groupChats
-          .filter((chat) => !existingGroupChatIds.includes(`group_${chat.id}`))
+          .filter((chat) => !existingGroupChatIds.has(`group_${chat.id}`))
           .map((chat) => ({
             id: `group_${chat.id}`,
             name: chat.name,
@@ -327,7 +347,13 @@ function ChatContent() {
             created_by: chat.created_by,
           }));
 
-        return [...prev, ...newGroupChats];
+        // Combine existing users (both direct and group) with new unique group chats
+        return [
+          ...prev.filter(
+            (u) => !newGroupChats.some((newChat) => newChat.id === u.id)
+          ),
+          ...newGroupChats,
+        ];
       });
     }
   };
@@ -473,10 +499,17 @@ function ChatContent() {
           })
         );
 
-        setDmUsers((prev) => [
-          ...prev,
-          ...groupChatUsers.filter((chat): chat is GroupChat => chat !== null),
-        ]);
+        setDmUsers((prev) => {
+          const existingGroupChatIds = new Set(
+            prev.filter((u) => u.id.startsWith("group_")).map((u) => u.id)
+          );
+
+          const newGroupChats = groupChatUsers
+            .filter((chat): chat is GroupChat => chat !== null)
+            .filter((chat) => !existingGroupChatIds.has(chat.id));
+
+          return [...prev, ...newGroupChats];
+        });
 
         // Fetch initial messages for all group chats
         for (const groupChat of groupChats) {
@@ -547,7 +580,12 @@ function ChatContent() {
     const client = supabase;
 
     const setupSubscriptions = () => {
-      if (!channel.current) {
+      if (
+        !channel.current ||
+        directMessageChannelRef.current ||
+        presenceChannel.current ||
+        groupChatChannelRef.current
+      ) {
         channel.current = client.channel("chat-room", {
           config: {
             broadcast: {
@@ -978,16 +1016,27 @@ function ChatContent() {
     if (data && data.length > 0) {
       const newGroupChat = data[0];
 
-      setDmUsers((prev) => [
-        ...prev,
-        {
-          id: `group_${newGroupChat.id}`,
-          name: newGroupChat.name,
-          is_online: true,
-          users: newGroupChat.users,
-          created_by: newGroupChat.created_by,
-        },
-      ]);
+      setDmUsers((prev) => {
+        // Check if the group chat already exists
+        const existingGroupChat = prev.find(
+          (chat) => chat.id === `group_${newGroupChat.id}`
+        );
+        if (existingGroupChat) {
+          return prev; // Return the previous state without changes
+        }
+
+        // Add the new group chat only if it doesn't exist
+        return [
+          ...prev,
+          {
+            id: `group_${newGroupChat.id}`,
+            name: newGroupChat.name,
+            is_online: true,
+            users: newGroupChat.users,
+            created_by: newGroupChat.created_by,
+          },
+        ];
+      });
 
       setSelectedChat(`group_${newGroupChat.id}`);
 
@@ -1220,7 +1269,6 @@ function ChatContent() {
               newMessage.receiver_id === selectedChat));
 
         setMessages((prevMessages) => {
-          // Check if the message already exists in the state
           if (prevMessages.some((msg) => msg.id === newMessage.id)) {
             return prevMessages;
           }
@@ -1234,8 +1282,9 @@ function ChatContent() {
         if (newMessage.sender_id !== user.id) {
           const isChatActiveNow =
             localStorage.getItem("isChatActive") === "true";
+          const shouldIncrementUnread = !isChatActiveNow || !isCurrentChat;
 
-          if (!isChatActiveNow || !isCurrentChat) {
+          if (shouldIncrementUnread) {
             if (chatType === "direct" && newMessage.receiver_id === user.id) {
               const senderId = newMessage.sender_id;
               if (typeof senderId === "string") {
@@ -1253,6 +1302,17 @@ function ChatContent() {
                   fetchSender(senderId);
                 }
               }
+            } else if (chatType === "group") {
+              const groupId = `group_${newMessage.group_chat_id}`;
+              setUnreadStatus((prevStatus) => ({
+                ...prevStatus,
+                [groupId]: true,
+              }));
+              setUnreadCounts((prevCounts) => ({
+                ...prevCounts,
+                [groupId]: (prevCounts[groupId] || 0) + 1,
+              }));
+              setTotalUnreadCount((prev) => prev + 1);
             }
             fetchUnreadCounts();
           }
@@ -1667,9 +1727,9 @@ function ChatContent() {
 
                     {dmUsers
                       .filter((u) => u.id.startsWith("group_"))
-                      .map((groupChat, index) => (
+                      .map((groupChat) => (
                         <div
-                          key={`${groupChat.id}-${index}`}
+                          key={groupChat.id}
                           className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
                             selectedChat === groupChat.id
                               ? "bg-muted dark:bg-muted"

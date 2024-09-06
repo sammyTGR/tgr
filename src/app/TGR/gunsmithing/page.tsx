@@ -502,9 +502,15 @@ export default function GunsmithingMaintenance() {
                           )}
                         </div>
                       </div>
-                      <Button variant="linkHover1" onClick={handleSubmit}>
-                        Submit Maintenance List
-                      </Button>
+                      <div className="flex justify-start p-2">
+                        <Button
+                          variant="ringHover"
+                          onClick={handleSubmit}
+                          className="max-w-lg p-2"
+                        >
+                          Submit Maintenance List
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
