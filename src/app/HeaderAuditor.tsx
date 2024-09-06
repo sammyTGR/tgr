@@ -46,6 +46,7 @@ import {
   MoonIcon,
 } from "@radix-ui/react-icons";
 import { useTheme } from "next-themes";
+import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const auditComponents = [
   {
@@ -176,8 +177,11 @@ const profileComps = [
 
 const HeaderAuditor = React.memo(() => {
   const [user, setUser] = useState<any>(null);
-  const router = useRouter(); // Instantiate useRouter
+  const router = useRouter();
   const { setTheme } = useTheme();
+  const { resetUnreadCounts } = useUnreadCounts();
+  const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -189,9 +193,24 @@ const HeaderAuditor = React.memo(() => {
     fetchUser();
   }, []);
 
-  const unreadCount = useUnreadMessages(user?.id); // Use the hook to get unread messages
-  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
-  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
+  useEffect(() => {
+    setTotalUnreadCount(globalUnreadCount);
+  }, [globalUnreadCount]);
+
+  useEffect(() => {
+    const handleUnreadCountsChanged = () => {
+      setTotalUnreadCount(globalUnreadCount);
+    };
+
+    window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
+
+    return () => {
+      window.removeEventListener(
+        "unreadCountsChanged",
+        handleUnreadCountsChanged
+      );
+    };
+  }, [globalUnreadCount]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -236,6 +255,9 @@ const HeaderAuditor = React.memo(() => {
           }
         }
       }
+
+      // Reset the unread count using the context
+      resetUnreadCounts();
 
       // Navigate to the chat page
       router.push("/TGR/crew/chat");
@@ -375,11 +397,12 @@ const HeaderAuditor = React.memo(() => {
                     variant="linkHover2"
                     size="icon"
                     className="mr-2 relative"
+                    onClick={handleChatClick}
                   >
                     <PersonIcon />
-                    {unreadCount > 0 && (
+                    {totalUnreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
-                        {unreadCount}
+                        {totalUnreadCount}
                       </span>
                     )}
                   </Button>
@@ -406,18 +429,6 @@ const HeaderAuditor = React.memo(() => {
                       </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={handleChatClick}>
-                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                    <span>Messages</span>
-                    {unreadCount > 0 && (
-                      <span className="ml-auto text-red-500 font-bold">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </DropdownMenuItem>
-
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleSignOut}>

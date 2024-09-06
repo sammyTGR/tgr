@@ -37,6 +37,7 @@ import {
   SunIcon,
   MoonIcon,
 } from "@radix-ui/react-icons";
+import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const schedComponents = [
   {
@@ -79,10 +80,12 @@ const formComps = [
 
 const HeaderGunsmith = React.memo(() => {
   const [user, setUser] = useState<any>(null);
-  const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const { setTheme } = useTheme();
   const router = useRouter();
+  const { resetUnreadCounts } = useUnreadCounts();
+  const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -95,48 +98,23 @@ const HeaderGunsmith = React.memo(() => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      const fetchUnreadMessages = async () => {
-        const { count } = await supabase
-          .from("direct_messages")
-          .select("*", { count: "exact" })
-          .eq("receiver_id", user.id)
-          .eq("is_read", false);
-        setUnreadMessages(count || 0);
-      };
+    setTotalUnreadCount(globalUnreadCount);
+  }, [globalUnreadCount]);
 
-      const fetchIsOnline = async () => {
-        const { data } = await supabase
-          .from("employees")
-          .select("is_online")
-          .eq("user_uuid", user.id)
-          .single();
-        if (data) {
-          setIsOnline(data.is_online);
-        }
-      };
+  useEffect(() => {
+    const handleUnreadCountsChanged = () => {
+      setTotalUnreadCount(globalUnreadCount);
+    };
 
-      fetchUnreadMessages();
-      fetchIsOnline();
+    window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
 
-      const subscription = supabase
-        .channel("direct_messages")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "direct_messages" },
-          (payload) => {
-            if (payload.new.receiver_id === user.id) {
-              setUnreadMessages((prev) => prev + 1);
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [user]);
+    return () => {
+      window.removeEventListener(
+        "unreadCountsChanged",
+        handleUnreadCountsChanged
+      );
+    };
+  }, [globalUnreadCount]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -146,21 +124,44 @@ const HeaderGunsmith = React.memo(() => {
 
   const handleChatClick = async () => {
     if (user) {
-      // Reset unread messages count in the state
-      setUnreadMessages(0);
+      const { data: messagesToUpdate, error: fetchError } = await supabase
+        .from("direct_messages")
+        .select("id, read_by")
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
 
-      // Update the database to mark messages as read
-      if (user) {
-        const { data, error } = await supabase
-          .from("direct_messages")
-          .update({ is_read: true })
-          .eq("receiver_id", user.id)
-          .eq("is_read", false);
+      if (fetchError) {
+        console.error("Error fetching messages to update:", fetchError.message);
+        return;
+      }
 
-        if (error) {
-          console.error("Error marking messages as read:", error.message);
+      const messageIdsToUpdate = messagesToUpdate
+        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
+        .map((msg) => msg.id);
+
+      if (messageIdsToUpdate.length > 0) {
+        for (const messageId of messageIdsToUpdate) {
+          const { error: updateError } = await supabase
+            .from("direct_messages")
+            .update({
+              read_by: [
+                ...(messagesToUpdate.find((msg) => msg.id === messageId)
+                  ?.read_by || []),
+                user.id,
+              ],
+            })
+            .eq("id", messageId);
+
+          if (updateError) {
+            console.error(
+              "Error updating messages as read:",
+              updateError.message
+            );
+          }
         }
       }
+
+      // Reset the unread count using the context
+      resetUnreadCounts();
 
       // Navigate to the chat page
       router.push("/TGR/crew/chat");
@@ -241,11 +242,12 @@ const HeaderGunsmith = React.memo(() => {
                     variant="linkHover2"
                     size="icon"
                     className="mr-2 relative"
+                    onClick={handleChatClick}
                   >
                     <PersonIcon />
-                    {unreadMessages > 0 && (
+                    {totalUnreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
-                        {unreadMessages}
+                        {totalUnreadCount}
                       </span>
                     )}
                   </Button>
@@ -277,9 +279,9 @@ const HeaderGunsmith = React.memo(() => {
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
                     <span>Messages</span>
-                    {unreadMessages > 0 && (
+                    {totalUnreadCount > 0 && (
                       <span className="ml-auto text-red-500 font-bold">
-                        {unreadMessages}
+                        {totalUnreadCount}
                       </span>
                     )}
                   </DropdownMenuItem>

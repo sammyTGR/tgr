@@ -1116,6 +1116,7 @@ function ChatContent() {
       });
 
       setSelectedChat(`group_${newGroupChat.id}`);
+      setMessages([]);
 
       const { data: initialMessages, error: messagesError } = await supabase
         .from("group_chat_messages")
@@ -1129,7 +1130,27 @@ function ChatContent() {
           messagesError.message
         );
       } else {
-        setMessagesWithoutDuplicates(initialMessages || []);
+        setMessages(initialMessages || []);
+      }
+      // Send initial message
+      const initialMessage = "Group chat created";
+      const { data: sentMessage, error: sendError } = await supabase
+        .from("group_chat_messages")
+        .insert([
+          {
+            group_chat_id: newGroupChat.id,
+            sender_id: user.id,
+            message: initialMessage,
+            created_at: new Date().toISOString(),
+            read_by: [user.id],
+          },
+        ])
+        .select();
+
+      if (sendError) {
+        console.error("Error sending initial message:", sendError.message);
+      } else if (sentMessage) {
+        setMessages((prev) => [...prev, sentMessage[0]]);
       }
       scrollToBottom();
     }

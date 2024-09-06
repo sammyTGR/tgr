@@ -44,6 +44,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
+import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 export interface ChatMessage {
   id: string;
@@ -288,6 +289,8 @@ const HeaderAdmin = React.memo(() => {
   const [isChatActive, setIsChatActive] = useState(false);
   const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
   const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
+  const { resetUnreadCounts } = useUnreadCounts();
+  const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
 
   const fetchUserAndEmployee = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -414,6 +417,25 @@ const HeaderAdmin = React.memo(() => {
     }
   }, [user, fetchUnreadCounts, isChatActive]);
 
+  useEffect(() => {
+    setTotalUnreadCount(globalUnreadCount);
+  }, [globalUnreadCount]);
+
+  useEffect(() => {
+    const handleUnreadCountsChanged = () => {
+      setTotalUnreadCount(globalUnreadCount);
+    };
+
+    window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
+
+    return () => {
+      window.removeEventListener(
+        "unreadCountsChanged",
+        handleUnreadCountsChanged
+      );
+    };
+  }, [globalUnreadCount]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -459,8 +481,8 @@ const HeaderAdmin = React.memo(() => {
         }
       }
 
-      // Reset the unread count
-      setTotalUnreadCount(0);
+      // Reset the unread count using the context
+      resetUnreadCounts();
 
       // Navigate to the chat page
       router.push("/TGR/crew/chat");
