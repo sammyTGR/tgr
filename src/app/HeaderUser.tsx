@@ -230,7 +230,7 @@ const HeaderUser = React.memo(() => {
               </DropdownMenu>
             </>
           ) : (
-            <Link href="/TGR/crew/login">
+            <Link href="/sign-in">
               <Button variant="linkHover2">Sign In</Button>
             </Link>
           )}

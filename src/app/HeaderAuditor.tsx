@@ -27,6 +27,25 @@ import useUnreadMessages from "@/pages/api/fetch-unread";
 import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
 import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
 import { useRouter } from "next/navigation"; // Import useRouter
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+import {
+  PersonIcon,
+  ShadowIcon,
+  SunIcon,
+  MoonIcon,
+} from "@radix-ui/react-icons";
+import { useTheme } from "next-themes";
 
 const auditComponents = [
   {
@@ -158,6 +177,7 @@ const profileComps = [
 const HeaderAuditor = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const router = useRouter(); // Instantiate useRouter
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -291,7 +311,7 @@ const HeaderAuditor = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem> */}
-            <NavigationMenuItem>
+            {/* <NavigationMenuItem>
               <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -306,7 +326,7 @@ const HeaderAuditor = React.memo(() => {
                   ))}
                 </ul>
               </NavigationMenuContent>
-            </NavigationMenuItem>
+            </NavigationMenuItem> */}
             <NavigationMenuItem>
               <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -342,50 +362,75 @@ const HeaderAuditor = React.memo(() => {
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex items-center mr-1">
-          {user ? (
-            <>
-              <Button
-                variant="linkHover2"
-                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-                size="sm"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <Link href="/TGR/crew/login">
-              <Button variant="linkHover2">Sign In</Button>
-            </Link>
-          )}
-          <Button variant="linkHover2" size="icon" onClick={handleChatClick}>
-            <ChatBubbleIcon />
-            {unreadCount > 0 && (
-              <DotFilledIcon className="w-4 h-4 text-red-600" />
-            )}
-          </Button>
-          {/* {unreadOrderCount > 0 && (
-            <Link href="/sales/orderreview">
-              <Button variant="linkHover1" size="icon">
-                <FileTextIcon />
-                <span className="badge">{unreadOrderCount}</span>
-              </Button>
-            </Link>
-          )} */}
-          {unreadTimeOffCount > 0 && (
-            <Link href="/admin/timeoffreview">
-              <Button variant="linkHover1" size="icon">
-                <CalendarIcon />
-                <span className="badge">{unreadTimeOffCount}</span>
-              </Button>
-            </Link>
-          )}
           <Link href="/">
             <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>
           </Link>
-          <ModeToggle />
+          {user ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="linkHover2"
+                    size="icon"
+                    className="mr-2 relative"
+                  >
+                    <PersonIcon />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 mr-2">
+                  <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <ShadowIcon className="mr-2 h-4 w-4" />
+                      <span>Change Theme</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          <SunIcon className="mr-2 h-4 w-4" />
+                          <span>Light</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          <MoonIcon className="mr-2 h-4 w-4" />
+                          <span>Dark</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleChatClick}>
+                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                    <span>Messages</span>
+                    {unreadCount > 0 && (
+                      <span className="ml-auto text-red-500 font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <Link href="/sign-in">
+              <Button>Sign In</Button>
+            </Link>
+          )}
         </div>
       </header>
     </RoleBasedWrapper>

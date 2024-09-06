@@ -438,103 +438,101 @@ export default function GunsmithingMaintenance() {
 
   return (
     <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
-      <div className="h-screen flex flex-col">
-        <Toaster position="top-right" />
-        <Tabs defaultValue="maintenance" className="w-full">
-          <TabsList className="ml-4">
-            <TabsTrigger value="maintenance">Weekly Maintenance</TabsTrigger>
-            <TabsTrigger value="repairs">Firearms Repairs</TabsTrigger>
-          </TabsList>
-          <ScrollArea className="flex-1 overflow-auto">
-            <main
-              className={classNames(
-                "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
-                styles.noScroll
-              )}
-            >
-              <TabsContent value="maintenance" className="h-full">
-                <Card className="m-4 h-full">
-                  <CardHeader>
-                    <CardTitle className="text-2xl font-bold">
-                      <TextGenerateEffect words={words} />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex flex-col space-y-4 p-4">
-                    <div className="flex items-center justify-between space-y-2">
-                      {["admin", "super admin"].includes(userRole || "") && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsDialogOpen(true)}
-                        >
-                          Add Firearm
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        onClick={regenerateFirearmsList}
-                      >
-                        Regenerate Firearms List
-                      </Button>
-                    </div>
-                    <div className="flex-1 flex flex-col space-y-4 overflow-y-auto">
-                      <div className="rounded-md border flex-1 flex flex-col">
-                        <div className="relative w-full h-full overflow-y-auto">
+      <Toaster position="top-right" />
+      <div className="flex flex-col h-screen my-8">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Tabs defaultValue="maintenance" className="flex-1 flex flex-col">
+            <div className="container mx-auto px-4 py-4">
+              <TabsList>
+                <TabsTrigger value="maintenance">
+                  Weekly Maintenance
+                </TabsTrigger>
+                <TabsTrigger value="repairs">Firearms Repairs</TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <ScrollArea className="h-full">
+                <div className="container mx-auto px-4 py-4">
+                  <TabsContent value="maintenance" className="mt-0">
+                    <Card className="h-full">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          <TextGenerateEffect words={words} />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="flex items-center justify-between p-4">
+                          {["admin", "super admin"].includes(
+                            userRole || ""
+                          ) && (
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsDialogOpen(true)}
+                            >
+                              Add Firearm
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            onClick={regenerateFirearmsList}
+                          >
+                            Regenerate Firearms List
+                          </Button>
+                        </div>
+                        <div className="border rounded-md">
                           {loading ? (
-                            <p></p>
+                            <p>Loading...</p>
                           ) : (
                             userRole &&
                             userUuid && (
-                              <>
-                                <DataTable
-                                  columns={columns}
-                                  data={data}
-                                  userRole={userRole}
-                                  userUuid={userUuid}
-                                  onStatusChange={handleStatusChange}
-                                  onNotesChange={handleNotesChange}
-                                  onUpdateFrequency={handleUpdateFrequency}
-                                  onDeleteFirearm={handleDeleteFirearm}
-                                  pageIndex={pageIndex}
-                                  setPageIndex={setPageIndex}
-                                />
-                              </>
+                              <DataTable
+                                columns={columns}
+                                data={data}
+                                userRole={userRole}
+                                userUuid={userUuid}
+                                onStatusChange={handleStatusChange}
+                                onNotesChange={handleNotesChange}
+                                onUpdateFrequency={handleUpdateFrequency}
+                                onDeleteFirearm={handleDeleteFirearm}
+                                pageIndex={pageIndex}
+                                setPageIndex={setPageIndex}
+                              />
                             )
                           )}
                         </div>
-                      </div>
-                      <div className="flex justify-start p-2">
-                        <Button
-                          variant="ringHover"
-                          onClick={handleSubmit}
-                          className="max-w-lg p-2"
-                        >
-                          Submit Maintenance List
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                        <div className="flex justify-start p-4">
+                          <Button
+                            variant="ringHover"
+                            onClick={handleSubmit}
+                            className="max-w-lg"
+                          >
+                            Submit Maintenance List
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-              <TabsContent value="repairs">
-                <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-2xl font-bold">
-                        <TextGenerateEffect words="Repairs" />
-                      </CardTitle>
-                      {/* <CalendarIcon className="h-4 w-4 text-muted-foreground" /> */}
-                    </CardHeader>
-                    <CardContent>
-                      <AllFirearmsList userRole={userRole} />
-                    </CardContent>
-                  </Card>
+                  <TabsContent value="repairs" className="mt-0">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-2xl font-bold">
+                            <TextGenerateEffect words="Repairs" />
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <AllFirearmsList userRole={userRole} />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
                 </div>
-              </TabsContent>
-            </main>
-            <ScrollBar orientation="vertical" />
-          </ScrollArea>
-        </Tabs>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
+            </div>
+          </Tabs>
+        </div>
       </div>
     </RoleBasedWrapper>
   );

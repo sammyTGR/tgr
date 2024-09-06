@@ -17,6 +17,26 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+import {
+  PersonIcon,
+  ShadowIcon,
+  SunIcon,
+  MoonIcon,
+} from "@radix-ui/react-icons";
 
 const schedComponents = [
   {
@@ -61,6 +81,8 @@ const HeaderGunsmith = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(false);
+  const { setTheme } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -120,6 +142,29 @@ const HeaderGunsmith = React.memo(() => {
     await supabase.auth.signOut();
     setUser(null);
     window.location.href = "/"; // Redirect to sign-in page after sign-out
+  };
+
+  const handleChatClick = async () => {
+    if (user) {
+      // Reset unread messages count in the state
+      setUnreadMessages(0);
+
+      // Update the database to mark messages as read
+      if (user) {
+        const { data, error } = await supabase
+          .from("direct_messages")
+          .update({ is_read: true })
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+
+        if (error) {
+          console.error("Error marking messages as read:", error.message);
+        }
+      }
+
+      // Navigate to the chat page
+      router.push("/TGR/crew/chat");
+    }
   };
 
   return (
@@ -183,59 +228,75 @@ const HeaderGunsmith = React.memo(() => {
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex items-center mr-1">
-          {user ? (
-            <>
-              <Button
-                variant="outline"
-                className="bg-red-500 text-white dark:bg-red-500 dark:text-white"
-                size="sm"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-              <Link href="/TGR/crew/chat">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={async () => {
-                    // Reset unread messages count in the state
-                    setUnreadMessages(0);
-
-                    // Update the database to mark messages as read
-                    if (user) {
-                      const { data, error } = await supabase
-                        .from("direct_messages")
-                        .update({ is_read: true })
-                        .eq("receiver_id", user.id)
-                        .eq("is_read", false);
-
-                      if (error) {
-                        console.error(
-                          "Error marking messages as read:",
-                          error.message
-                        );
-                      }
-                    }
-                  }}
-                >
-                  <ChatBubbleIcon className="w-6 h-6" />
-                  {unreadMessages > 0 && (
-                    <span className="text-red-600 ml-1">{unreadMessages}</span>
-                  )}
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <Link href="/TGR/crew/login">
-              <Button>Sign In</Button>
-            </Link>
-          )}
           <Link href="/">
             <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>
           </Link>
-          <ModeToggle />
+          {user ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="linkHover2"
+                    size="icon"
+                    className="mr-2 relative"
+                  >
+                    <PersonIcon />
+                    {unreadMessages > 0 && (
+                      <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
+                        {unreadMessages}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 mr-2">
+                  <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <ShadowIcon className="mr-2 h-4 w-4" />
+                      <span>Change Theme</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          <SunIcon className="mr-2 h-4 w-4" />
+                          <span>Light</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          <MoonIcon className="mr-2 h-4 w-4" />
+                          <span>Dark</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleChatClick}>
+                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                    <span>Messages</span>
+                    {unreadMessages > 0 && (
+                      <span className="ml-auto text-red-500 font-bold">
+                        {unreadMessages}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <Link href="/sign-in">
+              <Button>Sign In</Button>
+            </Link>
+          )}
         </div>
       </header>
     </RoleBasedWrapper>
