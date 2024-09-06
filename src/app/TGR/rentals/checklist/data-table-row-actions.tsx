@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VerificationForm } from "./verification-form";
+import EditFirearmForm from "./EditFirearmForm";
 
 interface DataTableRowActionsProps {
   row: Row<FirearmsMaintenanceData>;
@@ -33,6 +34,12 @@ interface DataTableRowActionsProps {
   onNotesChange: (id: number, notes: string) => void;
   onVerificationComplete: () => void;
   onDeleteFirearm: (id: number) => void; // Add this prop
+  onEditFirearm: (updatedFirearm: {
+    id: number;
+    firearm_type: string;
+    firearm_name: string;
+    maintenance_frequency: number;
+  }) => void;
 }
 
 export function DataTableRowActions({
@@ -42,10 +49,12 @@ export function DataTableRowActions({
   onNotesChange,
   onVerificationComplete,
   onDeleteFirearm, // Add this prop
+  onEditFirearm, // Add this prop
 }: DataTableRowActionsProps) {
   const task = row.original;
   const [openVerification, setOpenVerification] = useState(false);
   const [data, setData] = useState<FirearmsMaintenanceData[]>([]);
+  const [openEditFirearm, setOpenEditFirearm] = useState(false);
 
   const handleSetGunsmithStatus = async (status: string) => {
     try {
@@ -79,6 +88,16 @@ export function DataTableRowActions({
         console.error("An unknown error occurred.");
       }
     }
+  };
+
+  const handleEditFirearm = (updatedFirearm: {
+    id: number;
+    firearm_type: string;
+    firearm_name: string;
+    maintenance_frequency: number;
+  }) => {
+    onEditFirearm(updatedFirearm); // Call the parent handler
+    setOpenEditFirearm(false);
   };
 
   const handleRentalReturned = async (firearmId: number) => {
@@ -252,9 +271,15 @@ export function DataTableRowActions({
           </DropdownMenuSub>
           <DropdownMenuSeparator />
           {["admin", "super admin"].includes(userRole) && (
-            <DropdownMenuItem onSelect={handleDeleteFirearm}>
-              Delete Firearm
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onSelect={() => setOpenEditFirearm(true)}>
+                Edit Firearm
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleDeleteFirearm}>
+                Delete Firearm
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -282,6 +307,21 @@ export function DataTableRowActions({
               <Button variant="linkHover2">Cancel</Button>
             </DialogClose>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openEditFirearm} onOpenChange={setOpenEditFirearm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Firearm</DialogTitle>
+            <DialogDescription>
+              Please edit the firearm details.
+            </DialogDescription>
+          </DialogHeader>
+          <EditFirearmForm
+            firearm={row.original}
+            onEdit={handleEditFirearm}
+            onCancel={() => setOpenEditFirearm(false)}
+          />
         </DialogContent>
       </Dialog>
     </>

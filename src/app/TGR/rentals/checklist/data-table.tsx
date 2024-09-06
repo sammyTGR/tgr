@@ -20,7 +20,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { FirearmsMaintenanceData, columns } from "./columns";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { Input } from "@/components/ui/input";
@@ -34,6 +39,12 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
   onNotesChange: (id: number, notes: string) => void;
   onVerificationComplete: () => Promise<void>;
   onDeleteFirearm: (id: number) => void;
+  onEditFirearm: (updatedFirearm: {
+    id: number;
+    firearm_type: string;
+    firearm_name: string;
+    maintenance_frequency: number;
+  }) => void;
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -44,62 +55,67 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   onNotesChange,
   onVerificationComplete,
   onDeleteFirearm,
+  onEditFirearm,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
-const table = useReactTable({
-  data,
-  columns,
-  state: {
-    sorting,
-    columnFilters,
-    columnVisibility,
-  },
-  onSortingChange: setSorting,
-  onColumnFiltersChange: setColumnFilters,
-  onColumnVisibilityChange: setColumnVisibility,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-  filterFns: {
-    // Custom filter function for handling multiple selected values
-    includes: (row, columnId, filterValue) => {
-      const cellValue = row.getValue(columnId) as string;  // Cast to string
-      return filterValue.some((val: string) => cellValue.includes(val));
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
     },
-  },
-});
-
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    filterFns: {
+      // Custom filter function for handling multiple selected values
+      includes: (row, columnId, filterValue) => {
+        const cellValue = row.getValue(columnId) as string; // Cast to string
+        return filterValue.some((val: string) => cellValue.includes(val));
+      },
+    },
+  });
 
   const handleSelect = (selectedValues: string[]) => {
-    table.getColumn('notes')?.setFilterValue(selectedValues);
+    table.getColumn("notes")?.setFilterValue(selectedValues);
   };
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="flex flex-row items-center gap-2">
-      <Input
-          placeholder="Filter By Firearm Name..."
-          value={table.getColumn("firearm_name")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("firearm_name")?.setFilterValue(event.target.value)
-          }
-          className="min-w-full"
-        />
-        <DataTableFacetedFilter
-          columnId="notes"
-          title="Filter By Notes"
-          options={[
-            { label: "With Gunsmith", value: "With Gunsmith" },
-            { label: "Currently Rented Out", value: "Currently Rented Out" },
-          ]}
-          onSelect={(selectedValues) =>
-            table.getColumn("notes")?.setFilterValue(selectedValues.join(","))
-          }
-        />
+          <Input
+            placeholder="Filter By Firearm Name..."
+            value={table.getColumn("firearm_name")?.getFilterValue() as string}
+            onChange={(event) =>
+              table
+                .getColumn("firearm_name")
+                ?.setFilterValue(event.target.value)
+            }
+            className="min-w-full"
+          />
+          <DataTableFacetedFilter
+            columnId="notes"
+            title="Filter By Notes"
+            options={[
+              { label: "With Gunsmith", value: "With Gunsmith" },
+              { label: "Currently Rented Out", value: "Currently Rented Out" },
+            ]}
+            onSelect={(selectedValues) =>
+              table.getColumn("notes")?.setFilterValue(selectedValues.join(","))
+            }
+          />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -159,7 +175,11 @@ const table = useReactTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className={row.original.highlight ? `text-${row.original.highlight}` : ""}
+                  className={
+                    row.original.highlight
+                      ? `text-${row.original.highlight}`
+                      : ""
+                  }
                 >
                   {row.getVisibleCells().map((cell) => {
                     const metaStyle = (
@@ -177,15 +197,16 @@ const table = useReactTable({
                     );
                   })}
                   <TableCell>
-                      <DataTableRowActions
-                        row={row}
-                        userRole={userRole}
-                        userUuid={userUuid}
-                        onNotesChange={onNotesChange}
-                        onVerificationComplete={onVerificationComplete}
-                        onDeleteFirearm={onDeleteFirearm}
-                      />
-                    </TableCell>
+                    <DataTableRowActions
+                      row={row}
+                      userRole={userRole}
+                      userUuid={userUuid}
+                      onNotesChange={onNotesChange}
+                      onVerificationComplete={onVerificationComplete}
+                      onDeleteFirearm={onDeleteFirearm}
+                      onEditFirearm={onEditFirearm}
+                    />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (

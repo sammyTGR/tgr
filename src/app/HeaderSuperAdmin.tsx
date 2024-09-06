@@ -466,10 +466,12 @@ const HeaderSuperAdmin = React.memo(() => {
         groupFetchError.message
       );
     } else if (groupData) {
+      // Update each unread group message
       for (const message of groupData) {
+        const updatedReadBy = [...(message.read_by || []), user.id];
         const { error: groupUpdateError } = await supabase
           .from("group_chat_messages")
-          .update({ read_by: [...(message.read_by || []), user.id] })
+          .update({ read_by: updatedReadBy })
           .eq("id", message.id);
 
         if (groupUpdateError) {
@@ -487,7 +489,6 @@ const HeaderSuperAdmin = React.memo(() => {
 
   const handleChatClick = async () => {
     if (user) {
-      await resetUnreadCounts();
       // Mark all messages as read in the database
       const { data: messagesToUpdate, error: fetchError } = await supabase
         .from("direct_messages")

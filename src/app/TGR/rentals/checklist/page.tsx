@@ -474,6 +474,40 @@ export default function FirearmsChecklist() {
     }
   };
 
+  const handleEditFirearm = async (updatedFirearm: {
+    id: number;
+    firearm_type: string;
+    firearm_name: string;
+    maintenance_frequency: number;
+  }) => {
+    try {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({
+          firearm_type: updatedFirearm.firearm_type,
+          firearm_name: updatedFirearm.firearm_name,
+          maintenance_frequency: updatedFirearm.maintenance_frequency,
+        })
+        .eq("id", updatedFirearm.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the local state
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === updatedFirearm.id ? { ...item, ...updatedFirearm } : item
+        )
+      );
+
+      toast.success("Firearm updated successfully.");
+    } catch (error) {
+      console.error("Error updating firearm:", error);
+      toast.error("Failed to update firearm.");
+    }
+  };
+
   return (
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin"]}
@@ -559,6 +593,7 @@ export default function FirearmsChecklist() {
                         onNotesChange={handleNotesChange}
                         onVerificationComplete={fetchData}
                         onDeleteFirearm={handleDeleteFirearm}
+                        onEditFirearm={handleEditFirearm}
                       />
                     </>
                   )
