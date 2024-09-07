@@ -45,6 +45,7 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
     firearm_name: string;
     maintenance_frequency: number;
   }) => void;
+  onRequestInspection: (id: number, notes: string) => void;
 }
 
 export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
@@ -56,6 +57,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   onVerificationComplete,
   onDeleteFirearm,
   onEditFirearm,
+  onRequestInspection,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -205,6 +207,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
                       onVerificationComplete={onVerificationComplete}
                       onDeleteFirearm={onDeleteFirearm}
                       onEditFirearm={onEditFirearm}
+                      onRequestInspection={onRequestInspection}
                     />
                   </TableCell>
                 </TableRow>

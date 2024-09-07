@@ -6,6 +6,7 @@ import TimeOffDenied from './../../../emails/TimeOffDenied';
 import CalledOut from './../../../emails/CalledOut';
 import LeftEarly from './../../../emails/LeftEarly';
 import CustomStatus from './../../../emails/CustomStatus'; // Import the new CustomStatus template
+import GunsmithInspection from '../../../emails/GunsmithInspection';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,10 +22,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     const { email, subject, templateName, templateData } = req.body;
 
-    console.log('Received data:', { email, subject, templateName, templateData });
+    // console.log('Received data:', { email, subject, templateName, templateData });
 
     if (!email || !subject || !templateName) {
-      console.log('Missing fields:', { email, subject, templateName });
+      // console.log('Missing fields:', { email, subject, templateName });
       res.status(400).json({ error: 'Missing required fields', details: req.body });
       return;
     }
@@ -51,18 +52,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             status: templateData.status || templateData.customMessage // Use status or customMessage, whichever is provided
           });
           break;
+          case 'GunsmithInspection':
+          emailTemplate = GunsmithInspection({
+            firearmId: templateData.firearmId,
+            firearmName: templateData.firearmName,
+            requestedBy: templateData.requestedBy,
+            notes: templateData.notes
+          });
+          break;
         default:
           throw new Error('Invalid template name');
       }
 
       const resendRes = await resend.emails.send({
         from: `TGR <scheduling@${process.env.RESEND_DOMAIN}>`,
-        to: [email],
+        to: Array.isArray(email) ? email : [email], // Allow multiple recipients
         subject: subject,
         react: emailTemplate,
       });
 
-      console.log('Resend response:', resendRes);
+      // console.log('Resend response:', resendRes);
 
       if (resendRes.error) {
         throw new Error(resendRes.error.message);

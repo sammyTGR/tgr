@@ -74,6 +74,76 @@ export default function FirearmsChecklist() {
     fetchUserRoleAndUuid();
   }, [fetchUserRoleAndUuid]);
 
+  const handleRequestInspection = async (id: number, notes: string) => {
+    try {
+      // Update the firearm's notes in the database
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({
+          rental_notes: "Inspection Requested",
+          verified_status: "Inspection Requested",
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Update local state
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                notes: "Inspection Requested",
+                verified_status: "Inspection Requested",
+              }
+            : item
+        )
+      );
+
+      // Fetch gunsmith and admin emails
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("contact_info, role")
+        .in("role", ["gunsmith", "admin", "super admin"]);
+
+      if (employeesError) throw employeesError;
+
+      const recipientEmails = employees.map((emp) => emp.contact_info);
+
+      // Get the firearm name
+      const firearm = data.find((item) => item.id === id);
+      const firearmName = firearm ? firearm.firearm_name : "Unknown Firearm";
+
+      // Send email using the API
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: recipientEmails,
+          subject: "Firearm Inspection Requested",
+          templateName: "GunsmithInspection",
+          templateData: {
+            firearmId: id,
+            firearmName: firearmName,
+            requestedBy: userName || "Unknown User",
+            notes: notes,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      toast.success("Inspection request submitted successfully.");
+    } catch (error) {
+      console.error("Error requesting inspection:", error);
+      toast.error("Failed to submit inspection request.");
+    }
+  };
+
   const fetchFirearmsMaintenanceData = useCallback(async () => {
     const today = new Date().toISOString().split("T")[0];
 
@@ -341,7 +411,10 @@ export default function FirearmsChecklist() {
 
       // Step 2: Check if all firearms are verified or with the gunsmith
       const allFirearmsHandled = data.every(
-        (item) => item.notes === "Verified" || item.notes === "With Gunsmith"
+        (item) =>
+          item.notes === "Verified" ||
+          item.notes === "With Gunsmith" ||
+          item.notes === "Inspection Requested"
       );
 
       if (!allFirearmsHandled) {
@@ -352,11 +425,12 @@ export default function FirearmsChecklist() {
         return;
       }
 
-      // Step 3: Filter firearms where rental_notes is "With Gunsmith" and verified_status is null or empty
+      // Step 3: Filter firearms where rental_notes is "With Gunsmith" or "Inspection Requested" and verified_status is null or empty
       const firearmsToSubmit = data.filter(
         (item) =>
-          (!item.verified_status || item.verified_status.trim() === "") &&
-          item.notes === "With Gunsmith"
+          ((!item.verified_status || item.verified_status.trim() === "") &&
+            item.notes === "With Gunsmith") ||
+          item.notes === "Inspection Requested"
       );
 
       if (firearmsToSubmit.length === 0) {
@@ -594,6 +668,7 @@ export default function FirearmsChecklist() {
                         onVerificationComplete={fetchData}
                         onDeleteFirearm={handleDeleteFirearm}
                         onEditFirearm={handleEditFirearm}
+                        onRequestInspection={handleRequestInspection}
                       />
                     </>
                   )

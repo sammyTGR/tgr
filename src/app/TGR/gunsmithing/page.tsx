@@ -450,8 +450,13 @@ export default function GunsmithingMaintenance() {
                 <TabsTrigger value="repairs">Firearms Repairs</TabsTrigger>
               </TabsList>
             </div>
-            <div className="flex-1 overflow-auto">
-              <ScrollArea className="h-full">
+            <div
+              className={classNames(
+                "grid flex-1 items-start mx-auto my-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body",
+                styles.noScroll
+              )}
+            >
+              <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="container mx-auto px-4 py-4">
                   <TabsContent value="maintenance" className="mt-0">
                     <Card className="h-full">
@@ -500,15 +505,6 @@ export default function GunsmithingMaintenance() {
                             )
                           )}
                         </div>
-                        <div className="flex justify-start p-4">
-                          <Button
-                            variant="ringHover"
-                            onClick={handleSubmit}
-                            className="max-w-lg"
-                          >
-                            Submit Maintenance List
-                          </Button>
-                        </div>
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -529,7 +525,17 @@ export default function GunsmithingMaintenance() {
                   </TabsContent>
                 </div>
                 <ScrollBar orientation="vertical" />
+                <ScrollBar orientation="horizontal" />
               </ScrollArea>
+              <div className="flex justify-start p-2">
+                <Button
+                  variant="ringHover"
+                  onClick={handleSubmit}
+                  className="max-w-lg"
+                >
+                  Submit Maintenance List
+                </Button>
+              </div>
             </div>
           </Tabs>
         </div>

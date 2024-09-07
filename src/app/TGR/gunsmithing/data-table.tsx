@@ -208,9 +208,9 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
           </Table>
         </div>
       </div>
-      <div className="flex-none mt-4">
+      {/* <div className="flex-none mt-4">
         <DataTablePagination table={table} setPageIndex={setPageIndex} />
-      </div>
+      </div> */}
     </div>
   );
 }
