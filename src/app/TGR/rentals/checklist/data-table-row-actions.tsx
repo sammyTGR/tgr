@@ -354,10 +354,15 @@ export function DataTableRowActions({
             onChange={(e) => setInspectionNotes(e.target.value)}
           />
           <DialogFooter>
-            <Button onClick={() => setOpenInspectionRequest(false)}>
+            <Button
+              variant="linkHover2"
+              onClick={() => setOpenInspectionRequest(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleRequestInspection}>Submit Request</Button>
+            <Button variant="outline" onClick={handleRequestInspection}>
+              Submit Request
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
