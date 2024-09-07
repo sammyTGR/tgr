@@ -249,14 +249,14 @@ const SalesPage = () => {
 
   const handleRangeChange = async (date: Date | undefined) => {
     if (date) {
+      const formattedDate = format(date, "yyyy-MM-dd");
+      console.log("Selected date:", formattedDate);
       setSelectedRange({ start: date, end: date });
 
       // Fetch new data and update totals
       try {
-        const data = await fetchData(
-          date.toISOString().split("T")[0],
-          date.toISOString().split("T")[0]
-        );
+        const data = await fetchData(formattedDate, formattedDate);
+
         const { totalGross, totalNet, totalNetMinusExclusions } =
           processData(data);
 
@@ -449,7 +449,18 @@ const SalesPage = () => {
               <Suspense fallback={<div>Loading...</div>}>
                 <CardContent className="flex flex-col border p-2">
                   <div className="flex max-w-8xl w-full justify-start mb-4  md:px-6">
-                    <SalesDataTable />
+                    <SalesDataTable
+                      startDate={
+                        selectedRange.start
+                          ? format(selectedRange.start, "yyyy-MM-dd")
+                          : undefined
+                      }
+                      endDate={
+                        selectedRange.end
+                          ? format(selectedRange.end, "yyyy-MM-dd")
+                          : undefined
+                      }
+                    />
                   </div>
                 </CardContent>
               </Suspense>

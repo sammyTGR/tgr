@@ -16,20 +16,28 @@ const fetchSalesDataByRange = async (req: NextApiRequest, res: NextApiResponse) 
   try {
     const { start, end } = req.query;
 
-    // console.log(`Fetching sales data from ${start} to ${end}`);
-
-    const { data, error } = await supabase
-      .from('sales_data')
-      .select('Lanid, category_label, SoldPrice, SoldQty, Cost, Date, total_gross, total_net')
-      .gte('Date', start)
-      .lte('Date', end);
-
-    if (error) {
-      console.error("Error fetching data from Supabase:", error);
-      throw error;
+    console.log(`Fetching sales data from ${start} to ${end}`);
+    if (typeof start !== 'string' || typeof end !== 'string') {
+      throw new Error('Invalid date parameters');
     }
 
-    // console.log("Fetched data:", data);
+    let query = supabase
+    .from('sales_data')
+    .select('*');
+
+  if (start) {
+    query = query.gte('Date', start);
+  }
+  if (end) {
+    query = query.lte('Date', end);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Error fetching data from Supabase:", error);
+    throw error;
+  }
 
     res.status(200).json(data);
   } catch (error) {

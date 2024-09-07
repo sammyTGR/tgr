@@ -124,16 +124,17 @@ export const salesColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Date" />
     ),
-    cell: ({ row }) => format(new Date(row.original.Date), "MM-dd-yyyy"), // Format the date here
+    cell: ({ row }) => {
+      const date = new Date(row.original.Date);
+      return format(date, "MM/dd/yyyy");
+    },
     meta: {
       style: { width: "120px" },
     },
     sortingFn: "datetime",
     filterFn: (row, columnId, filterValue) => {
-      const formattedDate = format(
-        new Date(row.getValue(columnId)),
-        "yyyy-MM-dd"
-      );
+      const date = new Date(row.getValue(columnId));
+      const formattedDate = format(date, "yyyy-MM-dd");
       return formattedDate.includes(filterValue);
     },
   },
