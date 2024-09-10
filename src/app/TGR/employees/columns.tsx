@@ -23,6 +23,12 @@ export const columns: ColumnDef<Employee>[] = [
     ),
   },
   {
+    accessorKey: "last_name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Last Name" />
+    ),
+  },
+  {
     accessorKey: "department",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Department" />

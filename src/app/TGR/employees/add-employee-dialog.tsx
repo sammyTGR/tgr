@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,13 @@ interface ScheduleEntry {
   end_time: string;
 }
 
+interface ReferenceOption {
+  id: number;
+  field_name: string;
+  option_value: string;
+  display_order: number;
+}
+
 const initialSchedule: ScheduleEntry[] = [
   { day: "Sunday", start_time: "", end_time: "" },
   { day: "Monday", start_time: "", end_time: "" },
@@ -48,19 +55,54 @@ export default function AddEmployeeDialog({
   const [newEmployee, setNewEmployee] = useState<Omit<Employee, "employee_id">>(
     {
       name: "",
+      last_name: "",
       department: "",
       role: "",
       contact_info: "",
+      phone_number: "",
+      street_address: "",
+      city: "",
+      state: "",
+      zip: "",
       lanid: "",
       pay_type: "",
       rank: null,
       pay_rate: null,
       hire_date: "", // Add this line
+      promotion_date: "",
       birthday: "", // Add this line
     }
   );
 
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(initialSchedule);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [referenceOptions, setReferenceOptions] = useState<ReferenceOption[]>(
+    []
+  );
+
+  useEffect(() => {
+    fetchReferenceOptions();
+  }, []);
+
+  const fetchReferenceOptions = async () => {
+    const { data, error } = await supabase
+      .from("onboarding_references")
+      .select("*")
+      .order("display_order");
+
+    if (error) {
+      console.error("Error fetching reference options:", error);
+    } else {
+      setReferenceOptions(data || []);
+    }
+  };
+
+  const getOptionsForField = (fieldName: string) => {
+    return referenceOptions
+      .filter((option) => option.field_name === fieldName)
+      .sort((a, b) => a.display_order - b.display_order);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -92,26 +134,85 @@ export default function AddEmployeeDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      // console.log("New employee data:", newEmployee);
+    // Validate required fields
+    const requiredFields = [
+      "name",
+      "last_name",
+      "department",
+      "role",
+      "phone_number",
+      "hire_date",
+      "birthday",
+    ];
+    const missingFields = requiredFields.filter(
+      (field) => !newEmployee[field as keyof typeof newEmployee]
+    );
+    if (missingFields.length > 0) {
+      alert(
+        `Please fill in the following required fields: ${missingFields.join(
+          ", "
+        )}`
+      );
+      return;
+    }
 
+    // Format date fields and prepare employee data
+    const formattedEmployee = {
+      name: newEmployee.name,
+      last_name: newEmployee.last_name,
+      department: newEmployee.department || null,
+      role: newEmployee.role,
+      contact_info: newEmployee.contact_info,
+      phone_number: newEmployee.phone_number || null,
+      street_address: newEmployee.street_address || null,
+      city: newEmployee.city || null,
+      state: newEmployee.state || null,
+      zip: newEmployee.zip || null,
+      lanid: newEmployee.lanid || null,
+      pay_type: newEmployee.pay_type || null,
+      rank: newEmployee.rank || null,
+      pay_rate: newEmployee.pay_rate || null,
+      hire_date: newEmployee.hire_date
+        ? new Date(newEmployee.hire_date).toISOString().split("T")[0]
+        : null,
+      birthday: newEmployee.birthday
+        ? new Date(newEmployee.birthday).toISOString().split("T")[0]
+        : null,
+      promotion_date: newEmployee.promotion_date
+        ? new Date(newEmployee.promotion_date).toISOString().split("T")[0]
+        : null,
+    };
+
+    console.log("Formatted employee data:", formattedEmployee);
+
+    try {
       // Add the employee
+      console.log("Attempting to insert employee...");
       const { data: insertedEmployee, error: employeeError } = await supabase
         .from("employees")
-        .insert([newEmployee])
+        .insert([formattedEmployee])
         .select();
+
+      console.log("Insert operation result:", {
+        insertedEmployee,
+        employeeError,
+      });
 
       if (employeeError) {
         console.error("Error adding employee:", employeeError);
+        console.log("Error details:", JSON.stringify(employeeError, null, 2));
+        alert(`Error adding employee: ${employeeError.message}`);
         return;
       }
 
       if (!insertedEmployee || insertedEmployee.length === 0) {
         console.error("No employee data returned after insert");
+        alert("Error: No employee data returned after insert");
         return;
       }
 
       const newEmployeeId = insertedEmployee[0].employee_id;
+      console.log("Inserted employee ID:", newEmployeeId);
 
       // Add all schedule entries, including those without times
       const scheduleEntries = schedule.map((entry) => ({
@@ -122,14 +223,22 @@ export default function AddEmployeeDialog({
         end_time: entry.end_time || null,
       }));
 
+      console.log("Attempting to insert schedule entries:", scheduleEntries);
       const { error: scheduleError } = await supabase
         .from("reference_schedules")
         .insert(scheduleEntries);
 
       if (scheduleError) {
         console.error("Error adding schedule:", scheduleError);
+        console.log(
+          "Schedule error details:",
+          JSON.stringify(scheduleError, null, 2)
+        );
+        alert(`Error adding schedule: ${scheduleError.message}`);
         return;
       }
+
+      console.log("Schedule entries added successfully");
 
       // Call onAdd with the newly created employee data
       onAdd(insertedEmployee[0]);
@@ -137,35 +246,46 @@ export default function AddEmployeeDialog({
       // Reset form and close dialog
       setNewEmployee({
         name: "",
+        last_name: "",
         department: "",
         role: "",
         contact_info: "",
+        phone_number: "",
+        street_address: "",
+        city: "",
+        state: "",
+        zip: "",
         lanid: "",
         pay_type: "",
         rank: null,
         pay_rate: null,
         hire_date: "",
+        promotion_date: "",
         birthday: "",
       });
       setSchedule(initialSchedule);
       onClose();
+
+      console.log("Employee added successfully, form reset, and dialog closed");
     } catch (error) {
       console.error("Error in handleSubmit:", error);
+      console.log("Unexpected error details:", JSON.stringify(error, null, 2));
+      alert(`An unexpected error occurred: ${error}`);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-2">
+      <DialogContent className="max-w-4xl p-2 max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-grow overflow-auto">
+          <div className="grid grid-cols-6 gap-4 p-2">
+            <div className="col-span-2">
+              {/* First column */}
+              {/* Added space-y-2 for padding between label and input */}
               <div className="flex flex-col space-y-2">
-                {" "}
-                {/* Added space-y-2 for padding between label and input */}
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
@@ -176,25 +296,107 @@ export default function AddEmployeeDialog({
                 />
               </div>
               <div className="flex flex-col space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="last_name">Last Name</Label>
                 <Input
-                  id="department"
-                  name="department"
-                  value={newEmployee.department}
+                  id="last_name"
+                  name="last_name"
+                  value={newEmployee.last_name}
                   onChange={handleInputChange}
                   required
                 />
               </div>
               <div className="flex flex-col space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="phone_number">Phone Number</Label>
                 <Input
-                  id="role"
-                  name="role"
-                  value={newEmployee.role}
+                  id="phone_number"
+                  name="phone_number"
+                  value={newEmployee.phone_number}
                   onChange={handleInputChange}
                   required
                 />
               </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="street_address">Street Address</Label>
+                <Input
+                  id="street_address"
+                  name="street_address"
+                  value={newEmployee.street_address}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={newEmployee.city}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  value={newEmployee.state}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="zip">Zip</Label>
+                <Input
+                  id="zip"
+                  name="zip"
+                  value={newEmployee.zip}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select
+                  onValueChange={(value) =>
+                    handleSelectChange("department", value)
+                  }
+                  value={newEmployee.department}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getOptionsForField("department").map((option) => (
+                      <SelectItem key={option.id} value={option.option_value}>
+                        {option.option_value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  onValueChange={(value) => handleSelectChange("role", value)}
+                  value={newEmployee.role}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getOptionsForField("role").map((option) => (
+                      <SelectItem key={option.id} value={option.option_value}>
+                        {option.option_value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Second column */}
+            <div className="col-span-2 space-y-4">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="contact_info">Contact Info</Label>
                 <Input
@@ -210,9 +412,8 @@ export default function AddEmployeeDialog({
                 <Input
                   id="lanid"
                   name="lanid"
-                  value={newEmployee.lanid}
+                  value={newEmployee.lanid || ""}
                   onChange={handleInputChange}
-                  required
                 />
               </div>
               <div className="flex flex-col space-y-2">
@@ -254,18 +455,6 @@ export default function AddEmployeeDialog({
                 />
               </div>
               <div className="flex flex-col space-y-2">
-                <Label htmlFor="pay_rate">Pay Rate</Label>
-                <Input
-                  id="pay_rate"
-                  name="pay_rate"
-                  type="number"
-                  step="0.01"
-                  value={newEmployee.pay_rate?.toString() || ""}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="flex flex-col space-y-2">
                 <Label htmlFor="hire_date">Hire Date</Label>
                 <Input
                   id="hire_date"
@@ -287,11 +476,30 @@ export default function AddEmployeeDialog({
                   required
                 />
               </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="promotion_date">Promotion Date</Label>
+                <Input
+                  id="promotion_date"
+                  name="promotion_date"
+                  type="date"
+                  value={newEmployee.promotion_date || ""}
+                  onChange={handleInputChange}
+                />
+              </div>
             </div>
-            <div className="space-y-4">
+          </div>
+
+          <div className="col-span-2 space-y-4">
+            {/* Third column */}
+            <div className="flex flex-col space-y-2">
               <h3 className="font-semibold">Schedule</h3>
+              <div className="grid grid-cols-6 gap-2 mb-2">
+                <div>Day</div>
+                <div>Start Time</div>
+                <div>End Time</div>
+              </div>
               {schedule.map((entry, index) => (
-                <div key={entry.day} className="grid grid-cols-3 gap-2">
+                <div key={entry.day} className="grid grid-cols-6 gap-2">
                   <div>{entry.day}</div>
                   <Input
                     type="time"
