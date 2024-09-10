@@ -4,76 +4,136 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { SupabaseClient } from '@supabase/supabase-js';
+
+type User = {
+  id: string;
+  email: string;
+};
+
+async function getEmployeeDomains() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('employee_domains')
+    .select('domain');
+  
+  if (error) {
+    console.error("Error fetching employee domains:", error.message);
+    return [];
+  }
+  
+  return data.map(row => row.domain.toLowerCase());
+}
+
+async function handleEmployeeUpsert(
+  supabase: SupabaseClient,
+  user: User,
+  firstName: string,
+  lastName: string
+): Promise<void> {
+  const { data: existingEmployee, error: fetchError } = await supabase
+    .from("employees")
+    .select("*")
+    .eq("contact_info", user.email)
+    .single();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error("Error fetching existing employee:", fetchError.message);
+    throw fetchError;
+  }
+
+  const employeeData = {
+    user_uuid: user.id,
+    contact_info: user.email,
+    name: firstName,
+    last_name: lastName,
+    role: "user"
+  };
+
+  const { error: upsertError } = await supabase
+    .from("employees")
+    .upsert(employeeData, { onConflict: 'contact_info' });
+
+  if (upsertError) {
+    console.error("Error upserting employee:", upsertError.message);
+    throw upsertError;
+  }
+
+  console.log(existingEmployee ? "Updated existing employee record" : "Inserted new employee record");
+}
 
 export async function handlePostGoogleSignIn() {
   const supabase = createClient();
 
-  // Get the current authenticated user
-  const { data: { user }, error } = await supabase.auth.getUser();
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (error || !user || !user.email) {
-    console.error("Error fetching authenticated user:", error?.message || "User or email undefined");
-    redirect("/error");
-    return;
-  }
+    if (error) throw error;
+    if (!user || !user.email) throw new Error("User or email undefined");
 
-  const emailDomain = user.email.split("@")[1];
-  const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.email.split('@')[0];
-  const lastName = user.user_metadata?.full_name?.split(' ')[1] || '';
+    console.log("Handling Google sign-in for:", user.email);
 
-  if (emailDomain === "thegunrange.biz") {
-    // Check if the user already exists in the employees table
-    const { data: existingEmployee } = await supabase
-      .from("employees")
-      .select("user_uuid")
-      .eq("user_uuid", user.id)
-      .single();
+    const emailDomain = user.email.split("@")[1].toLowerCase();
+    const fullName = user.user_metadata?.full_name || '';
+    const firstName = fullName.split(' ')[0] || user.email.split('@')[0];
+    const lastName = fullName.split(' ').slice(1).join(' ') || '';
 
-    if (!existingEmployee) {
-      // Insert into the employees table if not exists
-      const { error: insertEmployeeError } = await supabase.from("employees").upsert({
-        user_uuid: user.id,
-        contact_info: user.email,
-        name: firstName,
-        role: "user",  // Automatically assign the role of "user"
-      });
+    console.log("User details:", { firstName, lastName, emailDomain });
 
-      if (insertEmployeeError) {
-        console.error("Error inserting new employee:", insertEmployeeError.message);
-        redirect("/error");
+    const employeeDomains = await getEmployeeDomains();
+    console.log("Employee domains:", employeeDomains);
+
+    if (employeeDomains.includes(emailDomain)) {
+      console.log("Email domain matches employee domain");
+      await handleEmployeeUpsert(supabase, { id: user.id, email: user.email }, firstName, lastName);
+    } else {
+      console.log("Handling as customer");
+      // Handle customer logic
+      const { data: existingCustomer, error: customerFetchError } = await supabase
+        .from("customers")
+        .select("user_uuid")
+        .eq("email", user.email)
+        .single();
+
+      if (customerFetchError && customerFetchError.code !== 'PGRST116') {
+        throw customerFetchError;
+      }
+
+      if (!existingCustomer) {
+        const { error: customerError } = await supabase
+        .from("customers")
+        .upsert({
+          user_uuid: user.id,
+          email: user.email,
+          first_name: firstName,
+          last_name: lastName,
+          role: "customer",
+        });
+
+        if (customerError) throw customerError;
+        console.log("Inserted new customer record for:", user.email);
       } else {
-        console.log("User inserted into employees table:", user.email);
+        // Update existing customer
+        const { error: updateError } = await supabase
+          .from("customers")
+          .update({ user_uuid: user.id })
+          .eq("email", user.email);
+
+        if (updateError) throw updateError;
+        console.log("Updated existing customer record for:", user.email);
       }
     }
 
-  } else {
-    // Check if the user already exists in the customers table
-    const { data: existingCustomer } = await supabase
-      .from("customers")
-      .select("user_uuid")
-      .eq("user_uuid", user.id)
-      .single();
-
-    if (!existingCustomer) {
-      // Insert into the customers table if not exists
-      const { error: insertCustomerError } = await supabase.from("customers").upsert({
-        user_uuid: user.id,
-        email: user.email,
-        first_name: firstName,
-        last_name: lastName,
-        role: "customer",  // Automatically assign the role of "customer"
-      });
-
-      if (insertCustomerError) {
-        console.error("Error inserting new customer:", insertCustomerError.message);
-        redirect("/error");
-      } else {
-        console.log("User inserted into customers table:", user.email);
-      }
+    console.log("Google sign-in handled successfully for:", user.email);
+    return { success: true };
+  } catch (error) {
+    console.error("Error in handlePostGoogleSignIn:", error);
+    if (error instanceof Error) {
+      return { error: error.message };
     }
+    return { error: "An unexpected error occurred" };
   }
 }
-
 
 export async function login(formData: FormData) {
   const supabase = createClient();
@@ -87,13 +147,17 @@ export async function login(formData: FormData) {
     if (error) throw error;
     if (!user) throw new Error("User not found");
 
-    // Check the role in both employees and customers tables
-    const [{ data: employeeData }, { data: customerData }] = await Promise.all([
-      supabase.from("employees").select("role").eq("user_uuid", user.id).single(),
-      supabase.from("customers").select("role").eq("user_uuid", user.id).single()
-    ]);
+    const emailDomain = email.split("@")[1].toLowerCase();
+    const employeeDomains = await getEmployeeDomains();
 
-    const role = employeeData?.role || customerData?.role;
+    let role;
+    if (employeeDomains.includes(emailDomain)) {
+      const { data } = await supabase.from("employees").select("role").eq("contact_info", email).single();
+      role = data?.role;
+    } else {
+      const { data } = await supabase.from("customers").select("role").eq("email", email).single();
+      role = data?.role;
+    }
 
     if (role === "blocked") {
       await supabase.auth.signOut();
@@ -114,81 +178,71 @@ export async function login(formData: FormData) {
 
 export async function signup(data: { firstName: string, lastName: string, email: string, password: string }) {
   const supabase = createClient();
-
   const { firstName, lastName, email, password } = data;
 
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
+  try {
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+        },
       },
-    },
-  });
+    });
 
-  if (signUpError) {
-    console.error(signUpError);
-    return;
-  }
+    if (signUpError) throw signUpError;
 
-  const user = signUpData.user;
+    const user = signUpData.user;
+    if (!user) throw new Error("User not created");
 
-  if (user) {
-    const { error: profileError } = await supabase
-      .from("customers")
-      .upsert({
-        user_uuid: user.id,
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        role: "customer",
-      });
+    // Check if user.email is defined
+    if (!user.email) throw new Error("User email is undefined");
 
-    if (profileError) {
-      console.error(profileError);
-      return;
+    const emailDomain = email.split("@")[1].toLowerCase();
+    const employeeDomains = await getEmployeeDomains();
+
+    if (employeeDomains.includes(emailDomain)) {
+      await handleEmployeeUpsert(supabase, { id: user.id, email: user.email }, firstName, lastName);
+    } else {
+      const { error: customerError } = await supabase
+        .from("customers")
+        .upsert({
+          user_uuid: user.id,
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          role: "customer",
+        }, {
+          onConflict: "user_uuid",
+        });
+
+      if (customerError) throw customerError;
     }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error) {
+    console.error("Signup error:", error);
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+    return { error: "An unexpected error occurred during signup" };
   }
-
-  revalidatePath("/", "layout");
-  redirect("/");
 }
-
 
 export async function signout() {
   const supabase = createClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
-    // console.log(error);
+    console.error("Signout error:", error);
     redirect("/error");
   }
 
   redirect("/logout");
 }
-
-// export async function signInWithGoogle() {
-//   const supabase = createClient();
-//   const { data, error } = await supabase.auth.signInWithOAuth({
-//     provider: "google",
-//     options: {
-//       queryParams: {
-//         access_type: "offline",
-//         prompt: "consent",
-//       },
-//     },
-//   });
-
-//   if (error) {
-//     // console.log(error);
-//     redirect("/error");
-//   }
-
-//   // Redirect the user to the OAuth URL
-//   redirect(data.url);
-// }
 
 export async function signInWithGoogle() {
   const supabase = createClient();
@@ -199,7 +253,7 @@ export async function signInWithGoogle() {
         access_type: "offline",
         prompt: "consent",
       },
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,  // Replace with your callback URL
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   });
 
@@ -208,108 +262,63 @@ export async function signInWithGoogle() {
     redirect("/error");
   }
 
-  // Redirect the user to the OAuth URL
   redirect(data.url);
 }
 
-
-// Function to handle user data sync after OAuth sign-in
-// export async function handleOAuthUser(user: any) {
-//   const supabase = createClient();
-//   const fullName = user.user_metadata.full_name || '';
-//   const firstName = fullName.split(' ')[0];
-//   const lastName = fullName.split(' ')[1] || '';
-
-//   const { error: profileError } = await supabase
-//     .from("profiles")
-//     .upsert({ id: user.id, full_name: fullName, email: user.email, role: "customer" });
-
-//   if (profileError) {
-//     // console.log(profileError);
-//     redirect("/error");
-//   }
-
-//   // Check if the user exists in the employees table
-//   const { data: existingEmployee, error: fetchError } = await supabase
-//     .from("employees")
-//     .select("*")
-//     .eq("contact_info", user.email)
-//     .single();
-
-//   if (fetchError && fetchError.code !== "PGRST116") {
-//     console.error("Error fetching existing employee:", fetchError);
-//     redirect("/error");
-//   }
-
-//   if (!existingEmployee) {
-//     const { error: employeeError } = await supabase
-//       .from("employees")
-//       .upsert({
-//         user_uuid: user.id,
-//         contact_info: user.email,
-//         name: firstName,
-//         role: "user",
-//       }, {
-//         onConflict: "contact_info",
-//       });
-
-//     if (employeeError) {
-//       // console.log(employeeError);
-//       redirect("/error");
-//     }
-//   }
-// }
-
 export async function handleOAuthUser(user: any) {
   const supabase = createClient();
-  const fullName = user.user_metadata.full_name || '';
-  const firstName = fullName.split(' ')[0];
-  const lastName = fullName.split(' ')[1] || '';
-  const emailDomain = user.email.split("@")[1];
 
-  // Insert or upsert into the appropriate table based on email domain
-  if (emailDomain === "thegunrange.biz") {
-    // Upsert into the employees table
-    const { error: employeeError } = await supabase
-      .from("employees")
-      .upsert({
-        user_uuid: user.id,
-        contact_info: user.email,
-        name: firstName,
-        role: "user",  // Automatically assign the role of "user"
-      }, {
-        onConflict: "contact_info",  // Use onConflict to handle duplicate entries
-      });
-
-    if (employeeError) {
-      console.error("Error upserting into employees table:", employeeError.message);
-      redirect("/error");
-      return;
+  try {
+    if (!user || !user.email) {
+      console.error("Invalid user data:", user);
+      throw new Error("Invalid user data");
     }
 
-    console.log("User upserted into employees table:", user.email);
+    console.log("Handling OAuth user:", user.email);
 
-  } else {
-    // Upsert into the customers table
-    const { error: customerError } = await supabase
-      .from("customers")
-      .upsert({
-        user_uuid: user.id,
-        email: user.email,
-        first_name: firstName,
-        last_name: lastName,
-        role: "customer",  // Automatically assign the role of "customer"
-      }, {
-        onConflict: "email",  // Use onConflict to handle duplicate entries
-      });
+    const fullName = user.user_metadata?.full_name || '';
+    const firstName = fullName.split(' ')[0] || user.email.split('@')[0];
+    const lastName = fullName.split(' ').slice(1).join(' ') || '';
+    const emailDomain = user.email.split("@")[1].toLowerCase();
 
-    if (customerError) {
-      console.error("Error upserting into customers table:", customerError.message);
-      redirect("/error");
-      return;
+    console.log("User details:", { firstName, lastName, emailDomain });
+
+    const employeeDomains = await getEmployeeDomains();
+    console.log("Employee domains:", employeeDomains);
+
+    if (employeeDomains.includes(emailDomain)) {
+      console.log("Email domain matches employee domain");
+      await handleEmployeeUpsert(supabase, { id: user.id, email: user.email }, firstName, lastName);
+    } else {
+      console.log("Handling as customer");
+      // Handle customer logic
+      const { error: customerError } = await supabase
+        .from("customers")
+        .upsert({
+          user_uuid: user.id,
+          email: user.email,
+          first_name: firstName,
+          last_name: lastName,
+          role: "customer",
+        }, {
+          onConflict: "email",
+        });
+
+      if (customerError) {
+        console.error("Error upserting customer:", customerError);
+        throw customerError;
+      }
+      console.log("Upserted customer record for:", user.email);
     }
 
-    console.log("User upserted into customers table:", user.email);
+    console.log("OAuth user handled successfully:", user.email);
+    return { success: true };
+  } catch (error) {
+    console.error("Error in handleOAuthUser:", error);
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+    return { error: "An unexpected error occurred while handling OAuth user" };
   }
 }
 
@@ -321,18 +330,41 @@ export async function updateProfile(user: any) {
   const firstName = fullName.split(' ')[0];
   const lastName = fullName.split(' ')[1] || '';
 
-  const { error: profileError } = await supabase
-    .from("customers")
-    .upsert({
-      user_uuid: id,
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      role: "user"
-    });
+  const emailDomain = email.split("@")[1].toLowerCase();
+  const employeeDomains = await getEmployeeDomains();
 
-  if (profileError) {
-    // console.log(profileError);
-    redirect("/error");
+  if (employeeDomains.includes(emailDomain)) {
+    const { error: profileError } = await supabase
+      .from("employees")
+      .upsert({
+        user_uuid: id,
+        contact_info: email,
+        name: `${firstName} ${lastName}`.trim(),
+        role: "user"
+      }, {
+        onConflict: "contact_info",
+      });
+
+    if (profileError) {
+      console.error("Error updating employee profile:", profileError);
+      redirect("/error");
+    }
+  } else {
+    const { error: profileError } = await supabase
+      .from("customers")
+      .upsert({
+        user_uuid: id,
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        role: "customer"
+      }, {
+        onConflict: "email",
+      });
+
+    if (profileError) {
+      console.error("Error updating customer profile:", profileError);
+      redirect("/error");
+    }
   }
 }

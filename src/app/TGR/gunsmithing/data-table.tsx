@@ -62,7 +62,10 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
     []
   );
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>({
+      maintenance_frequency: false,
+      maintenance_notes: false,
+    });
 
   const table = useReactTable({
     data,

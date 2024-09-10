@@ -14,6 +14,7 @@ import {
   SunIcon,
   MoonIcon,
   ShadowIcon,
+  Pencil2Icon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
@@ -653,6 +654,18 @@ const HeaderSuperAdmin = React.memo(() => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Link
+                      href="/admin/domains"
+                      className="flex items-center w-full"
+                    >
+                      <Pencil2Icon className="mr-2 h-4 w-4" />
+
+                      <span>Manage Domains</span>
+                    </Link>
+                  </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
 
                   <DropdownMenuSub>

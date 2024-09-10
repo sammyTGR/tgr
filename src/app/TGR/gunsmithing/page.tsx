@@ -442,7 +442,7 @@ export default function GunsmithingMaintenance() {
       <div className="flex flex-col h-screen my-8">
         <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs defaultValue="maintenance" className="flex-1 flex flex-col">
-            <div className="container mx-auto px-4 py-4">
+            <div className="container justify-start px-4 mt-4">
               <TabsList>
                 <TabsTrigger value="maintenance">
                   Weekly Maintenance
@@ -450,14 +450,15 @@ export default function GunsmithingMaintenance() {
                 <TabsTrigger value="repairs">Firearms Repairs</TabsTrigger>
               </TabsList>
             </div>
+
             <div
               className={classNames(
-                "grid flex-1 items-start mx-auto my-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body",
+                "grid flex-1 items-start mt-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body",
                 styles.noScroll
               )}
             >
               <ScrollArea className="h-[calc(100vh-300px)]">
-                <div className="container mx-auto px-4 py-4">
+                <div className="container px-4 mt-4">
                   <TabsContent value="maintenance" className="mt-0">
                     <Card className="h-full">
                       <CardHeader>
@@ -527,7 +528,7 @@ export default function GunsmithingMaintenance() {
                 <ScrollBar orientation="vertical" />
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
-              <div className="flex justify-start p-2">
+              <div className="container justify-start p-2">
                 <Button
                   variant="ringHover"
                   onClick={handleSubmit}
