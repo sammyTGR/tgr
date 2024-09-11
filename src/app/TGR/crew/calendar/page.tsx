@@ -574,50 +574,56 @@ export default function Component() {
                 </Button>
               </div>
               <div className="overflow-hidden">
+                <div className="overflow-hidden">
+                  <Table
+                    className={`w-full ${
+                      selectedDay ? "max-w-sm mr-auto" : ""
+                    }`}
+                  >
+                    <TableHeader className="sticky top-0 z-5 bg-background">
+                      <TableRow>
+                        <TableHead className="w-20 max-w-sm bg-background sticky left-0 z-5">
+                          Employee
+                        </TableHead>
+                        {daysOfWeek.map((day) => (
+                          <TableHead
+                            key={day}
+                            className={`w-20 max-w-sm text-left ${
+                              selectedDay === day ? "bg-muted" : ""
+                            } ${
+                              role === "admin" || role === "super admin"
+                                ? "hover:bg-muted cursor-pointer"
+                                : ""
+                            } ${
+                              selectedDay && day !== selectedDay ? "hidden" : ""
+                            }`}
+                            onClick={() => handleDayClick(day)}
+                          >
+                            {day}
+                            <br />
+                            {weekDates[day]}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                  </Table>
+                </div>
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
-                    "h-[calc(100vh-400px)] overflow-auto"
+                    "h-[calc(100vh-400px)] overflow-hidden"
                   )}
                 >
                   <div
-                    className={`overflow-x-auto ${
+                    className={`overflow-hidden ${
                       selectedDay ? "max-w-sm mr-auto" : ""
                     }`}
                   >
                     <Table
-                      className={`h-full overflow-hidden ${
-                        selectedDay ? "w-full" : "w-full"
+                      className={`overflow-hidden w-full ${
+                        selectedDay ? "max-w-sm" : ""
                       }`}
                     >
-                      <TableHeader className="bg-background z-5">
-                        <TableRow>
-                          <TableHead className="w-20 max-w-sm bg-background sticky top-0 z-5">
-                            Employee
-                          </TableHead>
-                          {daysOfWeek.map((day) => (
-                            <TableHead
-                              key={day}
-                              className={`w-20 max-w-sm text-left ${
-                                selectedDay === day ? "bg-muted" : ""
-                              } ${
-                                role === "admin" || role === "super admin"
-                                  ? "hover:bg-muted cursor-pointer"
-                                  : ""
-                              } sticky top-0 z-5 ${
-                                selectedDay && day !== selectedDay
-                                  ? "hidden"
-                                  : ""
-                              }`}
-                              onClick={() => handleDayClick(day)}
-                            >
-                              {day}
-                              <br />
-                              {weekDates[day]}
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
                       <TableBody>
                         {filteredCalendarData.map((employee) =>
                           renderEmployeeRow(employee)

@@ -35,7 +35,10 @@ import {
 import { ChevronDown } from "lucide-react";
 import { SalesDataTablePagination } from "./data-table-pagination";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, parseISO, addDays } from "date-fns";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import classNames from "classnames";
+import styles from "./table.module.css";
 
 interface SalesData {
   id: number;
@@ -78,55 +81,11 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   const [sales, setSales] = useState<SalesData[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  // const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageCount, setPageCount] = useState(0);
-
-  const fetchSalesData = async () => {
-    try {
-      console.log("Fetching data with dates:", { startDate, endDate });
-      const response = await fetch(
-        `/api/fetch-sales-data-by-range?start=${encodeURIComponent(
-          startDate || ""
-        )}&end=${encodeURIComponent(endDate || "")}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Raw data received:", data);
-      if (Array.isArray(data)) {
-        // Ensure dates are in the correct format
-        const formattedData = data.map((item) => ({
-          ...item,
-          Date: new Date(item.Date).toISOString().split("T")[0],
-        }));
-        console.log("Formatted data:", formattedData);
-        setSales(formattedData);
-        setPageCount(Math.ceil(formattedData.length / pageSize));
-      } else {
-        console.error("Unexpected data format:", data);
-        toast.error("Received unexpected data format");
-      }
-    } catch (error) {
-      console.error("Failed to fetch sales data:", error);
-      toast.error("Failed to fetch sales data.");
-    }
-  };
-
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchSalesData();
-    }
-  }, [startDate, endDate, pageIndex, pageSize, sorting, columnFilters]);
 
   const onUpdate = async (id: number, updates: Partial<SalesData>) => {
     const { error } = await supabase
@@ -145,6 +104,68 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
       toast.success("Labels updated successfully.");
     }
   };
+
+  const columns = useMemo(() => salesColumns(onUpdate), []);
+
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    () => {
+      const initialVisibility: VisibilityState = {};
+      columns.forEach((column) => {
+        if (column.id) {
+          initialVisibility[column.id] = column.initial !== false;
+        }
+      });
+      return initialVisibility;
+    }
+  );
+
+  const fetchSalesData = async () => {
+    try {
+      console.log("Fetching data with dates:", { startDate, endDate });
+      const response = await fetch("/api/fetch-sales-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate,
+          endDate,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const { data, count } = await response.json();
+      console.log("Raw data received:", data);
+      if (Array.isArray(data)) {
+        // Ensure dates are in the correct format and filter for the correct date
+        const formattedData = data
+          .map((item) => ({
+            ...item,
+            Date: new Date(item.Date).toISOString().split("T")[0],
+          }))
+          .filter(
+            (item) =>
+              item.Date >= (startDate || "") && item.Date <= (endDate || "")
+          );
+        console.log("Formatted and filtered data:", formattedData);
+        setSales(formattedData);
+        setPageCount(Math.ceil(formattedData.length / pageSize));
+      } else {
+        console.error("Unexpected data format:", data);
+        toast.error("Received unexpected data format");
+      }
+    } catch (error) {
+      console.error("Failed to fetch sales data:", error);
+      toast.error("Failed to fetch sales data.");
+    }
+  };
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      fetchSalesData();
+    }
+  }, [startDate, endDate, pageIndex, pageSize, sorting, columnFilters]);
 
   const handleFilterChange: OnChangeFn<ColumnFiltersState> = (
     updaterOrValue
@@ -166,7 +187,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
     );
   };
 
-  const columns = useMemo(() => salesColumns(onUpdate), []);
+  // const columns = useMemo(() => salesColumns(onUpdate), []);
 
   const table = useReactTable({
     data: sales,
@@ -202,7 +223,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   });
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col max-h-full w-full">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <Input
           placeholder="Filter sales by rep..."
@@ -239,54 +260,63 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden rounded-md border w-full sm:w-full md:w-full lg:min-w-8xl lg:max-w-8xl">
+      <div className="flex-1 overflow-hidden max-h-fullrounded-md border w-full sm:w-full md:w-full lg:min-w-8xl lg:max-w-8xl">
         <div className="h-[calc(100vh-200px)] overflow-auto">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+          <ScrollArea
+            className={classNames(
+              styles.noScroll,
+              "h-[calc(100vh-400px)] overflow-auto"
+            )}
+          >
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+            <ScrollBar orientation="vertical" />
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         </div>
       </div>
       <div className="flex-none mt-4">

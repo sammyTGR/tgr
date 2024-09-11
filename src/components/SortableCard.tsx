@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DragHandleDots2Icon } from "@radix-ui/react-icons"; // Replace with an appropriate drag handle icon
+import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 
 interface SortableCardProps {
   id: string;
@@ -13,15 +13,15 @@ const SortableCard: React.FC<SortableCardProps> = ({ id, children }) => {
     useSortable({ id });
 
   const style = {
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    transform: CSS.Transform.toString(transform),
     transition,
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} {...attributes}>
       <div className="flex items-center">
-        <div className="cursor-move p-2" {...listeners} {...attributes}>
-          <DragHandleDots2Icon /> {/* Drag handle */}
+        <div className="cursor-move p-2" {...listeners}>
+          <DragHandleDots2Icon />
         </div>
         <div className="flex-grow">{children}</div>
       </div>

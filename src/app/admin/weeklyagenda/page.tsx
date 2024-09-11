@@ -1,681 +1,658 @@
 "use client";
-import React, {
-  useState,
-  Dispatch,
-  SetStateAction,
-  DragEvent,
-  FormEvent,
-  useEffect,
-  useRef,
-} from "react";
-import { PlusIcon, TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
-import { motion } from "framer-motion";
-import { supabase } from "@/utils/supabase/client";
-import { useRole } from "@/context/RoleContext"; // Adjust the import path if needed
-import { Button } from "@/components/ui/button";
+
+import { useState, useEffect, useRef, FC } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  MeasuringStrategy,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import SortableLinks from "@/components/SortableLinks";
+import SortableCard from "@/components/SortableCard"; // Import the new SortableCard component
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AddNewItem } from "@/components/AddNewItem";
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { useRole } from "@/context/RoleContext"; // Correct import
+import { supabase } from "@/utils/supabase/client";
+import { AddNewList } from "@/components/AddNewList";
+import { EditListTitle } from "@/components/EditListTitle";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { EditItem } from "@/components/EditItem";
 
-type ColumnType = {
-  id: string;
-  title: string;
-};
-
-type CardType = {
-  id: string;
-  title: string;
-  column_name: string;
-  created_by: string; // Assuming you have a field that stores the creator's ID
-};
-
-const CustomKanban = () => {
-  return (
-    <div className="h-screen w-full">
-      <Board />
-    </div>
-  );
-};
-
-export default function Board() {
-  const [columns, setColumns] = useState<ColumnType[]>([]);
-  const [cards, setCards] = useState<CardType[]>([]);
-  const channel = useRef(null);
-  const { role, user } = useRole(); // Get the role and user from context
-
-  const fetchColumns = async () => {
-    const { data, error } = await supabase
-      .from("weekly_agenda_columns")
-      .select("*");
-    if (error) {
-      console.error("Error fetching columns:", error);
-    } else {
-      setColumns(data);
-    }
-  };
-
-  const fetchCards = async () => {
-    const { data, error } = await supabase.from("weekly_agenda").select("*");
-    if (error) {
-      console.error("Error fetching cards:", error);
-    } else {
-      setCards(data);
-    }
-  };
-
-  useEffect(() => {
-    fetchColumns();
-    fetchCards();
-
-    const WeeklyAgendaSubscription = supabase
-      .channel("custom-weekly-agenda-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "weekly_agenda" },
-        (payload) => {
-          fetchCards();
-        }
-      )
-      .subscribe();
-
-    const WeeklyAgendaColumnsSubscription = supabase
-      .channel("custom-weekly-agenda-columns-channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "weekly_agenda_columns" },
-        (payload) => {
-          fetchColumns();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(WeeklyAgendaSubscription);
-      supabase.removeChannel(WeeklyAgendaColumnsSubscription);
-    };
-  }, []);
-
-  const addCard = async (column_name: string, title: string) => {
-    const { data, error } = await supabase
-      .from("weekly_agenda")
-      .insert([{ column_name, title, created_by: user.email }]) // Include created_by field
-      .select();
-    if (error) {
-      console.error("Error adding card:", error);
-    } else {
-      setCards((prevCards) => [...prevCards, data[0]]);
-    }
-  };
-
-  const updateCardColumn = async (id: string, column_name: string) => {
-    const { error } = await supabase
-      .from("weekly_agenda")
-      .update({ column_name })
-      .eq("id", id);
-    if (error) {
-      console.error("Error updating card column:", error);
-    } else {
-      fetchCards();
-    }
-  };
-
-  const updateCardTitle = async (id: string, title: string) => {
-    const { error } = await supabase
-      .from("weekly_agenda")
-      .update({ title })
-      .eq("id", id);
-    if (error) {
-      console.error("Error updating card title:", error);
-    } else {
-      fetchCards();
-    }
-  };
-
-  const deleteCard = async (id: string, createdBy: string) => {
-    if (
-      role === "super admin" ||
-      (role === "admin" && user.email === createdBy)
-    ) {
-      const { error } = await supabase
-        .from("weekly_agenda")
-        .delete()
-        .eq("id", id);
-      if (error) {
-        console.error("Error deleting card:", error);
-      } else {
-        setCards((prevCards) => prevCards.filter((card) => card.id !== id));
-      }
-    } else {
-      console.error("You do not have permission to delete this card.");
-    }
-  };
-
-  const addColumn = async (title: string) => {
-    if (role === "super admin") {
-      const { data, error } = await supabase
-        .from("weekly_agenda_columns")
-        .insert([{ title }])
-        .select();
-      if (error) {
-        console.error("Error adding column:", error);
-      } else {
-        setColumns((prevColumns) => [...prevColumns, data[0]]);
-      }
-    } else {
-      console.error("You do not have permission to add columns.");
-    }
-  };
-
-  const updateColumnTitle = async (id: string, title: string) => {
-    const { error } = await supabase
-      .from("weekly_agenda_columns")
-      .update({ title })
-      .eq("id", id);
-    if (error) {
-      console.error("Error updating column title:", error);
-    } else {
-      fetchColumns();
-    }
-  };
-
-  const deleteColumn = async (id: string) => {
-    if (role === "super admin") {
-      const { error } = await supabase
-        .from("weekly_agenda_columns")
-        .delete()
-        .eq("id", id);
-      if (error) {
-        console.error("Error deleting column:", error);
-      } else {
-        setColumns((prevColumns) =>
-          prevColumns.filter((column) => column.id !== id)
-        );
-      }
-    } else {
-      console.error("You do not have permission to delete this column.");
-    }
-  };
-
-  return (
-    <Card className="h-full mt-4">
-      <CardHeader>
-        <CardTitle>Weekly Agenda</CardTitle>
-        {role === "super admin" && <AddColumn handleAddColumn={addColumn} />}
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {columns.map((column) => (
-            <Column
-              key={column.id}
-              title={column.title}
-              column={column}
-              headingColor="text-black dark:text-white"
-              cards={cards.filter((card) => card.column_name === column.title)}
-              setCards={setCards}
-              updateCardColumn={updateCardColumn}
-              updateCardTitle={updateCardTitle}
-              addCard={addCard}
-              deleteCard={deleteCard}
-              updateColumnTitle={updateColumnTitle}
-              deleteColumn={deleteColumn}
-            />
-          ))}
-        </div>
-        <BurnBarrel setCards={setCards} />
-      </CardContent>
-    </Card>
-  );
+interface Item {
+  id: number;
+  name: string;
+  user_id: string;
+  user_name: string;
+  list_id: string;
+  order: number;
+  completed?: string;
 }
 
-type ColumnProps = {
+interface List {
+  id: string;
   title: string;
-  headingColor: string;
-  cards: CardType[];
-  column: ColumnType;
-  setCards: Dispatch<SetStateAction<CardType[]>>;
-  updateCardColumn: (id: string, column_name: string) => void;
-  updateCardTitle: (id: string, title: string) => void;
-  addCard: (column_name: string, title: string) => void;
-  deleteCard: (id: string, createdBy: string) => void; // Update prop type
-  updateColumnTitle: (id: string, title: string) => void;
-  deleteColumn: (id: string) => void;
-};
+  items: Item[];
+  order: number;
+}
 
-const Column = ({
-  title,
-  headingColor,
-  cards,
-  column,
-  setCards,
-  updateCardColumn,
-  updateCardTitle,
-  addCard,
-  deleteCard,
-  updateColumnTitle,
-  deleteColumn,
-}: ColumnProps) => {
-  const [active, setActive] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [newTitle, setNewTitle] = useState(title);
+interface AddNewItemProps {
+  listId: string;
+  addNewItem: (listId: string, name: string) => void;
+}
 
-  const { role, user } = useRole(); // Get the role from context
+interface HomeProps {}
 
-  const handleDragStart = (e: DragEvent, card: CardType) => {
-    e.dataTransfer.setData("cardId", card.id);
-    e.dataTransfer.setData("currentColumn", card.column_name);
-  };
+const WeeklyAgenda: React.FC<HomeProps> = () => {
+  const { role, user } = useRole();
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  const handleDrop = async (e: DragEvent) => {
-    const cardId = e.dataTransfer.getData("cardId");
-    const currentColumn = e.dataTransfer.getData("currentColumn");
+  const [lists, setLists] = useState<List[]>([]);
+  const [username, setUsername] = useState<string | null>(null);
+  const channel = useRef<RealtimeChannel | null>(null);
+  const [activeId, setActiveId] = useState<number | string | null>(null);
+  const [activeItem, setActiveItem] = useState<Item | null>(null);
 
-    if (currentColumn !== column.title) {
-      await updateCardColumn(cardId, column.title);
-      setCards((prevCards) => {
-        const updatedCards = prevCards.map((card) =>
-          card.id === cardId ? { ...card, column_name: column.title } : card
-        );
-        return updatedCards;
-      });
-    }
-    setActive(false);
-    clearHighlights();
-  };
+  useEffect(() => {
+    const fetchLists = async () => {
+      try {
+        const { data: listData, error: listError } = await supabase
+          .from("lists")
+          .select("*")
+          .order("order", { ascending: true });
 
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    highlightIndicator(e);
-    setActive(true);
-  };
-
-  const clearHighlights = (els?: HTMLElement[]) => {
-    const indicators = els || getIndicators();
-    indicators.forEach((i) => {
-      i.style.opacity = "0";
-    });
-  };
-
-  const highlightIndicator = (e: DragEvent) => {
-    const indicators = getIndicators();
-    clearHighlights(indicators);
-    const el = getNearestIndicator(e, indicators);
-    el.element.style.opacity = "1";
-  };
-
-  const getNearestIndicator = (e: DragEvent, indicators: HTMLElement[]) => {
-    const DISTANCE_OFFSET = 50;
-    const el = indicators.reduce(
-      (closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = e.clientY - (box.top + DISTANCE_OFFSET);
-        if (offset < 0 && offset > closest.offset) {
-          return { offset: offset, element: child };
-        } else {
-          return closest;
+        if (listError) {
+          console.error("Error fetching lists:", listError);
+          return;
         }
-      },
-      {
-        offset: Number.NEGATIVE_INFINITY,
-        element: indicators[indicators.length - 1],
+
+        const { data: itemData, error: itemError } = await supabase
+          .from("items")
+          .select("*")
+          .order("order", { ascending: true });
+
+        if (itemError) {
+          console.error("Error fetching items:", itemError);
+          return;
+        }
+
+        if (listData && itemData) {
+          const listsWithItems = listData.map((list: List) => ({
+            ...list,
+            items: itemData
+              .filter((item: Item) => item.list_id === list.id)
+              .sort((a, b) => a.order - b.order),
+          }));
+          setLists(listsWithItems);
+        }
+      } catch (error) {
+        console.error("Error in fetchLists:", error);
       }
-    );
-    return el;
+    };
+
+    const fetchUsername = async () => {
+      if (user) {
+        const { data: userData, error } = await supabase
+          .from("employees")
+          .select("name")
+          .eq("user_uuid", user.id)
+          .single();
+        if (userData) {
+          setUsername(userData.name);
+        } else {
+          console.error("Error fetching username:", error?.message);
+        }
+      }
+    };
+
+    fetchLists();
+    fetchUsername();
+
+    if (!channel.current) {
+      channel.current = supabase.channel("public:items");
+
+      channel.current
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "items" },
+          (payload) => {
+            setLists((prevLists) =>
+              prevLists.map((list) =>
+                list.id === payload.new.list_id
+                  ? { ...list, items: [...list.items, payload.new as Item] }
+                  : list
+              )
+            );
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "items" },
+          (payload) => {
+            setLists((prevLists) =>
+              prevLists.map((list) =>
+                list.id === payload.old.list_id
+                  ? {
+                      ...list,
+                      items: list.items.filter(
+                        (item) => item.id !== payload.old.id
+                      ),
+                    }
+                  : list
+              )
+            );
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "items" },
+          (payload) => {
+            setLists((prevLists) =>
+              prevLists.map((list) =>
+                list.id === payload.new.list_id
+                  ? {
+                      ...list,
+                      items: list.items.map((item) =>
+                        item.id === payload.new.id
+                          ? (payload.new as Item)
+                          : item
+                      ),
+                    }
+                  : list
+              )
+            );
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      channel.current?.unsubscribe();
+      channel.current = null;
+    };
+  }, [user]);
+
+  const findContainer = (id: number | string): string | undefined => {
+    for (const list of lists) {
+      if (list.items.find((item) => item.id === id)) {
+        return list.id;
+      }
+    }
+    return lists.find((list) => list.id === id)?.id;
   };
 
-  const getIndicators = () => {
-    return Array.from(
-      document.querySelectorAll(
-        `[data-column="${column.title}"]`
-      ) as unknown as HTMLElement[]
-    );
+  const handleDragStart = (event: any) => {
+    const { active } = event;
+    setActiveId(active.id);
   };
 
-  const handleDragLeave = () => {
-    clearHighlights();
-    setActive(false);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!active || !over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    setLists((prevLists) => {
+      // Check if we're dragging a list
+      const activeListIndex = prevLists.findIndex(
+        (list) => list.id === activeId
+      );
+
+      if (activeListIndex !== -1) {
+        // We're dragging a list
+        const overListIndex = prevLists.findIndex((list) => list.id === overId);
+
+        if (overListIndex !== -1 && activeListIndex !== overListIndex) {
+          // Reorder the lists
+          const newLists = arrayMove(prevLists, activeListIndex, overListIndex);
+          // Update the order of the lists
+          const updatedLists = newLists.map((list, index) => ({
+            ...list,
+            order: index,
+          }));
+          // Save the new order to the database
+          updateListsOrder(updatedLists);
+          return updatedLists;
+        }
+      } else {
+        // We're dragging an item
+        const sourceListIndex = prevLists.findIndex((list) =>
+          list.items.some((item) => item.id === activeId)
+        );
+        const destinationListIndex = prevLists.findIndex(
+          (list) =>
+            list.items.some((item) => item.id === overId) || list.id === overId
+        );
+
+        if (sourceListIndex !== -1 && destinationListIndex !== -1) {
+          const newLists = [...prevLists];
+          const sourceList = newLists[sourceListIndex];
+          const destinationList = newLists[destinationListIndex];
+
+          const [movedItem] = sourceList.items.splice(
+            sourceList.items.findIndex((item) => item.id === activeId),
+            1
+          );
+
+          if (sourceListIndex === destinationListIndex) {
+            // Reordering within the same list
+            const newIndex = destinationList.items.findIndex(
+              (item) => item.id === overId
+            );
+            destinationList.items.splice(newIndex, 0, movedItem);
+          } else {
+            // Moving to a different list
+            if (overId === destinationList.id) {
+              // Dropping at the end of the list
+              destinationList.items.push(movedItem);
+            } else {
+              // Dropping before a specific item
+              const newIndex = destinationList.items.findIndex(
+                (item) => item.id === overId
+              );
+              destinationList.items.splice(newIndex, 0, movedItem);
+            }
+          }
+
+          // Update the order of items in both source and destination lists
+          sourceList.items.forEach((item, index) => {
+            item.order = index;
+          });
+          destinationList.items.forEach((item, index) => {
+            item.order = index;
+          });
+
+          // Update the list_id of the moved item if it changed lists
+          if (sourceListIndex !== destinationListIndex) {
+            movedItem.list_id = destinationList.id;
+          }
+
+          // Save the new order and list_id to the database
+          updateItemsOrder([...sourceList.items, ...destinationList.items]);
+
+          return newLists;
+        }
+      }
+
+      // If we're here, we couldn't perform the drag operation
+      return prevLists;
+    });
+
+    setActiveId(null);
   };
 
-  const handleAddCard = async (title: string) => {
-    await addCard(column.title, title);
+  const updateListsOrder = async (lists: List[]) => {
+    const updates = lists.map((list) => ({
+      id: list.id,
+      order: list.order,
+    }));
+
+    for (const update of updates) {
+      const { error } = await supabase
+        .from("lists")
+        .update({ order: update.order })
+        .eq("id", update.id);
+
+      if (error) {
+        console.error("Error updating list order:", error);
+        // You might want to handle this error more gracefully
+      }
+    }
   };
 
-  const handleDeleteCard = async (id: string, createdBy: string) => {
-    await deleteCard(id, createdBy);
+  const updateItemsOrder = async (items: Item[]) => {
+    for (const item of items) {
+      const { error } = await supabase
+        .from("items")
+        .update({ order: item.order, list_id: item.list_id })
+        .eq("id", item.id);
+
+      if (error) {
+        console.error("Error updating item order:", error);
+        // You might want to handle this error more gracefully
+      }
+    }
   };
 
-  const handleEditColumn = () => {
-    setIsEditing(true);
+  const handleDelete = async (listId: string, idToDelete: number) => {
+    const list = lists.find((list) => list.id === listId);
+    const item = list?.items.find((item) => item.id === idToDelete);
+    if (item && item.user_id === user.id) {
+      const { error } = await supabase
+        .from("items")
+        .delete()
+        .eq("id", idToDelete);
+      if (error) {
+        console.error("Error deleting item:", error);
+      } else {
+        setLists((prevLists) =>
+          prevLists.map((list) =>
+            list.id === listId
+              ? {
+                  ...list,
+                  items: list.items.filter((item) => item.id !== idToDelete),
+                }
+              : list
+          )
+        );
+      }
+    } else {
+      console.error("You do not have permission to delete this item.");
+    }
   };
 
-  const handleColumnTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewTitle(e.target.value);
+  const addNewItem = async (listId: string, newItem: string) => {
+    if (!user || !username) {
+      console.error("User or username is not defined");
+      return;
+    }
+
+    const { data: existingItems, error: fetchError } = await supabase
+      .from("items")
+      .select("order")
+      .eq("list_id", listId)
+      .order("order", { ascending: false })
+      .limit(1);
+
+    if (fetchError) {
+      console.error("Error fetching existing items:", fetchError);
+      return;
+    }
+
+    const newOrder =
+      existingItems && existingItems.length > 0
+        ? existingItems[0].order + 1
+        : 0;
+
+    const newItemData: Item = {
+      name: newItem,
+      id: Date.now(),
+      user_id: user.id,
+      user_name: username,
+      list_id: listId,
+      order: newOrder,
+    };
+
+    const { data, error } = await supabase.from("items").insert([newItemData]);
+    if (error) {
+      console.error("Error adding item:", error);
+    } else if (data) {
+      setLists((prevLists) =>
+        prevLists.map((list) =>
+          list.id === listId
+            ? { ...list, items: [...list.items, newItemData] }
+            : list
+        )
+      );
+    }
   };
 
-  const handleColumnTitleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await updateColumnTitle(column.id, newTitle);
-    setIsEditing(false);
+  const addNewList = async (newListTitle: string) => {
+    const { data: existingLists, error: fetchError } = await supabase
+      .from("lists")
+      .select("order")
+      .order("order", { ascending: false })
+      .limit(1);
+
+    if (fetchError) {
+      console.error("Error fetching existing lists:", fetchError);
+      return;
+    }
+
+    const newOrder =
+      existingLists && existingLists.length > 0
+        ? existingLists[0].order + 1
+        : 0;
+
+    const newListData = {
+      title: newListTitle,
+      order: newOrder,
+    };
+
+    const { data, error } = await supabase
+      .from("lists")
+      .insert([newListData])
+      .select();
+
+    if (error) {
+      console.error("Error adding list:", error);
+    } else if (data && data.length > 0) {
+      const newList: List = {
+        id: data[0].id,
+        title: newListTitle,
+        items: [],
+        order: newOrder,
+      };
+      setLists((prevLists) => [...prevLists, newList]);
+    }
+  };
+
+  const updateListTitle = async (id: string, title: string) => {
+    const { error } = await supabase
+      .from("lists")
+      .update({ title })
+      .eq("id", id);
+    if (error) {
+      console.error("Error updating list title:", error);
+    } else {
+      setLists((prevLists) =>
+        prevLists.map((list) => (list.id === id ? { ...list, title } : list))
+      );
+    }
+  };
+
+  const deleteList = async (listId: string) => {
+    try {
+      // Delete the list (items will be automatically deleted due to CASCADE)
+      const { error: listDeleteError } = await supabase
+        .from("lists")
+        .delete()
+        .eq("id", listId);
+
+      if (listDeleteError) throw listDeleteError;
+
+      // Update the local state
+      setLists((prevLists) => prevLists.filter((list) => list.id !== listId));
+
+      console.log(`List ${listId} deleted successfully`);
+    } catch (error) {
+      console.error("Error deleting list:", error);
+    }
+  };
+
+  const updateItem = async (id: number, updatedItem: Partial<Item>) => {
+    try {
+      // Update the item in the database
+      const { error } = await supabase
+        .from("items")
+        .update(updatedItem)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // If the database update was successful, update the local state
+      setLists((prevLists) =>
+        prevLists.map((list) => ({
+          ...list,
+          items: list.items.map((item) =>
+            item.id === id ? { ...item, ...updatedItem } : item
+          ),
+        }))
+      );
+
+      console.log(`Item ${id} updated successfully`);
+    } catch (error) {
+      console.error("Error updating item:", error);
+    }
   };
 
   return (
-    <Card className="h-full max-w-sm">
-      <CardContent className="h-full flex flex-col p-4">
-        <div className="mb-3 flex items-center justify-between group">
-          {isEditing ? (
-            <form onSubmit={handleColumnTitleSubmit} className="flex-1">
-              <input
-                type="text"
-                value={newTitle}
-                onChange={handleColumnTitleChange}
-                className="w-full rounded border border-violet-400 bg-violet-400/20 p-1 text-sm focus:outline-0"
-              />
-              <div className="mt-1.5 flex items-center justify-end gap-1.5">
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 rounded bg-neutral-50 px-2 py-1 text-xs transition-colors hover:bg-neutral-300"
-                >
-                  <span>Save</span>
-                </button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <h3 className={`font-medium ${headingColor}`}>{title}</h3>
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {role === "super admin" && (
-                  <button
-                    onClick={handleEditColumn}
-                    className="text-yellow-500"
-                  >
-                    <Pencil1Icon />
-                  </button>
-                )}
-                {role === "super admin" && (
-                  <button
-                    onClick={() => deleteColumn(column.id)}
-                    className="text-red-500"
-                  >
-                    <TrashIcon />
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <main className="flex grid-cols-4 justify-center mt-10 h-screen px-2 mx-auto select-none">
+        <div className="flex justify-start p-4 mb-4">
+          <AddNewList addNewList={addNewList} />
         </div>
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={`flex-grow overflow-y-auto ${
-            active ? "bg-neutral-800/50" : "bg-neutral-800/0"
-          }`}
-        >
-          <div className="flex flex-col gap-2">
-            {cards.map((c) => (
-              <KanbanCard
-                key={c.id}
-                {...c}
-                handleDragStart={handleDragStart}
-                handleDeleteCard={handleDeleteCard}
-                updateCardTitle={updateCardTitle}
-              />
-            ))}
-            <DropIndicator beforeId={null} column_name={column.title} />
-          </div>
-        </div>
-        <AddCard column_name={column.title} handleAddCard={handleAddCard} />
-      </CardContent>
-    </Card>
-  );
-};
-
-type CardProps = CardType & {
-  handleDragStart: Function;
-  handleDeleteCard: (id: string, createdBy: string) => void; // Update prop type
-  updateCardTitle: (id: string, title: string) => void;
-};
-
-const KanbanCard = ({
-  title,
-  id,
-  column_name,
-  created_by,
-  handleDragStart,
-  handleDeleteCard,
-  updateCardTitle,
-}: CardProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [newTitle, setNewTitle] = useState(title);
-
-  const { role, user } = useRole(); // Get the role and user from context
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewTitle(e.target.value);
-  };
-
-  const handleTitleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await updateCardTitle(id, newTitle);
-    setIsEditing(false);
-  };
-
-  return (
-    <>
-      <DropIndicator beforeId={id} column_name={column_name} />
-      <motion.div
-        layout
-        layoutId={id}
-        draggable="true"
-        onDragStart={(e) => handleDragStart(e, { title, id, column_name })}
-        className="cursor-grab rounded border border-neutral-700  p-3 active:cursor-grabbing group"
-        data-before={id} // Add this line
-      >
-        {isEditing ? (
-          <form onSubmit={handleTitleSubmit} className="flex-1">
-            <input
-              type="text"
-              value={newTitle}
-              onChange={handleTitleChange}
-              className="w-full rounded border border-violet-400  p-1 text-sm  focus:outline-0"
-            />
-            <div className="mt-1.5 flex items-center justify-end gap-1.5">
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 rounded  px-2 py-1 text-xs  transition-colors hover:bg-neutral-300"
+        <div className="container mt-10 px-4 md:px-6">
+          <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-3 md:grid-cols-3">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            >
+              <SortableContext
+                items={lists.map((list) => list.id)}
+                strategy={rectSortingStrategy}
               >
-                <span>Save</span>
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="flex justify-between items-center">
-            <p className="text-sm ">{title}</p>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {(role === "super admin" || user.email === created_by) && (
-                <button onClick={handleEdit} className="text-yellow-500">
-                  <Pencil1Icon />
-                </button>
-              )}
-              {(role === "super admin" ||
-                (role === "admin" && user.email === created_by)) && (
-                <button
-                  onClick={() => handleDeleteCard(id, created_by)}
-                  className="text-red-500"
-                >
-                  <TrashIcon />
-                </button>
-              )}
-            </div>
+                {lists.map((list) => (
+                  <SortableCard key={list.id} id={list.id}>
+                    <Card className="w-full min-w-[325px] md:max-w-lg">
+                      <CardHeader className="space-y-1">
+                        <CardTitle className="text-2xl flex justify-between">
+                          {list.title}
+                          <EditListTitle
+                            list={list}
+                            updateListTitle={updateListTitle}
+                            deleteList={deleteList}
+                          />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-4">
+                        <SortableContext
+                          items={list.items.map((item) => item.id)}
+                          strategy={rectSortingStrategy}
+                        >
+                          {list.items.map((item) => (
+                            <SortableLinks
+                              key={item.id}
+                              item={item}
+                              onDelete={(id) =>
+                                handleDelete(list.id, id as number)
+                              }
+                              updateItem={updateItem}
+                            />
+                          ))}
+                        </SortableContext>
+                        <AddNewItem
+                          addNewItem={(newItem: string) =>
+                            addNewItem(list.id, newItem)
+                          }
+                        />
+                      </CardContent>
+                    </Card>
+                  </SortableCard>
+                ))}
+              </SortableContext>
+              <DragOverlay>
+                {activeId ? (
+                  <SortableLinks
+                    item={
+                      lists
+                        .flatMap((list) => list.items)
+                        .find((item) => item.id === activeId) || {
+                        id: activeId as number,
+                        name: "",
+                        user_id: "",
+                        user_name: "",
+                        list_id: "",
+                        order: 0,
+                      }
+                    }
+                    onDelete={async (id: string | number) => {
+                      try {
+                        // Delete the item from Supabase
+                        const { error } = await supabase
+                          .from("items")
+                          .delete()
+                          .eq("id", id);
+
+                        if (error) throw error;
+
+                        // Update local state
+                        setLists((prevLists) =>
+                          prevLists.map((list) => ({
+                            ...list,
+                            items: list.items.filter((item) => item.id !== id),
+                          }))
+                        );
+
+                        console.log(`Item ${id} deleted successfully`);
+                      } catch (error) {
+                        console.error("Error deleting item:", error);
+                        // Optionally, you can show an error message to the user here
+                        // For example: setErrorMessage("Failed to delete item. Please try again.");
+                      }
+                    }}
+                    updateItem={async (
+                      id: number,
+                      updatedItem: Partial<Item>
+                    ) => {
+                      try {
+                        // Update the item in Supabase
+                        const { data, error } = await supabase
+                          .from("items")
+                          .update(updatedItem)
+                          .eq("id", id)
+                          .select();
+
+                        if (error) throw error;
+
+                        if (!data || data.length === 0) {
+                          throw new Error(
+                            "No data returned from update operation"
+                          );
+                        }
+
+                        const updatedItemFromDB = data[0];
+
+                        // Update local state
+                        setLists((prevLists) =>
+                          prevLists.map((list) => ({
+                            ...list,
+                            items: list.items.map((item) =>
+                              item.id === id
+                                ? { ...item, ...updatedItemFromDB }
+                                : item
+                            ),
+                          }))
+                        );
+
+                        console.log(`Item ${id} updated successfully`);
+                      } catch (error) {
+                        console.error("Error updating item:", error);
+                        // Optionally, you can show an error message to the user here
+                        // For example: setErrorMessage("Failed to update item. Please try again.");
+                      }
+                    }}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
-        )}
-      </motion.div>
-    </>
+        </div>
+      </main>
+    </RoleBasedWrapper>
   );
 };
 
-type DropIndicatorProps = {
-  beforeId: string | null;
-  column_name: string;
-};
-
-const DropIndicator = ({ beforeId, column_name }: DropIndicatorProps) => {
-  return (
-    <div
-      data-before={beforeId || "-1"}
-      data-column={column_name}
-      className="my-0.5 h-0.5 w-full bg-violet-400 opacity-0"
-    />
-  );
-};
-
-const BurnBarrel = ({
-  setCards,
-}: {
-  setCards: Dispatch<SetStateAction<CardType[]>>;
-}) => {
-  const [active, setActive] = useState(false);
-
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    setActive(true);
-  };
-
-  const handleDragLeave = () => {
-    setActive(false);
-  };
-
-  const handleDrop = (e: DragEvent) => {
-    const cardId = e.dataTransfer.getData("cardId");
-    setCards((pv) => pv.filter((c) => c.id !== cardId));
-    setActive(false);
-  };
-
-  return (
-    <div
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-    ></div>
-  );
-};
-
-type AddCardProps = {
-  column_name: string;
-  handleAddCard: (title: string) => void;
-};
-
-const AddCard = ({ column_name, handleAddCard }: AddCardProps) => {
-  const [text, setText] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!text.trim().length) return;
-    await handleAddCard(text.trim());
-    setAdding(false);
-    setText(""); // Reset text after adding
-  };
-
-  return (
-    <>
-      {adding ? (
-        <motion.form layout onSubmit={handleSubmit}>
-          <textarea
-            onChange={(e) => setText(e.target.value)}
-            value={text} // Ensure value is controlled
-            autoFocus
-            placeholder="Add new task..."
-            className="w-full rounded border border-violet-400 bg-violet-400/20 p-3 text-sm  placeholder-violet-300 focus:outline-0"
-          />
-          <div className="mt-1.5 flex items-center justify-end gap-1.5">
-            <button
-              onClick={() => setAdding(false)}
-              className="px-3 py-1.5 text-xs  transition-colors hover:text-neutral-50"
-            >
-              Close
-            </button>
-            <Button
-              variant="linkHover1"
-              type="submit"
-              className="flex items-center gap-1.5 rounded  px-3 py-1.5 text-xs  transition-colors hover:bg-neutral-600"
-            >
-              <span>Add</span>
-              <PlusIcon />
-            </Button>
-          </div>
-        </motion.form>
-      ) : (
-        <motion.button
-          layout
-          onClick={() => setAdding(true)}
-          className="flex w-full items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-500 transition-colors hover:text-neutral-50"
-        >
-          <span>Add Topic</span>
-          <PlusIcon />
-        </motion.button>
-      )}
-    </>
-  );
-};
-
-type AddColumnProps = {
-  handleAddColumn: (title: string) => void;
-};
-
-const AddColumn = ({ handleAddColumn }: AddColumnProps) => {
-  const [text, setText] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!text.trim().length) return;
-    await handleAddColumn(text.trim());
-    setAdding(false);
-  };
-
-  return (
-    <>
-      {adding ? (
-        <motion.form
-          layout
-          onSubmit={handleSubmit}
-          className="flex items-center gap-2"
-        >
-          <input
-            onChange={(e) => setText(e.target.value)}
-            autoFocus
-            placeholder="Add new column..."
-            className="rounded border border-violet-400 bg-violet-400/20 p-1 text-sm  focus:outline-0"
-          />
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setAdding(false)}
-              className="px-2 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
-            >
-              Close
-            </button>
-            <Button
-              variant="linkHover1"
-              type="submit"
-              className="flex items-center gap-1.5 rounded  px-2 py-1 text-xs  transition-colors hover:bg-neutral-600"
-            >
-              <span>Add</span>
-              <PlusIcon />
-            </Button>
-          </div>
-        </motion.form>
-      ) : (
-        <motion.button
-          layout
-          onClick={() => setAdding(true)}
-          className="flex items-center gap-1.5 px-3 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-50"
-        >
-          <span>Add Staff</span>
-          <PlusIcon />
-        </motion.button>
-      )}
-    </>
-  );
-};
+export default WeeklyAgenda;

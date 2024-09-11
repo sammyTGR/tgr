@@ -241,6 +241,11 @@ const manageComps = [
     description: "Uploadthing",
   },
   {
+    title: "Reports Dashboard",
+    href: "/admin/reports/dashboard",
+    description: "Daily Dashboard",
+  },
+  {
     title: "Onboarding",
     href: "/admin/onboarding",
     description: "Trial Onboarding",
@@ -677,6 +682,18 @@ const HeaderSuperAdmin = React.memo(() => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
 
+                  <DropdownMenuItem onClick={handleChatClick}>
+                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                    <span>Messages</span>
+                    {totalUnreadCount > 0 && (
+                      <span className="ml-auto text-red-500 font-bold">
+                        {totalUnreadCount}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <ShadowIcon className="mr-2 h-4 w-4" />
@@ -702,18 +719,6 @@ const HeaderSuperAdmin = React.memo(() => {
                   <DropdownMenuItem onClick={() => setTheme("dark")}>
                     Dark
                   </DropdownMenuItem> */}
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={handleChatClick}>
-                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                    <span>Messages</span>
-                    {totalUnreadCount > 0 && (
-                      <span className="ml-auto text-red-500 font-bold">
-                        {totalUnreadCount}
-                      </span>
-                    )}
-                  </DropdownMenuItem>
-
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleSignOut}>

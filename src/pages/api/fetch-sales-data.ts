@@ -13,20 +13,29 @@ const fetchSalesData = async (req: NextApiRequest, res: NextApiResponse) => {
 
   try {
     const { startDate, endDate } = req.body;
-    console.log("API received dates:", { startDate, endDate });
 
+    if (!startDate || !endDate) {
+      throw new Error('Start date or end date is missing');
+    }
+
+    console.log("API received dates:", { startDate, endDate });
+    
+    // Add one day to endDate to make it inclusive
+    const adjustedEndDate = new Date(endDate);
+    adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+    
     const { data, error, count } = await supabase
       .from('sales_data')
-      .select('*')
+      .select('*', { count: 'exact' })
       .gte('Date', startDate)
-      .lte('Date', endDate);
-
+      .lt('Date', adjustedEndDate.toISOString().split('T')[0]);
 
     if (error) {
       throw error;
     }
-
+    
     console.log("Fetched data count:", count);
+    console.log("Date range:", { startDate, endDate: adjustedEndDate.toISOString().split('T')[0] });
     res.status(200).json({ data, count });
   } catch (error) {
     console.error('Failed to fetch sales data:', error);

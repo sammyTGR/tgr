@@ -42,6 +42,7 @@ export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
   meta?: {
     style?: React.CSSProperties;
   };
+  initial?: boolean;
 };
 
 export const salesColumns = (
@@ -65,15 +66,17 @@ export const salesColumns = (
       style: { width: "150px" },
     },
   },
-  {
-    accessorKey: "Sku",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sku" />
-    ),
-    meta: {
-      style: { width: "200px" },
-    },
-  },
+  // {
+  //   accessorKey: "Sku",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Sku" />
+  //   ),
+  //   meta: {
+  //     style: { width: "200px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
   {
     accessorKey: "Desc",
     header: ({ column }) => (
@@ -83,33 +86,39 @@ export const salesColumns = (
       style: { width: "200px" },
     },
   },
-  {
-    accessorKey: "SoldPrice",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sold Price" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
-  {
-    accessorKey: "SoldQty",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sold Qty" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
-  {
-    accessorKey: "Cost",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Cost" />
-    ),
-    meta: {
-      style: { width: "100px" },
-    },
-  },
+  // {
+  //   accessorKey: "SoldPrice",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Sold Price" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
+  // {
+  //   accessorKey: "SoldQty",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Sold Qty" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
+  // {
+  //   accessorKey: "Cost",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Cost" />
+  //   ),
+  //   meta: {
+  //     style: { width: "100px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
   {
     accessorKey: "Acct",
     header: ({ column }) => (
@@ -118,6 +127,8 @@ export const salesColumns = (
     meta: {
       style: { width: "100px" },
     },
+    enableHiding: true,
+    initial: false,
   },
   {
     accessorKey: "Date",
@@ -138,15 +149,17 @@ export const salesColumns = (
       return formattedDate.includes(filterValue);
     },
   },
-  {
-    accessorKey: "Last",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Last" />
-    ),
-    meta: {
-      style: { width: "150px" },
-    },
-  },
+  // {
+  //   accessorKey: "Last",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Last" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
   {
     accessorKey: "LastName",
     header: ({ column }) => (
@@ -156,24 +169,28 @@ export const salesColumns = (
       style: { width: "150px" },
     },
   },
-  {
-    accessorKey: "Mfg",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Mfg" />
-    ),
-    meta: {
-      style: { width: "150px" },
-    },
-  },
-  {
-    accessorKey: "CustType",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="CustType" />
-    ),
-    meta: {
-      style: { width: "150px" },
-    },
-  },
+  // {
+  //   accessorKey: "Mfg",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Mfg" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
+  // {
+  //   accessorKey: "CustType",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="CustType" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
   {
     accessorKey: "category_label",
     header: ({ column }) => (
@@ -200,6 +217,8 @@ export const salesColumns = (
     meta: {
       style: { width: "150px" },
     },
+    enableHiding: true,
+    initial: false,
   },
   {
     accessorKey: "total_net",
@@ -209,5 +228,7 @@ export const salesColumns = (
     meta: {
       style: { width: "150px" },
     },
+    enableHiding: true,
+    initial: false,
   },
 ];

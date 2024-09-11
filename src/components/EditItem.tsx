@@ -1,3 +1,4 @@
+import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -6,11 +7,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import React, { useState } from "react";
-import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import {
+  Pencil1Icon,
+  TrashIcon,
+  DotsVerticalIcon,
+} from "@radix-ui/react-icons";
 
 interface Item {
   id: number;
@@ -20,63 +30,107 @@ interface Item {
   list_id: string;
 }
 
-export function EditItem({
-  item,
-  updateItem,
-  deleteItem,
-}: {
+interface EditItemProps {
   item: Item;
-  updateItem: (id: number, updatedItem: Partial<Item>) => void;
-  deleteItem: (id: number) => void;
-}) {
-  const [name, setName] = useState(item.name);
+  updateItem: (id: number, updatedItem: Partial<Item>) => Promise<void>;
+  deleteItem: (id: number) => Promise<void>;
+}
 
-  const handleSubmit = () => {
+export function EditItem({ item, updateItem, deleteItem }: EditItemProps) {
+  const [name, setName] = useState(item.name);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    setName(item.name);
+  }, [item.name]);
+
+  const handleSubmit = useCallback(async () => {
     if (name.trim() === "") {
+      console.log("Name is empty, not updating");
       return;
     }
-    updateItem(item.id, { name });
-  };
+    try {
+      await updateItem(item.id, { name });
+      console.log("Update function called successfully");
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating item:", error);
+    }
+  }, [item.id, name, updateItem]);
 
-  const handleIconClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-  };
+  const handleDelete = useCallback(async () => {
+    try {
+      await deleteItem(item.id);
+      console.log("Delete function called successfully");
+      setIsDropdownOpen(false);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
+  }, [item.id, deleteItem]);
+
+  const handleEditClick = useCallback(() => {
+    setIsDialogOpen(true);
+    setIsDropdownOpen(false);
+  }, []);
+
+  const handleDropdownTrigger = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDropdownOpen((prev) => !prev);
+  }, []);
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={handleIconClick}>
-          <Pencil1Icon className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader className="text-start">
-          <DialogTitle>Edit Item</DialogTitle>
-          <DialogDescription>Change Your List Item</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 pt-2">
-          <Input
-            id="name"
-            value={name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setName(e.target.value)
-            }
-          />
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} className="w-full">
-            Submit
-          </Button>
+    <>
+      <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+        <DropdownMenuTrigger asChild>
           <Button
-            onClick={() => deleteItem(item.id)}
-            className="w-full"
-            variant="destructive"
+            variant="ghost"
+            size="icon"
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={handleDropdownTrigger}
           >
-            <TrashIcon className="h-4 w-4" />
-            Delete Item
+            <DotsVerticalIcon className="h-4 w-4" />
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem onSelect={() => handleEditClick()}>
+            <Pencil1Icon className="mr-2 h-4 w-4" />
+            <span>Edit</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => handleDelete()}>
+            <TrashIcon className="mr-2 h-4 w-4" />
+            <span>Delete</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent
+          className="sm:max-w-[425px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+            <DialogDescription>Change Your List Item</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 pt-2">
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSubmit}>Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
