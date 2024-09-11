@@ -665,7 +665,16 @@ const HeaderSuperAdmin = React.memo(() => {
                       <span>Manage Domains</span>
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link
+                      href="/TGR/employees/profiles"
+                      className="flex items-center w-full"
+                    >
+                      <PersonIcon className="mr-2 h-4 w-4" />
 
+                      <span>Manage Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
 
                   <DropdownMenuSub>

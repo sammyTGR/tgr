@@ -619,7 +619,18 @@ const HeaderAdmin = React.memo(() => {
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Link
+                      href="/TGR/employees/profiles"
+                      className="flex items-center w-full"
+                    >
+                      <PersonIcon className="mr-2 h-4 w-4" />
 
+                      <span>Manage Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <ShadowIcon className="mr-2 h-4 w-4" />
