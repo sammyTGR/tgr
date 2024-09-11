@@ -457,7 +457,7 @@ export default function GunsmithingMaintenance() {
                 styles.noScroll
               )}
             >
-              <ScrollArea className="h-[calc(100vh-300px)]">
+              <ScrollArea className="h-[calc(100vh-300px)] overflow-auto">
                 <div className="container px-4 mt-4">
                   <TabsContent value="maintenance" className="mt-0">
                     <Card className="h-full">

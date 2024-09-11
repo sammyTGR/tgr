@@ -577,7 +577,7 @@ export default function Component() {
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
-                    "h-[calc(100vh-400px)]"
+                    "h-[calc(100vh-400px)] overflow-auto"
                   )}
                 >
                   <div
