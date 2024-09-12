@@ -31,6 +31,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 const daysOfWeek = [
   "Sunday",
@@ -41,6 +42,9 @@ const daysOfWeek = [
   "Friday",
   "Saturday",
 ];
+
+const timeZone = "America/Los_Angeles";
+
 
 const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   const [data, setData] = useState<{ calendarData: any[] }>({
@@ -176,17 +180,12 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   };
 
   const formatTime = (time: string | null) => {
-    if (!time) return "N/A";
-    const [hours, minutes] = time.split(":");
-    const date = new Date();
-    date.setHours(Number(hours), Number(minutes));
-    return date
-      .toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true,
-      })
-      .replace(" ", "");
+    if (!time || isNaN(Date.parse(`1970-01-01T${time}`))) return "N/A";
+    return formatTZ(
+      toZonedTime(new Date(`1970-01-01T${time}`), timeZone),
+      "hh:mma",
+      { timeZone }
+    );
   };
 
   const updateScheduleStatus = async (
@@ -243,16 +242,27 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
           <TableCell key={day} className="text-left relative group">
             {eventsByDay[day].map((event, index) => (
               <div key={index} className="relative">
-                {/* Only show the status if it's "added_day" or if start_time and end_time are not null */}
                 {event.status === "added_day" ? (
                   <div className="text-pink-500 dark:text-pink-300">
-                    {`${formatTime(event.start_time)} - ${formatTime(
-                      event.end_time
+                    {`${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.start_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
+                    )}-${formatTZ(
+                      toZonedTime(
+                        new Date(`1970-01-01T${event.end_time}`),
+                        timeZone
+                      ),
+                      "h:mma",
+                      { timeZone }
                     )}`}
                   </div>
-                ) : event.start_time !== null && event.end_time !== null ? (
+                ) : event.start_time && event.end_time ? (
                   event.status === "time_off" ? (
-                    <div className="text-purple-500 dark:text-purple-400">
+                    <div className="text-purple-600 dark:text-purple-500">
                       Approved Time Off
                     </div>
                   ) : event.status === "called_out" ? (
@@ -263,6 +273,24 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                     <div className="text-orange-500 dark:text-orange-400">
                       Left Early
                     </div>
+                  ) : event.status === "updated_shift" ? (
+                    <div className="text-orange-500 dark:text-orange-400">
+                      {`${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${event.start_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}-${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${event.end_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}`}
+                    </div>
                   ) : event.status && event.status.startsWith("Custom:") ? (
                     <div className="text-green-500 dark:text-green-400">
                       {event.status.replace("Custom:", "").trim()}
@@ -270,20 +298,33 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                   ) : (
                     <div
                       className={
-                        new Date(`1970-01-01T${event.start_time}Z`) <=
-                        new Date("1970-01-01T11:30:00Z")
+                        toZonedTime(
+                          new Date(`1970-01-01T${event.start_time}`),
+                          timeZone
+                        ).getHours() < 12
                           ? "text-amber-500 dark:text-amber-400"
                           : "text-blue-500 dark:text-blue-400"
                       }
                     >
-                      {`${formatTime(event.start_time)} - ${formatTime(
-                        event.end_time
+                      {`${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${event.start_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
+                      )}-${formatTZ(
+                        toZonedTime(
+                          new Date(`1970-01-01T${event.end_time}`),
+                          timeZone
+                        ),
+                        "h:mma",
+                        { timeZone }
                       )}`}
                     </div>
                   )
-                ) : (
-                  <></> // Hide the status if it's not "added_day" and start_time/end_time are null
-                )}
+                ) : null}
+
                 {(role === "admin" || role === "super admin") && (
                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
                     <Popover>
