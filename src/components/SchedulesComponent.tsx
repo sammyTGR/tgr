@@ -58,10 +58,10 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   const [currentEvent, setCurrentEvent] = useState<any | null>(null);
 
   const fetchCalendarData = useCallback(async (): Promise<any[]> => {
-    const startOfWeek = getStartOfWeek(currentDate);
+    const startOfWeek = toZonedTime(getStartOfWeek(currentDate), timeZone);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
-
+  
     try {
       const { data, error } = await supabase
         .from("schedules")
@@ -72,13 +72,14 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
           end_time,
           day_of_week,
           status,
-          employee_id
+          employee_id,
+          employees:employee_id (name)
         `
         )
         .eq("employee_id", employeeId)
-        .gte("schedule_date", startOfWeek.toISOString().split("T")[0])
-        .lte("schedule_date", endOfWeek.toISOString().split("T")[0]);
-
+        .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
+        .lte("schedule_date", formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone }));
+  
       if (error) {
         throw error;
       }
@@ -115,9 +116,20 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
       const calendarData = await fetchCalendarData();
       setData({ calendarData });
     };
-
+  
     fetchData();
-
+  
+    const timeOffSubscription = supabase
+      .channel("time_off_requests")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "time_off_requests" },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+  
     const schedulesSubscription = supabase
       .channel("schedules")
       .on(
@@ -128,8 +140,9 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
         }
       )
       .subscribe();
-
+  
     return () => {
+      supabase.removeChannel(timeOffSubscription);
       supabase.removeChannel(schedulesSubscription);
     };
   }, [fetchCalendarData]);
@@ -195,7 +208,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   ) => {
     try {
       const formattedDate = new Date(schedule_date).toISOString().split("T")[0];
-      await fetch("/api/update_schedule_status", {
+      const response = await fetch("/api/update_schedule_status", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +219,11 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
           status,
         }),
       });
-
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
       await fetchCalendarData();
     } catch (error) {
       console.error(
