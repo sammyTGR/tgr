@@ -1737,7 +1737,7 @@ function ChatContent() {
       <RoleBasedWrapper
         allowedRoles={["gunsmith", "admin", "super admin", "auditor"]}
       >
-        <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 mx-auto mb-4 overflow-hidden">
+        <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 my-12 mx-auto mb-4 overflow-hidden">
           <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
             <TextGenerateEffect words={title} />
           </CardTitle>

@@ -630,6 +630,18 @@ const HeaderAdmin = React.memo(() => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={handleChatClick}>
+                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                    <span>Messages</span>
+                    {totalUnreadCount > 0 && (
+                      <span className="ml-auto text-red-500 font-bold">
+                        {totalUnreadCount}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
                   
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
@@ -651,17 +663,7 @@ const HeaderAdmin = React.memo(() => {
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={handleChatClick}>
-                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                    <span>Messages</span>
-                    {totalUnreadCount > 0 && (
-                      <span className="ml-auto text-red-500 font-bold">
-                        {totalUnreadCount}
-                      </span>
-                    )}
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
+                  
 
                   <DropdownMenuItem onClick={handleSignOut}>
                     Sign Out
