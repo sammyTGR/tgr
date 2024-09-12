@@ -40,6 +40,10 @@ import SalesDataTable from "../sales/sales-data-table";
 import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 import { Input } from "@/components/ui/input";
+import Papa, { ParseResult } from "papaparse";
+import * as XLSX from "xlsx";
+import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface Certificate {
   id: number;
@@ -89,6 +93,11 @@ export default function AdminDashboard() {
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [salesData, setSalesData] = useState(null);
   const [dailyDeposit, setDailyDeposit] = useState<DailyDeposit | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileInputKey, setFileInputKey] = useState<number>(0);
   const [selectedRange, setSelectedRange] = useState(() => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -102,6 +111,47 @@ export default function AdminDashboard() {
       end: endOfYesterday,
     };
   });
+
+  const categoryMap = new Map<number, string>([
+    [3, "Firearm Accessories"],
+    [175, "Station Rental"],
+    [4, "Ammunition"],
+    [170, "Buyer Fees"],
+    [1, "Pistol"],
+    [10, "Shotgun"],
+    [150, "Gun Range Rental"],
+    [8, "Accessories"],
+    [6, "Knives & Tools"],
+    [131, "Service Labor"],
+    [101, "Class"],
+    [11, "Revolver"],
+    [2, "Rifle"],
+    [191, "FFL Transfer Fee"],
+    [12, "Consumables"],
+    [9, "Receiver"],
+    [135, "Shipping"],
+    [5, "Clothing"],
+    [100, "Shooting Fees"],
+    [7, "Hunting Gear"],
+    [14, "Storage"],
+    [13, "Reloading Supplies"],
+    [15, "Less Than Lethal"],
+    [16, "Personal Protection Equipment"],
+    [17, "Training Tools"],
+    [132, "Outside Service Labor"],
+    [168, "CA Tax Adjust"],
+    [192, "CA Tax Gun Transfer"],
+    [102, "Monthly Storage Fee (Per Firearm)"],
+    [103, "CA Excise Tax"],
+    [104, "CA Excise Tax Adjustment"],
+  ]);
+
+  const subcategoryMap = new Map<string, string>([
+    ["170-7", "Standard Ammunition Eligibility Check"],
+    ["170-1", "Dros Fee"],
+    ["170-16", "DROS Reprocessing Fee (Dealer Sale)"],
+    ["170-8", "Basic Ammunition Eligibility Check"],
+  ]);
 
   useEffect(() => {
     const channel = supabase.channel("custom-all-channel");
@@ -360,6 +410,126 @@ export default function AdminDashboard() {
     }
   }
 
+  const convertDateFormat = (date: string) => {
+    if (!date) return "";
+    const [month, day, year] = date.split("/");
+    if (!month || !day || !year) return "";
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  };
+
+  const handleFileUpload = async (file: File) => {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          const keys = jsonData[0] as string[];
+          const formattedData = jsonData.slice(1).map((row: any) => {
+            const rowData: any = {};
+            keys.forEach((key, index) => {
+              rowData[key] = row[index];
+            });
+
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+
+            return {
+              ...rowData,
+              Date: convertDateFormat(rowData.Date),
+              category_label: categoryLabel,
+              subcategory_label: subcategoryLabel,
+            };
+          });
+
+          // Process in smaller batches
+          const batchSize = 100;
+          let processedCount = 0;
+          for (let i = 0; i < formattedData.length; i += batchSize) {
+            const batch = formattedData.slice(i, i + batchSize);
+            const { data: insertedData, error } = await supabase
+              .from("sales_data")
+              .upsert(batch);
+
+            if (error) {
+              console.error("Error upserting data batch:", error);
+              // Continue with the next batch instead of rejecting
+            } else {
+              processedCount += batch.length;
+            }
+
+            // Update progress
+            setProgress((processedCount / formattedData.length) * 100);
+          }
+
+          // console.log(
+          //   `Successfully processed ${processedCount} records out of ${formattedData.length} total records`
+          // );
+          resolve();
+        } catch (error) {
+          console.error("Error processing data:", error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        reject(error);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (file) {
+      setLoading(true);
+      setProgress(0);
+
+      try {
+        await handleFileUpload(file);
+
+        // Check the current record count
+        const { count, error } = await supabase
+          .from("sales_data")
+          .select("*", { count: "exact", head: true });
+
+        if (error) {
+          console.error("Error checking record count:", error);
+          toast.error("Failed to verify data upload.");
+        } else {
+          toast.success(
+            `File processed successfully. Current record count: ${count}`
+          );
+        }
+
+        setFile(null);
+        setFileName(null);
+        setFileInputKey((prevKey) => prevKey + 1);
+      } catch (error) {
+        console.error("Error during upload and processing:", error);
+        toast.error("Failed to upload and process file.");
+      } finally {
+        setLoading(false);
+        setProgress(100);
+      }
+    } else {
+      toast.error("No file selected.");
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setFileName(e.target.files[0].name);
+    }
+  };
+
   return (
     <div className="section w-full overflow-hidden">
       <Card className="flex flex-col max-h-[calc(100vh-200px)] max-w-6xl mx-auto my-12 overflow-hidden">
@@ -462,12 +632,12 @@ export default function AdminDashboard() {
                   </div>
                 </Card>
 
-                {/* Select Date*/}
+                {/* Select Date and Upload Data */}
                 <Card className="flex flex-col h-full">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
                       <CalendarIcon className="h-6 w-6" />
-                      Select Date
+                      Select Date & Upload Data
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col flex-grow overflow-hidden">
@@ -489,6 +659,30 @@ export default function AdminDashboard() {
                         />
                       </PopoverContent>
                     </Popover>
+
+                    {/* File Upload Section */}
+                    <div className="mt-4 rounded-md border">
+                      <div className="flex flex-col items-start gap-2 p-2">
+                        <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                          <Input
+                            type="file"
+                            accept=".csv,.xlsx"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                          <span>{fileName || "Select File"}</span>
+                        </label>
+                        <Button
+                          variant="outline"
+                          onClick={handleSubmit}
+                          className="w-full"
+                          disabled={loading || !file}
+                        >
+                          {loading ? "Uploading..." : "Upload & Process"}
+                        </Button>
+                      </div>
+                    </div>
+                    {loading && <Progress value={progress} className="mt-4" />}
                   </CardContent>
                 </Card>
 

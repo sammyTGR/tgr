@@ -205,10 +205,10 @@ const HeaderUser = React.memo(() => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 mr-2">
-                <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
 
-                <DropdownMenuItem>
+                  {/* <DropdownMenuItem>
                     <Link
                       href="/TGR/employees/profiles"
                       className="flex items-center w-full"
@@ -218,7 +218,8 @@ const HeaderUser = React.memo(() => {
                       <span>Manage Profile</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator /> */}
+
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <ShadowIcon className="mr-2 h-4 w-4" />

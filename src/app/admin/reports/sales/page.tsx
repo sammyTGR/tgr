@@ -94,100 +94,11 @@ const SalesPage = () => {
     ["170-8", "Basic Ammunition Eligibility Check"],
   ]);
 
-  const handleUpdateLabels = async () => {
-    try {
-      const batchSize = 1000;
-      let offset = 0;
-      let hasMoreData = true;
-
-      while (hasMoreData) {
-        const { data, error } = await supabase
-          .from("sales_data")
-          .select("*")
-          .range(offset, offset + batchSize - 1);
-
-        if (error) {
-          console.error("Error fetching sales data:", error);
-          return;
-        }
-
-        if (data.length === 0) {
-          hasMoreData = false;
-          break;
-        }
-
-        const updatedData = data.map((row: any) => {
-          const categoryLabel = categoryMap.get(row.Cat) || "";
-          const subcategoryKey = `${row.Cat}-${row.Sub}`;
-          const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
-          const { total_gross, total_net, ...filteredRow } = row; // Exclude generated columns
-          return {
-            ...filteredRow,
-            category_label: categoryLabel,
-            subcategory_label: subcategoryLabel,
-          };
-        });
-
-        const { error: updateError } = await supabase
-          .from("sales_data")
-          .upsert(updatedData);
-
-        if (updateError) {
-          console.error("Error updating labels:", updateError);
-          return;
-        }
-
-        offset += batchSize;
-      }
-
-      // toast.success("Labels updated successfully!");
-    } catch (error) {
-      console.error("Unexpected error:", error);
-    }
-  };
-
   const handleFileUpload = async (file: File) => {
     return new Promise<void>((resolve, reject) => {
-      const fileExtension = file.name.split(".").pop()?.toLowerCase();
-
-      const processData = async (data: any[]) => {
-        const formattedData = data.map((row: any) => {
-          const categoryLabel = categoryMap.get(row.Cat) || "";
-          const subcategoryKey = `${row.Cat}-${row.Sub}`;
-          const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
-          const { total_gross, total_net, ...filteredRow } = row; // Exclude generated columns
-          return {
-            ...filteredRow,
-            Date: convertDateFormat(row.Date),
-            category_label: categoryLabel,
-            subcategory_label: subcategoryLabel,
-          };
-        });
-
-        const { data: insertedData, error } = await supabase
-          .from("sales_data")
-          .insert(formattedData);
-
-        if (error) {
-          console.error("Error inserting data:", error);
-          reject(error);
-        } else {
-          // console.log("Data successfully inserted:", insertedData);
-          resolve();
-        }
-      };
-
-      if (fileExtension === "csv") {
-        Papa.parse(file, {
-          header: true,
-          complete: async (results: ParseResult<any>) => {
-            processData(results.data);
-          },
-          skipEmptyLines: true,
-        });
-      } else if (fileExtension === "xlsx") {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: "array" });
           const firstSheetName = workbook.SheetNames[0];
@@ -200,50 +111,99 @@ const SalesPage = () => {
             keys.forEach((key, index) => {
               rowData[key] = row[index];
             });
-            return rowData;
+
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+
+            return {
+              ...rowData,
+              Date: convertDateFormat(rowData.Date),
+              category_label: categoryLabel,
+              subcategory_label: subcategoryLabel,
+            };
           });
 
-          processData(formattedData);
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        reject(new Error("Unsupported file type"));
-      }
+          // Process in smaller batches
+          const batchSize = 100;
+          let processedCount = 0;
+          for (let i = 0; i < formattedData.length; i += batchSize) {
+            const batch = formattedData.slice(i, i + batchSize);
+            const { data: insertedData, error } = await supabase
+              .from("sales_data")
+              .upsert(batch);
+
+            if (error) {
+              console.error("Error upserting data batch:", error);
+              // Continue with the next batch instead of rejecting
+            } else {
+              processedCount += batch.length;
+            }
+
+            // Update progress
+            setProgress((processedCount / formattedData.length) * 100);
+          }
+
+          // console.log(
+          //   `Successfully processed ${processedCount} records out of ${formattedData.length} total records`
+          // );
+          resolve();
+        } catch (error) {
+          console.error("Error processing data:", error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        reject(error);
+      };
+
+      reader.readAsArrayBuffer(file);
     });
+  };
+
+  const handleSubmit = async () => {
+    if (file) {
+      setLoading(true);
+      setProgress(0);
+
+      try {
+        await handleFileUpload(file);
+
+        // Check the current record count
+        const { count, error } = await supabase
+          .from("sales_data")
+          .select("*", { count: "exact", head: true });
+
+        if (error) {
+          console.error("Error checking record count:", error);
+          toast.error("Failed to verify data upload.");
+        } else {
+          toast.success(
+            `File processed successfully. Current record count: ${count}`
+          );
+        }
+
+        setFile(null);
+        setFileName(null);
+        setFileInputKey((prevKey) => prevKey + 1);
+      } catch (error) {
+        console.error("Error during upload and processing:", error);
+        toast.error("Failed to upload and process file.");
+      } finally {
+        setLoading(false);
+        setProgress(100);
+      }
+    } else {
+      toast.error("No file selected.");
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setFileName(e.target.files[0].name);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (file) {
-      setLoading(true); // Set loading state to true
-      setProgress(0); // Reset progress bar
-
-      const updateProgress = (loaded: number, total: number) => {
-        const percentage = (loaded / total) * 100;
-        setProgress(percentage);
-      };
-
-      try {
-        await handleFileUpload(file);
-        await handleUpdateLabels();
-        toast.success("File uploaded and processed successfully!");
-        setFile(null); // Clear the uploaded file
-        setFileName(null);
-        setFileInputKey((prevKey) => prevKey + 1);
-      } catch (error) {
-        toast.error("Failed to upload and process file.");
-      } finally {
-        setLoading(false); // Reset loading state to false
-        setProgress(100); // Ensure progress bar is complete
-      }
-    } else {
-      toast.error("No file selected.");
     }
   };
 

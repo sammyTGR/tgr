@@ -411,7 +411,7 @@ const HeaderAuditor = React.memo(() => {
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem>
+                  {/* <DropdownMenuItem>
                     <Link
                       href="/TGR/employees/profiles"
                       className="flex items-center w-full"
@@ -421,8 +421,8 @@ const HeaderAuditor = React.memo(() => {
                       <span>Manage Profile</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  
+                  <DropdownMenuSeparator /> */}
+
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <ShadowIcon className="mr-2 h-4 w-4" />

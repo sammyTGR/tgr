@@ -489,6 +489,10 @@ const HeaderAdmin = React.memo(() => {
     }
   };
 
+  const handleLinkClick = (href: string) => {
+    router.push(href);
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["admin"]}>
       <header className="flex justify-between items-center p-2">
@@ -619,7 +623,7 @@ const HeaderAdmin = React.memo(() => {
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  {/* <DropdownMenuItem>
                     <Link
                       href="/TGR/employees/profiles"
                       className="flex items-center w-full"
@@ -629,7 +633,7 @@ const HeaderAdmin = React.memo(() => {
                       <span>Manage Profile</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator /> */}
 
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
@@ -642,7 +646,7 @@ const HeaderAdmin = React.memo(() => {
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
-                  
+
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <ShadowIcon className="mr-2 h-4 w-4" />
@@ -662,8 +666,6 @@ const HeaderAdmin = React.memo(() => {
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
-
-                  
 
                   <DropdownMenuItem onClick={handleSignOut}>
                     Sign Out

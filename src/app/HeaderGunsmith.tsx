@@ -255,7 +255,7 @@ const HeaderGunsmith = React.memo(() => {
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  {/* <DropdownMenuItem>
                     <Link
                       href="/TGR/employees/profiles"
                       className="flex items-center w-full"
@@ -265,7 +265,7 @@ const HeaderGunsmith = React.memo(() => {
                       <span>Manage Profile</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator /> */}
 
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
@@ -298,8 +298,6 @@ const HeaderGunsmith = React.memo(() => {
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
-
-                  
 
                   <DropdownMenuItem onClick={handleSignOut}>
                     Sign Out
