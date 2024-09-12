@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CustomCalendar } from "@/components/ui/calendar";
 import { ResponsiveContainer } from "recharts";
@@ -32,6 +32,7 @@ import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStac
 import SalesDataTable from "../sales/sales-data-table";
 import { ScrollBar, ScrollArea  } from "@/components/ui/scroll-area";
 import classNames from "classnames";
+import { Input } from "@/components/ui/input";
 
 interface Certificate {
   id: number;
@@ -56,9 +57,17 @@ interface RangeWalk {
   user_name: string;
 }
 
+interface Domain {
+  id: number;
+  domain: string;
+}
+
 const timeZone = "America/Los_Angeles";
 
 export default function AdminDashboard() {
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [newDomain, setNewDomain] = useState("");
+  const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
   const [rangeWalk, setRangeWalk] = useState<RangeWalk | null>(null);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [gunsmiths, setGunsmiths] = useState<Gunsmith | null>(null);
@@ -77,7 +86,7 @@ export default function AdminDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "firearms_maintenance" },
         (payload) => {
-          console.log("Firearms maintenance change received!", payload);
+          // console.log("Firearms maintenance change received!", payload);
           fetchLatestGunsmithMaintenance();
         }
       )
@@ -85,7 +94,7 @@ export default function AdminDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_data" },
         (payload) => {
-          console.log("Sales data change received!", payload);
+          // console.log("Sales data change received!", payload);
           fetchLatestSalesData(selectedRange.start, selectedRange.end);
         }
       )
@@ -93,7 +102,7 @@ export default function AdminDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "checklist_submissions" },
         (payload) => {
-          console.log("Checklist submission change received!", payload);
+          // console.log("Checklist submission change received!", payload);
           fetchLatestChecklistSubmission();
         }
       )
@@ -101,7 +110,7 @@ export default function AdminDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "range_walk_reports" },
         (payload) => {
-          console.log("Range walk report change received!", payload);
+          // console.log("Range walk report change received!", payload);
           fetchLatestRangeWalkReport();
         }
       )
@@ -109,7 +118,7 @@ export default function AdminDashboard() {
         "postgres_changes",
         { event: "*", schema: "public", table: "certifications" },
         (payload) => {
-          console.log("Certifications change received!", payload);
+          // console.log("Certifications change received!", payload);
           fetchCertificates();
         }
       )
@@ -162,7 +171,7 @@ export default function AdminDashboard() {
 
     if (response.ok) {
       const data = await response.json();
-      console.log("Fetched sales data:", data);
+      // console.log("Fetched sales data:", data);
       setSalesData(data);
     } else {
       console.error("Error fetching sales data:", response.statusText);
@@ -170,7 +179,7 @@ export default function AdminDashboard() {
   }
 
   async function fetchLatestGunsmithMaintenance() {
-    console.log("Fetching latest gunsmith maintenance...");
+    // console.log("Fetching latest gunsmith maintenance...");
     const { data, error } = await supabase
       .from("firearms_maintenance")
       .select("id, firearm_name, last_maintenance_date")
@@ -181,13 +190,13 @@ export default function AdminDashboard() {
     if (error) {
       console.error("Error fetching latest gunsmith maintenance:", error);
     } else {
-      console.log("Fetched gunsmith maintenance data:", data);
+      // console.log("Fetched gunsmith maintenance data:", data);
       if (data && data.length > 0) {
         // Set the first (most recent) entry
         setGunsmiths(data[0]);
-        console.log("Most recent maintenance:", data[0]);
+        // console.log("Most recent maintenance:", data[0]);
       } else {
-        console.log("No gunsmith maintenance data found");
+        // console.log("No gunsmith maintenance data found");
         setGunsmiths(null);
       }
     }
@@ -244,10 +253,75 @@ export default function AdminDashboard() {
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   }
 
+  useEffect(() => {
+    fetchDomains();
+  }, []);
+
+  async function fetchDomains() {
+    const { data, error } = await supabase
+      .from("employee_domains")
+      .select("*")
+      .order("domain");
+
+    if (error) {
+      console.error("Error fetching domains:", error.message);
+    } else {
+      setDomains(data as Domain[]);
+    }
+  }
+
+  async function addDomain() {
+    const { error } = await supabase
+      .from("employee_domains")
+      .insert({ domain: newDomain.toLowerCase() });
+
+    if (error) {
+      console.error("Error adding domain:", error.message);
+    } else {
+      setNewDomain("");
+      fetchDomains();
+    }
+  }
+
+  async function updateDomain() {
+    if (!editingDomain) return;
+
+    const { error } = await supabase
+      .from("employee_domains")
+      .update({ domain: editingDomain.domain.toLowerCase() })
+      .eq("id", editingDomain.id);
+
+    if (error) {
+      console.error("Error updating domain:", error.message);
+    } else {
+      setEditingDomain(null);
+      fetchDomains();
+    }
+  }
+
+  async function deleteDomain(id: number) {
+    const { error } = await supabase
+      .from("employee_domains")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting domain:", error.message);
+    } else {
+      fetchDomains();
+    }
+  }
+
   return (
-    <div className="p-8 min-h-screen">
+    <div className="section w-full overflow-hidden">
+        <Card className="flex flex-col max-h-[calc(100vh-200px)] max-w-6xl mx-auto my-12 overflow-hidden">
+    <div className="p-8 min-h-screen overflow-hidden">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+      <div className="flex-grow overflow-hidden">
+          <ScrollArea
+                className="h-[calc(100vh-310px)] overflow-auto"
+              >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
         <ReportCard
           title="Gunsmithing Weekly Maintenance"
           date={gunsmiths?.last_maintenance_date || null}
@@ -342,7 +416,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card> */}
 
-        <Card className="flex flex-col col-span-full overflow-hidden">
+        <Card className="flex flex-col overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DrawingPinIcon className="h-6 w-6" />
@@ -351,7 +425,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <div className="flex-grow overflow-hidden">
           <ScrollArea
-                className="h-[calc(100vh-1050px)] overflow-auto"
+                className="h-[calc(100vh-1000px)] overflow-auto"
               >
           <CardContent className="flex-grow overflow-auto">
             {certificates.length > 0 ? (
@@ -389,7 +463,89 @@ export default function AdminDashboard() {
               </ScrollArea>
               </div>
         </Card>
+
+        <Card className="flex flex-col overflow-hidden">
+        <CardHeader>
+          <CardTitle>Manage Employee Domains</CardTitle>
+          <CardDescription>
+            Add, edit, or remove domains for employee email addresses.
+          </CardDescription>
+        </CardHeader>
+        <div className="flex-grow overflow-hidden">
+          <ScrollArea
+                className="h-[calc(100vh-1000px)] overflow-auto"
+              >
+        <CardContent>
+          <div className="mb-4 flex items-center space-x-2">
+            <Input
+              type="text"
+              value={newDomain}
+              onChange={(e) => setNewDomain(e.target.value)}
+              placeholder="Enter new domain"
+              className="flex-grow"
+            />
+            <Button variant="outline" onClick={addDomain}>
+              Add Domain
+            </Button>
+          </div>
+
+          <ul className="space-y-2">
+            {domains.map((domain) => (
+              <li key={domain.id} className="flex items-center space-x-2">
+                {editingDomain && editingDomain.id === domain.id ? (
+                  <>
+                    <Input
+                      type="text"
+                      value={editingDomain.domain}
+                      onChange={(e) =>
+                        setEditingDomain({
+                          ...editingDomain,
+                          domain: e.target.value,
+                        })
+                      }
+                      className="flex-grow"
+                    />
+                    <Button onClick={updateDomain} variant="outline">
+                      Save
+                    </Button>
+                    <Button
+                      onClick={() => setEditingDomain(null)}
+                      variant="outline"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-grow">{domain.domain}</span>
+                    <Button
+                      onClick={() => setEditingDomain(domain)}
+                      variant="outline"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => deleteDomain(domain.id)}
+                      variant="destructive"
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+        <ScrollBar orientation="vertical" />
+        </ScrollArea>
+        </div>
+      </Card>
       </div>
+      <ScrollBar orientation="vertical" />
+      </ScrollArea>
+      </div>
+    </div>
+    </Card>
     </div>
   );
 }

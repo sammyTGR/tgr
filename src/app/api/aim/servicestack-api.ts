@@ -61,7 +61,7 @@ export async function lookupInventory(item: string, locationCode?: string): Prom
       }
     });
 
-    console.log('Inventory lookup response:', response.data);
+    // console.log('Inventory lookup response:', response.data);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -94,7 +94,7 @@ export async function searchInventory(searchStr: string): Promise<SearchInventor
       }
     });
 
-    console.log('Inventory search response:', response.data);
+    // console.log('Inventory search response:', response.data);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {

@@ -70,6 +70,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { CustomCalendarMulti } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { ProgressBar } from "@/components/ProgressBar";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -92,6 +93,16 @@ interface Audit {
   error_notes: string;
   dros_cancel: string;
 }
+
+type EmployeeProfileData = {
+  name: string;
+  last_name: string;
+  phone_number: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip: string;
+};
 
 interface Review {
   id: number;
@@ -183,6 +194,9 @@ const EmployeeProfilePage = () => {
   const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
   const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
   const [lunchBreakTime, setLunchBreakTime] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const { register, handleSubmit: handleSubmitProfile, setValue } =
+    useForm<EmployeeProfileData>();
   const [payPeriodDates, setPayPeriodDates] = useState<{
     start: string;
     end: string;
@@ -938,6 +952,56 @@ const EmployeeProfilePage = () => {
     fetchData();
   }, [employeeId, userUuid]);
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData) {
+        setUser(userData.user);
+
+        const { data: employeeData, error } = await supabase
+          .from("employees")
+          .select(
+            "name, last_name, phone_number, street_address, city, state, zip"
+          )
+          .eq("user_uuid", userData.user?.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching employee data:", error);
+          toast.error("Failed to load profile data. Please try again.");
+          return;
+        }
+
+        if (employeeData) {
+          // Type-safe way to set form values
+          (
+            Object.keys(employeeData) as Array<keyof EmployeeProfileData>
+          ).forEach((key) => {
+            setValue(key, employeeData[key]);
+          });
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [setValue]);
+
+  const onSubmit = async (data: EmployeeProfileData) => {
+    if (user) {
+      const { error } = await supabase
+        .from("employees")
+        .update(data)
+        .eq("user_uuid", user.id);
+
+      if (error) {
+        console.error("Error updating profile:", error);
+        toast.error("Failed to update profile. Please try again.");
+      } else {
+        toast.success("Profile updated successfully!");
+      }
+    }
+  };
+
   if (loading) return <ProgressBar value={progress} showAnimation={true} />;
 
   return (
@@ -971,6 +1035,9 @@ const EmployeeProfilePage = () => {
               <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              {employee?.role === "super admin" && (
+                <TabsTrigger value="profile">Manage Profile</TabsTrigger>
+              )}
             </TabsList>
             <ScrollArea className="h-[calc(100vh-300px)]">
               <main
@@ -1714,6 +1781,63 @@ const EmployeeProfilePage = () => {
                         </div>
                       </DialogContent>
                     </Dialog>
+                  </TabsContent>
+
+                  {/* Manage Profile */}
+                  <TabsContent value="profile">
+                    {/* <h1 className="text-xl font-bold mb-2 ml-2">
+                      <TextGenerateEffect words={"Manage Your Profile"} />
+                    </h1> */}
+                    <div className="grid p-2 gap-2 md:grid-cols-1 lg:grid-cols-1">
+                      <Card className="mt-4">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-2xl font-bold">
+                            Manage Your Profile
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <form onSubmit={handleSubmitProfile(onSubmit)}>
+                            <div className="p-4 rounded-b-lg space-y-6">
+                              {[
+                                { label: "First Name", id: "name" },
+                                { label: "Last Name", id: "last_name" },
+                                { label: "Phone Number", id: "phone_number" },
+                                {
+                                  label: "Street Address",
+                                  id: "street_address",
+                                },
+                                { label: "City", id: "city" },
+                                { label: "State", id: "state" },
+                                { label: "ZIP Code", id: "zip" },
+                              ].map((field) => (
+                                <div key={field.id} className="grid gap-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="w-full">
+                                      <Label htmlFor={field.id}>
+                                        {field.label}
+                                      </Label>
+                                      <Input
+                                        id={field.id}
+                                        {...register(
+                                          field.id as keyof EmployeeProfileData
+                                        )}
+                                        className="block w-full mt-1 p-2 border rounded"
+                                      />
+                                    </div>
+                                  </div>
+                                  <Separator />
+                                </div>
+                              ))}
+                              <div className="flex justify-end">
+                                <Button variant="linkHover1" type="submit">
+                                  Save Changes
+                                </Button>
+                              </div>
+                            </div>
+                          </form>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </TabsContent>
                 </Suspense>
               </main>

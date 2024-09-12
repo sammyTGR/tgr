@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, FC } from "react";
+import { useState, useEffect, useRef, FC, useCallback } from "react";
 import {
   DndContext,
   closestCenter,
@@ -473,7 +473,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
       // Update the local state
       setLists((prevLists) => prevLists.filter((list) => list.id !== listId));
 
-      console.log(`List ${listId} deleted successfully`);
+      // console.log(`List ${listId} deleted successfully`);
     } catch (error) {
       console.error("Error deleting list:", error);
     }
@@ -499,18 +499,43 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         }))
       );
 
-      console.log(`Item ${id} updated successfully`);
+      // console.log(`Item ${id} updated successfully`);
     } catch (error) {
       console.error("Error updating item:", error);
     }
   };
 
+  const clearList = useCallback(async (listId: string) => {
+    try {
+      // Delete all items associated with the list from the database
+      const { error } = await supabase
+        .from("items")
+        .delete()
+        .eq("list_id", listId);
+
+      if (error) throw error;
+
+      // Update the local state to reflect the cleared list
+      setLists((prevLists) =>
+        prevLists.map((list) =>
+          list.id === listId ? { ...list, items: [] } : list
+        )
+      );
+
+      console.log(`List ${listId} cleared successfully`);
+    } catch (error) {
+      console.error("Error clearing list:", error);
+    }
+  }, []);
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <main className="flex grid-cols-4 justify-center mt-10 h-screen px-2 mx-auto select-none">
+        {role === "super admin" && (
         <div className="flex justify-start p-4 mb-4">
           <AddNewList addNewList={addNewList} />
         </div>
+        )}
         <div className="container mt-10 px-4 md:px-6">
           <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-3 md:grid-cols-3">
             <DndContext
@@ -528,12 +553,13 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
                   <SortableCard key={list.id} id={list.id}>
                     <Card className="w-full min-w-[325px] md:max-w-lg">
                       <CardHeader className="space-y-1">
-                        <CardTitle className="text-2xl flex justify-between">
+                        <CardTitle className="flex justify-between items-center">
                           {list.title}
                           <EditListTitle
                             list={list}
                             updateListTitle={updateListTitle}
                             deleteList={deleteList}
+                            clearList={clearList}
                           />
                         </CardTitle>
                       </CardHeader>
@@ -596,7 +622,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
                           }))
                         );
 
-                        console.log(`Item ${id} deleted successfully`);
+                        // console.log(`Item ${id} deleted successfully`);
                       } catch (error) {
                         console.error("Error deleting item:", error);
                         // Optionally, you can show an error message to the user here
@@ -637,7 +663,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
                           }))
                         );
 
-                        console.log(`Item ${id} updated successfully`);
+                        // console.log(`Item ${id} updated successfully`);
                       } catch (error) {
                         console.error("Error updating item:", error);
                         // Optionally, you can show an error message to the user here

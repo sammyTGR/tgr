@@ -39,9 +39,9 @@ const SortableLinks: FC<SortableLinkCardProps> = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style}>
       <Card className="p-4 relative flex justify-between items-center gap-2 group">
-        <div>{item.name}</div>
+        <div {...attributes} {...listeners}>{item.name}</div>
         <div
           className="absolute top-2 right-2"
           onClick={(e) => e.stopPropagation()}

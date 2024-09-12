@@ -19,7 +19,7 @@ const fetchSalesData = async (req: NextApiRequest, res: NextApiResponse) => {
       throw new Error('Start date or end date is missing');
     }
 
-    console.log("API received dates:", { startDate, endDate });
+    // console.log("API received dates:", { startDate, endDate });
     
     // Convert to Date objects and adjust for UTC
     const utcStartDate = new Date(startDate);
@@ -29,7 +29,7 @@ const fetchSalesData = async (req: NextApiRequest, res: NextApiResponse) => {
     const formattedStartDate = format(utcStartDate, 'yyyy-MM-dd');
     const formattedEndDate = format(utcEndDate, 'yyyy-MM-dd');
 
-    console.log("Formatted date range:", { formattedStartDate, formattedEndDate });
+    // console.log("Formatted date range:", { formattedStartDate, formattedEndDate });
 
     const { data, error, count } = await supabase
       .from('sales_data')
@@ -42,7 +42,7 @@ const fetchSalesData = async (req: NextApiRequest, res: NextApiResponse) => {
       throw error;
     }
     
-    console.log("Fetched data count:", count);
+    // console.log("Fetched data count:", count);
     res.status(200).json({ data, count });
   } catch (error: any) {
     console.error('Failed to fetch sales data:', error);

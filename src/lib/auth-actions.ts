@@ -312,7 +312,7 @@ export async function handleOAuthUser(user: any) {
       return;
     }
 
-    console.log("User upserted into employees table:", user.email);
+    // console.log("User upserted into employees table:", user.email);
 
   } else {
     // Upsert into the customers table
@@ -334,7 +334,7 @@ export async function handleOAuthUser(user: any) {
       return;
     }
 
-    console.log("User upserted into customers table:", user.email);
+    // console.log("User upserted into customers table:", user.email);
   }
 }
 

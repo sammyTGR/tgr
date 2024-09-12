@@ -28,10 +28,10 @@ export function DataTableRowActions<TData>({
   };
 
   const handleSubmit = async (formData: SubmitFormData) => {
-    console.log("Form submitted:", formData);
+    // console.log("Form submitted:", formData);
     
     const auditId = formData.audits_id;
-    console.log("Attempting to update audit with ID:", auditId);
+    // console.log("Attempting to update audit with ID:", auditId);
   
     if (!auditId) {
       console.error("No valid audit ID found");
@@ -51,7 +51,7 @@ export function DataTableRowActions<TData>({
         error_details: formData.errorDetails,
         error_notes: formData.errorNotes,
       };
-      console.log("Update payload:", updatePayload);
+      // console.log("Update payload:", updatePayload);
   
       const { data, error } = await supabase
         .from('Auditsinput')

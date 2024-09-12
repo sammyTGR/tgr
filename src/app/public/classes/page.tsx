@@ -75,7 +75,7 @@ export default function Component() {
     // Remove the id from the updates object
     const { id: _, ...classData } = updates;
 
-    console.log("Data being sent to Supabase:", classData);
+    // console.log("Data being sent to Supabase:", classData);
 
     const { data, error } = await supabase
       .from("class_schedules")
@@ -85,7 +85,7 @@ export default function Component() {
     if (error) {
       console.error("Error adding class:", error);
     } else {
-      console.log("Inserted data:", data);
+      // console.log("Inserted data:", data);
       setClassSchedules((prev) => [...prev, ...(data || [])]);
     }
   };
@@ -113,7 +113,7 @@ export default function Component() {
     if (error) {
       console.error("Error updating class:", error);
     } else {
-      console.log("Updated data:", data);
+      // console.log("Updated data:", data);
       setClassSchedules((prevSchedules) =>
         prevSchedules.map((schedule) =>
           schedule.id === updatedClass.id ? updatedClass : schedule

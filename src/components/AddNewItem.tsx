@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { PlusIcon } from "@radix-ui/react-icons";
 
 export function AddNewItem({
@@ -18,17 +18,26 @@ export function AddNewItem({
   addNewItem: (name: string) => void;
 }) {
   const [itemName, setItemName] = React.useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
     if (itemName.trim() === "") {
       return;
     }
-    addNewItem(itemName);
-    setItemName("");
-  };
+    try {
+      await addNewItem(itemName);
+      console.log("New item added successfully");
+      setItemName("");
+    } catch (error) {
+      console.error("Error adding new item:", error);
+    } finally {
+      setIsOpen(false);
+    }
+  }, [itemName, addNewItem]);
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="linkHover2" size="icon">
           <PlusIcon className="h-4 w-4" />

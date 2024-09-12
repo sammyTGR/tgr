@@ -302,7 +302,7 @@ function ChatContent() {
     const deletedGroupChatId = payload.old?.id;
 
     if (!deletedGroupChatId || !user) {
-      console.log("Invalid payload or user not available");
+      // console.log("Invalid payload or user not available");
       return;
     }
 
@@ -312,9 +312,9 @@ function ChatContent() {
       );
 
       if (updatedDmUsers.length < prev.length) {
-        console.log(`Group chat ${deletedGroupChatId} removed from dmUsers`);
+        // console.log(`Group chat ${deletedGroupChatId} removed from dmUsers`);
       } else {
-        console.log(`Group chat ${deletedGroupChatId} not found in dmUsers`);
+        // console.log(`Group chat ${deletedGroupChatId} not found in dmUsers`);
       }
 
       return updatedDmUsers;
@@ -323,12 +323,12 @@ function ChatContent() {
     if (selectedChat === `group_${deletedGroupChatId}`) {
       setSelectedChat(null);
       setMessages([]);
-      console.log(
-        `Cleared selection and messages for deleted group chat ${deletedGroupChatId}`
-      );
+      // console.log(
+      //   `Cleared selection and messages for deleted group chat ${deletedGroupChatId}`
+      // );
     }
 
-    console.log(`Group chat ${deletedGroupChatId} deletion handled`);
+    // console.log(`Group chat ${deletedGroupChatId} deletion handled`);
   };
 
   // Update the fetchGroupChats function
@@ -1355,7 +1355,7 @@ function ChatContent() {
 
   const handleMessageChange = useCallback(
     (payload: any, chatType: string) => {
-      console.log(`${chatType} message change:`, payload);
+      // console.log(`${chatType} message change:`, payload);
 
       if (payload.eventType === "INSERT") {
         const newMessage = payload.new;
@@ -1680,7 +1680,7 @@ function ChatContent() {
     };
 
     const handleGroupChatChange = (payload: any) => {
-      console.log("Group chat change:", payload);
+      // console.log("Group chat change:", payload);
       if (payload.eventType === "INSERT") {
         handleGroupChatInsert(payload);
       } else if (payload.eventType === "UPDATE") {

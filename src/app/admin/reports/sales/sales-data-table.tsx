@@ -123,7 +123,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   const fetchSalesData = async () => {
     setIsLoading(true);
     try {
-      console.log("Fetching data with dates:", { startDate, endDate });
+      // console.log("Fetching data with dates:", { startDate, endDate });
       const response = await fetch("/api/fetch-sales-data", {
         method: "POST",
         headers: {
@@ -138,14 +138,14 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const { data, count } = await response.json();
-      console.log("Raw data received:", data);
+      // console.log("Raw data received:", data);
       if (Array.isArray(data)) {
         // Convert dates to UTC
         const formattedData = data.map((item) => ({
           ...item,
           Date: new Date(item.Date + 'T00:00:00Z').toISOString().split('T')[0],
         }));
-        console.log("Formatted data:", formattedData);
+        // console.log("Formatted data:", formattedData);
         
         // Filter data based on UTC dates
         const filteredData = formattedData.filter((item) => {
@@ -153,17 +153,17 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           const start = new Date(startDate + 'T00:00:00Z');
           const end = new Date(endDate + 'T23:59:59.999Z');
           
-          console.log("Comparing dates:", {
-            itemDate: itemDate.toISOString(),
-            start: start.toISOString(),
-            end: end.toISOString(),
-            isWithinRange: itemDate >= start && itemDate <= end
-          });
+          // console.log("Comparing dates:", {
+          //   itemDate: itemDate.toISOString(),
+          //   start: start.toISOString(),
+          //   end: end.toISOString(),
+          //   isWithinRange: itemDate >= start && itemDate <= end
+          // });
           
           return itemDate >= start && itemDate <= end;
         });
         
-        console.log("Filtered data:", filteredData);
+        // console.log("Filtered data:", filteredData);
         setSales(filteredData);
         setPageCount(Math.ceil(filteredData.length / pageSize));
       } else {

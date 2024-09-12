@@ -7,6 +7,7 @@ import ShiftUpdated from './../../../emails/ShiftUpdated';
 import LeftEarly from './../../../emails/LeftEarly';
 import CustomStatus from './../../../emails/CustomStatus'; // You'll need to create this template
 import CalledOut from './../../../emails/CalledOut';
+import { toast } from 'sonner';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -145,8 +146,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           subject: subject,
           react: EmailTemplate(templateData),
         });
-
-        console.log("Email sent successfully:", resendRes);
+        toast.success("Email sent successfully");
+        // console.log("Email sent successfully:", resendRes);
       } catch (emailError: any) {
         console.error("Error sending email:", emailError.message);
         return res.status(500).json({ error: 'Error sending email', details: emailError.message });

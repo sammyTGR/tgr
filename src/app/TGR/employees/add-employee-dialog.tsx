@@ -183,24 +183,24 @@ export default function AddEmployeeDialog({
         : null,
     };
 
-    console.log("Formatted employee data:", formattedEmployee);
+    // console.log("Formatted employee data:", formattedEmployee);
 
     try {
       // Add the employee
-      console.log("Attempting to insert employee...");
+      // console.log("Attempting to insert employee...");
       const { data: insertedEmployee, error: employeeError } = await supabase
         .from("employees")
         .insert([formattedEmployee])
         .select();
 
-      console.log("Insert operation result:", {
-        insertedEmployee,
-        employeeError,
-      });
+      // console.log("Insert operation result:", {
+      //   insertedEmployee,
+      //   employeeError,
+      // });
 
       if (employeeError) {
         console.error("Error adding employee:", employeeError);
-        console.log("Error details:", JSON.stringify(employeeError, null, 2));
+        // console.log("Error details:", JSON.stringify(employeeError, null, 2));
         alert(`Error adding employee: ${employeeError.message}`);
         return;
       }
@@ -212,7 +212,7 @@ export default function AddEmployeeDialog({
       }
 
       const newEmployeeId = insertedEmployee[0].employee_id;
-      console.log("Inserted employee ID:", newEmployeeId);
+      // console.log("Inserted employee ID:", newEmployeeId);
 
       // Add all schedule entries, including those without times
       const scheduleEntries = schedule.map((entry) => ({
@@ -223,22 +223,22 @@ export default function AddEmployeeDialog({
         end_time: entry.end_time || null,
       }));
 
-      console.log("Attempting to insert schedule entries:", scheduleEntries);
+      // console.log("Attempting to insert schedule entries:", scheduleEntries);
       const { error: scheduleError } = await supabase
         .from("reference_schedules")
         .insert(scheduleEntries);
 
       if (scheduleError) {
         console.error("Error adding schedule:", scheduleError);
-        console.log(
-          "Schedule error details:",
-          JSON.stringify(scheduleError, null, 2)
-        );
+        // console.log(
+        //   "Schedule error details:",
+        //   JSON.stringify(scheduleError, null, 2)
+        // );
         alert(`Error adding schedule: ${scheduleError.message}`);
         return;
       }
 
-      console.log("Schedule entries added successfully");
+      // console.log("Schedule entries added successfully");
 
       // Call onAdd with the newly created employee data
       onAdd(insertedEmployee[0]);
@@ -266,10 +266,10 @@ export default function AddEmployeeDialog({
       setSchedule(initialSchedule);
       onClose();
 
-      console.log("Employee added successfully, form reset, and dialog closed");
+      // console.log("Employee added successfully, form reset, and dialog closed");
     } catch (error) {
       console.error("Error in handleSubmit:", error);
-      console.log("Unexpected error details:", JSON.stringify(error, null, 2));
+      // console.log("Unexpected error details:", JSON.stringify(error, null, 2));
       alert(`An unexpected error occurred: ${error}`);
     }
   };

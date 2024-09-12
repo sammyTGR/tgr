@@ -114,12 +114,12 @@ export async function middleware(request: NextRequest) {
     console.error("Error fetching employee role:", employeeError.message);
   } else if (!employeeData) {
     // Insert logic in the OAuth callback, not here.
-    console.log("No employee data found, handling this in OAuth callback");
+    // console.log("No employee data found, handling this in OAuth callback");
   } else {
     const userRole = employeeData.role;
     const employeeId = employeeData.employee_id;
 
-    console.log("User is an employee, redirecting:", user.email);
+    // console.log("User is an employee, redirecting:", user.email);
 
     // Redirect to the correct profile page based on role
     if (url.pathname === "/auth" || url.pathname === "/") {

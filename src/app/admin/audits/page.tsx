@@ -274,7 +274,7 @@ export default function AuditsPage() {
           table: "Auditsinput",
         },
         (payload) => {
-          console.log("Change received!", payload);
+          // console.log("Change received!", payload);
           setDataMap((currentMap) => {
             const newMap = new Map(currentMap);
             if (

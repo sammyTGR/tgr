@@ -588,8 +588,8 @@ const OnboardingWizard = () => {
         return;
       }
 
-      console.log("Onboarding completed successfully");
-      toast.success("Employee onboarded successfully with complete schedule");
+      // console.log("Onboarding completed successfully");
+      toast.success("Employee onboarded with their working schedule!");
 
       // Reset form or navigate to a success page
       setData(initialData);

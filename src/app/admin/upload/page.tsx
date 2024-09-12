@@ -10,7 +10,7 @@ export default function Home() {
         className="mt-4 ut-button:bg-background ut-button:ut-readying:bg-purple-500/50"
         endpoint="fileUploader"
         onClientUploadComplete={(res) => {
-          console.log("Files: ", res);
+          // console.log("Files: ", res);
           toast.success("File uploaded successfully!");
         }}
         onUploadError={(error: Error) => {

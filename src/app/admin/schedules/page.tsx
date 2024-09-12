@@ -515,7 +515,7 @@ const ManageSchedules = () => {
         console.error("Error adding/updating timesheet entry:", result.error);
         toast.error("Failed to add/update timesheet entry");
       } else {
-        console.log("Timesheet entry added/updated successfully:", result.data);
+        // console.log("Timesheet entry added/updated successfully:", result.data);
         fetchTimesheets();
         toast.success("Timesheet entry added/updated successfully");
       }
@@ -597,7 +597,7 @@ const ManageSchedules = () => {
         console.error("Error adding/updating schedule:", result.error);
         toast.error("Failed to add/update schedule");
       } else {
-        console.log("Schedule added/updated successfully:", result.data);
+        // console.log("Schedule added/updated successfully:", result.data);
         fetchActualSchedules();
         toast.success("Schedule added/updated successfully");
       }

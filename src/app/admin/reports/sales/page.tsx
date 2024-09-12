@@ -250,7 +250,7 @@ const SalesPage = () => {
   const handleRangeChange = async (date: Date | undefined) => {
     if (date) {
       const formattedDate = format(date, "yyyy-MM-dd");
-      console.log("Selected date:", formattedDate);
+      // console.log("Selected date:", formattedDate);
       setSelectedRange({ start: date, end: date });
 
       // Fetch new data and update totals

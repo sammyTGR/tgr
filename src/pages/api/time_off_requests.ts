@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
 
     if (req.method === 'GET') {
-        console.log('Fetching pending time off requests');
+        // console.log('Fetching pending time off requests');
         try {
             const { data, error } = await supabase
                 .from('time_off_requests')
@@ -46,14 +46,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             if (!data || data.length === 0) {
-                console.log('No pending time off requests found');
+                // console.log('No pending time off requests found');
                 return res.status(200).json([]);
             }
 
-            console.log(`Found ${data.length} pending time off requests`);
+            // console.log(`Found ${data.length} pending time off requests`);
 
             const enrichedData = await Promise.all(data.map(async (request: TimeOffRequest) => {
-                console.log(`Enriching data for request ID: ${request.request_id}`);
+                // console.log(`Enriching data for request ID: ${request.request_id}`);
                 const [sickTimeResult, employeeResult] = await Promise.all([
                     supabase.rpc("calculate_available_sick_time", { p_emp_id: request.employee_id }),
                     supabase.from('employees').select('pay_type, hire_date, vacation_time').eq('employee_id', request.employee_id).single()
@@ -81,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 };
             }));
 
-            console.log('Successfully enriched time off request data');
+            // console.log('Successfully enriched time off request data');
             return res.status(200).json(enrichedData);
         } catch (err) {
             console.error("Unexpected error fetching time off requests:", err);

@@ -15,6 +15,7 @@ import {
   MoonIcon,
   ShadowIcon,
   Pencil2Icon,
+  DashboardIcon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
@@ -672,12 +673,12 @@ const HeaderSuperAdmin = React.memo(() => {
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Link
-                      href="/TGR/employees/profiles"
+                      href="/admin/reports/dashboard"
                       className="flex items-center w-full"
                     >
-                      <PersonIcon className="mr-2 h-4 w-4" />
+                      <DashboardIcon className="mr-2 h-4 w-4" />
 
-                      <span>Manage Profile</span>
+                      <span>Admin Dashboard</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

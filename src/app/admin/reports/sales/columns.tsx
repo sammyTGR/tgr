@@ -142,7 +142,7 @@ export const salesColumns = (
       const parsedDate = parseISO(originalDate);
       const utcDate = toZonedTime(parsedDate, 'UTC');
       
-      console.log('Original date:', originalDate, 'Parsed UTC date:', utcDate);
+      // console.log('Original date:', originalDate, 'Parsed UTC date:', utcDate);
       
       return format(utcDate, "MM/dd/yyyy");
     },

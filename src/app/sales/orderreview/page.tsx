@@ -62,7 +62,7 @@ export default function OrdersReviewPage() {
   }, [data, statusFilter]);
 
   const setStatus = async (orderId: number, status: string) => {
-    console.log(`Setting status of order ${orderId} to ${status}`);
+    // console.log(`Setting status of order ${orderId} to ${status}`);
     const { error } = await supabase
       .from("orders")
       .update({ status, is_read: true })

@@ -1,3 +1,4 @@
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -6,11 +7,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import React, { useState } from "react";
-import { Pencil2Icon, TrashIcon } from "@radix-ui/react-icons";
+import {
+  Pencil1Icon,
+  TrashIcon,
+  DotsVerticalIcon,
+  EraserIcon,
+} from "@radix-ui/react-icons";
 
 interface List {
   id: string;
@@ -18,60 +29,122 @@ interface List {
   items: any[];
 }
 
+interface EditListTitleProps {
+  list: List;
+  updateListTitle: (id: string, title: string) => Promise<void>;
+  deleteList: (id: string) => Promise<void>;
+  clearList: (id: string) => Promise<void>;
+}
+
 export function EditListTitle({
   list,
   updateListTitle,
   deleteList,
-}: {
-  list: List;
-  updateListTitle: (id: string, title: string) => void;
-  deleteList: (id: string) => void;
-}) {
+  clearList,
+}: EditListTitleProps) {
   const [title, setTitle] = useState(list.title);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
     if (title.trim() === "") {
       return;
     }
-    updateListTitle(list.id, title);
-  };
+    try {
+      await updateListTitle(list.id, title);
+      console.log("List title updated successfully");
+    } catch (error) {
+      console.error("Error updating list title:", error);
+    } finally {
+      setIsDialogOpen(false);
+    }
+  }, [list.id, title, updateListTitle]);
+
+  const handleDelete = useCallback(async () => {
+    try {
+      await deleteList(list.id);
+      console.log("List deleted successfully");
+    } catch (error) {
+      console.error("Error deleting list:", error);
+    } finally {
+      setIsDropdownOpen(false);
+    }
+  }, [list.id, deleteList]);
+
+  const handleClearList = useCallback(async () => {
+    try {
+      await clearList(list.id);
+      console.log("List cleared successfully");
+    } catch (error) {
+      console.error("Error clearing list:", error);
+    } finally {
+      setIsDropdownOpen(false);
+    }
+  }, [list.id, clearList]);
+
+  const handleEditClick = useCallback(() => {
+    setIsDialogOpen(true);
+    setIsDropdownOpen(false);
+  }, []);
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="linkHover2" size="icon">
-          <Pencil2Icon className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader className="text-start">
-          <DialogTitle>Edit List Title</DialogTitle>
-          <DialogDescription>
-            Enter the new title for your list
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 pt-2">
-          <Input
-            id="title"
-            value={title}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setTitle(e.target.value)
-            }
-          />
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} className="w-full">
-            Submit
-          </Button>
+    <>
+      <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+      <DropdownMenuTrigger asChild>
           <Button
-            onClick={() => deleteList(list.id)}
-            className="w-full"
-            variant="destructive"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 p-0"
           >
-            Delete List
+            <DotsVerticalIcon className="h-4 w-4" />
+            <span className="sr-only">Open menu</span>
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onSelect={handleEditClick}>
+            <Pencil1Icon className="mr-2 h-4 w-4" />
+            <span>Edit</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={handleClearList}>
+            <EraserIcon className="mr-2 h-4 w-4" />
+            <span>Clear List</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={handleDelete}>
+            <TrashIcon className="mr-2 h-4 w-4" />
+            <span>Delete List</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit List Title</DialogTitle>
+            <DialogDescription>
+              Enter the new title for your list
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 pt-2">
+              <Input
+                id="title"
+                value={title}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setTitle(e.target.value)
+                }
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="w-full my-2">
+                Save changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
