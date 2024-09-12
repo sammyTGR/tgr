@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
 import { BarChart } from "@/components/BarChart";
 import { useTheme } from "next-themes";
 import { ResponsiveContainer } from "recharts";
-
+import { ScrollBar, ScrollArea  } from "@/components/ui/scroll-area";
+import classNames from "classnames";
+import styles from "./chart.module.css";
 interface ChartData {
   Lanid: string;
   Date: string;
@@ -150,7 +152,8 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
         </p>
       </div> */}
       <ResponsiveContainer width="100%" height="100%">
-        <div className="overflow-x-auto">
+        <div className="overflow-hidden">
+        <ScrollArea className="w-[calc(100vw-90px)] overflow-auto">
           <div style={{ minWidth: chartData.length * 100 }}>
             <BarChart
               data={chartData}
@@ -168,6 +171,8 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
               }}
             />
           </div>
+          <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         </div>
       </ResponsiveContainer>
     </div>

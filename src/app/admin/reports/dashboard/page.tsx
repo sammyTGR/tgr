@@ -30,8 +30,7 @@ import {
 import { format, formatDate, formatDistanceToNow } from "date-fns";
 import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStackedBarChart";
 import SalesDataTable from "../sales/sales-data-table";
-import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollBar, ScrollArea  } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 
 interface Certificate {
@@ -282,53 +281,6 @@ export default function AdminDashboard() {
           details={certificates} // Pass the certificates as details
         />
 
-        {/* <Card className="flex flex-col h-[calc(100vh-500px)]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DrawingPinIcon className="h-6 w-6" />
-              Certificates Needing Renewal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow overflow-hidden">
-            {certificates.length > 0 ? (
-              <ScrollArea
-                className={classNames(
-                  styles.noScroll,
-                  "h-[calc(100vh-600px)]" // Adjusted height to account for CardHeader
-                )}
-              >
-                <ul className="space-y-2 pr-4">
-                  {certificates.map((cert) => (
-                    <li
-                      key={cert.id}
-                      className="flex items-center justify-between space-x-2"
-                    >
-                      <span className="flex-shrink-0 w-1/4 truncate">
-                        {cert.name}
-                      </span>
-                      <span className="flex-shrink-0 w-1/4 truncate">
-                        {cert.certificate}
-                      </span>
-                      <span className="flex-shrink-0 w-1/4 truncate">
-                        {cert.action_status}
-                      </span>
-                      <Badge variant="destructive">
-                        {new Date(cert.expiration).toLocaleDateString()}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
-                <ScrollBar orientation="vertical" />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            ) : (
-              <p className="text-center">
-                No certificates need renewal at this time.
-              </p>
-            )}
-          </CardContent>
-        </Card> */}
-
         <Card className="flex flex-col h-[calc(100vh-250px)]">
           <CardHeader className="flex-shrink-0">
             <CardTitle className="flex items-center gap-2">
@@ -357,10 +309,10 @@ export default function AdminDashboard() {
             </Popover>
             <Suspense fallback={<div>Loading...</div>}>
               <div className="flex-grow overflow-hidden border rounded-md">
-              <SalesDataTable
-  startDate={format(selectedRange.start, "yyyy-MM-dd")}
-  endDate={format(selectedRange.end, "yyyy-MM-dd")}
-/>
+                <SalesDataTable
+                  startDate={format(selectedRange.start, "yyyy-MM-dd")}
+                  endDate={format(selectedRange.end, "yyyy-MM-dd")}
+                />
               </div>
             </Suspense>
           </CardContent>
@@ -378,7 +330,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-full">
+        {/* <Card className="col-span-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BellIcon className="h-6 w-6" />
@@ -388,6 +340,54 @@ export default function AdminDashboard() {
           <CardContent>
             <p>Add any important notices or announcements here.</p>
           </CardContent>
+        </Card> */}
+
+        <Card className="flex flex-col col-span-full overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DrawingPinIcon className="h-6 w-6" />
+              Certificates Needing Renewal
+            </CardTitle>
+          </CardHeader>
+          <div className="flex-grow overflow-hidden">
+          <ScrollArea
+                className="h-[calc(100vh-1050px)] overflow-auto"
+              >
+          <CardContent className="flex-grow overflow-auto">
+            {certificates.length > 0 ? (
+              
+                <ul className="space-y-2 pr-4">
+                  {certificates.map((cert) => (
+                    <li
+                      key={cert.id}
+                      className="flex items-center justify-between space-x-2"
+                    >
+                      <span className="flex-shrink-0 w-1/4 truncate">
+                        {cert.name}
+                      </span>
+                      <span className="flex-shrink-0 w-1/4 truncate">
+                        {cert.certificate}
+                      </span>
+                      <span className="flex-shrink-0 w-1/4 truncate">
+                        {cert.action_status}
+                      </span>
+                      <Badge variant="destructive">
+                        {new Date(cert.expiration).toLocaleDateString()}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+                
+            ) : (
+              <p className="text-center">
+                No certificates need renewal at this time.
+              </p>
+            )}
+          </CardContent>
+          <ScrollBar orientation="vertical" />
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+              </div>
         </Card>
       </div>
     </div>
