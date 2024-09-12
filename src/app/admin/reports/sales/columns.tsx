@@ -1,10 +1,12 @@
 // src/app\admin\reports\sales\columns.tsx
 
-import { format } from "date-fns";
+// import { format } from "date-fns";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import SalesTableRowActions from "./sales-table-row-actions";
 import { includesArrayString } from "./custom-filter";
+import { compareAsc, format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 export interface SalesData {
   id: number;
@@ -136,16 +138,26 @@ export const salesColumns = (
       <DataTableColumnHeader column={column} title="Date" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.Date);
-      return format(date, "MM/dd/yyyy");
+      const originalDate = row.original.Date;
+      const parsedDate = parseISO(originalDate);
+      const utcDate = toZonedTime(parsedDate, 'UTC');
+      
+      console.log('Original date:', originalDate, 'Parsed UTC date:', utcDate);
+      
+      return format(utcDate, "MM/dd/yyyy");
     },
     meta: {
       style: { width: "120px" },
     },
-    sortingFn: "datetime",
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = parseISO(rowA.original.Date);
+      const dateB = parseISO(rowB.original.Date);
+      return compareAsc(dateA, dateB);
+    },
     filterFn: (row, columnId, filterValue) => {
-      const date = new Date(row.getValue(columnId));
-      const formattedDate = format(date, "yyyy-MM-dd");
+      const date = parseISO(row.getValue(columnId));
+      const utcDate = toZonedTime(date, 'UTC');
+      const formattedDate = format(utcDate, "yyyy-MM-dd");
       return formattedDate.includes(filterValue);
     },
   },

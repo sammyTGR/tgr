@@ -86,6 +86,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [pageCount, setPageCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const onUpdate = async (id: number, updates: Partial<SalesData>) => {
     const { error } = await supabase
@@ -120,6 +121,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   );
 
   const fetchSalesData = async () => {
+    setIsLoading(true);
     try {
       console.log("Fetching data with dates:", { startDate, endDate });
       const response = await fetch("/api/fetch-sales-data", {
@@ -138,21 +140,32 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
       const { data, count } = await response.json();
       console.log("Raw data received:", data);
       if (Array.isArray(data)) {
-        // Ensure dates are in the correct format and filter for the correct date
-        const formattedData = data
-          .map((item) => ({
-            ...item,
-            Date: new Date(item.Date).toISOString().split("T")[0],
-          }))
-          .filter((item) => {
-            const itemDate = new Date(item.Date);
-            const start = new Date(startDate || "");
-            const end = new Date(endDate || "");
-            return itemDate >= start && itemDate <= end;
+        // Convert dates to UTC
+        const formattedData = data.map((item) => ({
+          ...item,
+          Date: new Date(item.Date + 'T00:00:00Z').toISOString().split('T')[0],
+        }));
+        console.log("Formatted data:", formattedData);
+        
+        // Filter data based on UTC dates
+        const filteredData = formattedData.filter((item) => {
+          const itemDate = new Date(item.Date + 'T00:00:00Z');
+          const start = new Date(startDate + 'T00:00:00Z');
+          const end = new Date(endDate + 'T23:59:59.999Z');
+          
+          console.log("Comparing dates:", {
+            itemDate: itemDate.toISOString(),
+            start: start.toISOString(),
+            end: end.toISOString(),
+            isWithinRange: itemDate >= start && itemDate <= end
           });
-        console.log("Formatted and filtered data:", formattedData);
-        setSales(formattedData);
-        setPageCount(Math.ceil(formattedData.length / pageSize));
+          
+          return itemDate >= start && itemDate <= end;
+        });
+        
+        console.log("Filtered data:", filteredData);
+        setSales(filteredData);
+        setPageCount(Math.ceil(filteredData.length / pageSize));
       } else {
         console.error("Unexpected data format:", data);
         toast.error("Received unexpected data format");
@@ -160,6 +173,8 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
     } catch (error) {
       console.error("Failed to fetch sales data:", error);
       toast.error("Failed to fetch sales data.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -221,7 +236,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
-    manualSorting: true,
+    // manualSorting: true,
   });
 
   return (
@@ -288,7 +303,16 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -310,7 +334,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                       colSpan={columns.length}
                       className="h-24 text-center"
                     >
-                      No results.
+                      No results found.
                     </TableCell>
                   </TableRow>
                 )}

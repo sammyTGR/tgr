@@ -1,6 +1,7 @@
 // src/pages/api/fetch-sales-data.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/utils/supabase/client';
+import { format } from 'date-fns';
 import { corsHeaders } from '@/utils/cors';
 
 const fetchSalesData = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -20,27 +21,32 @@ const fetchSalesData = async (req: NextApiRequest, res: NextApiResponse) => {
 
     console.log("API received dates:", { startDate, endDate });
     
-   // Convert to Date objects and adjust for UTC
-   const utcStartDate = new Date(startDate);
-   const utcEndDate = new Date(endDate);
-   utcEndDate.setUTCHours(23, 59, 59, 999); // Set to end of day in UTC
-   
-   const { data, error, count } = await supabase
-     .from('sales_data')
-     .select('*', { count: 'exact' })
-     .gte('Date', utcStartDate.toISOString())
-     .lte('Date', utcEndDate.toISOString());
+    // Convert to Date objects and adjust for UTC
+    const utcStartDate = new Date(startDate);
+    const utcEndDate = new Date(endDate);
+    utcEndDate.setUTCHours(23, 59, 59, 999);
+    
+    const formattedStartDate = format(utcStartDate, 'yyyy-MM-dd');
+    const formattedEndDate = format(utcEndDate, 'yyyy-MM-dd');
 
-     if (error) {
+    console.log("Formatted date range:", { formattedStartDate, formattedEndDate });
+
+    const { data, error, count } = await supabase
+      .from('sales_data')
+      .select('*', { count: 'exact' })
+      .gte('Date', formattedStartDate)
+      .lte('Date', formattedEndDate);
+
+    if (error) {
+      console.error('Supabase error:', error);
       throw error;
     }
     
     console.log("Fetched data count:", count);
-    console.log("Date range:", { startDate: utcStartDate.toISOString(), endDate: utcEndDate.toISOString() });
     res.status(200).json({ data, count });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch sales data:', error);
-    res.status(500).json({ error: 'Failed to fetch sales data' });
+    res.status(500).json({ error: 'Failed to fetch sales data', details: error.message });
   }
 };
 

@@ -357,16 +357,10 @@ export default function AdminDashboard() {
             </Popover>
             <Suspense fallback={<div>Loading...</div>}>
               <div className="flex-grow overflow-hidden border rounded-md">
-                <SalesDataTable
-                  startDate={format(
-                    selectedRange.start,
-                    "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
-                  )}
-                  endDate={format(
-                    selectedRange.end,
-                    "yyyy-MM-dd'T'23:59:59.999xxx"
-                  )}
-                />
+              <SalesDataTable
+  startDate={format(selectedRange.start, "yyyy-MM-dd")}
+  endDate={format(selectedRange.end, "yyyy-MM-dd")}
+/>
               </div>
             </Suspense>
           </CardContent>
