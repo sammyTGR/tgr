@@ -240,8 +240,8 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
   });
 
   return (
-    <div className="flex flex-col max-h-full w-full">
-      <div className="flex flex-row items-center justify-between mx-2 my-2">
+    <div className="flex flex-col max-h-full w-full overflow-hidden">
+      <div className="flex flex-row items-center justify-between mx-2 my-2 overflow-hidden">
         <Input
           placeholder="Filter sales by rep..."
           value={(table.getColumn("Lanid")?.getFilterValue() as string) ?? ""}
@@ -277,16 +277,16 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden max-h-fullrounded-md border w-full sm:w-full md:w-full lg:min-w-8xl lg:max-w-8xl">
-        <div className="h-[calc(100vh-200px)] overflow-auto">
+      <div className="flex-1 overflow-hidden max-h-full rounded-md border w-full sm:w-full md:w-full lg:min-w-8xl lg:max-w-8xl">
+        <div className="overflow-hidden">
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-400px)] overflow-auto"
+              "h-[calc(100vh-400px)] w-[calc(100vw-100px)] overflow-auto"
             )}
           >
-            <Table>
-              <TableHeader>
+            <Table className="w-full overflow-hidden">
+              <TableHeader >
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -302,12 +302,12 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody>
+              <TableBody className="overflow-hidden">
                 {isLoading ? (
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center"
+                      className="h-24 text-center overflow-hidden"
                     >
                       Loading...
                     </TableCell>
