@@ -24,12 +24,12 @@ export function SalesDataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2">
-      <div className="flex items-center space-x-2">
+      {/* <div className="flex items-center space-x-2">
         <p className="text-sm font-medium">Page</p>
         <strong>
           {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </strong>
-      </div>
+      </div> */}
       <div className="flex items-center space-x-2">
         <p className="text-sm font-medium">Go to page:</p>
         <Input

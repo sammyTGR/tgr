@@ -345,7 +345,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           </ScrollArea>
         </div>
       </div>
-      <div className="flex-none mt-4">
+      <div className="flex flex-col mt-4">
         <SalesDataTablePagination table={table} />
       </div>
     </div>
