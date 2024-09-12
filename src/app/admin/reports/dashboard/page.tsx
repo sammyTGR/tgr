@@ -92,10 +92,10 @@ export default function AdminDashboard() {
   const [selectedRange, setSelectedRange] = useState(() => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);  // Set to start of the day
+    yesterday.setHours(0, 0, 0, 0); // Set to start of the day
 
     const endOfYesterday = new Date(yesterday);
-    endOfYesterday.setHours(23, 59, 59, 999);  // Set to end of the day
+    endOfYesterday.setHours(23, 59, 59, 999); // Set to end of the day
 
     return {
       start: yesterday,
@@ -417,6 +417,7 @@ export default function AdminDashboard() {
                   ]}
                 />
 
+                {/* Certificate Renewals List*/}
                 <Card className="flex flex-col overflow-hidden">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -425,44 +426,43 @@ export default function AdminDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <div className="flex-grow overflow-hidden">
-                    <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto">
-                      <CardContent className="flex-grow overflow-auto">
-                        {certificates.length > 0 ? (
-                          <ul className="space-y-2 pr-4">
-                            {certificates.map((cert) => (
-                              <li
-                                key={cert.id}
-                                className="flex items-center justify-between space-x-2"
-                              >
-                                <span className="flex-shrink-0 w-1/4 truncate">
-                                  {cert.name}
-                                </span>
-                                <span className="flex-shrink-0 w-1/4 truncate">
-                                  {cert.certificate}
-                                </span>
-                                <span className="flex-shrink-0 w-1/4 truncate">
-                                  {cert.action_status}
-                                </span>
-                                <Badge variant="destructive">
-                                  {new Date(
-                                    cert.expiration
-                                  ).toLocaleDateString()}
-                                </Badge>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-center">
-                            No certificates need renewal at this time.
-                          </p>
-                        )}
-                      </CardContent>
-                      <ScrollBar orientation="vertical" />
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                    {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
+                    <CardContent className="flex-grow overflow-auto">
+                      {certificates.length > 0 ? (
+                        <ul className="space-y-2 pr-4">
+                          {certificates.map((cert) => (
+                            <li
+                              key={cert.id}
+                              className="flex items-center justify-between space-x-2"
+                            >
+                              <span className="flex-shrink-0 w-1/4 truncate">
+                                {cert.name}
+                              </span>
+                              <span className="flex-shrink-0 w-1/4 truncate">
+                                {cert.certificate}
+                              </span>
+                              <span className="flex-shrink-0 w-1/4 truncate">
+                                {cert.action_status}
+                              </span>
+                              <Badge variant="destructive">
+                                {new Date(cert.expiration).toLocaleDateString()}
+                              </Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-center">
+                          No certificates need renewal at this time.
+                        </p>
+                      )}
+                    </CardContent>
+                    {/* <ScrollBar orientation="vertical" /> */}
+                    {/* <ScrollBar orientation="horizontal" /> */}
+                    {/* </ScrollArea> */}
                   </div>
                 </Card>
 
+                {/* Select Date*/}
                 <Card className="flex flex-col h-full">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
@@ -489,11 +489,8 @@ export default function AdminDashboard() {
                         />
                       </PopoverContent>
                     </Popover>
-                    
                   </CardContent>
                 </Card>
-
-                
 
                 {/* <Card className="col-span-full">
           <CardHeader>
@@ -507,6 +504,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card> */}
 
+                {/* Manage Approved Domains*/}
                 <Card className="flex flex-col overflow-hidden">
                   <CardHeader>
                     <CardTitle>Manage Approved Domains</CardTitle>
@@ -515,84 +513,82 @@ export default function AdminDashboard() {
                     </CardDescription>
                   </CardHeader>
                   <div className="flex-grow overflow-hidden">
-                    <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto">
-                      <CardContent>
-                        <div className="mb-4 flex items-center space-x-2">
-                          <Input
-                            type="text"
-                            value={newDomain}
-                            onChange={(e) => setNewDomain(e.target.value)}
-                            placeholder="Enter new domain"
-                            className="flex-grow"
-                          />
-                          <Button variant="outline" onClick={addDomain}>
-                            Add Domain
-                          </Button>
-                        </div>
+                    {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
+                    <CardContent>
+                      <div className="mb-4 flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          value={newDomain}
+                          onChange={(e) => setNewDomain(e.target.value)}
+                          placeholder="Enter new domain"
+                          className="flex-grow"
+                        />
+                        <Button variant="outline" onClick={addDomain}>
+                          Add Domain
+                        </Button>
+                      </div>
 
-                        <ul className="space-y-2">
-                          {domains.map((domain) => (
-                            <li
-                              key={domain.id}
-                              className="flex items-center space-x-2"
-                            >
-                              {editingDomain &&
-                              editingDomain.id === domain.id ? (
-                                <>
-                                  <Input
-                                    type="text"
-                                    value={editingDomain.domain}
-                                    onChange={(e) =>
-                                      setEditingDomain({
-                                        ...editingDomain,
-                                        domain: e.target.value,
-                                      })
-                                    }
-                                    className="flex-grow"
-                                  />
-                                  <Button
-                                    onClick={updateDomain}
-                                    variant="outline"
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    onClick={() => setEditingDomain(null)}
-                                    variant="outline"
-                                  >
-                                    Cancel
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="flex-grow">
-                                    {domain.domain}
-                                  </span>
-                                  <Button
-                                    onClick={() => setEditingDomain(domain)}
-                                    variant="outline"
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    onClick={() => deleteDomain(domain.id)}
-                                    variant="destructive"
-                                  >
-                                    Delete
-                                  </Button>
-                                </>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                      <ScrollBar orientation="vertical" />
-                    </ScrollArea>
+                      <ul className="space-y-2">
+                        {domains.map((domain) => (
+                          <li
+                            key={domain.id}
+                            className="flex items-center space-x-2"
+                          >
+                            {editingDomain && editingDomain.id === domain.id ? (
+                              <>
+                                <Input
+                                  type="text"
+                                  value={editingDomain.domain}
+                                  onChange={(e) =>
+                                    setEditingDomain({
+                                      ...editingDomain,
+                                      domain: e.target.value,
+                                    })
+                                  }
+                                  className="flex-grow"
+                                />
+                                <Button
+                                  onClick={updateDomain}
+                                  variant="outline"
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  onClick={() => setEditingDomain(null)}
+                                  variant="outline"
+                                >
+                                  Cancel
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="flex-grow">
+                                  {domain.domain}
+                                </span>
+                                <Button
+                                  onClick={() => setEditingDomain(domain)}
+                                  variant="outline"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  onClick={() => deleteDomain(domain.id)}
+                                  variant="destructive"
+                                >
+                                  Delete
+                                </Button>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    {/* <ScrollBar orientation="vertical" /> */}
+                    {/* </ScrollArea> */}
                   </div>
                 </Card>
 
-                
-
+                {/* Sales Report Chart*/}
                 <Card className="flex flex-col col-span-full h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -605,6 +601,7 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
 
+                {/* Sales Report Table*/}
                 <Card className="flex flex-col col-span-full h-[calc(100vh-250px)] w-[calc(100wh-200px)]">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
@@ -613,7 +610,6 @@ export default function AdminDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col flex-grow overflow-hidden">
-
                     <Suspense fallback={<div>Loading...</div>}>
                       <div className="flex-grow overflow-hidden border rounded-md">
                         <SalesDataTable
@@ -624,8 +620,6 @@ export default function AdminDashboard() {
                     </Suspense>
                   </CardContent>
                 </Card>
-
-
               </div>
               <ScrollBar orientation="vertical" />
               <ScrollBar orientation="horizontal" />
@@ -670,13 +664,15 @@ function ReportCard({
     const currentDate = new Date();
     const oneDayAgo = new Date(currentDate);
     oneDayAgo.setDate(currentDate.getDate() - 1);
+    oneDayAgo.setHours(0, 0, 0, 0); // Set to start of the previous day
     const sevenDaysAgo = new Date(currentDate);
     sevenDaysAgo.setDate(currentDate.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0); // Set to start of 7 days ago
 
     if (type === "maintenance") {
-      return submissionDate > sevenDaysAgo;
+      return submissionDate >= sevenDaysAgo;
     } else {
-      return submissionDate > oneDayAgo;
+      return submissionDate >= oneDayAgo;
     }
   };
 
@@ -704,10 +700,13 @@ function ReportCard({
               </p>
             )}
             <div className="flex items-center mt-2">
-            {isSubmitted() ? (
+              {isSubmitted() ? (
                 <>
                   <CheckCircledIcon className="text-green-500 mr-2" />
-                  <Badge variant="outline" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-100 text-green-800"
+                  >
                     Submitted
                   </Badge>
                 </>
