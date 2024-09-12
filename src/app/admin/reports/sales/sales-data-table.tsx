@@ -144,10 +144,12 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
             ...item,
             Date: new Date(item.Date).toISOString().split("T")[0],
           }))
-          .filter(
-            (item) =>
-              item.Date >= (startDate || "") && item.Date <= (endDate || "")
-          );
+          .filter((item) => {
+            const itemDate = new Date(item.Date);
+            const start = new Date(startDate || "");
+            const end = new Date(endDate || "");
+            return itemDate >= start && itemDate <= end;
+          });
         console.log("Formatted and filtered data:", formattedData);
         setSales(formattedData);
         setPageCount(Math.ceil(formattedData.length / pageSize));

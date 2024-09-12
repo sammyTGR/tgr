@@ -147,14 +147,17 @@ export default function AdminDashboard() {
   };
 
   async function fetchLatestSalesData(startDate: Date, endDate: Date) {
+    const utcStartDate = new Date(startDate.toUTCString().slice(0, -4));
+    const utcEndDate = new Date(endDate.toUTCString().slice(0, -4));
+
     const response = await fetch("/api/fetch-sales-data", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: utcStartDate.toISOString(),
+        endDate: utcEndDate.toISOString(),
       }),
     });
 
@@ -266,8 +269,20 @@ export default function AdminDashboard() {
           icon={<MagnifyingGlassIcon className="h-6 w-6" />}
           extraInfo={rangeWalk?.user_name}
         />
+        <ReportCard
+          title="Certificates Needing Renewal"
+          date={
+            certificates.length > 0
+              ? new Date(certificates[0].expiration).toISOString()
+              : null
+          }
+          icon={<DrawingPinIcon className="h-6 w-6" />}
+          extraInfo={certificates.length > 0 ? certificates[0].name : undefined}
+          type="certificate"
+          details={certificates} // Pass the certificates as details
+        />
 
-        <Card className="flex flex-col h-[calc(100vh-500px)]">
+        {/* <Card className="flex flex-col h-[calc(100vh-500px)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DrawingPinIcon className="h-6 w-6" />
@@ -312,7 +327,7 @@ export default function AdminDashboard() {
               </p>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card className="flex flex-col h-[calc(100vh-250px)]">
           <CardHeader className="flex-shrink-0">
@@ -343,8 +358,14 @@ export default function AdminDashboard() {
             <Suspense fallback={<div>Loading...</div>}>
               <div className="flex-grow overflow-hidden border rounded-md">
                 <SalesDataTable
-                  startDate={format(selectedRange.start, "yyyy-MM-dd")}
-                  endDate={format(selectedRange.end, "yyyy-MM-dd")}
+                  startDate={format(
+                    selectedRange.start,
+                    "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+                  )}
+                  endDate={format(
+                    selectedRange.end,
+                    "yyyy-MM-dd'T'23:59:59.999xxx"
+                  )}
                 />
               </div>
             </Suspense>
@@ -385,12 +406,14 @@ function ReportCard({
   icon,
   extraInfo,
   type,
+  details,
 }: {
   title: string;
   date: string | null;
   icon: React.ReactNode;
   extraInfo?: string;
   type?: string;
+  details?: Certificate[];
 }) {
   const timeZone = "America/Los_Angeles"; // Or use your preferred time zone
 
@@ -438,6 +461,38 @@ function ReportCard({
               </Badge>
             </div>
           </>
+        )}
+        {details && details.length > 0 && (
+          <ScrollArea
+            className={classNames(
+              styles.noScroll,
+              "h-[calc(100vh-1200px)]" // Adjusted height to account for CardHeader
+            )}
+          >
+            <ul className="space-y-2 pr-4">
+              {details.map((cert) => (
+                <li
+                  key={cert.id}
+                  className="flex items-center justify-between space-x-2"
+                >
+                  <span className="flex-shrink-0 w-1/4 truncate">
+                    {cert.name}
+                  </span>
+                  <span className="flex-shrink-0 w-1/4 truncate">
+                    {cert.certificate}
+                  </span>
+                  <span className="flex-shrink-0 w-1/4 truncate">
+                    {cert.action_status}
+                  </span>
+                  <Badge variant="destructive">
+                    {new Date(cert.expiration).toLocaleDateString()}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+            <ScrollBar orientation="vertical" />
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         )}
       </CardContent>
     </Card>
