@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { FeatureConfig, defaultFeatureConfig } from "./features";
 
-export function ConfigurationPage() {
+export default function ConfigPage() {
   const [config, setConfig] = useState<FeatureConfig>(defaultFeatureConfig);
 
   const handleToggle = (feature: keyof FeatureConfig) => {
