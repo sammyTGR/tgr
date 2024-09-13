@@ -127,6 +127,8 @@ function ChatContent() {
   const [showDMOptions, setShowDMOptions] = useState<string | null>(null);
   const [showGroupOptions, setShowGroupOptions] = useState<string | null>(null);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [viewedChat, setViewedChat] = useState<string | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { resetUnreadCounts, setTotalUnreadCount: setGlobalUnreadCount } =
     useUnreadCounts();
 
@@ -163,14 +165,23 @@ function ChatContent() {
     resetUnreadCounts();
   }, [resetUnreadCounts]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
     }
-  };
+  }, [messagesEndRef]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messagesContainerRef.current) {
+      const { scrollHeight, clientHeight } = messagesContainerRef.current;
+      messagesContainerRef.current.scrollTo({
+        top: scrollHeight - clientHeight,
+        behavior: "smooth",
+      });
+    }
   }, [messages]);
 
   const setMessagesWithoutDuplicates = useCallback(
@@ -1443,12 +1454,92 @@ function ChatContent() {
         console.error("User is not defined");
         return;
       }
+      // console.log("handleChatClick called with chatId:", chatId);
+      // console.log("Current viewedChat:", viewedChat);
 
-      if (selectedChat === chatId) {
+      // Toggle viewed chat
+      if (viewedChat === chatId) {
+        // console.log("Unselecting chat");
+        setViewedChat(null);
+        setMessages([]);
+        setSelectedChat(null);
+        return; // Exit the function early if we're unselecting the chat
+      }
+
+      console.log("Selecting new chat");
+      setViewedChat(chatId);
+      setSelectedChat(chatId);
+
+      let messagesData: ChatMessage[] = [];
+      let messagesError;
+
+      // Ensure the receiver's nav list updates to show the new DM or group chat
+      if (!dmUsers.some((u) => u.id === chatId)) {
+        if (chatId.startsWith("group_")) {
+          const groupChatId = parseInt(chatId.split("_")[1], 10);
+          await fetchGroupChatDetails(groupChatId);
+        } else {
+          const { data: userData, error: userError } = await supabase
+            .from("employees")
+            .select("user_uuid, name, is_online")
+            .eq("user_uuid", chatId)
+            .single();
+
+          if (userData) {
+            setDmUsers((prev) => [
+              ...prev,
+              {
+                id: userData.user_uuid,
+                name: userData.name,
+                is_online: userData.is_online,
+              },
+            ]);
+          } else {
+            console.error("Error fetching user:", userError?.message);
+          }
+        }
+      }
+
+      try {
+        if (chatId.startsWith("group_")) {
+          const groupChatId = parseInt(chatId.split("_")[1], 10);
+          const { data, error } = await supabase
+            .from("group_chat_messages")
+            .select("*")
+            .eq("group_chat_id", groupChatId)
+            .order("created_at", { ascending: true });
+          messagesData = data || [];
+          messagesError = error;
+        } else {
+          const { data, error } = await supabase
+            .from("direct_messages")
+            .select("*")
+            .or(
+              `receiver_id.eq.${chatId},sender_id.eq.${chatId},receiver_id.eq.${user.id},sender_id.eq.${user.id}`
+            )
+            .order("created_at", { ascending: true });
+          messagesData = data || [];
+          messagesError = error;
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          console.error("Error fetching messages:", err.message);
+          messagesError = err;
+        } else {
+          console.error("Unexpected error:", err);
+          messagesError = new Error("Unexpected error occurred");
+        }
+      }
+
+      if (messagesError) {
+        console.error("Error fetching messages:", messagesError.message);
         return;
       }
 
-      setSelectedChat(chatId);
+      // console.log("Setting messages:", messagesData);
+      setMessages(messagesData);
+      scrollToBottom();
+      localStorage.setItem("currentChat", chatId);
 
       // Reset unread status for this chat
       setUnreadStatus((prevStatus) => ({
@@ -1469,11 +1560,6 @@ function ChatContent() {
       });
 
       if (unreadStatus[chatId]) {
-        setUnreadStatus((prevStatus) => ({
-          ...prevStatus,
-          [chatId]: false,
-        }));
-
         const tableName = chatId.startsWith("group_")
           ? "group_chat_messages"
           : "direct_messages";
@@ -1519,82 +1605,11 @@ function ChatContent() {
           }
         }
       }
-
-      // Ensure the receiver's nav list updates to show the new DM or group chat
-      if (!dmUsers.some((u) => u.id === chatId)) {
-        if (chatId.startsWith("group_")) {
-          const groupChatId = parseInt(chatId.split("_")[1], 10);
-          await fetchGroupChatDetails(groupChatId);
-        } else {
-          const { data: userData, error: userError } = await supabase
-            .from("employees")
-            .select("user_uuid, name, is_online")
-            .eq("user_uuid", chatId)
-            .single();
-
-          if (userData) {
-            setDmUsers((prev) => [
-              ...prev,
-              {
-                id: userData.user_uuid,
-                name: userData.name,
-                is_online: userData.is_online,
-              },
-            ]);
-          } else {
-            console.error("Error fetching user:", userError?.message);
-          }
-        }
-      }
-
-      let messagesData: any[] = [];
-      let messagesError;
-
-      try {
-        if (chatId.startsWith("group_")) {
-          const groupChatId = parseInt(chatId.split("_")[1], 10);
-          const { data, error } = await supabase
-            .from("group_chat_messages")
-            .select("*")
-            .eq("group_chat_id", groupChatId)
-            .order("created_at", { ascending: true });
-          messagesData = data || [];
-          messagesError = error;
-        } else {
-          const { data, error } = await supabase
-            .from("direct_messages")
-            .select("*")
-            .or(
-              `receiver_id.eq.${chatId},sender_id.eq.${chatId},receiver_id.eq.${user.id},sender_id.eq.${user.id}`
-            )
-            .order("created_at", { ascending: true });
-          messagesData = data || [];
-          messagesError = error;
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          console.error("Error fetching messages:", err.message);
-          messagesError = err;
-        } else {
-          console.error("Unexpected error:", err);
-          messagesError = new Error("Unexpected error occurred");
-        }
-      }
-
-      if (messagesError) {
-        console.error("Error fetching messages:", messagesError.message);
-        return;
-      }
-
-      setMessages(messagesData);
-      scrollToBottom();
-      localStorage.setItem("currentChat", chatId);
     },
     [
       dmUsers,
       unreadStatus,
       user,
-      selectedChat,
       setUnreadCounts,
       setTotalUnreadCount,
       setMessages,
@@ -1608,22 +1623,22 @@ function ChatContent() {
   useEffect(() => {
     if (dmUsers.length > 0 && selectedChat) {
       const selectedUser = dmUsers.find((u) => u.id === selectedChat);
-      if (selectedUser) {
+      if (selectedUser && !viewedChat) {
         handleChatClick(selectedChat);
       }
     }
-  }, [dmUsers, selectedChat, handleChatClick]);
+  }, [dmUsers, selectedChat, handleChatClick, viewedChat]);
 
   // Filter messages to avoid duplicates
-  const filteredMessages = selectedChat
+  const filteredMessages = viewedChat
     ? messages.filter((msg) => {
-        if (selectedChat.startsWith("group_")) {
-          return msg.group_chat_id === parseInt(selectedChat.split("_")[1], 10);
+        if (viewedChat.startsWith("group_")) {
+          return msg.group_chat_id === parseInt(viewedChat.split("_")[1], 10);
         }
 
         return (
-          (msg.sender_id === user.id && msg.receiver_id === selectedChat) ||
-          (msg.sender_id === selectedChat && msg.receiver_id === user.id)
+          (msg.sender_id === user.id && msg.receiver_id === viewedChat) ||
+          (msg.sender_id === viewedChat && msg.receiver_id === user.id)
         );
       })
     : [];
@@ -1737,7 +1752,7 @@ function ChatContent() {
       <RoleBasedWrapper
         allowedRoles={["gunsmith", "admin", "super admin", "auditor"]}
       >
-        <Card className="flex flex-col h-[80vh] max-h-[80vh] max-w-6xl p-4 my-12 mx-auto mb-4 overflow-hidden">
+        <Card className="flex flex-col h-[60vh] max-w-[90vw] mx-auto overflow-hidden">
           <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
             <TextGenerateEffect words={title} />
           </CardTitle>
@@ -1764,8 +1779,8 @@ function ChatContent() {
                         <div
                           key={u.id}
                           className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                            selectedChat === u.id
-                              ? "bg-muted dark:bg-muted"
+                            viewedChat === u.id
+                              ? "bg-blue-100 dark:bg-blue-900"
                               : ""
                           }`}
                         >
@@ -1849,8 +1864,8 @@ function ChatContent() {
                         <div
                           key={groupChat.id}
                           className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                            selectedChat === groupChat.id
-                              ? "bg-muted dark:bg-muted"
+                            viewedChat === groupChat.id
+                              ? "bg-blue-100 dark:bg-blue-900"
                               : ""
                           }`}
                         >
@@ -1975,117 +1990,131 @@ function ChatContent() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 flex flex-col max-h-[62vh] overflow-auto p-6">
-                  <div className="space-y-6">
-                    {filteredMessages.map((msg, i) => (
-                      <div key={i} className="flex items-start gap-4">
-                        <Avatar className="border items-center justify-center">
-                          <AvatarImage
-                            src="/Circular.png"
-                            className="w-full h-full"
-                          />
-                          <AvatarFallback>
-                            {msg.user_name?.charAt(0) ||
-                              msg.sender_id?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="grid gap-1 flex-1">
-                          <div className="font-bold relative group">
-                            {msg.user_name || getUserName(msg.sender_id)}
-                            {msg.sender_id !== user.id &&
-                              !msg.receiver_id &&
-                              !msg.group_chat_id && (
-                                <Button
-                                  className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() =>
-                                    startDirectMessage({
-                                      id: msg.sender_id!,
-                                      name:
-                                        msg.user_name ||
-                                        getUserName(msg.sender_id),
-                                      is_online: false,
-                                    })
-                                  }
-                                >
-                                  <ChatBubbleIcon />
-                                </Button>
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div
+                  className="flex-1 overflow-y-auto p-6"
+                  ref={messagesContainerRef}
+                >
+                  {viewedChat ? (
+                    <div className="space-y-6">
+                      {filteredMessages.map((msg, i) => (
+                        <div key={i} className="flex items-start gap-4">
+                          <Avatar className="border items-center justify-center">
+                            <AvatarImage
+                              src="/Circular.png"
+                              className="w-full h-full"
+                            />
+                            <AvatarFallback>
+                              {msg.user_name?.charAt(0) ||
+                                msg.sender_id?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="grid gap-1 flex-1">
+                            <div className="font-bold relative group">
+                              {msg.user_name || getUserName(msg.sender_id)}
+                              {msg.sender_id !== user.id &&
+                                !msg.receiver_id &&
+                                !msg.group_chat_id && (
+                                  <Button
+                                    className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      startDirectMessage({
+                                        id: msg.sender_id!,
+                                        name:
+                                          msg.user_name ||
+                                          getUserName(msg.sender_id),
+                                        is_online: false,
+                                      })
+                                    }
+                                  >
+                                    <ChatBubbleIcon />
+                                  </Button>
+                                )}
+                            </div>
+                            <div className="prose prose-stone">
+                              {editingMessageId === msg.id ? (
+                                <>
+                                  <Textarea
+                                    value={editingMessage}
+                                    onChange={(e) =>
+                                      setEditingMessage(e.target.value)
+                                    }
+                                    className="mb-2"
+                                  />
+                                  <Button onClick={onUpdate} className="mb-2">
+                                    Update
+                                  </Button>
+                                </>
+                              ) : (
+                                <p>{msg.message}</p>
                               )}
+                            </div>
                           </div>
-                          <div className="prose prose-stone">
-                            {editingMessageId === msg.id ? (
-                              <>
-                                <Textarea
-                                  value={editingMessage}
-                                  onChange={(e) =>
-                                    setEditingMessage(e.target.value)
-                                  }
-                                  className="mb-2"
-                                />
-                                <Button onClick={onUpdate} className="mb-2">
-                                  Update
-                                </Button>
-                              </>
-                            ) : (
-                              <p>{msg.message}</p>
-                            )}
-                          </div>
+                          {role === "super admin" ||
+                          msg.sender_id === user.id ? (
+                            <div className="flex space-x-2">
+                              <Button
+                                onClick={() => onEdit(msg.id, msg.message)}
+                                variant="ghost"
+                                size="icon"
+                              >
+                                <Pencil1Icon />
+                              </Button>
+                              <Button
+                                onClick={() => onDelete(msg.id)}
+                                variant="ghost"
+                                size="icon"
+                              >
+                                <TrashIcon />
+                              </Button>
+                            </div>
+                          ) : null}
                         </div>
-                        {role === "super admin" || msg.sender_id === user.id ? (
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => onEdit(msg.id, msg.message)}
-                              variant="ghost"
-                              size="icon"
-                            >
-                              <Pencil1Icon />
-                            </Button>
-                            <Button
-                              onClick={() => onDelete(msg.id)}
-                              variant="ghost"
-                              size="icon"
-                            >
-                              <TrashIcon />
-                            </Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">
+                        Select a chat to view messages
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div className="border-t border-gray-200 dark:border-gray-800 p-4">
-                  <div className="relative">
-                    <Textarea
-                      placeholder="Type your message..."
-                      name="message"
-                      id="message"
-                      rows={1}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          onSend();
-                        }
-                      }}
-                      className="min-h-[48px] rounded-2xl resize-none p-4 border border-gray-200 dark:border-gray-800 pr-16"
-                    />
-                    <Button
-                      key={`send-message-${selectedChat}-${message}`} // Add a unique key to force re-render
-                      type="submit"
-                      size="icon"
-                      className="absolute top-3 right-3 w-8 h-8"
-                      variant="ghost"
-                      onClick={onSend}
-                    >
-                      <CaretUpIcon className="w-4 h-4" />
-                      <span className="sr-only">Send</span>
-                    </Button>
+                {viewedChat && (
+                  <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Type your message..."
+                        name="message"
+                        id="message"
+                        rows={1}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            onSend();
+                          }
+                        }}
+                        className="min-h-[48px] rounded-2xl resize-none p-4 border border-gray-200 dark:border-gray-800 pr-16"
+                      />
+                      <Button
+                        key={`send-message-${selectedChat}-${message}`}
+                        type="submit"
+                        size="icon"
+                        className="absolute top-3 right-3 w-8 h-8"
+                        variant="ghost"
+                        onClick={onSend}
+                      >
+                        <CaretUpIcon className="w-4 h-4" />
+                        <span className="sr-only">Send</span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </CardContent>

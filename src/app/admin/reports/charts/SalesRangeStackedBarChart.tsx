@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { BarChart } from "@/components/BarChart";
 import { useTheme } from "next-themes";
 import { ResponsiveContainer } from "recharts";
-import { ScrollBar, ScrollArea  } from "@/components/ui/scroll-area";
+import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 import styles from "./chart.module.css";
 interface ChartData {
@@ -153,25 +153,31 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
       </div> */}
       <ResponsiveContainer width="100%" height="100%">
         <div className="overflow-hidden">
-        <ScrollArea className="w-[calc(100vw-90px)] overflow-auto">
-          <div style={{ minWidth: chartData.length * 100 }}>
-            <BarChart
-              data={chartData}
-              index="Lanid"
-              categories={categories}
-              type="stacked"
-              showLegend={true}
-              showTooltip={true}
-              className="h-96 mb-4"
-              xAxisProps={{
-                interval: 0,
-                angle: -30,
-                textAnchor: "end",
-                height: 60,
-              }}
-            />
-          </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollArea
+            className={classNames(
+              styles.noScroll,
+              "w-[calc(100wh-100px)] overflow-auto"
+            )}
+          >
+            <div style={{ minWidth: chartData.length * 100 }}>
+              <BarChart
+                data={chartData}
+                index="Lanid"
+                categories={categories}
+                type="stacked"
+                showLegend={true}
+                showTooltip={true}
+                className="h-96 mb-4"
+                xAxisProps={{
+                  interval: 0,
+                  angle: -30,
+                  textAnchor: "end",
+                  height: 60,
+                }}
+              />
+            </div>
+            <ScrollBar orientation="horizontal" />
+            <ScrollBar orientation="vertical" />
           </ScrollArea>
         </div>
       </ResponsiveContainer>

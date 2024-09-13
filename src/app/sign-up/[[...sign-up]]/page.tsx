@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { signup, signInWithGoogle } from "@/lib/auth-actions"; // Import the signup and signInWithGoogle functions
+import { Separator } from "@/components/ui/separator";
 
 // Define the validation schema using Zod
 const schema = z.object({
@@ -176,10 +177,16 @@ export default function SignUp() {
                 </span>
               )}
             </div>
-            <Button variant="linkHover1" type="submit" className="w-full">
-              Create an account
+            <Button
+              variant="gooeyRight"
+              type="submit"
+              className="w-full mb-4 mt-2"
+            >
+              Sign Up With Email
             </Button>
           </form>
+          <Separator className="my-4" />
+
           <Button
             onClick={handleGoogleSignUp}
             variant="outline"

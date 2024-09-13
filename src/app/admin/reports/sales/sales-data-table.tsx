@@ -143,26 +143,26 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
         // Convert dates to UTC
         const formattedData = data.map((item) => ({
           ...item,
-          Date: new Date(item.Date + 'T00:00:00Z').toISOString().split('T')[0],
+          Date: new Date(item.Date + "T00:00:00Z").toISOString().split("T")[0],
         }));
         // console.log("Formatted data:", formattedData);
-        
+
         // Filter data based on UTC dates
         const filteredData = formattedData.filter((item) => {
-          const itemDate = new Date(item.Date + 'T00:00:00Z');
-          const start = new Date(startDate + 'T00:00:00Z');
-          const end = new Date(endDate + 'T23:59:59.999Z');
-          
+          const itemDate = new Date(item.Date + "T00:00:00Z");
+          const start = new Date(startDate + "T00:00:00Z");
+          const end = new Date(endDate + "T23:59:59.999Z");
+
           // console.log("Comparing dates:", {
           //   itemDate: itemDate.toISOString(),
           //   start: start.toISOString(),
           //   end: end.toISOString(),
           //   isWithinRange: itemDate >= start && itemDate <= end
           // });
-          
+
           return itemDate >= start && itemDate <= end;
         });
-        
+
         // console.log("Filtered data:", filteredData);
         setSales(filteredData);
         setPageCount(Math.ceil(filteredData.length / pageSize));
@@ -282,11 +282,11 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-400px)] w-[calc(100vw-100px)] overflow-auto"
+              "h-[calc(100vh-500px)] w-[calc(100vw-100px)] overflow-auto"
             )}
           >
             <Table className="w-full overflow-hidden">
-              <TableHeader >
+              <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (

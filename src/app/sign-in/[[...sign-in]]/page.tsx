@@ -18,6 +18,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { Separator } from "@/components/ui/separator";
 
 const schema = z.object({
   email: z
@@ -192,9 +193,14 @@ export default function SignIn() {
                     </span>
                   )}
                 </div>
-                <Button variant="linkHover1" type="submit" className="w-full">
+                <Button
+                  variant="gooeyLeft"
+                  type="submit"
+                  className="w-full mb-4 mt-2"
+                >
                   Sign In With Email
                 </Button>
+                <Separator className="my-4" />
                 {/* <Label htmlFor="email">OR</Label> */}
                 <Button
                   onClick={() => loginWithOAuth("google")}
