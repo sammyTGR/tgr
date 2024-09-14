@@ -607,7 +607,7 @@ export default function FirearmsChecklist() {
     id: number;
     firearm_type: string;
     firearm_name: string;
-    maintenance_frequency: number;
+    maintenance_frequency: number | null;
   }) => {
     try {
       const { error } = await supabase

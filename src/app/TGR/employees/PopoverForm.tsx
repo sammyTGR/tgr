@@ -1,80 +1,242 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Employee } from "./types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/utils/supabase/client";
 
-interface PopoverFormProps {
+interface EditEmployeeDialogProps {
   employee: Employee;
   onSave: (updatedEmployee: Employee) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function PopoverForm({ employee, onSave }: PopoverFormProps) {
+interface ReferenceData {
+  departments: string[];
+  positions: string[];
+  roles: string[];
+}
+
+export function EditEmployeeDialog({
+  employee,
+  onSave,
+  isOpen,
+  onClose,
+}: EditEmployeeDialogProps) {
   const [editedEmployee, setEditedEmployee] = useState<Employee>(employee);
-  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [referenceData, setReferenceData] = useState<ReferenceData>({
+    departments: [],
+    positions: [],
+    roles: [],
+  });
+
+  useEffect(() => {
+    setEditedEmployee(employee);
+    fetchReferenceData();
+  }, [employee]);
+
+  const fetchReferenceData = async () => {
+    const { data: departments } = await supabase
+      .from("onboarding_references")
+      .select("option_value")
+      .eq("field_name", "department")
+      .order("display_order");
+
+    const { data: positions } = await supabase
+      .from("onboarding_references")
+      .select("option_value")
+      .eq("field_name", "position")
+      .order("display_order");
+
+    const { data: roles } = await supabase
+      .from("onboarding_references")
+      .select("option_value")
+      .eq("field_name", "role")
+      .order("display_order");
+
+    setReferenceData({
+      departments: departments?.map((d) => d.option_value) || [],
+      positions: positions?.map((p) => p.option_value) || [],
+      roles: roles?.map((r) => r.option_value) || [],
+    });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditedEmployee((prev) => ({
       ...prev,
       [name]:
-        name === "rank" || name === "pay_rate"
+        name === "employee_number" || name === "pay_rate"
           ? parseFloat(value) || null
           : value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSelectChange = (name: string, value: string) => {
+    setEditedEmployee((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(editedEmployee);
-    setOpen(false);
+    setIsLoading(true);
+    try {
+      await onSave(editedEmployee);
+    } catch (error) {
+      console.error("Error saving employee:", error);
+      // Optionally, show an error message to the user
+    } finally {
+      setIsLoading(false);
+      onClose(); // Always close the dialog, whether save was successful or not
+    }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost">Edit</Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Employee</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <h4 className="font-medium leading-none">Edit Employee</h4>
-              <p className="text-sm text-muted-foreground">
-                Make changes to the employee information here.
-              </p>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">First Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={editedEmployee.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input
+                  id="last_name"
+                  name="last_name"
+                  value={editedEmployee.last_name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="phone_number">Phone Number</Label>
               <Input
-                id="name"
-                name="name"
-                value={editedEmployee.name}
+                id="phone_number"
+                name="phone_number"
+                value={editedEmployee.phone_number}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="street_address">Street Address</Label>
+              <Input
+                id="street_address"
+                name="street_address"
+                value={editedEmployee.street_address}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={editedEmployee.city}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  value={editedEmployee.state}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="zip">Zip</Label>
+              <Input
+                id="zip"
+                name="zip"
+                value={editedEmployee.zip}
                 onChange={handleInputChange}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                name="department"
-                value={editedEmployee.department || ""}
-                onChange={handleInputChange}
-              />
+              <Select
+                value={editedEmployee.department}
+                onValueChange={(value) =>
+                  handleSelectChange("department", value)
+                }
+              >
+                <SelectTrigger id="department">
+                  <SelectValue placeholder="Select a department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {referenceData.departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="position">Position</Label>
+              <Select
+                value={editedEmployee.position}
+                onValueChange={(value) => handleSelectChange("position", value)}
+              >
+                <SelectTrigger id="position">
+                  <SelectValue placeholder="Select a position" />
+                </SelectTrigger>
+                <SelectContent>
+                  {referenceData.positions.map((pos) => (
+                    <SelectItem key={pos} value={pos}>
+                      {pos}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="role">Role</Label>
-              <Input
-                id="role"
-                name="role"
-                value={editedEmployee.role || ""}
-                onChange={handleInputChange}
-              />
+              <Select
+                value={editedEmployee.role}
+                onValueChange={(value) => handleSelectChange("role", value)}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {referenceData.roles.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="contact_info">Contact Info</Label>
@@ -83,6 +245,7 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
                 name="contact_info"
                 value={editedEmployee.contact_info || ""}
                 onChange={handleInputChange}
+                required
               />
             </div>
             <div className="grid gap-2">
@@ -96,23 +259,29 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="pay_type">Pay Type</Label>
-              <Input
-                id="pay_type"
-                name="pay_type"
+              <Select
                 value={editedEmployee.pay_type || ""}
-                onChange={handleInputChange}
-              />
+                onValueChange={(value) => handleSelectChange("pay_type", value)}
+              >
+                <SelectTrigger id="pay_type">
+                  <SelectValue placeholder="Select pay type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="salary">Salary</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="rank">Rank</Label>
+            {/* <div className="grid gap-2">
+              <Label htmlFor="rank">Employee Number</Label>
               <Input
                 id="rank"
                 name="rank"
                 type="number"
-                value={editedEmployee.rank || ""}
+                value={editedEmployee.rank?.toString() || ""}
                 onChange={handleInputChange}
               />
-            </div>
+            </div> */}
             <div className="grid gap-2">
               <Label htmlFor="pay_rate">Pay Rate</Label>
               <Input
@@ -120,16 +289,57 @@ export function PopoverForm({ employee, onSave }: PopoverFormProps) {
                 name="pay_rate"
                 type="number"
                 step="0.01"
-                value={editedEmployee.pay_rate || ""}
+                value={editedEmployee.pay_rate?.toString() || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="hire_date">Hire Date</Label>
+              <Input
+                id="hire_date"
+                name="hire_date"
+                type="date"
+                value={editedEmployee.hire_date || ""}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="birthday">Birthday</Label>
+              <Input
+                id="birthday"
+                name="birthday"
+                type="date"
+                value={editedEmployee.birthday || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="promotion_date">Promotion Date</Label>
+              <Input
+                id="promotion_date"
+                name="promotion_date"
+                type="date"
+                value={editedEmployee.promotion_date || ""}
                 onChange={handleInputChange}
               />
             </div>
           </div>
-          <Button variant="linkHover2" className="mt-4" type="submit">
-            Save changes
-          </Button>
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
         </form>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }

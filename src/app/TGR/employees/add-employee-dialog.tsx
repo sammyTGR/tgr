@@ -56,27 +56,27 @@ export default function AddEmployeeDialog({
     {
       name: "",
       last_name: "",
-      department: "",
-      role: "",
-      contact_info: "",
+      lanid: "",
       phone_number: "",
       street_address: "",
       city: "",
       state: "",
       zip: "",
-      lanid: "",
-      pay_type: "",
-      rank: null,
+      department: "",
+      role: "",
+      position: "",
+      contact_info: "",
+      pay_type: null,
+      employee_number: null,
       pay_rate: null,
-      hire_date: "", // Add this line
-      promotion_date: "",
-      birthday: "", // Add this line
+      hire_date: null,
+      birthday: null,
+      promotion_date: null,
     }
   );
 
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(initialSchedule);
   const [roles, setRoles] = useState<string[]>([]);
-  const [departments, setDepartments] = useState<string[]>([]);
   const [referenceOptions, setReferenceOptions] = useState<ReferenceOption[]>(
     []
   );
@@ -134,85 +134,26 @@ export default function AddEmployeeDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    const requiredFields = [
-      "name",
-      "last_name",
-      "department",
-      "role",
-      "phone_number",
-      "hire_date",
-      "birthday",
-    ];
-    const missingFields = requiredFields.filter(
-      (field) => !newEmployee[field as keyof typeof newEmployee]
-    );
-    if (missingFields.length > 0) {
-      alert(
-        `Please fill in the following required fields: ${missingFields.join(
-          ", "
-        )}`
-      );
-      return;
-    }
-
-    // Format date fields and prepare employee data
-    const formattedEmployee = {
-      name: newEmployee.name,
-      last_name: newEmployee.last_name,
-      department: newEmployee.department || null,
-      role: newEmployee.role,
-      contact_info: newEmployee.contact_info,
-      phone_number: newEmployee.phone_number || null,
-      street_address: newEmployee.street_address || null,
-      city: newEmployee.city || null,
-      state: newEmployee.state || null,
-      zip: newEmployee.zip || null,
-      lanid: newEmployee.lanid || null,
-      pay_type: newEmployee.pay_type || null,
-      rank: newEmployee.rank || null,
-      pay_rate: newEmployee.pay_rate || null,
-      hire_date: newEmployee.hire_date
-        ? new Date(newEmployee.hire_date).toISOString().split("T")[0]
-        : null,
-      birthday: newEmployee.birthday
-        ? new Date(newEmployee.birthday).toISOString().split("T")[0]
-        : null,
-      promotion_date: newEmployee.promotion_date
-        ? new Date(newEmployee.promotion_date).toISOString().split("T")[0]
-        : null,
-    };
-
-    // console.log("Formatted employee data:", formattedEmployee);
-
     try {
+      // console.log("New employee data:", newEmployee);
+
       // Add the employee
-      // console.log("Attempting to insert employee...");
       const { data: insertedEmployee, error: employeeError } = await supabase
         .from("employees")
-        .insert([formattedEmployee])
+        .insert([newEmployee])
         .select();
-
-      // console.log("Insert operation result:", {
-      //   insertedEmployee,
-      //   employeeError,
-      // });
 
       if (employeeError) {
         console.error("Error adding employee:", employeeError);
-        // console.log("Error details:", JSON.stringify(employeeError, null, 2));
-        alert(`Error adding employee: ${employeeError.message}`);
         return;
       }
 
       if (!insertedEmployee || insertedEmployee.length === 0) {
         console.error("No employee data returned after insert");
-        alert("Error: No employee data returned after insert");
         return;
       }
 
       const newEmployeeId = insertedEmployee[0].employee_id;
-      // console.log("Inserted employee ID:", newEmployeeId);
 
       // Add all schedule entries, including those without times
       const scheduleEntries = schedule.map((entry) => ({
@@ -223,22 +164,14 @@ export default function AddEmployeeDialog({
         end_time: entry.end_time || null,
       }));
 
-      // console.log("Attempting to insert schedule entries:", scheduleEntries);
       const { error: scheduleError } = await supabase
         .from("reference_schedules")
         .insert(scheduleEntries);
 
       if (scheduleError) {
         console.error("Error adding schedule:", scheduleError);
-        // console.log(
-        //   "Schedule error details:",
-        //   JSON.stringify(scheduleError, null, 2)
-        // );
-        alert(`Error adding schedule: ${scheduleError.message}`);
         return;
       }
-
-      // console.log("Schedule entries added successfully");
 
       // Call onAdd with the newly created employee data
       onAdd(insertedEmployee[0]);
@@ -247,30 +180,27 @@ export default function AddEmployeeDialog({
       setNewEmployee({
         name: "",
         last_name: "",
-        department: "",
-        role: "",
-        contact_info: "",
+        lanid: "",
         phone_number: "",
         street_address: "",
         city: "",
         state: "",
         zip: "",
-        lanid: "",
-        pay_type: "",
-        rank: null,
+        department: "",
+        role: "",
+        position: "",
+        contact_info: "",
+        pay_type: null,
+        employee_number: null,
         pay_rate: null,
-        hire_date: "",
-        promotion_date: "",
-        birthday: "",
+        hire_date: null,
+        birthday: null,
+        promotion_date: null,
       });
       setSchedule(initialSchedule);
       onClose();
-
-      // console.log("Employee added successfully, form reset, and dialog closed");
     } catch (error) {
       console.error("Error in handleSubmit:", error);
-      // console.log("Unexpected error details:", JSON.stringify(error, null, 2));
-      alert(`An unexpected error occurred: ${error}`);
     }
   };
 
@@ -283,7 +213,6 @@ export default function AddEmployeeDialog({
         <form onSubmit={handleSubmit} className="flex-grow overflow-auto">
           <div className="grid grid-cols-6 gap-4 p-2">
             <div className="col-span-2">
-              {/* First column */}
               {/* Added space-y-2 for padding between label and input */}
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="name">Name</Label>
@@ -408,21 +337,12 @@ export default function AddEmployeeDialog({
                 />
               </div>
               <div className="flex flex-col space-y-2">
-                <Label htmlFor="lanid">LANID</Label>
-                <Input
-                  id="lanid"
-                  name="lanid"
-                  value={newEmployee.lanid || ""}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="flex flex-col space-y-2">
                 <Label htmlFor="pay_type">Pay Type</Label>
                 <Select
                   onValueChange={(value) =>
                     handleSelectChange("pay_type", value)
                   }
-                  value={newEmployee.pay_type}
+                  value={newEmployee.pay_type || ""}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select pay type" />
@@ -434,12 +354,21 @@ export default function AddEmployeeDialog({
                 </Select>
               </div>
               <div className="flex flex-col space-y-2">
-                <Label htmlFor="rank">Rank</Label>
+                <Label htmlFor="lanid">LANID</Label>
+                <Input
+                  id="lanid"
+                  name="lanid"
+                  value={newEmployee.lanid || ""}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="rank">Employee Number</Label>
                 <Input
                   id="rank"
                   name="rank"
                   type="number"
-                  value={newEmployee.rank?.toString() || ""}
+                  value={newEmployee.employee_number?.toString() || ""}
                   onChange={handleInputChange}
                 />
               </div>
@@ -456,6 +385,7 @@ export default function AddEmployeeDialog({
               </div>
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="hire_date">Hire Date</Label>
+
                 <Input
                   id="hire_date"
                   name="hire_date"
@@ -465,8 +395,10 @@ export default function AddEmployeeDialog({
                   required
                 />
               </div>
+
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="birthday">Birthday</Label>
+
                 <Input
                   id="birthday"
                   name="birthday"
@@ -492,7 +424,7 @@ export default function AddEmployeeDialog({
           <div className="col-span-2 space-y-4">
             {/* Third column */}
             <div className="flex flex-col space-y-2">
-              <h3 className="font-semibold">Schedule</h3>
+              <h3 className="font-semibold text-lg mt-2">Schedule</h3>
               <div className="grid grid-cols-6 gap-2 mb-2">
                 <div>Day</div>
                 <div>Start Time</div>

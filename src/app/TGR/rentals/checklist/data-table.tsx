@@ -43,7 +43,7 @@ interface DataTableProps<TData extends FirearmsMaintenanceData, TValue> {
     id: number;
     firearm_type: string;
     firearm_name: string;
-    maintenance_frequency: number;
+    maintenance_frequency: number | null;
   }) => void;
   onRequestInspection: (id: number, notes: string) => void;
 }
