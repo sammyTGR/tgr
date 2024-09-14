@@ -16,6 +16,7 @@ interface OrderCustomerContactedProps {
   customerName: string;
   contactedBy: string;
   item: string;
+  details: string;
 }
 
 export const OrderCustomerContacted = ({
@@ -23,6 +24,7 @@ export const OrderCustomerContacted = ({
   customerName,
   contactedBy,
   item,
+  details,
 }: OrderCustomerContactedProps) => (
   <Html>
     <Head />
@@ -42,6 +44,8 @@ export const OrderCustomerContacted = ({
           Customer Name: {customerName}
           <br />
           Item: {item}
+          <br />
+          Details: {details}
           <br />
           Contacted By: {contactedBy}
         </Text>

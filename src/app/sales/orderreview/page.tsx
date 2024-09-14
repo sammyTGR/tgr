@@ -141,6 +141,7 @@ export default function OrdersReviewPage() {
               customerName: order.customer_name,
               contactedBy: employeeName,
               item: order.item,
+              details: order.details,
             },
           }),
         });
