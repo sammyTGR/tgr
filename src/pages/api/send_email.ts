@@ -7,6 +7,8 @@ import CalledOut from './../../../emails/CalledOut';
 import LeftEarly from './../../../emails/LeftEarly';
 import CustomStatus from './../../../emails/CustomStatus'; // Import the new CustomStatus template
 import GunsmithInspection from '../../../emails/GunsmithInspection';
+import OrderCustomerContacted from '../../../emails/OrderCustomerContacted';
+import OrderSetStatus from '../../../emails/OrderSetStatus';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -58,6 +60,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             firearmName: templateData.firearmName,
             requestedBy: templateData.requestedBy,
             notes: templateData.notes
+          });
+          break;
+          case 'OrderCustomerContacted':
+          emailTemplate = OrderCustomerContacted({
+            id: templateData.id,
+            customerName: templateData.customerName,
+            contactedBy: templateData.contactedBy,
+            item: templateData.item
+          });
+          break;
+        case 'OrderSetStatus':
+          emailTemplate = OrderSetStatus({
+            id: templateData.id,
+            customerName: templateData.customerName,
+            newStatus: templateData.newStatus,
+            updatedBy: templateData.updatedBy,
+            item: templateData.item
           });
           break;
         default:

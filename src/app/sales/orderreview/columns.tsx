@@ -9,6 +9,7 @@ export type Order = {
   is_read: any;
   id: number;
   employee: string;
+  employee_email: string; // Add this line
   customer_type: string;
   inquiry_type: string;
   customer_name: string;
@@ -32,7 +33,8 @@ export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
 };
 
 export const createColumns = (
-  setStatus: (id: number, status: string) => void
+  setStatus: (id: number, status: string) => void,
+  markAsContacted: (id: number) => void
 ): ColumnDef<Order>[] => [
   {
     accessorKey: "employee",
@@ -132,7 +134,7 @@ export const createColumns = (
     ),
     cell: ({ row }) => {
       const status = statuses.find((s) => s.value === row.original.status);
-      return status ? status.label : "";
+      return status ? status.label : row.original.status;
     },
     meta: {
       style: { width: "150px" },
@@ -145,7 +147,7 @@ export const createColumns = (
     cell: ({ row }) => (
       <OrderTableRowActions
         row={row}
-        markAsContacted={(id) => setStatus(id, "contacted")}
+        markAsContacted={markAsContacted}
         undoMarkAsContacted={(id) => setStatus(id, "not_contacted")}
         setStatus={setStatus}
       />

@@ -28,7 +28,7 @@ export const statuses = [
     value: "contacted",
   },
   {
-    label: "Not Contacted",
-    value: "not_contacted",
+    label: "Tried To Contact",
+    value: "try_contacted",
   },
 ];

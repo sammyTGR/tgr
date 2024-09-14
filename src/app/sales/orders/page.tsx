@@ -28,13 +28,12 @@ import { useRouter } from "next/navigation";
 
 type Employee = {
   name: string;
-  // other properties...
+  email: string;
 };
 
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 
 const schema = z.object({
-  employee: z.string().nonempty({ message: "Employee name is required" }),
   customer_type: z.string().nonempty({ message: "Customer type is required" }),
   inquiry_type: z.string().nonempty({ message: "Inquiry type is required" }),
   customer_name: z.string().min(6, { message: "First and Last Name Required" }),
@@ -56,6 +55,7 @@ export default function OrdersComponent() {
   const [inquiryTypes, setInquiryTypes] = useState<string[]>([]);
   const [userUuid, setUserUuid] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const {
@@ -96,13 +96,14 @@ export default function OrdersComponent() {
       const fetchUserData = async () => {
         const { data, error } = await supabase
           .from("employees")
-          .select("name")
+          .select("name, contact_info")
           .eq("user_uuid", userUuid)
           .single();
         if (error) {
           console.error("Error fetching user data:", error.message);
         } else if (data) {
           setUserName(data.name);
+          setUserEmail(data.contact_info);
         }
       };
 
@@ -111,12 +112,6 @@ export default function OrdersComponent() {
   }, [userUuid]);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      const { data, error } = await supabase.from("employees").select("name");
-      if (error) console.error("Error fetching employees:", error);
-      else setEmployees(data);
-    };
-
     const fetchCustomerTypes = async () => {
       try {
         const response = await fetch("/api/customer-types");
@@ -139,7 +134,6 @@ export default function OrdersComponent() {
       }
     };
 
-    fetchEmployees();
     fetchCustomerTypes();
     fetchInquiryTypes();
   }, []);
@@ -153,6 +147,8 @@ export default function OrdersComponent() {
     const submissionData = {
       ...data,
       user_uuid: userUuid,
+      employee: userName,
+      employee_email: userEmail,
     };
 
     const { error } = await supabase.from("orders").insert(submissionData);
@@ -180,27 +176,7 @@ export default function OrdersComponent() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="employee">Employee Name</Label>
-                <Controller
-                  name="employee"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees.map((employee) => (
-                          <SelectItem key={employee.name} value={employee.name}>
-                            {employee.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.employee && (
-                  <p className="text-red-500">{errors.employee.message}</p>
-                )}
+                <Input id="employee" value={userName || ""} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customer_type">Customer Type</Label>

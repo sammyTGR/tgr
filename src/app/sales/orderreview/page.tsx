@@ -14,6 +14,9 @@ import {
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+import { toast } from "sonner";
+import { useRole } from "@/context/RoleContext";
+import { statuses } from "./data";
 
 const title = "Review Submissions";
 
@@ -21,11 +24,12 @@ export default function OrdersReviewPage() {
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string[]>(["not_contacted"]); // Default filter
+  const { user } = useRole();
 
   const fetchOrderData = useCallback(async () => {
     const { data, error } = await supabase
       .from("orders")
-      .select("*")
+      .select("*, employee_email")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -61,25 +65,153 @@ export default function OrdersReviewPage() {
     });
   }, [data, statusFilter]);
 
-  const setStatus = async (orderId: number, status: string) => {
-    // console.log(`Setting status of order ${orderId} to ${status}`);
-    const { error } = await supabase
-      .from("orders")
-      .update({ status, is_read: true })
-      .eq("id", orderId);
+  const sendEmail = async (templateName: string, templateData: any) => {
+    try {
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: templateData.recipientEmail,
+          subject: templateData.subject,
+          templateName: templateName,
+          templateData: templateData,
+        }),
+      });
 
-    if (error) {
-      console.error("Error updating status:", error);
-    } else {
-      setData((currentData) =>
-        currentData.map((order) =>
-          order.id === orderId ? { ...order, status, is_read: true } : order
-        )
-      );
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+    } catch (error) {
+      console.error("Error sending email:", error);
+      throw error;
     }
   };
 
-  const columns = createColumns(setStatus);
+  const getEmployeeName = async (employeeEmail: string) => {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("name")
+      .eq("contact_info", employeeEmail)
+      .single();
+
+    if (error) {
+      console.error("Error fetching employee name:", error);
+      return "Unknown Employee";
+    }
+
+    return data?.name || "Unknown Employee";
+  };
+
+  const markAsContacted = async (orderId: number) => {
+    const order = data.find((o) => o.id === orderId);
+    if (order) {
+      try {
+        const { error } = await supabase
+          .from("orders")
+          .update({ contacted: true, status: "contacted", is_read: true })
+          .eq("id", orderId);
+
+        if (error) throw error;
+
+        setData((currentData) =>
+          currentData.map((o) =>
+            o.id === orderId
+              ? { ...o, contacted: true, status: "contacted", is_read: true }
+              : o
+          )
+        );
+
+        const employeeName = await getEmployeeName(order.employee_email);
+        // console.log("Marking as contacted. User name:", userName);
+
+        // Send email to the employee
+        const response = await fetch("/api/send_email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: order.employee_email, // Use the new employee_email field
+            subject: `${order.customer_name} Contacted for Special Order ${order.id}`,
+            templateName: "OrderCustomerContacted",
+            templateData: {
+              id: order.id,
+              customerName: order.customer_name,
+              contactedBy: employeeName,
+              item: order.item,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to send email");
+        }
+
+        toast.success(
+          "Customer marked as contacted and email sent to employee."
+        );
+      } catch (error) {
+        console.error("Error marking as contacted:", error);
+        toast.error("Failed to mark as contacted and send email notification.");
+      }
+    }
+  };
+
+  const setStatus = async (orderId: number, status: string) => {
+    const order = data.find((o) => o.id === orderId);
+    if (order) {
+      try {
+        const { error } = await supabase
+          .from("orders")
+          .update({ status, is_read: true })
+          .eq("id", orderId);
+
+        if (error) throw error;
+
+        setData((currentData) =>
+          currentData.map((o) =>
+            o.id === orderId ? { ...o, status, is_read: true } : o
+          )
+        );
+
+        const employeeName = await getEmployeeName(order.employee_email);
+        const statusLabel =
+          statuses.find((s) => s.value === status)?.label || status;
+
+        // Send email to the employee
+        const response = await fetch("/api/send_email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: order.employee_email, // Use the new employee_email field
+            subject: `Order Status Updated for ${order.customer_name}`,
+            templateName: "OrderSetStatus",
+            templateData: {
+              id: order.id,
+              customerName: order.customer_name,
+              newStatus: statusLabel,
+              updatedBy: employeeName,
+              item: order.item,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to send email");
+        }
+
+        toast.success("Order status updated and email sent to employee.");
+      } catch (error) {
+        console.error("Error updating status:", error);
+        toast.error("Failed to update status and send email notification.");
+      }
+    }
+  };
+  const columns = createColumns(setStatus, markAsContacted);
 
   const table = useReactTable({
     data: filteredData,
@@ -127,7 +259,7 @@ export default function OrdersReviewPage() {
     { label: "Cancelled", value: "cancelled" },
     { label: "Complete", value: "complete" },
     { label: "Contacted", value: "contacted" },
-    { label: "Not Contacted", value: "not_contacted" },
+    { label: "Tried To Contact", value: "try_contacted" },
   ];
 
   return (
