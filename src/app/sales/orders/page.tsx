@@ -25,6 +25,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 
 type Employee = {
   name: string;
@@ -57,6 +69,7 @@ export default function OrdersComponent() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const {
     register,
@@ -158,6 +171,7 @@ export default function OrdersComponent() {
     } else {
       toast.success("Your order request has been submitted.");
       reset();
+      setIsDialogOpen(false);
     }
   };
 
@@ -300,12 +314,49 @@ export default function OrdersComponent() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="ringHover" className="ml-auto" type="submit">
+            <Button
+              type="button"
+              variant="ringHover"
+              className="ml-auto"
+              onClick={() => setIsDialogOpen(true)}
+            >
               Submit Request
             </Button>
           </CardFooter>
         </form>
       </Card>
+
+      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Don&apos;t Tell The Customer This Is An Order!
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This is just a
+              <span className="text-red-500 italic"> REQUEST </span>
+              to see if we can order the item, what the availability is, and
+              what the pricing is.
+              <Separator className="my-4 mb-4" />
+              <span className="italic">
+                Every special order requires payment before we can actually
+                order it, and Sam will reach out to them with the pricing and
+                availability.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleSubmit(onSubmit)();
+              }}
+            >
+              Understood
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
