@@ -39,7 +39,7 @@ interface DataTableRowActionsProps {
     id: number;
     firearm_type: string;
     firearm_name: string;
-    maintenance_frequency: number;
+    maintenance_frequency: number | null;
   }) => void;
   onRequestInspection: (id: number, notes: string) => void;
 }
@@ -333,7 +333,13 @@ export function DataTableRowActions({
             </DialogDescription>
           </DialogHeader>
           <EditFirearmForm
-            firearm={row.original}
+            firearm={{
+              id: row.original.id,
+              firearm_type: row.original.firearm_type,
+              firearm_name: row.original.firearm_name,
+              maintenance_frequency:
+                row.original.maintenance_frequency ?? undefined,
+            }}
             onEdit={handleEditFirearm}
             onCancel={() => setOpenEditFirearm(false)}
           />

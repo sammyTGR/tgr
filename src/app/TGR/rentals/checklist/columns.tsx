@@ -5,12 +5,17 @@ export interface FirearmsMaintenanceData {
   id: number;
   firearm_type: string;
   firearm_name: string;
-  morning_checked: boolean;
-  evening_checked: boolean;
-  notes: string; // This field will contain the checklist notes
-  maintenance_notes: string; // This field contains the gunsmithing notes
-  highlight?: string; // Add this line
+  last_maintenance_date: string | null;
+  maintenance_frequency: number | null;
+  maintenance_notes: string | null;
+  status: string | null;
+  assigned_to: string | null; // UUID is represented as a string in TypeScript
+  rental_notes: string | null; // Add this line to match the Supabase table
   verified_status: string | null;
+  morning_checked?: boolean; // Keep these if you're still using them in your component
+  evening_checked?: boolean;
+  notes?: string; // This might be redundant with rental_notes, consider removing if not used
+  highlight?: string;
 }
 
 // Define columns with the correct order
