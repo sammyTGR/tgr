@@ -136,7 +136,7 @@ export default function Component() {
     .filter((employee) => employee.events.length > 0);
 
   const handleDayClick = (day: string) => {
-    if (role === "admin" || role === "super admin") {
+    if (role === "admin" || role === "super admin" || role === "user") {
       setSelectedDay((prevDay) => (prevDay === day ? null : day));
     }
   };
