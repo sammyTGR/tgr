@@ -591,7 +591,9 @@ export default function Component() {
                             className={`w-20 max-w-sm text-left ${
                               selectedDay === day ? "bg-muted" : ""
                             } ${
-                              role === "admin" || role === "super admin"
+                              role === "admin" ||
+                              role === "super admin" ||
+                              role === "user"
                                 ? "hover:bg-muted cursor-pointer"
                                 : ""
                             } ${
