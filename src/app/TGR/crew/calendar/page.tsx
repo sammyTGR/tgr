@@ -580,7 +580,7 @@ export default function Component() {
                       selectedDay ? "max-w-sm mr-auto" : ""
                     }`}
                   >
-                    <TableHeader className="z-5 bg-background">
+                    <TableHeader className="sticky top-0 z-5 bg-background">
                       <TableRow>
                         <TableHead className="w-20 max-w-sm bg-background sticky left-0 z-5">
                           Employee
