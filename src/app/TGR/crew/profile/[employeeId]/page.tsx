@@ -38,6 +38,7 @@ import {
   DialogClose,
 } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
+import SuggestionForm from "@/components/SuggestionForm";
 import {
   format,
   startOfWeek,
@@ -195,8 +196,11 @@ const EmployeeProfilePage = () => {
   const [payPeriodSummary, setPayPeriodSummary] = useState<string | null>(null);
   const [lunchBreakTime, setLunchBreakTime] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const { register, handleSubmit: handleSubmitProfile, setValue } =
-    useForm<EmployeeProfileData>();
+  const {
+    register,
+    handleSubmit: handleSubmitProfile,
+    setValue,
+  } = useForm<EmployeeProfileData>();
   const [payPeriodDates, setPayPeriodDates] = useState<{
     start: string;
     end: string;
@@ -1617,6 +1621,35 @@ const EmployeeProfilePage = () => {
                               align="start"
                             >
                               <PointsForm /> {/* Render the PointsComponent */}
+                            </PopoverContent>
+                          </Popover>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="mt-4">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-2xl font-bold">
+                            Submit A Suggestion
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full text-left font-normal"
+                              >
+                                Submit Suggestion Form
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-2"
+                              align="start"
+                            >
+                              <SuggestionForm
+                                employeeName={employee.name}
+                                employeeEmail={employee.email}
+                              />
                             </PopoverContent>
                           </Popover>
                         </CardContent>

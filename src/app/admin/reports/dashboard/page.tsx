@@ -38,6 +38,14 @@ import { format, formatDate, formatDistanceToNow } from "date-fns";
 import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStackedBarChart";
 import SalesDataTable from "../sales/sales-data-table";
 import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import classNames from "classnames";
 import { Input } from "@/components/ui/input";
 import Papa, { ParseResult } from "papaparse";
@@ -45,6 +53,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/context/RoleContext";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Certificate {
   id: number;
@@ -82,6 +91,18 @@ interface DailyDeposit {
   created_at: string;
 }
 
+interface Suggestion {
+  id: number;
+  suggestion: string;
+  created_by: string;
+  created_at: string;
+  is_read: boolean;
+  replied_by: string | null;
+  replied_at: string | null;
+  reply: string | null; // Add this line
+  email: string;
+}
+
 const timeZone = "America/Los_Angeles";
 
 export default function AdminDashboard() {
@@ -100,6 +121,12 @@ export default function AdminDashboard() {
   const [progress, setProgress] = useState<number>(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileInputKey, setFileInputKey] = useState<number>(0);
+  const [replyText, setReplyText] = useState<string>("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [totalGross, setTotalGross] = useState<number>(0);
+  const [totalNet, setTotalNet] = useState<number>(0);
+  const [totalNetMinusExclusions, setTotalNetMinusExclusions] =
+    useState<number>(0);
   const [selectedRange, setSelectedRange] = useState(() => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -209,12 +236,34 @@ export default function AdminDashboard() {
       .subscribe();
 
     // Initial data fetch
-    fetchLatestDailyDeposit();
-    fetchLatestGunsmithMaintenance();
-    fetchLatestChecklistSubmission();
-    fetchLatestRangeWalkReport();
-    fetchCertificates();
-    fetchLatestSalesData(selectedRange.start, selectedRange.end);
+    const fetchInitialData = async () => {
+      fetchLatestDailyDeposit();
+      fetchLatestGunsmithMaintenance();
+      fetchLatestChecklistSubmission();
+      fetchLatestRangeWalkReport();
+      fetchCertificates();
+
+      const result = await fetchLatestSalesData(
+        selectedRange.start,
+        selectedRange.end
+      );
+      if (result) {
+        const { totalGross, totalNet, totalNetMinusExclusions, salesData } =
+          result;
+        setTotalGross(totalGross);
+        setTotalNet(totalNet);
+        setTotalNetMinusExclusions(totalNetMinusExclusions);
+        setSalesData(salesData);
+
+        console.log("Initial data fetch:", {
+          totalGross,
+          totalNet,
+          totalNetMinusExclusions,
+        });
+      }
+    };
+
+    fetchInitialData();
 
     // Cleanup function
     return () => {
@@ -237,20 +286,33 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleRangeChange = (date: Date | undefined) => {
+  const handleRangeChange = async (date: Date | undefined) => {
     if (date) {
-      // Create a new date object set to the start of the selected day in the local timezone
       const newStart = new Date(
         date.getFullYear(),
         date.getMonth(),
         date.getDate()
       );
-      // Set the end date to the end of the same day
       const newEnd = new Date(newStart);
       newEnd.setHours(23, 59, 59, 999);
 
       setSelectedRange({ start: newStart, end: newEnd });
-      fetchLatestSalesData(newStart, newEnd);
+
+      const result = await fetchLatestSalesData(newStart, newEnd);
+      if (result) {
+        const { totalGross, totalNet, totalNetMinusExclusions, salesData } =
+          result;
+        setTotalGross(totalGross);
+        setTotalNet(totalNet);
+        setTotalNetMinusExclusions(totalNetMinusExclusions);
+        setSalesData(salesData);
+
+        console.log("Updated state:", {
+          totalGross,
+          totalNet,
+          totalNetMinusExclusions,
+        });
+      }
     }
   };
 
@@ -270,11 +332,60 @@ export default function AdminDashboard() {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      // console.log("Fetched sales data:", data);
-      setSalesData(data);
+      const responseData = await response.json();
+      let salesData;
+
+      if (Array.isArray(responseData)) {
+        salesData = responseData;
+      } else if (responseData && Array.isArray(responseData.data)) {
+        salesData = responseData.data;
+      } else {
+        console.error("Unexpected data format:", responseData);
+        return null;
+      }
+
+      const excludeCategoriesFromChart = [
+        "CA Tax Gun Transfer",
+        "CA Tax Adjust",
+        "CA Excise Tax",
+        "CA Excise Tax Adjustment",
+      ];
+      const excludeCategoriesFromTotalNet = [
+        "Pistol",
+        "Rifle",
+        "Revolver",
+        "Shotgun",
+        "Receiver",
+        ...excludeCategoriesFromChart,
+      ];
+
+      let totalGross = 0;
+      let totalNetMinusExclusions = 0;
+      let totalNet = 0;
+
+      salesData.forEach((item: any) => {
+        const category = item.category_label;
+        const grossValue = item.total_gross ?? 0;
+        const netValue = item.total_net ?? 0;
+
+        totalGross += grossValue;
+        totalNet += netValue;
+
+        if (!excludeCategoriesFromTotalNet.includes(category)) {
+          totalNetMinusExclusions += netValue;
+        }
+      });
+
+      console.log("Calculated totals:", {
+        totalGross,
+        totalNet,
+        totalNetMinusExclusions,
+      });
+
+      return { totalGross, totalNet, totalNetMinusExclusions, salesData };
     } else {
       console.error("Error fetching sales data:", response.statusText);
+      return null;
     }
   }
 
@@ -531,6 +642,97 @@ export default function AdminDashboard() {
       setFileName(e.target.files[0].name);
     }
   };
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, []);
+
+  async function fetchSuggestions() {
+    const { data, error } = await supabase
+      .from("employee_suggestions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching suggestions:", error);
+    } else {
+      setSuggestions(data || []);
+    }
+  }
+
+  // Add this function at the top of your component or in a separate utility file
+  const sendEmail = async (
+    email: string,
+    subject: string,
+    templateName: string,
+    templateData: any
+  ) => {
+    try {
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, subject, templateName, templateData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      // console.log("Email sent successfully:", result);
+    } catch (error: any) {
+      console.error("Failed to send email:", error.message);
+      throw error; // Re-throw the error so we can handle it in the calling function
+    }
+  };
+
+  // Now update the handleReply function
+  async function handleReply(suggestion: Suggestion) {
+    if (!replyText.trim()) {
+      toast.error("Please enter a reply");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("employee_suggestions")
+      .update({
+        is_read: true,
+        replied_by: "Admin", // You might want to use the actual admin's name here
+        replied_at: new Date().toISOString(),
+        reply: replyText,
+      })
+      .eq("id", suggestion.id);
+
+    if (error) {
+      console.error("Error replying to suggestion:", error);
+      toast.error("Failed to reply to suggestion");
+    } else {
+      // Send email
+      try {
+        await sendEmail(
+          suggestion.email, // Make sure you have the employee's email in the suggestion data
+          "Reply to Your Suggestion",
+          "SuggestionReply",
+          {
+            employeeName: suggestion.created_by,
+            originalSuggestion: suggestion.suggestion,
+            replyText: replyText,
+            repliedBy: "Admin", // You might want to use the actual admin's name here
+          }
+        );
+
+        toast.success("Replied to suggestion and sent email");
+      } catch (error) {
+        console.error("Error sending email:", error);
+        toast.error("Failed to send email, but reply was saved");
+      }
+
+      setReplyText("");
+      fetchSuggestions(); // Refresh the suggestions list
+    }
+  }
 
   return (
     <div className="section w-full overflow-hidden">
@@ -815,8 +1017,138 @@ export default function AdminDashboard() {
           </Card> */}
         </div>
 
+        {/* Suggestions Card*/}
+        <div className="w-full overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
+            <Card className="col-span-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BellIcon className="h-6 w-6" />
+                  Employee Suggestions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {suggestions.length === 0 ? (
+                  <p>No suggestions submitted yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Submitted By</TableHead>
+                          <TableHead>Suggestion</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {suggestions.map((suggestion) => (
+                          <TableRow key={suggestion.id}>
+                            <TableCell>{suggestion.created_by}</TableCell>
+                            <TableCell>{suggestion.suggestion}</TableCell>
+                            <TableCell>
+                              {new Date(
+                                suggestion.created_at
+                              ).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              {suggestion.is_read ? (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-100 text-green-800"
+                                >
+                                  Replied
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-yellow-100 text-yellow-800"
+                                >
+                                  Pending
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    disabled={suggestion.is_read}
+                                  >
+                                    {suggestion.is_read ? "Replied" : "Reply"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium">
+                                      Reply to Suggestion
+                                    </h4>
+                                    <Textarea
+                                      placeholder="Type your reply here..."
+                                      value={replyText}
+                                      onChange={(e) =>
+                                        setReplyText(e.target.value)
+                                      }
+                                    />
+                                    <Button
+                                      onClick={() => handleReply(suggestion)}
+                                    >
+                                      Send Reply
+                                    </Button>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
         {/* Sales Chart*/}
         <div className="col-span-full overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-hidden mb-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Gross Sales
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  ${totalGross.toFixed(2)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Net Sales With Firearms
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${totalNet.toFixed(2)}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Net Sales Without Firearms
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  ${totalNetMinusExclusions.toFixed(2)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           <Card className="flex flex-col col-span-full h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

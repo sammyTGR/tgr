@@ -248,7 +248,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           onChange={(event) =>
             table.getColumn("Lanid")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm w-full"
+          className=" max-w-sm w-full"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
