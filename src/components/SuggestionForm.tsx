@@ -8,12 +8,12 @@ import { toast } from "sonner";
 
 interface SuggestionFormProps {
   employeeName: string;
-  employeeEmail: string;
+  employeeContactInfo: string;
 }
 
 const SuggestionForm: React.FC<SuggestionFormProps> = ({
   employeeName,
-  employeeEmail,
+  employeeContactInfo,
 }) => {
   const [suggestion, setSuggestion] = useState("");
 
@@ -29,7 +29,7 @@ const SuggestionForm: React.FC<SuggestionFormProps> = ({
       const { data, error } = await supabase
         .from("employee_suggestions")
         .insert([
-          { suggestion, created_by: employeeName, email: employeeEmail },
+          { suggestion, created_by: employeeName, email: employeeContactInfo },
         ]);
 
       if (error) throw error;

@@ -718,7 +718,7 @@ const EmployeeProfilePage = () => {
     // Fetch from employees table
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
-      .select("*")
+      .select("*, contact_info")
       .eq("employee_id", employeeId)
       .single();
 
@@ -1647,8 +1647,8 @@ const EmployeeProfilePage = () => {
                               align="start"
                             >
                               <SuggestionForm
-                                employeeName={employee.name}
-                                employeeEmail={employee.email}
+                                employeeName={employee?.name || ''}
+                                employeeContactInfo={employee?.contact_info || ''}
                               />
                             </PopoverContent>
                           </Popover>
