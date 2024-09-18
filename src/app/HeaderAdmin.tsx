@@ -15,6 +15,7 @@ import {
   SunIcon,
   MoonIcon,
   PersonIcon,
+  DashboardIcon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenu,
@@ -371,6 +372,12 @@ const HeaderAdmin = React.memo(() => {
     };
   }, []);
 
+  const handleProfileClick = () => {
+    if (employeeId) {
+      router.push(`/TGR/crew/profile/${employeeId}`);
+    }
+  };
+
   useEffect(() => {
     if (user && !isChatActive) {
       fetchUnreadCounts();
@@ -623,17 +630,17 @@ const HeaderAdmin = React.memo(() => {
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {/* <DropdownMenuItem>
-                    <Link
-                      href="/TGR/employees/profiles"
-                      className="flex items-center w-full"
-                    >
-                      <PersonIcon className="mr-2 h-4 w-4" />
-
-                      <span>Manage Profile</span>
-                    </Link>
+                  <DropdownMenuItem onSelect={handleProfileClick}>
+                    <PersonIcon className="mr-2 h-4 w-4" />
+                    <span>Your Profile Page</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator /> */}
+                  <DropdownMenuItem
+                    onSelect={() => handleLinkClick("/admin/reports/dashboard")}
+                  >
+                    <DashboardIcon className="mr-2 h-4 w-4" />
+                    <span>Admin Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />

@@ -54,6 +54,7 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/context/RoleContext";
 import { Textarea } from "@/components/ui/textarea";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 interface Certificate {
   id: number;
@@ -711,7 +712,7 @@ export default function AdminDashboard() {
     const fullName = user?.user_metadata?.name || "";
     const firstName = fullName.split(" ")[0]; // This will get the first word of the name
     const replierName = firstName || "Admin";
-    console.log("Replier name:", replierName); // Log the replier name
+    // console.log("Replier name:", replierName); // Log the replier name
 
     const { error } = await supabase
       .from("employee_suggestions")
@@ -753,133 +754,260 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="section w-full overflow-hidden">
-      <h1 className="text-3xl font-bold mt-4 mb-4 ml-8">Admin Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
-        {/*chat card*/}
-        <div className="w-full overflow-hidden">
+    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+      <div className="section w-full overflow-hidden">
+        <h1 className="text-3xl font-bold ml-8">Admin Dashboard</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
+          {/*chat card*/}
           <div className="w-full overflow-hidden">
-            {/* <Card className="flex flex-col mt-2 overflow-hidden">
+            <div className="w-full overflow-hidden">
+              {/* <Card className="flex flex-col mt-2 overflow-hidden">
               <CardContent className="flex-grow overflow-hidden"> */}
-            <div className="h-full overflow-hidden">
-              <ChatClient />
+              <div className="h-full overflow-hidden">
+                <ChatClient />
+              </div>
+              {/* </CardContent>
+            </Card> */}
+            </div>
+          </div>
+
+          {/*All Report cards*/}
+          <div className="w-full overflow-hidden">
+            {/* <Card className="flex flex-col max-h-[calc(100vh-250px)] max-w-full mx-auto my-12 overflow-hidden">
+            <CardContent> */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
+              <ReportCard
+                title="Gunsmithing Weekly Maintenance"
+                date={gunsmiths?.last_maintenance_date || null}
+                icon={<PersonIcon className="h-6 w-6" />}
+                extraInfo={gunsmiths?.firearm_name}
+                type="maintenance"
+              />
+              <ReportCard
+                title="Daily Checklist Submissions"
+                date={checklist?.submission_date || null}
+                icon={<ClipboardIcon className="h-6 w-6" />}
+                extraInfo={checklist?.submitted_by_name}
+              />
+
+              <ReportCard
+                title="Daily Range Walk Reports"
+                date={rangeWalk?.date_of_walk || null}
+                icon={<MagnifyingGlassIcon className="h-6 w-6" />}
+                extraInfo={rangeWalk?.user_name}
+              />
+
+              <ReportCard
+                title="Daily Deposits"
+                date={dailyDeposit?.created_at || null}
+                icon={<ClipboardIcon className="h-6 w-6" />}
+                extraInfo={dailyDeposit?.employee_name}
+                type="deposit"
+                details={[
+                  {
+                    name: dailyDeposit?.register || "",
+                    value: dailyDeposit?.total_to_deposit?.toFixed(2) || "0.00",
+                  },
+                ]}
+              />
+              <ReportCard
+                title="Certificates Needing Renewal"
+                date={
+                  certificates.length > 0
+                    ? certificates[certificates.length - 1].expiration
+                    : null
+                }
+                icon={<DrawingPinIcon className="h-6 w-6" />}
+                extraInfo={`${certificates.length} certificate${
+                  certificates.length !== 1 ? "s" : ""
+                } need${certificates.length === 1 ? "s" : ""} renewal`}
+                type="certificate"
+                details={certificates}
+              />
+
+              {/* Certificate Renewals List*/}
+              <Card className="flex flex-col overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DrawingPinIcon className="h-6 w-6" />
+                    Certificate Renewals List
+                  </CardTitle>
+                </CardHeader>
+                <div className="flex-grow overflow-hidden">
+                  {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
+                  <CardContent className="flex-grow ">
+                    {certificates.length > 0 ? (
+                      <ul className="space-y-1">
+                        {certificates.map((cert) => (
+                          <li
+                            key={cert.id}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="flex-shrink-0 w-1/4 truncate">
+                              {cert.name}
+                            </span>
+                            <span className="flex-shrink-0 w-1/4 truncate">
+                              {cert.certificate}
+                            </span>
+                            <span className="flex-shrink-0 w-1/4 truncate">
+                              {cert.action_status}
+                            </span>
+                            <Badge variant="destructive" className="w-1/8">
+                              {new Date(cert.expiration).toLocaleDateString()}
+                            </Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-center">
+                        No certificates need renewal at this time.
+                      </p>
+                    )}
+                  </CardContent>
+                  {/* <ScrollBar orientation="vertical" /> */}
+                  {/* <ScrollBar orientation="horizontal" /> */}
+                  {/* </ScrollArea> */}
+                </div>
+              </Card>
             </div>
             {/* </CardContent>
-            </Card> */}
+          </Card> */}
           </div>
-        </div>
 
-        {/*All Report cards*/}
-        <div className="w-full overflow-hidden">
-          {/* <Card className="flex flex-col max-h-[calc(100vh-250px)] max-w-full mx-auto my-12 overflow-hidden">
-            <CardContent> */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
-            <ReportCard
-              title="Gunsmithing Weekly Maintenance"
-              date={gunsmiths?.last_maintenance_date || null}
-              icon={<PersonIcon className="h-6 w-6" />}
-              extraInfo={gunsmiths?.firearm_name}
-              type="maintenance"
-            />
-            <ReportCard
-              title="Daily Checklist Submissions"
-              date={checklist?.submission_date || null}
-              icon={<ClipboardIcon className="h-6 w-6" />}
-              extraInfo={checklist?.submitted_by_name}
-            />
-
-            <ReportCard
-              title="Daily Range Walk Reports"
-              date={rangeWalk?.date_of_walk || null}
-              icon={<MagnifyingGlassIcon className="h-6 w-6" />}
-              extraInfo={rangeWalk?.user_name}
-            />
-
-            <ReportCard
-              title="Daily Deposits"
-              date={dailyDeposit?.created_at || null}
-              icon={<ClipboardIcon className="h-6 w-6" />}
-              extraInfo={dailyDeposit?.employee_name}
-              type="deposit"
-              details={[
-                {
-                  name: dailyDeposit?.register || "",
-                  value: dailyDeposit?.total_to_deposit?.toFixed(2) || "0.00",
-                },
-              ]}
-            />
-            <ReportCard
-              title="Certificates Needing Renewal"
-              date={
-                certificates.length > 0
-                  ? certificates[certificates.length - 1].expiration
-                  : null
-              }
-              icon={<DrawingPinIcon className="h-6 w-6" />}
-              extraInfo={`${certificates.length} certificate${
-                certificates.length !== 1 ? "s" : ""
-              } need${certificates.length === 1 ? "s" : ""} renewal`}
-              type="certificate"
-              details={certificates}
-            />
-
-            {/* Certificate Renewals List*/}
-            <Card className="flex flex-col overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DrawingPinIcon className="h-6 w-6" />
-                  Certificate Renewals List
-                </CardTitle>
-              </CardHeader>
-              <div className="flex-grow overflow-hidden">
-                {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
-                <CardContent className="flex-grow overflow-auto">
-                  {certificates.length > 0 ? (
-                    <ul className="space-y-2 pr-4">
-                      {certificates.map((cert) => (
-                        <li
-                          key={cert.id}
-                          className="flex items-center justify-between space-x-2"
-                        >
-                          <span className="flex-shrink-0 w-1/4 truncate">
-                            {cert.name}
-                          </span>
-                          <span className="flex-shrink-0 w-1/4 truncate">
-                            {cert.certificate}
-                          </span>
-                          <span className="flex-shrink-0 w-1/4 truncate">
-                            {cert.action_status}
-                          </span>
-                          <Badge variant="destructive">
-                            {new Date(cert.expiration).toLocaleDateString()}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
+          {/* Suggestions Card*/}
+          <div className="w-full overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
+              <Card className="col-span-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BellIcon className="h-6 w-6" />
+                    Employee Suggestions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {suggestions.length === 0 ? (
+                    <p>No suggestions submitted yet.</p>
                   ) : (
-                    <p className="text-center">
-                      No certificates need renewal at this time.
-                    </p>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Submitted By</TableHead>
+                            <TableHead>Suggestion</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {suggestions.map((suggestion) => (
+                            <TableRow key={suggestion.id}>
+                              <TableCell>{suggestion.created_by}</TableCell>
+                              <TableCell>{suggestion.suggestion}</TableCell>
+                              <TableCell>
+                                {new Date(
+                                  suggestion.created_at
+                                ).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                {suggestion.is_read ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-green-100 text-green-800"
+                                  >
+                                    Replied
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-yellow-100 text-yellow-800"
+                                  >
+                                    Pending
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        disabled={suggestion.is_read}
+                                      >
+                                        {suggestion.is_read
+                                          ? "Replied"
+                                          : "Reply"}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80">
+                                      <div className="space-y-2">
+                                        <h4 className="font-medium">
+                                          Reply to Suggestion
+                                        </h4>
+                                        <Textarea
+                                          placeholder="Type your reply here..."
+                                          value={replyText}
+                                          onChange={(e) =>
+                                            setReplyText(e.target.value)
+                                          }
+                                        />
+                                        <Button
+                                          onClick={() =>
+                                            handleReply(suggestion)
+                                          }
+                                        >
+                                          Send Reply
+                                        </Button>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                  {suggestion.is_read && (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="outline">View</Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-80">
+                                        <div className="space-y-2">
+                                          <h4 className="font-medium">
+                                            Reply Sent
+                                          </h4>
+                                          <p className="text-sm">
+                                            {suggestion.reply}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            Replied by: {suggestion.replied_by}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            Replied at:{" "}
+                                            {new Date(
+                                              suggestion.replied_at || ""
+                                            ).toLocaleString()}
+                                          </p>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </CardContent>
-                {/* <ScrollBar orientation="vertical" /> */}
-                {/* <ScrollBar orientation="horizontal" /> */}
-                {/* </ScrollArea> */}
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
-          {/* </CardContent>
-          </Card> */}
-        </div>
 
-        {/* Super Admin Only*/}
-        <div className="w-full overflow-hidden">
-          {/* <Card className="flex flex-col max-h-[calc(100vh-250px)] max-w-[calc(100vw-150px)] mx-auto my-12 overflow-hidden">
+          {/* Super Admin Only*/}
+          <div className="w-full overflow-hidden">
+            {/* <Card className="flex flex-col max-h-[calc(100vh-250px)] max-w-[calc(100vw-150px)] mx-auto my-12 overflow-hidden">
           <div className="p-8 min-h-screen overflow-hidden">
             <div className="flex-grow overflow-hidden">
               <ScrollArea className="h-[calc(100vh-100px)] overflow-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden"> */}
-          {/* <Card className="col-span-full">
+            {/* <Card className="col-span-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BellIcon className="h-6 w-6" />
@@ -890,347 +1018,242 @@ export default function AdminDashboard() {
             <p>Add any important notices or announcements here.</p>
           </CardContent>
         </Card> */}
-          {/* <Card className="flex flex-col max-h-full max-w-full mx-auto overflow-hidden">
+            {/* <Card className="flex flex-col max-h-full max-w-full mx-auto overflow-hidden">
             <CardContent> */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
-            {/* Manage Approved Domains*/}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
+              {/* Manage Approved Domains*/}
 
-            {/* Select Date and Upload Data */}
-            <Card className="flex flex-col h-full">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle className="flex items-center gap-2">
-                  <CalendarIcon className="h-6 w-6" />
-                  Select Date For Chart & Table
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full pl-3 text-left font-normal mb-2"
-                    >
-                      {format(selectedRange.start, "PPP")}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CustomCalendar
-                      selectedDate={selectedRange.start}
-                      onDateChange={handleRangeChange}
-                      disabledDays={() => false}
-                    />
-                  </PopoverContent>
-                </Popover>
+              {/* File Upload Section */}
+              {role === "super admin" && (
+                <Card className="flex flex-col h-full">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle className="flex items-center gap-2">
+                      <CalendarIcon className="h-6 w-6" />
+                      Select Date For Chart & Table
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                    <div className="mt-4 rounded-md border">
+                      <div className="flex flex-col items-start gap-2 p-2">
+                        <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                          <Input
+                            type="file"
+                            accept=".csv,.xlsx"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                          <span>{fileName || "Select File"}</span>
+                        </label>
+                        <Button
+                          variant="outline"
+                          onClick={handleSubmit}
+                          className="w-full"
+                          disabled={loading || !file}
+                        >
+                          {loading ? "Uploading..." : "Upload & Process"}
+                        </Button>
+                      </div>
+                    </div>
 
-                {/* File Upload Section */}
-                {role === "super admin" && (
-                  <div className="mt-4 rounded-md border">
-                    <div className="flex flex-col items-start gap-2 p-2">
-                      <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                    {loading && <Progress value={progress} className="mt-4" />}
+                  </CardContent>
+                </Card>
+              )}
+
+              {role === "super admin" && !loading && (
+                <Card className="flex flex-col overflow-hidden">
+                  <CardHeader>
+                    <CardTitle>Manage Approved Domains</CardTitle>
+                    <CardDescription>
+                      Add, edit, or remove domains for internal email addresses.
+                    </CardDescription>
+                  </CardHeader>
+                  <div className="flex-grow overflow-hidden">
+                    {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
+                    <CardContent>
+                      <div className="mb-4 flex items-center space-x-2">
                         <Input
-                          type="file"
-                          accept=".csv,.xlsx"
-                          onChange={handleFileChange}
-                          className="hidden"
+                          type="text"
+                          value={newDomain}
+                          onChange={(e) => setNewDomain(e.target.value)}
+                          placeholder="Enter new domain"
+                          className="flex-grow"
                         />
-                        <span>{fileName || "Select File"}</span>
-                      </label>
+                        <Button variant="outline" onClick={addDomain}>
+                          Add Domain
+                        </Button>
+                      </div>
+
+                      <ul className="space-y-2 flex flex-col flex-shrink-0">
+                        {domains.map((domain) => (
+                          <li
+                            key={domain.id}
+                            className="flex items-center space-x-2"
+                          >
+                            {editingDomain && editingDomain.id === domain.id ? (
+                              <>
+                                <Input
+                                  type="text"
+                                  value={editingDomain.domain}
+                                  onChange={(e) =>
+                                    setEditingDomain({
+                                      ...editingDomain,
+                                      domain: e.target.value,
+                                    })
+                                  }
+                                  className="flex-grow"
+                                />
+                                <Button
+                                  onClick={updateDomain}
+                                  variant="outline"
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  onClick={() => setEditingDomain(null)}
+                                  variant="outline"
+                                >
+                                  Cancel
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="flex-grow">
+                                  {domain.domain}
+                                </span>
+                                <Button
+                                  onClick={() => setEditingDomain(domain)}
+                                  variant="outline"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  onClick={() => deleteDomain(domain.id)}
+                                  variant="destructive"
+                                >
+                                  Delete
+                                </Button>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    {/* <ScrollBar orientation="vertical" /> */}
+                    {/* </ScrollArea> */}
+                  </div>
+                </Card>
+              )}
+            </div>
+            {/* </CardContent>
+          </Card> */}
+          </div>
+
+          {/* Sales Chart*/}
+          <div className="col-span-full overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden mb-2">
+              <Card>
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarIcon className="h-6 w-6" />
+                    Select Date For Chart & Table
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        onClick={handleSubmit}
-                        className="w-full"
-                        disabled={loading || !file}
+                        className="w-full pl-3 text-left font-normal mb-2"
                       >
-                        {loading ? "Uploading..." : "Upload & Process"}
+                        {format(selectedRange.start, "PPP")}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
-                    </div>
-                  </div>
-                )}
-                {loading && <Progress value={progress} className="mt-4" />}
-              </CardContent>
-            </Card>
-
-            {role === "super admin" && !loading && (
-              <Card className="flex flex-col overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Manage Approved Domains</CardTitle>
-                  <CardDescription>
-                    Add, edit, or remove domains for internal email addresses.
-                  </CardDescription>
-                </CardHeader>
-                <div className="flex-grow overflow-hidden">
-                  {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
-                  <CardContent>
-                    <div className="mb-4 flex items-center space-x-2">
-                      <Input
-                        type="text"
-                        value={newDomain}
-                        onChange={(e) => setNewDomain(e.target.value)}
-                        placeholder="Enter new domain"
-                        className="flex-grow"
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CustomCalendar
+                        selectedDate={selectedRange.start}
+                        onDateChange={handleRangeChange}
+                        disabledDays={() => false}
                       />
-                      <Button variant="outline" onClick={addDomain}>
-                        Add Domain
-                      </Button>
-                    </div>
-
-                    <ul className="space-y-2 flex flex-col flex-shrink-0">
-                      {domains.map((domain) => (
-                        <li
-                          key={domain.id}
-                          className="flex items-center space-x-2"
-                        >
-                          {editingDomain && editingDomain.id === domain.id ? (
-                            <>
-                              <Input
-                                type="text"
-                                value={editingDomain.domain}
-                                onChange={(e) =>
-                                  setEditingDomain({
-                                    ...editingDomain,
-                                    domain: e.target.value,
-                                  })
-                                }
-                                className="flex-grow"
-                              />
-                              <Button onClick={updateDomain} variant="outline">
-                                Save
-                              </Button>
-                              <Button
-                                onClick={() => setEditingDomain(null)}
-                                variant="outline"
-                              >
-                                Cancel
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <span className="flex-grow">{domain.domain}</span>
-                              <Button
-                                onClick={() => setEditingDomain(domain)}
-                                variant="outline"
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                onClick={() => deleteDomain(domain.id)}
-                                variant="destructive"
-                              >
-                                Delete
-                              </Button>
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  {/* <ScrollBar orientation="vertical" /> */}
-                  {/* </ScrollArea> */}
-                </div>
+                    </PopoverContent>
+                  </Popover>
+                </CardContent>
               </Card>
-            )}
-          </div>
-          {/* </CardContent>
-          </Card> */}
-        </div>
-
-        {/* Suggestions Card*/}
-        <div className="w-full overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
-            <Card className="col-span-full">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Gross Sales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${totalGross.toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Net Sales With Firearms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${totalNet.toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Net Sales Without Firearms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${totalNetMinusExclusions.toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <Card className="flex flex-col col-span-full h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BellIcon className="h-6 w-6" />
-                  Employee Suggestions
+                  <BarChartIcon className="h-6 w-6" />
+                  Sales Report Chart
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {suggestions.length === 0 ? (
-                  <p>No suggestions submitted yet.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Submitted By</TableHead>
-                          <TableHead>Suggestion</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {suggestions.map((suggestion) => (
-                          <TableRow key={suggestion.id}>
-                            <TableCell>{suggestion.created_by}</TableCell>
-                            <TableCell>{suggestion.suggestion}</TableCell>
-                            <TableCell>
-                              {new Date(
-                                suggestion.created_at
-                              ).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              {suggestion.is_read ? (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-green-100 text-green-800"
-                                >
-                                  Replied
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-yellow-100 text-yellow-800"
-                                >
-                                  Pending
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      disabled={suggestion.is_read}
-                                    >
-                                      {suggestion.is_read ? "Replied" : "Reply"}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-80">
-                                    <div className="space-y-2">
-                                      <h4 className="font-medium">
-                                        Reply to Suggestion
-                                      </h4>
-                                      <Textarea
-                                        placeholder="Type your reply here..."
-                                        value={replyText}
-                                        onChange={(e) =>
-                                          setReplyText(e.target.value)
-                                        }
-                                      />
-                                      <Button
-                                        onClick={() => handleReply(suggestion)}
-                                      >
-                                        Send Reply
-                                      </Button>
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
-                                {suggestion.is_read && (
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button variant="outline">View</Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80">
-                                      <div className="space-y-2">
-                                        <h4 className="font-medium">
-                                          Reply Sent
-                                        </h4>
-                                        <p className="text-sm">
-                                          {suggestion.reply}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          Replied by: {suggestion.replied_by}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          Replied at:{" "}
-                                          {new Date(
-                                            suggestion.replied_at || ""
-                                          ).toLocaleString()}
-                                        </p>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+              <CardContent className="max-w-[calc(100vw-100px)] overflow-hidden">
+                <SalesRangeStackedBarChart selectedRange={selectedRange} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sales Report Table*/}
+          <div className="col-span-full overflow-hidden">
+            <Card className="flex flex-col col-span-full h-full">
+              <CardHeader className="flex-shrink-0">
+                <CardTitle className="flex items-center gap-2">
+                  <TableIcon className="h-6 w-6" />
+                  Sales Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
+                <Suspense fallback={<div>Loading...</div>}>
+                  <div className=" overflow-hidden ">
+                    <SalesDataTable
+                      startDate={format(selectedRange.start, "yyyy-MM-dd")}
+                      endDate={format(selectedRange.end, "yyyy-MM-dd")}
+                    />
                   </div>
-                )}
+                </Suspense>
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Sales Chart*/}
-        <div className="col-span-full overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-hidden mb-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Gross Sales
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  ${totalGross.toFixed(2)}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Net Sales With Firearms
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${totalNet.toFixed(2)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Net Sales Without Firearms
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  ${totalNetMinusExclusions.toFixed(2)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <Card className="flex flex-col col-span-full h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChartIcon className="h-6 w-6" />
-                Sales Report Chart
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="max-w-[calc(100vw-100px)] overflow-hidden">
-              <SalesRangeStackedBarChart selectedRange={selectedRange} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sales Report Table*/}
-        <div className="col-span-full overflow-hidden">
-          <Card className="flex flex-col col-span-full h-full">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="flex items-center gap-2">
-                <TableIcon className="h-6 w-6" />
-                Sales Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
-              <Suspense fallback={<div>Loading...</div>}>
-                <div className=" overflow-hidden ">
-                  <SalesDataTable
-                    startDate={format(selectedRange.start, "yyyy-MM-dd")}
-                    endDate={format(selectedRange.end, "yyyy-MM-dd")}
-                  />
-                </div>
-              </Suspense>
-            </CardContent>
-          </Card>
         </div>
       </div>
-    </div>
+    </RoleBasedWrapper>
   );
 }
 

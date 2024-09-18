@@ -100,7 +100,11 @@ export default function Home() {
         setLoading(false); // End loading before redirection
         setRoleValidating(false); // End role validation
         setProgress(100); // Final progress
-        router.push(`/TGR/crew/profile/${employee_id}`);
+        if (role === "admin" || role === "super admin") {
+          router.push("/admin/reports/dashboard");
+        } else {
+          router.push(`/TGR/crew/profile/${employee_id}`);
+        }
       }
     };
 

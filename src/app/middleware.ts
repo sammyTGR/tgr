@@ -77,7 +77,6 @@
 //   ],
 // };
 
-
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { protectedPaths } from "@/lib/constant";
@@ -92,23 +91,29 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (error || !user || !user.email) {
-    console.error("No user or email found:", error || "User or email undefined");
+    console.error(
+      "No user or email found:",
+      error || "User or email undefined"
+    );
     if (protectedPaths.includes(url.pathname)) {
-      return NextResponse.redirect(new URL("/auth?next=" + url.pathname, request.url));
+      return NextResponse.redirect(
+        new URL("/auth?next=" + url.pathname, request.url)
+      );
     }
     return NextResponse.next();
   }
 
   // Extract first name from the full name or email (before the '@')
-  const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.email.split('@')[0];
-  const lastName = user.user_metadata?.full_name?.split(' ')[1] || '';
+  const firstName =
+    user.user_metadata?.full_name?.split(" ")[0] || user.email.split("@")[0];
+  const lastName = user.user_metadata?.full_name?.split(" ")[1] || "";
 
   // Check if the user exists in the employees table
   const { data: employeeData, error: employeeError } = await supabase
     .from("employees")
     .select("role, employee_id")
     .eq("user_uuid", user.id)
-    .maybeSingle();  // Use maybeSingle to handle cases where no rows are returned
+    .maybeSingle(); // Use maybeSingle to handle cases where no rows are returned
 
   if (employeeError) {
     console.error("Error fetching employee role:", employeeError.message);
@@ -123,7 +128,15 @@ export async function middleware(request: NextRequest) {
 
     // Redirect to the correct profile page based on role
     if (url.pathname === "/auth" || url.pathname === "/") {
-      return NextResponse.redirect(new URL(`/TGR/crew/profile/${employeeId}`, request.url));
+      if (userRole === "admin" || userRole === "super admin") {
+        return NextResponse.redirect(
+          new URL("/admin/reports/dashboard", request.url)
+        );
+      } else {
+        return NextResponse.redirect(
+          new URL(`/TGR/crew/profile/${employeeId}`, request.url)
+        );
+      }
     }
   }
 

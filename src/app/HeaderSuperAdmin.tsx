@@ -513,6 +513,12 @@ const HeaderSuperAdmin = React.memo(() => {
     router.push(href);
   };
 
+  const handleProfileClick = () => {
+    if (employeeId) {
+      router.push(`/TGR/crew/profile/${employeeId}`);
+    }
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["super admin"]}>
       <header className="flex justify-between items-center p-2">
@@ -665,6 +671,10 @@ const HeaderSuperAdmin = React.memo(() => {
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleProfileClick}>
+                    <PersonIcon className="mr-2 h-4 w-4" />
+                    <span>Your Profile Page</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => handleLinkClick("/admin/domains")}
                   >
