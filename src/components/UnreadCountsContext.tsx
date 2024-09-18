@@ -130,39 +130,58 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
         fetchUnreadCounts();
       }
 
-      const groupChatMessageSubscription = supabase
-        .channel("group_chat_messages")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "group_chat_messages" },
-          (payload) => {
-            if (
-              payload.new.sender_id !== user.id &&
-              (!payload.new.read_by || !payload.new.read_by.includes(user.id))
-            ) {
-              setTotalUnreadCount((prev) => prev + 1);
-            }
-          }
-        )
-        .subscribe();
+      // Fetch user's group chats
+      const fetchUserGroupChats = async () => {
+        const { data: groupChats, error } = await supabase
+          .from("group_chats")
+          .select("id")
+          .contains("users", [user.id]);
 
-      const directMessageSubscription = supabase
-        .channel("direct_messages")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "direct_messages" },
-          (payload) => {
-            if (payload.new.receiver_id === user.id && !payload.new.is_read) {
-              setTotalUnreadCount((prev) => prev + 1);
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        groupChatMessageSubscription.unsubscribe();
-        directMessageSubscription.unsubscribe();
+        if (error) {
+          console.error("Error fetching user's group chats:", error.message);
+          return [];
+        }
+        return groupChats.map((chat) => chat.id);
       };
+
+      // Fetch group chats and set up subscriptions
+      fetchUserGroupChats().then((userGroupChats) => {
+        const groupChatMessageSubscription = supabase
+          .channel("group_chat_messages")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "group_chat_messages" },
+            (payload) => {
+              if (
+                payload.new.sender_id !== user.id &&
+                (!payload.new.read_by ||
+                  !payload.new.read_by.includes(user.id)) &&
+                userGroupChats.includes(payload.new.group_chat_id)
+              ) {
+                setTotalUnreadCount((prev) => prev + 1);
+              }
+            }
+          )
+          .subscribe();
+
+        const directMessageSubscription = supabase
+          .channel("direct_messages")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "direct_messages" },
+            (payload) => {
+              if (payload.new.receiver_id === user.id && !payload.new.is_read) {
+                setTotalUnreadCount((prev) => prev + 1);
+              }
+            }
+          )
+          .subscribe();
+
+        return () => {
+          groupChatMessageSubscription.unsubscribe();
+          directMessageSubscription.unsubscribe();
+        };
+      });
     }
   }, [user, isChatPage, fetchUnreadCounts, resetUnreadCounts]);
 

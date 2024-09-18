@@ -1002,27 +1002,7 @@ export default function AdminDashboard() {
 
           {/* Super Admin Only*/}
           <div className="w-full overflow-hidden">
-            {/* <Card className="flex flex-col max-h-[calc(100vh-250px)] max-w-[calc(100vw-150px)] mx-auto my-12 overflow-hidden">
-          <div className="p-8 min-h-screen overflow-hidden">
-            <div className="flex-grow overflow-hidden">
-              <ScrollArea className="h-[calc(100vh-100px)] overflow-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden"> */}
-            {/* <Card className="col-span-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BellIcon className="h-6 w-6" />
-              Important Notices
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>Add any important notices or announcements here.</p>
-          </CardContent>
-        </Card> */}
-            {/* <Card className="flex flex-col max-h-full max-w-full mx-auto overflow-hidden">
-            <CardContent> */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
-              {/* Manage Approved Domains*/}
-
               {/* File Upload Section */}
               {role === "super admin" && (
                 <Card className="flex flex-col h-full">
@@ -1151,9 +1131,9 @@ export default function AdminDashboard() {
 
           {/* Sales Chart*/}
           <div className="col-span-full overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden mb-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
               <Card>
-                <CardHeader className="flex-shrink-0">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="flex items-center gap-2">
                     <CalendarIcon className="h-6 w-6" />
                     Select Date For Chart & Table
@@ -1217,21 +1197,21 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
-            <Card className="flex flex-col col-span-full h-full">
+            <Card className="flex flex-col col-span-full h-full mt-2 mb-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChartIcon className="h-6 w-6" />
                   Sales Report Chart
                 </CardTitle>
               </CardHeader>
-              <CardContent className="max-w-[calc(100vw-100px)] overflow-hidden">
+              <CardContent className="overflow-hidden">
                 <SalesRangeStackedBarChart selectedRange={selectedRange} />
               </CardContent>
             </Card>
           </div>
 
           {/* Sales Report Table*/}
-          <div className="col-span-full overflow-hidden">
+          <div className="col-span-full overflow-hidden mt-2">
             <Card className="flex flex-col col-span-full h-full">
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center gap-2">
