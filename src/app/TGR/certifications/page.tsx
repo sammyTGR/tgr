@@ -17,6 +17,12 @@ import { certificationColumns } from "./columns";
 import { toast } from "sonner";
 import { useRole } from "@/context/RoleContext"; // Import useRole hook
 import { PopoverForm } from "./PopoverForm";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import classNames from "classnames";
+import styles from "./table.module.css";
 
 interface CertificationData {
   id: string;
@@ -224,23 +230,58 @@ const CertificationsPage: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <CertificationTableToolbar
-        table={table}
-        onFilterChange={handleFilterChange}
-      />
-      <CertificationDataTable
-        columns={certificationColumns(onUpdate)}
-        data={certifications}
-        pageCount={pageCount}
-        pageIndex={pageIndex}
-        setPageIndex={setPageIndex}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        filters={filters}
-        handleAddCertificate={handleAddCertificate} // Pass the function here
-        employees={employees} // Pass the employees data here
-      />
+    <div className="flex flex-col h-screen my-8 overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Tabs defaultValue="certifications" className="flex-1 flex flex-col">
+          <div className="container justify-start px-4 mt-4">
+            <TabsList>
+              <TabsTrigger value="certifications">Certifications</TabsTrigger>
+              {/* Add more tabs if needed */}
+            </TabsList>
+          </div>
+
+          <div className="grid flex-1 items-start mt-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body">
+            <div className="container px-4 mt-4">
+              <TabsContent
+                value="certifications"
+                className="mt-0 overflow-hidden"
+              >
+                <Card className="h-full overflow-hidden">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold">
+                      <TextGenerateEffect words="Certifications Management" />
+                    </CardTitle>
+                  </CardHeader>
+                  <ScrollArea className="h-[calc(100vh-300px)] overflow-auto">
+                    <CardContent className="p-0 mx-auto overflow-hidden">
+                      <CertificationTableToolbar
+                        table={table}
+                        onFilterChange={handleFilterChange}
+                      />
+                      <div className="border rounded-md">
+                        <CertificationDataTable
+                          columns={certificationColumns(onUpdate)}
+                          data={certifications}
+                          pageCount={pageCount}
+                          pageIndex={pageIndex}
+                          setPageIndex={setPageIndex}
+                          pageSize={pageSize}
+                          setPageSize={setPageSize}
+                          filters={filters}
+                          handleAddCertificate={handleAddCertificate}
+                          employees={employees}
+                        />
+                      </div>
+                    </CardContent>
+                    <ScrollBar orientation="vertical" />
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </Card>
+              </TabsContent>
+            </div>
+          </div>
+        </Tabs>
+      </div>
     </div>
   );
 };

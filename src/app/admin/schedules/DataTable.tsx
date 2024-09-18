@@ -9,10 +9,15 @@ import {
   getFilteredRowModel,
   flexRender,
   ColumnFiltersState,
+  SortingState,
+  GroupingState,
+  ExpandedState,
+  getExpandedRowModel,
 } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScheduleRowActions } from "./schedule-row-actions";
+import { SchedulePagination } from "./schedule-pagination";
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData>[];
@@ -31,6 +36,14 @@ export function DataTable<TData>({
     []
   );
   const [searchInput, setSearchInput] = React.useState("");
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "employee_name", desc: false },
+    { id: "day_of_week", desc: false },
+  ]);
+  const [grouping, setGrouping] = React.useState<GroupingState>([
+    "employee_name",
+  ]);
+  const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
   const table = useReactTable({
     data,
@@ -42,7 +55,13 @@ export function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: { pagination: { pageSize: 7 } },
+    initialState: {
+      pagination: { pageSize: 7 },
+      sorting: [
+        { id: "employee_name", desc: false },
+        { id: "day_of_week", desc: false },
+      ],
+    },
   });
 
   const handleResetFilter = () => {
@@ -107,6 +126,7 @@ export function DataTable<TData>({
             ))}
           </tbody>
         </table>
+        <SchedulePagination table={table} />
       </div>
     </div>
   );

@@ -799,7 +799,6 @@ const ManageSchedules = () => {
                 fetchReferenceSchedules={fetchReferenceSchedules}
                 fetchActualSchedules={fetchActualSchedules}
               />
-              <SchedulePagination table={table} />
             </CardContent>
           </TabsContent>
 

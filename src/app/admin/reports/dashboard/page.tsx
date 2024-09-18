@@ -98,6 +98,7 @@ interface Suggestion {
   created_at: string;
   is_read: boolean;
   replied_by: string | null;
+  replierName: string | null;
   replied_at: string | null;
   reply: string | null; // Add this line
   email: string;
@@ -255,11 +256,11 @@ export default function AdminDashboard() {
         setTotalNetMinusExclusions(totalNetMinusExclusions);
         setSalesData(salesData);
 
-        console.log("Initial data fetch:", {
-          totalGross,
-          totalNet,
-          totalNetMinusExclusions,
-        });
+        // console.log("Initial data fetch:", {
+        //   totalGross,
+        //   totalNet,
+        //   totalNetMinusExclusions,
+        // });
       }
     };
 
@@ -307,11 +308,11 @@ export default function AdminDashboard() {
         setTotalNetMinusExclusions(totalNetMinusExclusions);
         setSalesData(salesData);
 
-        console.log("Updated state:", {
-          totalGross,
-          totalNet,
-          totalNetMinusExclusions,
-        });
+        // console.log("Updated state:", {
+        //   totalGross,
+        //   totalNet,
+        //   totalNetMinusExclusions,
+        // });
       }
     }
   };
@@ -376,11 +377,11 @@ export default function AdminDashboard() {
         }
       });
 
-      console.log("Calculated totals:", {
-        totalGross,
-        totalNet,
-        totalNetMinusExclusions,
-      });
+      // console.log("Calculated totals:", {
+      //   totalGross,
+      //   totalNet,
+      //   totalNetMinusExclusions,
+      // });
 
       return { totalGross, totalNet, totalNetMinusExclusions, salesData };
     } else {
@@ -616,9 +617,7 @@ export default function AdminDashboard() {
           console.error("Error checking record count:", error);
           toast.error("Failed to verify data upload.");
         } else {
-          toast.success(
-            `File processed successfully. Current record count: ${count}`
-          );
+          toast.success(`Successfully uploaded ${count} records.`);
         }
 
         setFile(null);
@@ -695,11 +694,30 @@ export default function AdminDashboard() {
       return;
     }
 
+    // Get the current user's information from Supabase
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error("Error getting current user:", userError);
+      toast.error("Failed to get current user information");
+      return;
+    }
+
+    console.log("Current user data:", user); // Log the entire user object
+
+    const fullName = user?.user_metadata?.name || "";
+    const firstName = fullName.split(" ")[0]; // This will get the first word of the name
+    const replierName = firstName || "Admin";
+    console.log("Replier name:", replierName); // Log the replier name
+
     const { error } = await supabase
       .from("employee_suggestions")
       .update({
         is_read: true,
-        replied_by: "Admin", // You might want to use the actual admin's name here
+        replied_by: replierName, // This is correct
         replied_at: new Date().toISOString(),
         reply: replyText,
       })
@@ -712,14 +730,14 @@ export default function AdminDashboard() {
       // Send email
       try {
         await sendEmail(
-          suggestion.email, // Make sure you have the employee's email in the suggestion data
+          suggestion.email,
           "Reply to Your Suggestion",
           "SuggestionReply",
           {
             employeeName: suggestion.created_by,
             originalSuggestion: suggestion.suggestion,
             replyText: replyText,
-            repliedBy: "Admin", // You might want to use the actual admin's name here
+            repliedBy: "Admin",
           }
         );
 
@@ -730,7 +748,7 @@ export default function AdminDashboard() {
       }
 
       setReplyText("");
-      fetchSuggestions(); // Refresh the suggestions list
+      await fetchSuggestions(); // Refresh the suggestions list
     }
   }
 
@@ -1020,113 +1038,122 @@ export default function AdminDashboard() {
         {/* Suggestions Card*/}
         <div className="w-full overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
-          <Card className="col-span-full">
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2">
-      <BellIcon className="h-6 w-6" />
-      Employee Suggestions
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    {suggestions.length === 0 ? (
-      <p>No suggestions submitted yet.</p>
-    ) : (
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Submitted By</TableHead>
-              <TableHead>Suggestion</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {suggestions.map((suggestion) => (
-              <TableRow key={suggestion.id}>
-                <TableCell>{suggestion.created_by}</TableCell>
-                <TableCell>{suggestion.suggestion}</TableCell>
-                <TableCell>
-                  {new Date(suggestion.created_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  {suggestion.is_read ? (
-                    <Badge
-                      variant="outline"
-                      className="bg-green-100 text-green-800"
-                    >
-                      Replied
-                    </Badge>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="bg-yellow-100 text-yellow-800"
-                    >
-                      Pending
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          disabled={suggestion.is_read}
-                        >
-                          {suggestion.is_read ? "Replied" : "Reply"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-medium">
-                            Reply to Suggestion
-                          </h4>
-                          <Textarea
-                            placeholder="Type your reply here..."
-                            value={replyText}
-                            onChange={(e) =>
-                              setReplyText(e.target.value)
-                            }
-                          />
-                          <Button
-                            onClick={() => handleReply(suggestion)}
-                          >
-                            Send Reply
-                          </Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    {suggestion.is_read && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline">View</Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                          <div className="space-y-2">
-                            <h4 className="font-medium">Reply Sent</h4>
-                            <p className="text-sm">{suggestion.reply}</p>
-                            <p className="text-xs text-gray-500">
-                              Replied by: {suggestion.replied_by}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Replied at: {new Date(suggestion.replied_at || '').toLocaleString()}
-                            </p>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
+            <Card className="col-span-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BellIcon className="h-6 w-6" />
+                  Employee Suggestions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {suggestions.length === 0 ? (
+                  <p>No suggestions submitted yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Submitted By</TableHead>
+                          <TableHead>Suggestion</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {suggestions.map((suggestion) => (
+                          <TableRow key={suggestion.id}>
+                            <TableCell>{suggestion.created_by}</TableCell>
+                            <TableCell>{suggestion.suggestion}</TableCell>
+                            <TableCell>
+                              {new Date(
+                                suggestion.created_at
+                              ).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              {suggestion.is_read ? (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-100 text-green-800"
+                                >
+                                  Replied
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-yellow-100 text-yellow-800"
+                                >
+                                  Pending
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      disabled={suggestion.is_read}
+                                    >
+                                      {suggestion.is_read ? "Replied" : "Reply"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80">
+                                    <div className="space-y-2">
+                                      <h4 className="font-medium">
+                                        Reply to Suggestion
+                                      </h4>
+                                      <Textarea
+                                        placeholder="Type your reply here..."
+                                        value={replyText}
+                                        onChange={(e) =>
+                                          setReplyText(e.target.value)
+                                        }
+                                      />
+                                      <Button
+                                        onClick={() => handleReply(suggestion)}
+                                      >
+                                        Send Reply
+                                      </Button>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                                {suggestion.is_read && (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button variant="outline">View</Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80">
+                                      <div className="space-y-2">
+                                        <h4 className="font-medium">
+                                          Reply Sent
+                                        </h4>
+                                        <p className="text-sm">
+                                          {suggestion.reply}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          Replied by: {suggestion.replied_by}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          Replied at:{" "}
+                                          {new Date(
+                                            suggestion.replied_at || ""
+                                          ).toLocaleString()}
+                                        </p>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    )}
-  </CardContent>
-</Card>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
 

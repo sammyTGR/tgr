@@ -42,8 +42,20 @@ export const columns: ColumnDef<ScheduleData>[] = [
   {
     accessorKey: "day_of_week",
     header: "Day of Week",
-    meta: {
-      style: { width: "100px" },
+    sortingFn: (rowA, rowB, columnId) => {
+      const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      return (
+        days.indexOf(rowA.getValue(columnId)) -
+        days.indexOf(rowB.getValue(columnId))
+      );
     },
   },
   {
