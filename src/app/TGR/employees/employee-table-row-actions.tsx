@@ -7,6 +7,7 @@ import {
   Pencil1Icon,
   TrashIcon,
   CalendarIcon,
+  ExitIcon,
 } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { EditScheduleDialog } from "./EditScheduleDialog";
 import { supabase } from "@/utils/supabase/client";
 import { EditEmployeeDialog } from "./PopoverForm";
+import { TermEmployeeDialog } from "./TermEmployeeDialog";
 
 interface WeeklySchedule {
   [day: string]: { start_time: string | null; end_time: string | null };
@@ -34,6 +36,7 @@ interface EmployeeTableRowActionsProps<TData> {
     employeeId: number,
     schedules: WeeklySchedule
   ) => Promise<void>;
+  onTerm: (employeeId: number, termDate: string) => Promise<void>;
 }
 
 export function EmployeeTableRowActions<TData>({
@@ -41,10 +44,12 @@ export function EmployeeTableRowActions<TData>({
   onEdit,
   onDelete,
   onUpdateSchedule,
+  onTerm,
 }: EmployeeTableRowActionsProps<TData>) {
   const employee = row.original as Employee;
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isTermDialogOpen, setIsTermDialogOpen] = useState(false); // New state
 
   const handleEdit = async (updatedEmployee: Employee) => {
     try {
@@ -134,6 +139,15 @@ export function EmployeeTableRowActions<TData>({
             <TrashIcon className="mr-2 h-4 w-4" />
             Delete
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setIsTermDialogOpen(true)}>
+            <ExitIcon className="mr-2 h-4 w-4" />
+            Term Employee
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onDelete(employee.employee_id)}>
+            <TrashIcon className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -151,6 +165,13 @@ export function EmployeeTableRowActions<TData>({
         employeeName={employee.name}
         fetchWeeklySchedule={fetchWeeklySchedule}
         onUpdateSchedule={handleUpdateSchedule}
+      />
+
+      <TermEmployeeDialog
+        isOpen={isTermDialogOpen}
+        onClose={() => setIsTermDialogOpen(false)}
+        employee={employee}
+        onTerm={onTerm}
       />
     </>
   );

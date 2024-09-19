@@ -12,7 +12,6 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import AddEmployeeDialog from "./add-employee-dialog";
 import { Button } from "@/components/ui/button";
 import { PlusCircledIcon } from "@radix-ui/react-icons";
-
 // Add this interface if not already defined
 interface WeeklySchedule {
   [day: string]: { start_time: string | null; end_time: string | null };
@@ -71,6 +70,41 @@ export default function EmployeesPage() {
       throw error; // This will be caught in the EmployeeTableRowActions component
     } else {
       await fetchEmployees(); // Refresh the employee list
+    }
+  };
+
+  const handleTermEmployee = async (employeeId: number, termDate: string) => {
+    try {
+      // Update the employee record
+      const { error: updateError } = await supabase
+        .from("employees")
+        .update({ term_date: termDate })
+        .eq("employee_id", employeeId);
+
+      if (updateError) throw updateError;
+
+      // Delete records from reference_schedules
+      const { error: deleteRefError } = await supabase
+        .from("reference_schedules")
+        .delete()
+        .eq("employee_id", employeeId);
+
+      if (deleteRefError) throw deleteRefError;
+
+      // Delete future schedules
+      const { error: deleteSchedError } = await supabase
+        .from("schedules")
+        .delete()
+        .eq("employee_id", employeeId)
+        .gte("schedule_date", termDate);
+
+      if (deleteSchedError) throw deleteSchedError;
+
+      toast.success("Employee terminated successfully");
+      await fetchEmployees(); // Refresh the employee list
+    } catch (error) {
+      console.error("Error terminating employee:", error);
+      toast.error("Failed to terminate employee");
     }
   };
 
@@ -187,13 +221,19 @@ export default function EmployeesPage() {
                 onEdit={handleEditEmployee}
                 onDelete={handleDeleteEmployee}
                 onUpdateSchedule={handleUpdateSchedule}
+                onTerm={handleTermEmployee}
               />
             ),
           };
         }
         return col;
       }),
-    [handleEditEmployee, handleDeleteEmployee, handleUpdateSchedule]
+    [
+      handleEditEmployee,
+      handleDeleteEmployee,
+      handleUpdateSchedule,
+      handleTermEmployee,
+    ]
   );
 
   return (
