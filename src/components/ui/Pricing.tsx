@@ -24,7 +24,7 @@ type BillingInterval = "one_time" | "year" | "month";
 export default function Pricing({ user, products, subscription }: Props) {
   const router = useRouter();
   const [billingInterval, setBillingInterval] =
-    useState<BillingInterval>("month");
+    useState<BillingInterval>("one_time");
   const [priceIdLoading, setPriceIdLoading] = useState<string>();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -56,9 +56,9 @@ export default function Pricing({ user, products, subscription }: Props) {
   }
 
   const intervals = [
+    { value: "one_time", label: "Products" },
     { value: "month", label: "Monthly" },
     { value: "year", label: "Annual" },
-    { value: "one_time", label: "Products" },
   ];
 
   const filteredProducts = products.filter((product) =>
@@ -94,9 +94,9 @@ export default function Pricing({ user, products, subscription }: Props) {
               type="button"
               className={`${
                 billingInterval === interval.value
-                  ? "relative w-1/3  border-zinc-800 shadow-sm "
-                  : "ml-0.5 relative w-1/3 border border-transparent "
-              } rounded-md m-1 py-2 text-sm font-medium whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50 focus:z-10 sm:w-auto sm:px-8`}
+                  ? "relative w-1/3 border-zinc-800 shadow-sm text-muted-foreground ring-2 ring-pink-600 ring-opacity-50" // Added ring styles here
+                  : "ml-0.5 relative w-1/3 border border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900"
+              } rounded-md m-1 py-2 text-sm font-medium whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-opacity-50 focus:z-10 sm:w-auto sm:px-8`}
             >
               {interval.label}
             </button>
