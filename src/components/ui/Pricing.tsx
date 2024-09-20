@@ -8,6 +8,7 @@ import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
+import { Input } from "@/components/ui/input";
 
 type Product = Tables<"products"> & { prices: Tables<"prices">[] };
 type Customer = Tables<"customers">;
@@ -25,6 +26,7 @@ export default function Pricing({ user, products, subscription }: Props) {
   const [billingInterval, setBillingInterval] =
     useState<BillingInterval>("month");
   const [priceIdLoading, setPriceIdLoading] = useState<string>();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleStripeCheckout = async (
     price: Tables<"prices"> & { type: "one_time" | "recurring" }
@@ -58,6 +60,10 @@ export default function Pricing({ user, products, subscription }: Props) {
     { value: "year", label: "Annual" },
     { value: "one_time", label: "Products" },
   ];
+
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="max-w-6xl px-4 py-4 mx-auto sm:py-24 sm:px-6 lg:px-8">
@@ -97,70 +103,92 @@ export default function Pricing({ user, products, subscription }: Props) {
           ))}
         </div>
       </div>
-      <div className="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6 lg:max-w-4xl lg:mx-auto xl:max-w-none xl:mx-0 xl:grid-cols-3">
-        {products.map((product) => {
-          const price = product.prices.find(
-            (price) =>
-              price.type ===
-                (billingInterval === "one_time" ? "one_time" : "recurring") &&
-              (billingInterval === "one_time" ||
-                price.interval === billingInterval)
-          );
-          if (!price) return null;
-          const priceString = new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: price.currency,
-            minimumFractionDigits: 0,
-          }).format((price?.unit_amount || 0) / 100);
-          return (
-            <div
-              key={product.id}
-              className="rounded-lg shadow-md divide-y divide-gray-200 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 flex flex-col"
-            >
-              <div className="p-6 flex flex-col flex-grow">
-                {product.image && (
-                  <div className="flex-shrink-0 w-full h-48 mb-4">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-contain rounded-md"
-                    />
-                  </div>
-                )}
-                <h2 className="text-2xl font-semibold leading-6">
-                  {product.name}
-                </h2>
-                <p className="mt-4 flex-grow">{product.description}</p>
-                <p className="mt-8">
-                  <span className="text-5xl font-extrabold">{priceString}</span>
-                  {billingInterval !== "one_time" && (
-                    <span className="text-base font-medium">
-                      /{billingInterval}
-                    </span>
+      {/* Add search input for Products tab */}
+      <div className="flex justify-start">
+        {billingInterval === "one_time" && (
+          <div className="mt-6">
+            <Input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full max-w-md mx-auto"
+            />
+          </div>
+        )}
+      </div>
+      <div className="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6 md:max-w-4xl md:grid-cols-3md:mx-auto lg:max-w-none lg:mx-auto lg:grid-cols-4">
+        {(billingInterval === "one_time" ? filteredProducts : products).map(
+          (product) => {
+            const price = product.prices.find(
+              (price) =>
+                price.type ===
+                  (billingInterval === "one_time" ? "one_time" : "recurring") &&
+                (billingInterval === "one_time" ||
+                  price.interval === billingInterval)
+            );
+
+            // If no matching price is found, don't render this product
+            if (!price) return null;
+
+            const priceString = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: price.currency,
+              minimumFractionDigits: 0,
+            }).format((price.unit_amount || 0) / 100);
+
+            return (
+              <div
+                key={product.id}
+                className="rounded-lg shadow-md divide-y divide-gray-200 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 flex flex-col"
+              >
+                <div className="p-6 flex flex-col flex-grow">
+                  {product.image && (
+                    <div className="flex-grow w-full h-48 mb-2">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-contain rounded-md"
+                      />
+                    </div>
                   )}
-                </p>
-                <Button
-                  variant="outline"
-                  disabled={!user || priceIdLoading === price.id}
-                  onClick={() =>
-                    handleStripeCheckout(
-                      price as Tables<"prices"> & {
-                        type: "one_time" | "recurring";
-                      }
-                    )
-                  }
-                  className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
-                >
-                  {subscription
-                    ? "Manage"
-                    : price.type === "one_time"
-                    ? "Add to Cart"
-                    : "Subscribe"}
-                </Button>
+                  <h2 className="flex-grow text-2xl font-semibold leading-6">
+                    {product.name}
+                  </h2>
+                  <p className="mt-4 flex-grow">{product.description}</p>
+                  <p className="flex-shrink mt-8">
+                    <span className="flex-shrink text-3xl font-extrabold">
+                      {priceString}
+                    </span>
+                    {billingInterval !== "one_time" && (
+                      <span className="text-base font-medium">
+                        /{billingInterval}
+                      </span>
+                    )}
+                  </p>
+                  <Button
+                    variant="outline"
+                    disabled={!user || priceIdLoading === price.id}
+                    onClick={() =>
+                      handleStripeCheckout(
+                        price as Tables<"prices"> & {
+                          type: "one_time" | "recurring";
+                        }
+                      )
+                    }
+                    className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
+                  >
+                    {subscription
+                      ? "Manage"
+                      : price.type === "one_time"
+                      ? "Add to Cart"
+                      : "Subscribe"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          }
+        )}
       </div>
     </div>
   );

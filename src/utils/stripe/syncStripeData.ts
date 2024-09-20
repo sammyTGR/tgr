@@ -6,11 +6,11 @@ export async function syncStripeData() {
 
   // Sync Products
   const stripeProducts = await stripe.products.list({ active: true });
-  console.log(`Syncing ${stripeProducts.data.length} products`);
+  // console.log(`Syncing ${stripeProducts.data.length} products`);
 
   for (let product of stripeProducts.data) {
-    console.log(`Syncing product ${product.id}`);
-    console.log("Product data:", JSON.stringify(product, null, 2));
+    // console.log(`Syncing product ${product.id}`);
+    // console.log("Product data:", JSON.stringify(product, null, 2));
     await supabase.from("products").upsert({
       id: product.id,
       active: product.active,
