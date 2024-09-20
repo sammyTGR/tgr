@@ -1,4 +1,3 @@
-// EditClassPopover.tsx
 import { useState, useEffect } from "react";
 import {
   Popover,
@@ -18,11 +17,17 @@ interface ClassSchedule {
   description: string;
   start_time: string;
   end_time: string;
+  price?: number;
+  stripe_product_id?: string;
+  stripe_price_id?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface EditClassPopoverProps {
   classData: ClassSchedule;
-  onSubmit: (updatedClass: ClassSchedule) => void;
+  onSubmit: (updatedClass: ClassSchedule) => Promise<void>;
   onClose: () => void;
 }
 
@@ -36,6 +41,7 @@ export const EditClassPopover: React.FC<EditClassPopoverProps> = ({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [price, setPrice] = useState(classData.price?.toString() || 0);
 
   useEffect(() => {
     const startDate = parseISO(classData.start_time);
@@ -74,6 +80,7 @@ export const EditClassPopover: React.FC<EditClassPopoverProps> = ({
       description,
       start_time: startTimeZoned,
       end_time: endTimeZoned,
+      price: parseFloat(price.toString()) || 0,
     };
 
     await onSubmit(updatedClassData);
@@ -137,6 +144,15 @@ export const EditClassPopover: React.FC<EditClassPopoverProps> = ({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Price</Label>
+            <Input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              step="0.01"
             />
           </div>
           <div className="flex justify-end space-x-2">

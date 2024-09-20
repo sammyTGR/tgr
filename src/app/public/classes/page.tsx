@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { AddClassPopover } from "./AddClassPopover";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -20,16 +19,23 @@ import {
 } from "date-fns";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
-import { PopoverTrigger } from "@/components/ui/popover";
-import { useRole } from "@/context/RoleContext"; // Add this import
+import { useRole } from "@/context/RoleContext";
 import { EditClassPopover } from "./EditClassPopover";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-interface ClassSchedule {
+export interface ClassSchedule {
   id: number;
   title: string;
   description: string;
   start_time: string;
   end_time: string;
+  price?: number;
+  stripe_product_id?: string;
+  stripe_price_id?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function Component() {
@@ -39,7 +45,8 @@ export default function Component() {
   const [selectedEvent, setSelectedEvent] = useState<ClassSchedule[] | null>(
     null
   );
-  const { role, loading } = useRole(); // Use the RoleContext
+  const { role } = useRole();
+  const router = useRouter();
 
   const isAdmin = role === "admin" || role === "super admin";
 
@@ -56,9 +63,8 @@ export default function Component() {
         setClassSchedules(data);
       }
     };
-    // console.log("Updated class schedules:", classSchedules);
     fetchClassSchedules();
-  }, [classSchedules]); // Add classSchedules to the dependency array
+  }, []);
 
   const handleDateClick = (day: Date) => {
     const eventsForDay = classSchedules.filter((event) =>
@@ -72,21 +78,25 @@ export default function Component() {
     id: string,
     updates: Partial<ClassSchedule>
   ) => {
-    // Remove the id from the updates object
-    const { id: _, ...classData } = updates;
-
-    // console.log("Data being sent to Supabase:", classData);
-
     const { data, error } = await supabase
       .from("class_schedules")
-      .insert([classData])
-      .select(); // Add .select() to return the inserted data
+      .insert([
+        {
+          title: updates.title,
+          description: updates.description,
+          start_time: updates.start_time,
+          end_time: updates.end_time,
+          price: updates.price,
+          stripe_product_id: updates.stripe_product_id,
+          stripe_price_id: updates.stripe_price_id,
+        },
+      ])
+      .select();
 
     if (error) {
       console.error("Error adding class:", error);
     } else {
-      // console.log("Inserted data:", data);
-      setClassSchedules((prev) => [...prev, ...(data || [])]);
+      setClassSchedules((prev) => [...prev, ...(data as ClassSchedule[])]);
     }
   };
 
@@ -103,7 +113,9 @@ export default function Component() {
     setCurrentMonth((prevMonth) => addMonths(prevMonth, 1));
   };
 
-  const handleEditClass = async (updatedClass: ClassSchedule) => {
+  const handleEditClass = async (
+    updatedClass: ClassSchedule
+  ): Promise<void> => {
     const { data, error } = await supabase
       .from("class_schedules")
       .update(updatedClass)
@@ -112,8 +124,8 @@ export default function Component() {
 
     if (error) {
       console.error("Error updating class:", error);
+      toast.error("Failed to update class. Please try again.");
     } else {
-      // console.log("Updated data:", data);
       setClassSchedules((prevSchedules) =>
         prevSchedules.map((schedule) =>
           schedule.id === updatedClass.id ? updatedClass : schedule
@@ -127,6 +139,7 @@ export default function Component() {
           : null
       );
       setEditingClass(null);
+      toast.success("Class updated successfully");
     }
   };
 
@@ -148,6 +161,32 @@ export default function Component() {
     }
   };
 
+  const handlePayNow = async (classId: number) => {
+    try {
+      console.log("Initiating payment for class:", classId);
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ classId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Response not OK:", response.status, data);
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      console.log("Checkout session created:", data.sessionId);
+      router.push(`/checkout?session_id=${data.sessionId}`);
+    } catch (error) {
+      console.error("Detailed error in handlePayNow:", error);
+      toast.error("Failed to initiate payment. Please try again.");
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold mb-8">Available Classes</h1>
@@ -161,6 +200,7 @@ export default function Component() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Calendar component */}
         <div className="rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <button
@@ -183,15 +223,9 @@ export default function Component() {
           </div>
           <div className="grid grid-cols-7 gap-4">
             {daysInMonth.map((day) => {
-              const eventsForDay = classSchedules.filter((event) => {
-                const eventDate = new Date(event.start_time).setHours(
-                  0,
-                  0,
-                  0,
-                  0
-                );
-                return isSameDay(eventDate, day);
-              });
+              const eventsForDay = classSchedules.filter((event) =>
+                isSameDay(new Date(event.start_time), day)
+              );
 
               return (
                 <div
@@ -208,6 +242,8 @@ export default function Component() {
             })}
           </div>
         </div>
+
+        {/* Class details component */}
         <div className="rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">Class Details</h2>
@@ -238,12 +274,13 @@ export default function Component() {
                     </p>
                   </div>
                   <div className="flex flex-col space-y-2">
-                    <Link
-                      className="bg-primary-500 rounded-lg px-4 py-2 hover:bg-primary-600 focus:outline-none"
-                      href="#"
+                    <Button
+                      onClick={() => handlePayNow(event.id)}
+                      className=" px-4 py-2"
+                      variant="outline"
                     >
-                      Pay Now
-                    </Link>
+                      Purchase A Seat
+                    </Button>
                     {isAdmin && (
                       <>
                         <EditClassPopover

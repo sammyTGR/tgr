@@ -252,9 +252,14 @@ const manageComps = [
     description: "Trial Onboarding",
   },
   {
-    title: "Pricing Test Page",
+    title: "Products Test Page",
     href: "/pricing",
-    description: "Trial Pricing Page",
+    description: "Trial Products Page",
+  },
+  {
+    title: "Classes Test Page",
+    href: "/public/classes",
+    description: "Class Scheduling Page",
   },
 ];
 
