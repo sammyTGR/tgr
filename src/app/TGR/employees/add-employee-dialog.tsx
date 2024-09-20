@@ -72,6 +72,8 @@ export default function AddEmployeeDialog({
       hire_date: null,
       birthday: null,
       promotion_date: null,
+      status:"",
+      term_date:null
     }
   );
 
@@ -196,6 +198,8 @@ export default function AddEmployeeDialog({
         hire_date: null,
         birthday: null,
         promotion_date: null,
+        status:"",
+        term_date:null
       });
       setSchedule(initialSchedule);
       onClose();
