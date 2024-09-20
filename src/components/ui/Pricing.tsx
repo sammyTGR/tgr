@@ -96,28 +96,28 @@ export default function Pricing({ user, products, subscription }: Props) {
           return (
             <div
               key={product.id}
-              className={`rounded-lg shadow-md divide-y divide-gray-800 border border-muted dark:border-gray-600`}
+              className="rounded-lg shadow-md divide-y divide-gray-200 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 flex flex-col"
             >
               <div className="p-6 flex flex-col flex-grow">
-              {product.image && (
-                <div className="flex-shrink-0 w-full h-48 mb-4">
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-full object-contain rounded-md" 
-                  />
-                </div>
-              )}
+                {product.image && (
+                  <div className="flex-shrink-0 w-full h-48 mb-4">
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      className="w-full h-full object-contain rounded-md" 
+                    />
+                  </div>
+                )}
                 <h2 className="text-2xl font-semibold leading-6">
                   {product.name}
                 </h2>
                 <p className="mt-4 flex-grow">{product.description}</p>
                 <p className="mt-8">
-                  <span className="text-5xl font-extrabold ">
+                  <span className="text-5xl font-extrabold">
                     {priceString}
                   </span>
                   {billingInterval !== 'one_time' && (
-                    <span className="text-base font-medium ">
+                    <span className="text-base font-medium">
                       /{billingInterval}
                     </span>
                   )}
@@ -126,7 +126,7 @@ export default function Pricing({ user, products, subscription }: Props) {
                   variant="outline"
                   disabled={!user || priceIdLoading === price.id}
                   onClick={() => handleStripeCheckout(price as Tables<'prices'> & { type: 'one_time' | 'recurring' })}
-                  className="block w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
+                  className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
                 >
                   {subscription ? 'Manage' : price.type === 'one_time' ? 'Add to Cart' : 'Subscribe'}
                 </Button>

@@ -251,6 +251,11 @@ const manageComps = [
     href: "/admin/onboarding",
     description: "Trial Onboarding",
   },
+  {
+    title: "Pricing Test Page",
+    href: "/pricing",
+    description: "Trial Pricing Page",
+  },
 ];
 
 const comboComps = [

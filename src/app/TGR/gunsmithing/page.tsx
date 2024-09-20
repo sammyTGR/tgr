@@ -23,14 +23,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import styles from "./profiles.module.css";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
-import { Redis } from '@upstash/redis';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!
-});
-
-const CACHE_TTL = 300; // 5 minutes
 
 const words = "Gunsmithing Maintenance";
 
@@ -89,69 +81,53 @@ export default function GunsmithingMaintenance() {
   }, [fetchUserRoleAndUuid]);
 
   const fetchFirearmsMaintenanceData = useCallback(async (role: string) => {
-    const cacheKey = `firearms_maintenance_${role}`;
-    const cachedData = await redis.get(cacheKey);
-  
-    if (cachedData) {
-      return JSON.parse(cachedData as string);
-    }
-  
     const { data, error } = await supabase
       .from("firearms_maintenance")
       .select("*");
-  
+
     if (error) {
       console.error("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
-  
+
+    // Clear the status field for each firearm
     const updatedData = data.map((item: FirearmsMaintenanceData) => ({
       ...item,
-      status: "",
+      status: "", // Clear the status
     }));
-  
-    let result;
+
     if (role === "gunsmith") {
+      // Separate handguns and long guns
       const handguns = updatedData.filter(
         (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
       );
       const longGuns = updatedData.filter(
         (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
       );
+
+      // Cycle through the lists to get 13 of each
       const cycledHandguns = cycleFirearms(handguns, 13);
       const cycledLongGuns = cycleFirearms(longGuns, 13);
-      result = [...cycledHandguns, ...cycledLongGuns];
-    } else {
-      result = updatedData;
+
+      return [...cycledHandguns, ...cycledLongGuns];
     }
-  
-    await redis.set(cacheKey, JSON.stringify(result), { ex: CACHE_TTL });
-    return result;
+
+    // For admin and super admin, return full data
+    return updatedData;
   }, []);
 
   const fetchPersistedData = useCallback(async (userUuid: string) => {
-    const cacheKey = `persisted_firearms_${userUuid}`;
-    const cachedData = await redis.get(cacheKey);
-  
-    if (cachedData) {
-      return JSON.parse(cachedData as string);
-    }
-  
     const { data, error } = await supabase
       .from("persisted_firearms_list")
       .select("*")
       .eq("user_uuid", userUuid)
       .single();
-  
+
     if (error && error.code !== "PGRST116") {
       console.error("Error fetching persisted data:", error.message);
       throw new Error(error.message);
     }
-  
-    if (data) {
-      await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
-    }
-  
+
     return data;
   }, []);
 
@@ -160,14 +136,11 @@ export default function GunsmithingMaintenance() {
       const { error } = await supabase
         .from("persisted_firearms_list")
         .upsert({ user_uuid: userUuid, firearms_list: firearmsList });
-  
+
       if (error) {
         console.error("Error persisting data:", error.message);
         throw new Error(error.message);
       }
-  
-      const cacheKey = `persisted_firearms_${userUuid}`;
-      await redis.set(cacheKey, JSON.stringify({ user_uuid: userUuid, firearms_list: firearmsList }), { ex: CACHE_TTL });
     },
     []
   );

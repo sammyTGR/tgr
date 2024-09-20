@@ -13,14 +13,6 @@ import {
   getSortedRowModel,
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { Redis } from '@upstash/redis';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!
-});
-
-const CACHE_TTL = 300; // 5 minutes
 
 const title = "Check Order Status";
 
@@ -29,24 +21,15 @@ export default function OrdersReviewPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchOrderData = useCallback(async () => {
-    const cacheKey = 'order_data';
-    const cachedData = await redis.get(cacheKey);
-  
-    if (cachedData) {
-      return JSON.parse(cachedData as string);
-    }
-  
     const { data, error } = await supabase
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false });
-  
+
     if (error) {
       console.error("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
-  
-    await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
     return data as Order[];
   }, []);
 
@@ -77,36 +60,34 @@ export default function OrdersReviewPage() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-// Update the subscription to invalidate cache on changes
-useEffect(() => {
-  const OrdersTableSubscription = supabase
-    .channel("custom-all-orders-channel")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "orders" },
-      async (payload) => {
-        await redis.del('order_data');
-        if (payload.eventType === "INSERT") {
-          setData((currentData) => [payload.new as Order, ...currentData]);
-        } else if (payload.eventType === "UPDATE") {
-          setData((currentData) =>
-            currentData.map((order) =>
-              order.id === payload.new.id ? (payload.new as Order) : order
-            )
-          );
-        } else if (payload.eventType === "DELETE") {
-          setData((currentData) =>
-            currentData.filter((order) => order.id !== payload.old.id)
-          );
+  useEffect(() => {
+    const OrdersTableSubscription = supabase
+      .channel("custom-all-orders-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setData((currentData) => [payload.new as Order, ...currentData]);
+          } else if (payload.eventType === "UPDATE") {
+            setData((currentData) =>
+              currentData.map((order) =>
+                order.id === payload.new.id ? (payload.new as Order) : order
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setData((currentData) =>
+              currentData.filter((order) => order.id !== payload.old.id)
+            );
+          }
         }
-      }
-    )
-    .subscribe();
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(OrdersTableSubscription);
-  };
-}, [fetchData]);
+    return () => {
+      supabase.removeChannel(OrdersTableSubscription);
+    };
+  }, [fetchData]);
 
   return (
     <RoleBasedWrapper

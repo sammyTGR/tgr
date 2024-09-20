@@ -180,7 +180,7 @@ const HeaderCustomer = React.memo(() => {
             </>
           ) : (
             <Link href="/sign-in">
-              <Button>Sign In</Button>
+              <Button variant="linkHover1">Sign In</Button>
             </Link>
           )}
           {/* <Link href="/">

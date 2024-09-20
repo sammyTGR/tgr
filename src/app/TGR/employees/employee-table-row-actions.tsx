@@ -135,19 +135,20 @@ export function EmployeeTableRowActions<TData>({
             Edit Schedule
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => onDelete(employee.employee_id)}>
+          {/* <DropdownMenuItem onClick={() => onDelete(employee.employee_id)}>
             <TrashIcon className="mr-2 h-4 w-4" />
             Delete
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          </DropdownMenuItem> */}
+          {/* <DropdownMenuSeparator /> */}
           <DropdownMenuItem onClick={() => setIsTermDialogOpen(true)}>
             <ExitIcon className="mr-2 h-4 w-4" />
             Term Employee
           </DropdownMenuItem>
+          {/* <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onDelete(employee.employee_id)}>
             <TrashIcon className="mr-2 h-4 w-4" />
             Delete
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
 
