@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -60,6 +60,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
   onRequestInspection,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [searchValue, setSearchValue] = React.useState("");
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
@@ -93,20 +94,39 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
     table.getColumn("notes")?.setFilterValue(selectedValues);
   };
 
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setSearchValue(value);
+    table.getColumn("firearm_name")?.setFilterValue(value);
+  };
+
+  const clearSearch = () => {
+    setSearchValue("");
+    table.getColumn("firearm_name")?.setFilterValue("");
+  };
+
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="flex flex-row items-center gap-2">
-          <Input
-            placeholder="Filter By Firearm Name..."
-            value={table.getColumn("firearm_name")?.getFilterValue() as string}
-            onChange={(event) =>
-              table
-                .getColumn("firearm_name")
-                ?.setFilterValue(event.target.value)
-            }
-            className="min-w-full"
-          />
+          <div className="relative">
+            <Input
+              placeholder="Filter By Firearm Name..."
+              value={searchValue}
+              onChange={handleSearchChange}
+              className="min-w-full pr-8"
+            />
+            {searchValue && (
+              <Button
+                variant="link"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                onClick={clearSearch}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
           <DataTableFacetedFilter
             columnId="notes"
             title="Filter By Notes"

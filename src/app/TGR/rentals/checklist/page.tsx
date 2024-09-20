@@ -652,7 +652,7 @@ export default function FirearmsChecklist() {
           <div className="flex items-center space-y-2">
             <div className="flex space-x-2">
               <Button
-                variant="linkHover1"
+                variant="gooeyRight"
                 onClick={handleSubmitChecklist}
                 disabled={submittingChecklist} // Disable the button while submitting
               >
