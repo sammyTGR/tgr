@@ -72,6 +72,15 @@ import { CustomCalendarMulti } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Separator } from "@radix-ui/react-dropdown-menu";
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!
+});
+
+const CACHE_TTL = 300; // 5 minutes
+
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -519,6 +528,17 @@ const EmployeeProfilePage = () => {
 
   const fetchAndCalculateSummary = async (date: Date | null) => {
     if (!date || !employee) return;
+  
+    const cacheKey = `employee_summary_${employee.lanid}_${date.toISOString().split('T')[0]}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      const { totalDros, pointsDeducted, totalPoints } = JSON.parse(cachedData as string);
+      totalDros(totalDros);
+      pointsDeducted(pointsDeducted);
+      totalPoints(totalPoints);
+      return;
+    }
 
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1)
       .toISOString()
@@ -597,8 +617,9 @@ const EmployeeProfilePage = () => {
 
       summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
       setSummaryData(summary);
+      await redis.set(cacheKey, JSON.stringify(summary[0]), { ex: CACHE_TTL });
     } catch (error) {
-      console.error("Error fetching or calculating summary data:", error);
+      console.error("Error in fetchAndCalculateSummary:", error);
     }
   };
 
@@ -808,6 +829,15 @@ const EmployeeProfilePage = () => {
   const fetchReviews = async () => {
     setProgress((prev) => prev + 10); // Initial progress
     if (!employeeId) return;
+  
+    const cacheKey = `employee_reviews_${employeeId}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setReviews(JSON.parse(cachedData as string));
+      setProgress((prev) => prev + 20); // Update progress
+      return;
+    }
 
     const { data, error } = await supabase
       .from("employee_quarterly_reviews")
@@ -815,50 +845,61 @@ const EmployeeProfilePage = () => {
       .eq("employee_id", employeeId)
       .eq("published", true);
 
-    if (error) {
-      console.error("Error fetching reviews:", error);
-    } else {
-      setReviews(data as Review[]);
-    }
-    setProgress((prev) => prev + 20); // Update progress
-  };
+      if (error) {
+        console.error("Error fetching reviews:", error);
+      } else {
+        setReviews(data as Review[]);
+        await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
+      }
+      setProgress((prev) => prev + 20); // Update progress
+    };
 
   // Function to fetch weekly summary
   const fetchWeeklySummary = async () => {
     const startOfWeekDate = startOfWeek(new Date(), { weekStartsOn: 0 });
     const endOfWeekDate = endOfWeek(new Date(), { weekStartsOn: 0 });
+  
+    const cacheKey = `employee_weekly_summary_${employeeId}_${format(startOfWeekDate, "yyyy-MM-dd")}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setWeeklySummary(cachedData as string);
+      return;
+    }
 
     const { data, error } = await supabase
-      .from("employee_clock_events")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .gte("event_date", format(startOfWeekDate, "yyyy-MM-dd"))
-      .lte("event_date", format(endOfWeekDate, "yyyy-MM-dd"));
+    .from("employee_clock_events")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .gte("event_date", format(startOfWeekDate, "yyyy-MM-dd"))
+    .lte("event_date", format(endOfWeekDate, "yyyy-MM-dd"));
 
-    if (error) {
-      console.error("Error fetching weekly summary:", error);
-    } else {
-      const totalHours = data.reduce((acc, shift) => {
-        if (shift.total_hours) {
-          const [hours, minutes, seconds] = shift.total_hours
-            .split(":")
-            .map(Number);
-          const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
-          return acc + duration;
-        }
-        return acc;
-      }, 0);
-
-      // Add a final check
-      if (totalHours > 100) {
-        // Max possible hours in a week
-        toast.error("Unrealistic total hours:", totalHours);
-        return 0; // or some default value
+  if (error) {
+    console.error("Error fetching weekly summary:", error);
+  } else {
+    const totalHours = data.reduce((acc, shift) => {
+      if (shift.total_hours) {
+        const [hours, minutes, seconds] = shift.total_hours
+          .split(":")
+          .map(Number);
+        const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
+        return acc + duration;
       }
+      return acc;
+    }, 0);
 
-      setWeeklySummary(totalHours.toFixed(2)); // Round to 2 decimal places
+    // Add a final check
+    if (totalHours > 100) {
+      // Max possible hours in a week
+      toast.error("Unrealistic total hours:", totalHours);
+      return 0; // or some default value
     }
-  };
+
+    const weeklySummary = totalHours.toFixed(2); // Round to 2 decimal places
+    setWeeklySummary(weeklySummary);
+    await redis.set(cacheKey, weeklySummary, { ex: CACHE_TTL });
+  }
+};
 
   // Function to fetch pay period summary
   const fetchPayPeriodSummary = async () => {

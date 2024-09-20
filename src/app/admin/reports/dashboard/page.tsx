@@ -55,6 +55,14 @@ import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/context/RoleContext";
 import { Textarea } from "@/components/ui/textarea";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!
+});
+
+const CACHE_TTL = 300; // 5 minutes
 
 interface Certificate {
   id: number;
@@ -186,87 +194,83 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const channel = supabase.channel("custom-all-channel");
-
+  
     channel
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "firearms_maintenance" },
-        (payload) => {
-          // console.log("Firearms maintenance change received!", payload);
+        async (payload) => {
+          await redis.del('latest_gunsmith_maintenance');
           fetchLatestGunsmithMaintenance();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_data" },
-        (payload) => {
-          // console.log("Sales data change received!", payload);
+        async (payload) => {
+          await redis.del('latest_sales_data');
           fetchLatestSalesData(selectedRange.start, selectedRange.end);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "daily_deposits" },
-        (payload) => {
+        async (payload) => {
+          await redis.del('latest_daily_deposit');
           fetchLatestDailyDeposit();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "checklist_submissions" },
-        (payload) => {
-          // console.log("Checklist submission change received!", payload);
+        async (payload) => {
+          await redis.del('latest_checklist_submission');
           fetchLatestChecklistSubmission();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "range_walk_reports" },
-        (payload) => {
-          // console.log("Range walk report change received!", payload);
+        async (payload) => {
+          await redis.del('latest_range_walk_report');
           fetchLatestRangeWalkReport();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "certifications" },
-        (payload) => {
-          // console.log("Certifications change received!", payload);
+        async (payload) => {
+          await redis.del('certificates');
           fetchCertificates();
         }
       )
       .subscribe();
-
+  
     // Initial data fetch
     const fetchInitialData = async () => {
-      fetchLatestDailyDeposit();
-      fetchLatestGunsmithMaintenance();
-      fetchLatestChecklistSubmission();
-      fetchLatestRangeWalkReport();
-      fetchCertificates();
-
+      await Promise.all([
+        fetchLatestDailyDeposit(),
+        fetchLatestGunsmithMaintenance(),
+        fetchLatestChecklistSubmission(),
+        fetchLatestRangeWalkReport(),
+        fetchCertificates(),
+      ]);
+  
       const result = await fetchLatestSalesData(
         selectedRange.start,
         selectedRange.end
       );
       if (result) {
-        const { totalGross, totalNet, totalNetMinusExclusions, salesData } =
-          result;
+        const { totalGross, totalNet, totalNetMinusExclusions, salesData } = result;
         setTotalGross(totalGross);
         setTotalNet(totalNet);
         setTotalNetMinusExclusions(totalNetMinusExclusions);
         setSalesData(salesData);
-
-        // console.log("Initial data fetch:", {
-        //   totalGross,
-        //   totalNet,
-        //   totalNetMinusExclusions,
-        // });
       }
     };
-
+  
     fetchInitialData();
-
+  
     // Cleanup function
     return () => {
       channel.unsubscribe();
@@ -392,60 +396,88 @@ export default function AdminDashboard() {
   }
 
   async function fetchLatestGunsmithMaintenance() {
-    // console.log("Fetching latest gunsmith maintenance...");
+    const cacheKey = 'latest_gunsmith_maintenance';
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setGunsmiths(JSON.parse(cachedData as string));
+      return;
+    }
+  
     const { data, error } = await supabase
       .from("firearms_maintenance")
       .select("id, firearm_name, last_maintenance_date")
       .order("last_maintenance_date", { ascending: false })
-      .limit(5) // Fetch the top 5 to see if there are any recent entries
-      .not("last_maintenance_date", "is", null); // Ensure we only get entries with a maintenance date
-
+      .limit(5)
+      .not("last_maintenance_date", "is", null);
+  
     if (error) {
       console.error("Error fetching latest gunsmith maintenance:", error);
+    } else if (data && data.length > 0) {
+      setGunsmiths(data[0]);
+      await redis.set(cacheKey, JSON.stringify(data[0]), { ex: CACHE_TTL });
     } else {
-      // console.log("Fetched gunsmith maintenance data:", data);
-      if (data && data.length > 0) {
-        // Set the first (most recent) entry
-        setGunsmiths(data[0]);
-        // console.log("Most recent maintenance:", data[0]);
-      } else {
-        // console.log("No gunsmith maintenance data found");
-        setGunsmiths(null);
-      }
+      setGunsmiths(null);
     }
   }
 
   async function fetchLatestChecklistSubmission() {
+    const cacheKey = 'latest_checklist_submission';
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setChecklist(JSON.parse(cachedData as string));
+      return;
+    }
+  
     const { data, error } = await supabase
       .from("checklist_submissions")
       .select("*")
       .order("submission_date", { ascending: false })
       .limit(1)
       .single();
-
+  
     if (error) {
       console.error("Error fetching latest checklist submission:", error);
     } else {
       setChecklist(data);
+      await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
     }
   }
-
+  
   async function fetchLatestRangeWalkReport() {
+    const cacheKey = 'latest_range_walk_report';
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setRangeWalk(JSON.parse(cachedData as string));
+      return;
+    }
+  
     const { data, error } = await supabase
       .from("range_walk_reports")
       .select("*")
       .order("date_of_walk", { ascending: false })
       .limit(1)
       .single();
-
+  
     if (error) {
       console.error("Error fetching latest range walk report:", error);
     } else {
       setRangeWalk(data);
+      await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
     }
   }
 
   async function fetchCertificates() {
+    const cacheKey = 'expiring_certificates';
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setCertificates(JSON.parse(cachedData as string));
+      return;
+    }
+  
     const { data, error } = await supabase
       .from("certifications")
       .select("*")
@@ -454,11 +486,12 @@ export default function AdminDashboard() {
         new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
       ) // Expiring in the next 60 days
       .order("expiration", { ascending: true });
-
+  
     if (error) {
       console.error("Error fetching certificates:", error);
     } else {
       setCertificates(data);
+      await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
     }
   }
 

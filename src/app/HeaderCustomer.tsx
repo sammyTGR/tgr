@@ -40,7 +40,7 @@ import { useTheme } from "next-themes";
 const accountComponents = [
   {
     title: "Account Settings",
-    href: "/public/profiles",
+    href: "/customer/profiles",
     description: "Manage your account settings and preferences.",
   },
   {

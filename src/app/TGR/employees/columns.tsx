@@ -3,6 +3,9 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Employee } from "./types";
 import { DataTableColumnHeader } from "./data-table-column-header";
+import { format, toZonedTime } from "date-fns-tz";
+
+const timeZone = "America/Los_Angeles";
 
 export const columns: ColumnDef<Employee>[] = [
   {
@@ -23,12 +26,12 @@ export const columns: ColumnDef<Employee>[] = [
       <DataTableColumnHeader column={column} title="Department" />
     ),
   },
-  {
-    accessorKey: "position",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Position" />
-    ),
-  },
+  // {
+  //   accessorKey: "position",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Position" />
+  //   ),
+  // },
   {
     accessorKey: "role",
     header: ({ column }) => (
@@ -47,10 +50,10 @@ export const columns: ColumnDef<Employee>[] = [
     accessorKey: "lanid",
     header: "LANID",
   },
-  {
-    accessorKey: "pay_type",
-    header: "Pay Type",
-  },
+  // {
+  //   accessorKey: "pay_type",
+  //   header: "Pay Type",
+  // },
   {
     accessorKey: "pay_rate",
     header: ({ column }) => (
@@ -58,7 +61,7 @@ export const columns: ColumnDef<Employee>[] = [
     ),
     cell: ({ row }) => {
       const pay_rate = parseFloat(row.getValue("pay_rate"));
-      const pay_type = row.getValue("pay_type");
+      const pay_type = row.getValue("pay_rate");
 
       if (isNaN(pay_rate)) return "Invalid";
 
@@ -79,10 +82,30 @@ export const columns: ColumnDef<Employee>[] = [
   {
     accessorKey: "hire_date",
     header: "Hire Date",
+    cell: ({ row }) => {
+      const date = row.getValue("hire_date");
+      if (!date || typeof date !== "string") return null;
+      try {
+        const zonedDate = toZonedTime(new Date(date), timeZone);
+        return format(zonedDate, "M-dd-yy", { timeZone });
+      } catch {
+        return "Invalid Date";
+      }
+    },
   },
   {
     accessorKey: "birthday",
     header: "Birthday",
+    cell: ({ row }) => {
+      const date = row.getValue("birthday");
+      if (!date || typeof date !== "string") return null;
+      try {
+        const zonedDate = toZonedTime(new Date(date), timeZone);
+        return format(zonedDate, "M-dd-yy", { timeZone });
+      } catch {
+        return "Invalid Date";
+      }
+    },
   },
   // {
   //   accessorKey: "promotion_date",
@@ -92,6 +115,24 @@ export const columns: ColumnDef<Employee>[] = [
   //   accessorKey: "rank",
   //   header: "Employee Number",
   // },
+  // {
+  //   accessorKey: "status",
+  //   header: "Status",
+  // },
+  {
+    accessorKey: "term_date",
+    header: "Termination Date",
+    cell: ({ row }) => {
+      const date = row.getValue("term_date");
+      if (!date || typeof date !== "string") return null;
+      try {
+        const zonedDate = toZonedTime(new Date(date), timeZone);
+        return format(zonedDate, "M-dd-yy", { timeZone });
+      } catch {
+        return "Invalid Date";
+      }
+    },
+  },
   {
     id: "actions",
     header: "Actions",

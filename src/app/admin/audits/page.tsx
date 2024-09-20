@@ -31,6 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Redis } from '@upstash/redis';
+
+
 
 type OptionType = {
   label: string;
@@ -80,6 +83,13 @@ export default function AuditsPage() {
   >([]);
   const [employee, setEmployee] = useState<any>(null);
 
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!
+  });
+  
+  const CACHE_TTL = 300; // 5 minutes
+
   useEffect(() => {
     const fetchPointsCalculation = async () => {
       const { data, error } = await supabase
@@ -97,6 +107,16 @@ export default function AuditsPage() {
 
   const fetchAndCalculateSummary = async (date: Date | null) => {
     if (!date) return;
+  
+    const cacheKey = `audit_summary_${date.toISOString().split('T')[0]}_${showAllEmployees ? 'all' : selectedLanid}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      const { summary, audits } = JSON.parse(cachedData as string);
+      setSummaryData(summary);
+      setAudits(audits);
+      return;
+    }
 
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1)
       .toISOString()
@@ -187,8 +207,9 @@ export default function AuditsPage() {
 
       summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
       setSummaryData(summary);
+      await redis.set(cacheKey, JSON.stringify({ summary, audits: auditData }), { ex: CACHE_TTL });
     } catch (error) {
-      console.error("Error fetching or calculating summary data:", error);
+      console.error("Error in fetchAndCalculateSummary:", error);
     }
   };
 
@@ -200,6 +221,14 @@ export default function AuditsPage() {
 
   useEffect(() => {
     const fetchEmployees = async () => {
+      const cacheKey = 'employee_data';
+      const cachedData = await redis.get(cacheKey);
+    
+      if (cachedData) {
+        setEmployees(JSON.parse(cachedData as string));
+        return;
+      }
+
       const { data, error } = await supabase
         .from("employees") // Replace with your actual table name
         .select("lanid");
@@ -235,16 +264,27 @@ export default function AuditsPage() {
   };
 
   const fetchAuditData = useCallback(async () => {
+    const cacheKey = 'audit_data';
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      return new Map(JSON.parse(cachedData as string));
+    }
+  
     const { data, error } = await supabase
       .from("Auditsinput")
       .select("*")
       .order("audit_date", { ascending: false });
-
+  
     if (error) {
       console.error("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
-    return new Map(data.map((item) => [item.audits_id, item]));
+  
+    const dataMap = new Map(data.map((item) => [item.audits_id, item]));
+    await redis.set(cacheKey, JSON.stringify(Array.from(dataMap)), { ex: CACHE_TTL });
+  
+    return dataMap;
   }, []);
 
   const refreshData = useCallback(async () => {
@@ -261,40 +301,41 @@ export default function AuditsPage() {
 
   const columns = useMemo(() => createColumns(refreshData), [refreshData]);
 
-  useEffect(() => {
-    refreshData();
+// Update the subscription to invalidate cache on changes
+useEffect(() => {
+  refreshData();
 
-    const subscription = supabase
-      .channel("Auditsinput_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "Auditsinput",
-        },
-        (payload) => {
-          // console.log("Change received!", payload);
-          setDataMap((currentMap) => {
-            const newMap = new Map(currentMap);
-            if (
-              payload.eventType === "INSERT" ||
-              payload.eventType === "UPDATE"
-            ) {
-              newMap.set(payload.new.audits_id, payload.new as AuditData);
-            } else if (payload.eventType === "DELETE") {
-              newMap.delete(payload.old.audits_id);
-            }
-            return newMap;
-          });
-        }
-      )
-      .subscribe();
+  const subscription = supabase
+    .channel("Auditsinput_changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "Auditsinput",
+      },
+      async (payload) => {
+        await redis.del('audit_data');
+        setDataMap((currentMap) => {
+          const newMap = new Map(currentMap);
+          if (
+            payload.eventType === "INSERT" ||
+            payload.eventType === "UPDATE"
+          ) {
+            newMap.set(payload.new.audits_id, payload.new as AuditData);
+          } else if (payload.eventType === "DELETE") {
+            newMap.delete(payload.old.audits_id);
+          }
+          return newMap;
+        });
+      }
+    )
+    .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [refreshData]);
+  return () => {
+    subscription.unsubscribe();
+  };
+}, [refreshData]);
 
   const data = useMemo(() => Array.from(dataMap.values()), [dataMap]);
 

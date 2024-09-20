@@ -52,6 +52,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!
+});
+
+const CACHE_TTL = 300; // 5 minutes
+
+
 interface Note {
   id: number;
   profile_employee_id: number;
@@ -587,12 +597,18 @@ const EmployeeProfile = () => {
 
   useEffect(() => {
     if (user && employeeId) {
-      fetchEmployeeData();
-      fetchNotes();
-      fetchReviews();
-      fetchAbsences();
+      const fetchAllData = async () => {
+        await Promise.all([
+          fetchEmployeeData(),
+          fetchNotes(),
+          fetchReviews(),
+          fetchAbsences()
+        ]);
+      };
+  
+      fetchAllData();
       subscribeToNoteChanges();
-
+  
       const scheduleSubscription = supabase
         .channel("schedules-changes")
         .on(
@@ -600,7 +616,7 @@ const EmployeeProfile = () => {
           { event: "*", schema: "public", table: "schedules" },
           async (payload: { new: any; old: any; eventType: string }) => {
             const newRecord = payload.new;
-
+  
             if (
               newRecord.employee_id === employeeId &&
               (["called_out", "left_early"].includes(newRecord.status) ||
@@ -612,10 +628,10 @@ const EmployeeProfile = () => {
                   : newRecord.status === "left_early"
                   ? "Left Early"
                   : newRecord.status.replace(/^Custom:\s*/i, "").trim();
-
+  
               const createdByName = await fetchEmployeeNameByUserUUID(user.id);
               if (!createdByName) return;
-
+  
               const { error } = await supabase
                 .from("employee_absences")
                 .insert([
@@ -626,17 +642,18 @@ const EmployeeProfile = () => {
                     created_by: createdByName,
                   },
                 ]);
-
+  
               if (error) {
                 console.error("Error inserting absence:", error);
               } else {
+                await redis.del(`employee_absences_${employeeId}`);
                 fetchAbsences(); // Refetch absences after insertion
               }
             }
           }
         )
         .subscribe();
-
+  
       return () => {
         supabase.removeChannel(scheduleSubscription);
       };
@@ -757,7 +774,13 @@ const EmployeeProfile = () => {
   }, [employee, selectedMonth, pointsCalculation]);
 
   const fetchEmployeeData = async () => {
-    if (!employeeId) return;
+    const cacheKey = `employee_data_${employeeId}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setEmployee(JSON.parse(cachedData as string));
+      return;
+    }
 
     const { data, error } = await supabase
       .from("employees")
@@ -765,12 +788,11 @@ const EmployeeProfile = () => {
       .eq("employee_id", employeeId)
       .single();
 
-    if (error) {
-      console.error("Error fetching employee data:", error.message);
-    } else {
-      setEmployee(data);
-    }
-  };
+      if (data) {
+        setEmployee(data);
+        await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
+      }
+    };
 
   const fetchEmployeeName = async (
     user_uuid: string
@@ -789,36 +811,54 @@ const EmployeeProfile = () => {
   };
 
   const fetchNotes = async () => {
-    if (!employeeId) return;
+    const cacheKey = `employee_notes_${employeeId}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setNotes(JSON.parse(cachedData as string));
+      return;
+    }
 
     const { data, error } = await supabase
       .from("employee_profile_notes")
       .select("*")
       .eq("profile_employee_id", employeeId);
 
-    if (error) {
-      console.error("Error fetching notes:", error);
-    } else {
-      setNotes(data as Note[]);
-    }
-  };
+      if (data) {
+        setNotes(data);
+        await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
+      }
+    };
 
-  const fetchReviews = async () => {
-    if (!employeeId) return;
+    const fetchReviews = async () => {
+      const cacheKey = `employee_reviews_${employeeId}`;
+      const cachedData = await redis.get(cacheKey);
+    
+      if (cachedData) {
+        setReviews(JSON.parse(cachedData as string));
+        return;
+      }
 
     const { data, error } = await supabase
       .from("employee_quarterly_reviews")
       .select("*")
       .eq("employee_id", employeeId);
 
-    if (error) {
-      console.error("Error fetching reviews:", error);
-    } else {
-      setReviews(data as Review[]);
-    }
-  };
+      if (data) {
+        setReviews(data);
+        await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL });
+      }
+    };
 
   const fetchAbsences = async () => {
+    const cacheKey = `employee_absences_${employeeId}`;
+    const cachedData = await redis.get(cacheKey);
+  
+    if (cachedData) {
+      setAbsences(JSON.parse(cachedData as string));
+      return;
+    }
+
     if (!employeeId) return;
 
     const { data: absencesData, error: absencesError } = await supabase
@@ -830,6 +870,7 @@ const EmployeeProfile = () => {
       console.error("Error fetching absences:", absencesError);
     } else {
       setAbsences(absencesData);
+      await redis.set(cacheKey, JSON.stringify(absencesData), { ex: CACHE_TTL });
     }
 
     const { data: schedulesData, error: schedulesError } = await supabase

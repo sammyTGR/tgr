@@ -18,6 +18,8 @@ export interface Employee {
   hire_date: string | null;
   birthday: string | null;
   promotion_date: string | null;
+  status: string | null;
+  term_date: string | null;
 }
 
 export interface ReferenceSchedule {
