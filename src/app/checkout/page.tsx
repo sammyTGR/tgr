@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 
@@ -9,7 +9,7 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id");
 
@@ -25,5 +25,19 @@ export default function CheckoutPage() {
     <div className="flex items-center justify-center min-h-screen">
       <p>Redirecting to checkout...</p>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          Loading...
+        </div>
+      }
+    >
+      <CheckoutPageContent />
+    </Suspense>
   );
 }

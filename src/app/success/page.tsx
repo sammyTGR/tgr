@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading"
   );
@@ -55,5 +55,13 @@ export default function SuccessPage() {
       <h1>Payment Successful!</h1>
       <p>Thank you for your purchase.</p>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessPageContent />
+    </Suspense>
   );
 }
