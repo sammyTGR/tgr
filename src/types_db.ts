@@ -122,7 +122,9 @@ export type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"];
 export type Customers = Tables<"customers">;
 export type Products = Tables<"products">;
-export type Prices = Tables<"prices">;
+export type Price = Tables<"prices"> & {
+  type: "one_time" | "recurring";
+};
 export type Subscriptions = Tables<"subscriptions">;
 export type Invoices = Tables<"invoices">;
 export type InvoiceItems = Tables<"invoice_items">;

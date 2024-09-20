@@ -5,9 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 
 function SuccessPageContent() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
-  );
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id");
 
@@ -23,14 +22,18 @@ function SuccessPageContent() {
             body: JSON.stringify({ sessionId }),
           });
 
+          const result = await response.json();
+
           if (response.ok) {
             setStatus("success");
           } else {
             setStatus("error");
+            setErrorMessage(result.error || "Unknown error occurred");
           }
         } catch (error) {
           console.error("Error verifying payment:", error);
           setStatus("error");
+          setErrorMessage("Network error occurred");
         }
       }
     };
@@ -45,7 +48,9 @@ function SuccessPageContent() {
   if (status === "error") {
     return (
       <div>
-        There was an error processing your payment. Please contact support.
+        <h1>Payment Error</h1>
+        <p>There was an error processing your payment: {errorMessage}</p>
+        <p>Please contact support for assistance.</p>
       </div>
     );
   }
