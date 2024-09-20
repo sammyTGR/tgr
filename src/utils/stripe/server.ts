@@ -20,7 +20,7 @@ type CheckoutResponse = {
 
 // Cache for customer data
 const customerCache = new Map<string, any>();
-const CACHE_TTL = 30 * 60 * 1000; // adjust first numbers for minutes in milliseconds
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 export async function checkoutWithStripe(
   price: Price,
@@ -149,7 +149,7 @@ export async function createStripePortalSession(userUuid: string) {
 
     const { url } = await stripe.billingPortal.sessions.create({
       customer: customer.stripe_customer_id,
-      return_url: `${getURL()}/`,
+      return_url: `${getURL()}/account`,
     });
     return { url };
   } catch (error) {
