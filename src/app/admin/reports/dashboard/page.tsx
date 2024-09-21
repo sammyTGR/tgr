@@ -1197,16 +1197,31 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
-            <Card className="flex flex-col col-span-full h-full mt-2 mb-2">
+            <Card className="flex flex-col col-span-full mt-2 mb-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChartIcon className="h-6 w-6" />
                   Sales Report Chart
                 </CardTitle>
               </CardHeader>
-              <CardContent className="overflow-hidden">
-                <SalesRangeStackedBarChart selectedRange={selectedRange} />
-              </CardContent>
+              <div className="overflow-hidden">
+                <ScrollArea
+                  className={classNames(
+                    styles.noScroll,
+                    "w-[calc(100vw-90px)] overflow-auto"
+                  )}
+                >
+                  <CardContent className=" flex-grow overflow-auto">
+                    <div className="h-[400px]">
+                      <SalesRangeStackedBarChart
+                        selectedRange={selectedRange}
+                      />
+                    </div>
+                  </CardContent>
+                  <ScrollBar orientation="horizontal" />
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
+              </div>
             </Card>
           </div>
 

@@ -27,22 +27,19 @@ export default function EmployeesPage() {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      let query = supabase
-        .from("employees")
-        .select("*")
-        .order("name");
-      
+      let query = supabase.from("employees").select("*").order("name");
+
       if (!showTerminated) {
         // Only fetch active employees if showTerminated is false
-        query = query.neq('status', 'terminated');
+        query = query.neq("status", "terminated");
       }
-  
+
       const { data, error } = await query;
-  
+
       if (error) {
         throw error;
       }
-  
+
       if (data) {
         setEmployees(data as Employee[]);
       }
@@ -53,7 +50,7 @@ export default function EmployeesPage() {
       setIsLoading(false);
     }
   };
-  
+
   // Update the useEffect to depend on showTerminated
   useEffect(() => {
     fetchEmployees();
@@ -256,20 +253,20 @@ export default function EmployeesPage() {
   return (
     <RoleBasedWrapper allowedRoles={["super admin"]}>
       <div className="container mx-auto py-10">
-        <div className="flex justify-between items-center mb-5">
-          <h1 className="text-2xl font-bold">Employees</h1>
+        <h1 className="text-2xl font-bold mt-8">Manage Employees</h1>
+        <div className="flex ml-10 mr-2 space-x-2 items-center justify-end mb-5">
           <Button variant="linkHover2" onClick={() => setIsAddDialogOpen(true)}>
             <PlusCircledIcon className="mr-2 h-4 w-4" />
             Add Employee
           </Button>
           <Label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={showTerminated}
-                onChange={(e) => setShowTerminated(e.target.checked)}
-              />
-              <span>Show Terminated Employees</span>
-            </Label>
+            <input
+              type="checkbox"
+              checked={showTerminated}
+              onChange={(e) => setShowTerminated(e.target.checked)}
+            />
+            <span>Show Terminated Employees</span>
+          </Label>
         </div>
         {isLoading ? (
           <p>Loading employees...</p>
