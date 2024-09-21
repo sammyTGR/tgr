@@ -240,7 +240,8 @@ const ManageSchedules = () => {
   const fetchEmployees = async () => {
     const { data: employees, error: employeesError } = await supabase
       .from("employees")
-      .select("employee_id, name");
+      .select("employee_id, name, status")
+      .eq("status", "active");
     if (employeesError) {
       console.error("Error fetching employees:", employeesError);
       return;
@@ -378,8 +379,9 @@ const ManageSchedules = () => {
   const handleClearSchedule = async (employeeName: string, weeks?: string) => {
     const { data: employees, error: employeeError } = await supabase
       .from("employees")
-      .select("employee_id")
-      .ilike("name", `%${employeeName}%`);
+      .select("employee_id, name, status")
+      .ilike("name", `%${employeeName}%`)
+      .eq("status", "active");
 
     if (employeeError) {
       console.error("Error fetching employee ID:", employeeError);

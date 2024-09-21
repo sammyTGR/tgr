@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { Resend } from "resend";
 import { corsHeaders } from "@/utils/cors";
 import TimeOffApproved from "./../../../emails/TimeOffApproved";
+import TimeOffRequest from "./../../../emails/TimeOffRequest";
 import TimeOffDenied from "./../../../emails/TimeOffDenied";
 import CalledOut from "./../../../emails/CalledOut";
 import LeftEarly from "./../../../emails/LeftEarly";
@@ -103,6 +104,16 @@ export default async function handler(
             repliedBy: templateData.repliedBy,
           });
           fromEmail = `TGR <suggestions@${process.env.RESEND_DOMAIN}>`;
+          break;
+        case "TimeOffRequest":
+          emailTemplate = TimeOffRequest({
+            employeeName: templateData.employeeName,
+            startDate: templateData.startDate,
+            endDate: templateData.endDate,
+            reason: templateData.reason,
+            other_reason: templateData.other_reason,
+          });
+          fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
           break;
         default:
           throw new Error("Invalid template name");

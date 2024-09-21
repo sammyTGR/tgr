@@ -27,27 +27,43 @@ import {
 import { supabase } from "@/utils/supabase/client";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import React from "react";
+import { toast } from "sonner";
+import { TimesheetRowActions } from "./timesheet-row-actions";
+import { ReconcileDialogForm } from "./reconcile-popoverform";
 
-interface TimesheetReport {
+export interface TimesheetReport {
   id: number;
   employee_id: number;
-  name: string | null;
+  name: string;
   event_date: string | null;
   start_time: string;
-  end_time: string;
+  end_time: string | null;
   lunch_start: string | null;
   lunch_end: string | null;
-  total_hours: string | null;
+  calculated_total_hours: string | null;
+  scheduled_hours: number;
+  sick_time_usage: number;
+  vacation_time_usage: number;
+  regular_time: number;
+  overtime: number;
+  available_sick_time: number;
 }
 
 interface TimesheetTableProps {
   data: TimesheetReport[];
+  onDataUpdate: (newData: TimesheetReport[]) => void;
 }
 
-export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
+export const TimesheetTable: FC<TimesheetTableProps> = ({
+  data,
+  onDataUpdate,
+}) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [sickTimeData, setSickTimeData] = useState<
+    { employee_id: number; available_sick_time: number }[]
+  >([]);
   const [employees, setEmployees] = useState<
     { employee_id: number; name: string }[]
   >([]);
@@ -69,6 +85,47 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
     };
     fetchEmployees();
   }, []);
+
+  // Fetch sick time data
+  useEffect(() => {
+    const fetchSickTimeData = async () => {
+      const { data, error } = await supabase.rpc("get_all_sick_time_data");
+      if (error) {
+        console.error("Error fetching sick time data:", error);
+      } else {
+        setSickTimeData(data);
+      }
+    };
+    fetchSickTimeData();
+  }, []);
+
+  const handleReconcileHours = async (
+    row: TimesheetReport,
+    hoursToReconcile: number
+  ) => {
+    const { data, error } = await supabase.rpc("reconcile_hours", {
+      p_employee_id: row.employee_id,
+      p_event_date: row.event_date,
+      p_hours_to_reconcile: hoursToReconcile,
+    });
+
+    if (error) {
+      console.error("Error reconciling hours:", error);
+      toast.error("Failed to reconcile hours");
+    } else if (data) {
+      // Fetch updated data
+      const { data: updatedData, error: fetchError } = await supabase.rpc(
+        "get_timesheet_data"
+      );
+      if (fetchError) {
+        console.error("Error fetching updated timesheet data:", fetchError);
+        toast.error("Failed to fetch updated data");
+      } else {
+        onDataUpdate(updatedData);
+        toast.success("Hours reconciled successfully");
+      }
+    }
+  };
 
   // Filter data based on selected dates and employee
   const filteredData = data.filter((row) => {
@@ -224,143 +281,69 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({ data }) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead></TableHead>
-            <TableHead>Employee Name</TableHead>
+            <TableHead>Employee</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Start Time</TableHead>
             <TableHead>End Time</TableHead>
-            <TableHead>Total Hours</TableHead>
+            {/* <TableHead>Lunch Start</TableHead>
+            <TableHead>Lunch End</TableHead> */}
+            <TableHead>Total Hours Worked</TableHead>
+            <TableHead>Scheduled Hours</TableHead>
+            <TableHead>Sick Time Usage</TableHead>
+            <TableHead>Vacation Time Usage</TableHead>
+            <TableHead>Regular Time</TableHead>
+            <TableHead>Overtime</TableHead>
+            <TableHead>Available Sick Time</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Object.keys(groupedData).map((employee_id) => {
-            const employeeRows = groupedData[parseInt(employee_id)];
-            const firstRow = employeeRows[0];
-            const isExpanded = expandedRows[parseInt(employee_id)];
-
-            return (
-              <React.Fragment key={`employee-${employee_id}`}>
-                <TableRow
-                  key={firstRow.id}
-                  onClick={() => toggleExpand(parseInt(employee_id))}
-                  className="cursor-pointer"
-                >
-                  <TableCell>
-                    {isExpanded ? (
-                      <ChevronDown size={20} />
-                    ) : (
-                      <ChevronRight size={20} />
-                    )}
-                  </TableCell>
-                  <TableCell>{firstRow.name}</TableCell>
-                  <TableCell>
-                    {firstRow.event_date
-                      ? format(new Date(firstRow.event_date), "M-dd-yyyy")
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    {firstRow.start_time
-                      ? format(
-                          parse(firstRow.start_time, "HH:mm:ss", new Date()),
-                          "hh:mm a"
-                        )
-                      : ""}
-                  </TableCell>
-                  <TableCell>
-                    {firstRow.end_time
-                      ? format(
-                          parse(firstRow.end_time, "HH:mm:ss", new Date()),
-                          "hh:mm a"
-                        )
-                      : ""}
-                  </TableCell>
-                  <TableCell>
-                    {firstRow.start_time && firstRow.end_time
-                      ? (() => {
-                          const start = new Date(
-                            `1970-01-01T${firstRow.start_time}Z`
-                          ).getTime();
-                          const end = new Date(
-                            `1970-01-01T${firstRow.end_time}Z`
-                          ).getTime();
-
-                          let lunchDuration = 0;
-                          if (firstRow.lunch_start && firstRow.lunch_end) {
-                            const lunchStart = new Date(
-                              `1970-01-01T${firstRow.lunch_start}Z`
-                            ).getTime();
-                            const lunchEnd = new Date(
-                              `1970-01-01T${firstRow.lunch_end}Z`
-                            ).getTime();
-                            lunchDuration = lunchEnd - lunchStart;
-                          }
-
-                          const totalDuration = end - start - lunchDuration;
-                          const totalHours = totalDuration / (1000 * 60 * 60);
-                          return `${totalHours.toFixed(2)} hours`;
-                        })()
-                      : ""}
-                  </TableCell>
-                </TableRow>
-                {isExpanded &&
-                  employeeRows.slice(1).map((row) => (
-                    <TableRow key={`row-${row.id}`}>
-                      <TableCell></TableCell>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell>
-                        {row.event_date
-                          ? format(new Date(row.event_date), "M-dd-yyyy")
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        {row.start_time
-                          ? format(
-                              parse(row.start_time, "HH:mm:ss", new Date()),
-                              "hh:mm a"
-                            )
-                          : ""}
-                      </TableCell>
-                      <TableCell>
-                        {row.end_time
-                          ? format(
-                              parse(row.end_time, "HH:mm:ss", new Date()),
-                              "hh:mm a"
-                            )
-                          : ""}
-                      </TableCell>
-                      <TableCell>
-                        {row.start_time && row.end_time
-                          ? (() => {
-                              const start = new Date(
-                                `1970-01-01T${row.start_time}Z`
-                              ).getTime();
-                              const end = new Date(
-                                `1970-01-01T${row.end_time}Z`
-                              ).getTime();
-
-                              let lunchDuration = 0;
-                              if (row.lunch_start && row.lunch_end) {
-                                const lunchStart = new Date(
-                                  `1970-01-01T${row.lunch_start}Z`
-                                ).getTime();
-                                const lunchEnd = new Date(
-                                  `1970-01-01T${row.lunch_end}Z`
-                                ).getTime();
-                                lunchDuration = lunchEnd - lunchStart;
-                              }
-
-                              const totalDuration = end - start - lunchDuration;
-                              const totalHours =
-                                totalDuration / (1000 * 60 * 60);
-                              return `${totalHours.toFixed(2)} hours`;
-                            })()
-                          : ""}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </React.Fragment>
-            );
-          })}
+          {Object.entries(groupedData).map(([employee_id, employeeRows]) => (
+            <React.Fragment key={`employee-${employee_id}`}>
+              <TableRow
+                onClick={() => toggleExpand(parseInt(employee_id))}
+                className="cursor-pointer"
+              >
+                <TableCell>
+                  {expandedRows[parseInt(employee_id)] ? (
+                    <ChevronDown size={20} />
+                  ) : (
+                    <ChevronRight size={20} />
+                  )}
+                </TableCell>
+                <TableCell>{employeeRows[0].name}</TableCell>
+                <TableCell colSpan={11}></TableCell>
+              </TableRow>
+              {expandedRows[parseInt(employee_id)] &&
+                employeeRows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell></TableCell>
+                    <TableCell>
+                      {row.event_date
+                        ? format(new Date(row.event_date), "M-dd-yyyy")
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>{row.start_time}</TableCell>
+                    <TableCell>{row.end_time}</TableCell>
+                    <TableCell>{row.calculated_total_hours || "N/A"}</TableCell>
+                    <TableCell>{row.scheduled_hours.toFixed(2)}</TableCell>
+                    <TableCell>{row.sick_time_usage.toFixed(2)}</TableCell>
+                    <TableCell>{row.vacation_time_usage.toFixed(2)}</TableCell>
+                    <TableCell>{row.regular_time.toFixed(2)}</TableCell>
+                    <TableCell>{row.overtime.toFixed(2)}</TableCell>
+                    <TableCell>{row.available_sick_time.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <TimesheetRowActions
+                        row={row}
+                        onReconcile={(row, hours) =>
+                          handleReconcileHours(row, hours)
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </React.Fragment>
+          ))}
         </TableBody>
       </Table>
     </div>

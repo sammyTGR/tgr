@@ -19,6 +19,7 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { useRole } from "@/context/RoleContext"; // Import the useRole hook
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { supabase } from "@/utils/supabase/client";
 
 const title = "Submit Time Off Requests";
 
@@ -189,13 +190,14 @@ export default function TimeOffRequestPage() {
       "Starting Late",
       "Leaving Early",
       "Personal",
+      "Vacation",
     ];
     setShowOtherTextarea(reasonsRequiringTextarea.includes(value));
   };
   const getPlaceholderText = (reason: string) => {
     switch (reason) {
       case "Swapping Schedules":
-        return "Please specify who you are swapping with";
+        return "Please specify who you are swapping with and the dates you are swapping (dates must be during the same week)";
       case "Starting Late":
         return "Please specify the reason for starting late";
       case "Leaving Early":
@@ -203,13 +205,68 @@ export default function TimeOffRequestPage() {
       case "Personal":
         return "Please provide details for your personal time off";
       default:
-        return "Please specify your reason";
+        return "Please specify who is covering for the dates you are requesting off (swapped dates must be during the same week)";
     }
   };
 
   const handleSelectDates = (dates: Date[] | undefined) => {
     setSelectedDates(dates || []);
   };
+
+  async function sendNotificationToAdmins(
+    timeOffData: any,
+    selectedDates: Date[]
+  ) {
+    const startDate = format(selectedDates[0], "yyyy-MM-dd");
+    const endDate = format(
+      selectedDates[selectedDates.length - 1],
+      "yyyy-MM-dd"
+    );
+
+    try {
+      // Fetch super admin emails
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("contact_info, name")
+        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+
+      if (employeesError) throw employeesError;
+
+      const recipientEmails = employees.map((emp) => emp.contact_info);
+
+      if (recipientEmails.length === 0) {
+        console.warn("No super admin emails found");
+        return;
+      }
+
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: recipientEmails,
+          subject: "New Time Off Request Submitted",
+          templateName: "TimeOffRequest",
+          templateData: {
+            employeeName: timeOffData.employee_name,
+            startDate,
+            endDate,
+            reason: timeOffData.reason,
+            other_reason: timeOffData.other_reason,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      console.log("Notification email sent to super admins");
+    } catch (error) {
+      console.error("Failed to send notification email:", error);
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,10 +330,12 @@ export default function TimeOffRequestPage() {
           onClick: () => {},
         },
       });
+      await sendNotificationToAdmins(payload, selectedDates);
     } catch (error: any) {
       console.error("Failed to submit time off request:", error.message);
     }
   };
+
   return (
     <RoleBasedWrapper
       allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}

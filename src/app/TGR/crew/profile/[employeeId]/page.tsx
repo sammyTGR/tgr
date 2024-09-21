@@ -513,6 +513,7 @@ const EmployeeProfilePage = () => {
       "Starting Late",
       "Leaving Early",
       "Personal",
+      "Vacation",
     ];
     setShowOtherTextarea(reasonsRequiringTextarea.includes(value));
   };
@@ -655,6 +656,7 @@ const EmployeeProfilePage = () => {
       setShowOtherTextarea(false);
 
       toast.success("Time off request submitted successfully!");
+      await sendNotificationToAdmins(payload, selectedDates);
     } catch (error) {
       console.error(
         "Failed to submit time off request:",
@@ -990,6 +992,61 @@ const EmployeeProfilePage = () => {
     fetchProfile();
   }, [setValue]);
 
+  async function sendNotificationToAdmins(
+    timeOffData: any,
+    selectedDates: Date[]
+  ) {
+    const startDate = format(selectedDates[0], "yyyy-MM-dd");
+    const endDate = format(
+      selectedDates[selectedDates.length - 1],
+      "yyyy-MM-dd"
+    );
+
+    try {
+      // Fetch super admin emails
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("contact_info, name")
+        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+
+      if (employeesError) throw employeesError;
+
+      const recipientEmails = employees.map((emp) => emp.contact_info);
+
+      if (recipientEmails.length === 0) {
+        console.warn("No super admin emails found");
+        return;
+      }
+
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: recipientEmails,
+          subject: "New Time Off Request Submitted",
+          templateName: "TimeOffRequest",
+          templateData: {
+            employeeName: timeOffData.employee_name,
+            startDate,
+            endDate,
+            reason: timeOffData.reason,
+            other_reason: timeOffData.other_reason,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      console.log("Notification email sent to super admins");
+    } catch (error) {
+      console.error("Failed to send notification email:", error);
+    }
+  }
+
   const onSubmit = async (data: EmployeeProfileData) => {
     if (user) {
       const { error } = await supabase
@@ -1053,10 +1110,10 @@ const EmployeeProfilePage = () => {
                 <Suspense fallback="Loading...">
                   {/* Schedules tab content */}
                   <TabsContent value="schedules">
-                    <h1 className="text-xl font-bold mb-2 ml-2">
+                    {/* <h1 className="text-xl font-bold mb-2 ml-2">
                       <TextGenerateEffect words={schedulestitle} />
-                    </h1>
-                    <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    </h1> */}
+                    <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-2">
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-2xl font-bold">
@@ -1139,8 +1196,8 @@ const EmployeeProfilePage = () => {
                               onChange={(e) => setOtherReason(e.target.value)}
                               placeholder={
                                 reason === "Swapping Schedules"
-                                  ? "Please specify who you are swapping with"
-                                  : "Please specify your reason"
+                                  ? "Please specify who you are swapping with and the dates you are swapping (dates must be during the same week)"
+                                  : "Please specify who is covering for the dates you are requesting off (swapped dates must be during the same week)"
                               }
                             />
                           )}
@@ -1161,7 +1218,7 @@ const EmployeeProfilePage = () => {
                           <ClockIcon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-medium">
+                          <div className="text-2xl font-medium mt-6">
                             {availableSickTime !== null
                               ? `${availableSickTime} hours`
                               : "Loading..."}
@@ -1647,8 +1704,10 @@ const EmployeeProfilePage = () => {
                               align="start"
                             >
                               <SuggestionForm
-                                employeeName={employee?.name || ''}
-                                employeeContactInfo={employee?.contact_info || ''}
+                                employeeName={employee?.name || ""}
+                                employeeContactInfo={
+                                  employee?.contact_info || ""
+                                }
                               />
                             </PopoverContent>
                           </Popover>

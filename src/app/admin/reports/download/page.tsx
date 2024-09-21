@@ -21,19 +21,25 @@ interface SickTimeReport {
 interface TimesheetReport {
   id: number;
   employee_id: number;
-  name: string | null; // This should match the `TEXT` type
+  name: string;
   event_date: string | null;
   start_time: string;
-  end_time: string;
-  lunch_start: string | null; // Add lunch_start
-  lunch_end: string | null; // Add lunch_end
-  total_hours: string | null;
+  end_time: string | null;
+  lunch_start: string | null;
+  lunch_end: string | null;
+  calculated_total_hours: string | null;
+  scheduled_hours: number;
+  sick_time_usage: number;
+  vacation_time_usage: number;
+  regular_time: number;
+  overtime: number;
+  available_sick_time: number;
 }
 
 const AdminReportsPage = () => {
   const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
   const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
-  const [activeTab, setActiveTab] = useState("sick-time");
+  const [activeTab, setActiveTab] = useState("timesheet");
   const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   useEffect(() => {
@@ -54,7 +60,7 @@ const AdminReportsPage = () => {
       if (error) {
         console.error("Error fetching timesheet data:", error.message);
       } else {
-        // console.log("Timesheet Data:", data); // For debugging
+        console.log("Timesheet Data:", data); // For debugging
         setTimesheetData(data as TimesheetReport[]);
       }
     };
@@ -62,6 +68,10 @@ const AdminReportsPage = () => {
     fetchSickTimeData();
     fetchTimesheetData();
   }, []);
+
+  const handleTimesheetDataUpdate = (newData: TimesheetReport[]) => {
+    setTimesheetData(newData);
+  };
 
   const handleDownload = () => {
     let dataToExport: any[] = [];
@@ -81,7 +91,12 @@ const AdminReportsPage = () => {
         Date: row.event_date,
         "Start Time": row.start_time,
         "End Time": row.end_time,
-        "Total Hours": row.total_hours,
+        "Total Hours": row.calculated_total_hours,
+        "Scheduled Hours": row.scheduled_hours,
+        "Sick Time Usage": row.sick_time_usage,
+        "Vacation Time Usage": row.vacation_time_usage,
+        "Regular Time": row.regular_time,
+        Overtime: row.overtime,
       }));
       fileName = "timesheet_report.xlsx";
     }
@@ -116,8 +131,8 @@ const AdminReportsPage = () => {
           onValueChange={setActiveTab}
         >
           <TabsList>
-            <TabsTrigger value="sick-time">Sick Time Report</TabsTrigger>
             <TabsTrigger value="timesheet">Timesheet Report</TabsTrigger>
+            <TabsTrigger value="sick-time">Sick Time Report</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sick-time">
@@ -139,7 +154,10 @@ const AdminReportsPage = () => {
           <TabsContent value="timesheet">
             <Card>
               {timesheetData.length > 0 ? (
-                <TimesheetTable data={timesheetData} />
+                <TimesheetTable
+                  data={timesheetData}
+                  onDataUpdate={handleTimesheetDataUpdate}
+                />
               ) : (
                 <p>No timesheet data available.</p>
               )}
