@@ -51,7 +51,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Customer Type" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "40px", overflow: "hidden" },
     },
   },
   {
@@ -114,7 +114,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Details" />
     ),
     meta: {
-      style: { width: "250px" },
+      style: { width: "250px", overflow: "hidden" },
     },
   },
   {

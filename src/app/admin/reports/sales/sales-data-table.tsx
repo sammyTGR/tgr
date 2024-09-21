@@ -304,10 +304,10 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
               </TableHeader>
               <TableBody className="overflow-hidden">
                 {isLoading ? (
-                  <TableRow>
+                  <TableRow className="overflow-hidden">
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center overflow-hidden"
+                      className="h-24 text-center"
                     >
                       Loading...
                     </TableCell>
@@ -329,10 +329,10 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow>
+                  <TableRow className="overflow-hidden">
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center"
+                      className="h-24 text-left"
                     >
                       No results found.
                     </TableCell>
