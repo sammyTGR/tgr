@@ -1,5 +1,6 @@
-import { FC, useState } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { DotsHorizontalIcon } from "@radix-ui/react-icons";
+import { Row } from "@tanstack/react-table";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,39 +16,29 @@ interface TimesheetRowActionsProps {
   onReconcile: (row: TimesheetReport, hours: number) => void;
 }
 
-export const TimesheetRowActions: FC<TimesheetRowActionsProps> = ({
-  row,
-  onReconcile,
-}) => {
-  const [showReconcileForm, setShowReconcileForm] = useState(false);
+export function TimesheetRowActions({ row, onReconcile }: TimesheetRowActionsProps) {
+  const [isReconcileDialogOpen, setIsReconcileDialogOpen] = useState(false);
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
+            <DotsHorizontalIcon className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setShowReconcileForm(true)}>
+          <DropdownMenuItem onClick={() => setIsReconcileDialogOpen(true)}>
             Reconcile Hours
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {showReconcileForm && (
-        <ReconcileDialogForm
-          row={row}
-          availableSickTime={row.available_sick_time}
-          onReconcile={(hours) => {
-            onReconcile(row, hours);
-            setShowReconcileForm(false);
-          }}
-          onClose={() => setShowReconcileForm(false)}
-          isOpen={showReconcileForm}
-        />
-      )}
+      <ReconcileDialogForm
+        row={row}
+        onReconcile={onReconcile}
+        onClose={() => setIsReconcileDialogOpen(false)}
+        isOpen={isReconcileDialogOpen}
+      />
     </>
   );
-};
+}

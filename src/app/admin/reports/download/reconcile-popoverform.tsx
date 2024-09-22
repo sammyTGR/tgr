@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,25 +13,42 @@ import { TimesheetReport } from "./TimesheetTable";
 
 interface ReconcileDialogFormProps {
   row: TimesheetReport;
-  availableSickTime: number;
-  onReconcile: (hours: number) => void;
+  onReconcile: (row: TimesheetReport, hours: number) => void;
   onClose: () => void;
   isOpen: boolean;
 }
 
 export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
   row,
-  availableSickTime,
   onReconcile,
   onClose,
   isOpen,
 }) => {
-  const [hoursToReconcile, setHoursToReconcile] = useState("");
+  const [difference, setDifference] = useState("00:00");
+  const [hoursToReconcile, setHoursToReconcile] = useState("0.00");
+  const [canReconcile, setCanReconcile] = useState(false);
+
+  useEffect(() => {
+    const scheduledMinutes = row.scheduled_hours * 60;
+    const [workedHours, workedMinutes] = (row.calculated_total_hours || "00:00").split(":").map(Number);
+    const totalWorkedMinutes = workedHours * 60 + workedMinutes;
+
+    const diffMinutes = scheduledMinutes - totalWorkedMinutes;
+    const diffHours = Math.floor(diffMinutes / 60);
+    const remainingMinutes = diffMinutes % 60;
+
+    const formattedDiff = `${diffHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+    const diffInHours = (diffMinutes / 60).toFixed(2);
+
+    setDifference(formattedDiff);
+    setHoursToReconcile(diffInHours);
+    setCanReconcile(diffMinutes > 0 && row.available_sick_time > 0);
+  }, [row]);
 
   const handleReconcile = () => {
     const hours = parseFloat(hoursToReconcile);
-    if (!isNaN(hours) && hours > 0 && hours <= availableSickTime) {
-      onReconcile(hours);
+    if (canReconcile && hours > 0 && hours <= row.available_sick_time) {
+      onReconcile(row, hours);
       onClose();
     }
   };
@@ -49,18 +66,18 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="scheduled"
-              value={row.scheduled_hours.toString()}
+              value={row.scheduled_hours.toFixed(2)}
               readOnly
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="total" className="text-right">
-              Total
+              Total Worked
             </Label>
             <Input
               id="total"
-              value={(row.calculated_total_hours || 0).toString()}
+              value={row.calculated_total_hours || "00:00"}
               readOnly
               className="col-span-3"
             />
@@ -71,10 +88,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="difference"
-              value={(
-                row.scheduled_hours -
-                (parseFloat(row.calculated_total_hours || "0") || 0)
-              ).toFixed(2)}
+              value={difference}
               readOnly
               className="col-span-3"
             />
@@ -85,7 +99,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="available"
-              value={availableSickTime.toFixed(2)}
+              value={row.available_sick_time.toFixed(2)}
               readOnly
               className="col-span-3"
             />
@@ -103,7 +117,9 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleReconcile}>Confirm Reconciliation</Button>
+          <Button onClick={handleReconcile} disabled={!canReconcile}>
+            Confirm Reconciliation
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
