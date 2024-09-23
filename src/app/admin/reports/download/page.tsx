@@ -60,7 +60,7 @@ const AdminReportsPage = () => {
       if (error) {
         console.error("Error fetching timesheet data:", error.message);
       } else {
-        console.log("Timesheet Data:", data); // For debugging
+        // console.log("Timesheet Data:", data); // For debugging
         setTimesheetData(data as TimesheetReport[]);
       }
     };
@@ -69,8 +69,10 @@ const AdminReportsPage = () => {
     fetchTimesheetData();
   }, []);
 
-  const handleTimesheetDataUpdate = (newData: TimesheetReport[]) => {
-    setTimesheetData(newData);
+  const handleTimesheetDataUpdate = (
+    updater: (prevData: TimesheetReport[]) => TimesheetReport[]
+  ) => {
+    setTimesheetData((prevData) => updater(prevData));
   };
 
   const handleDownload = () => {

@@ -51,7 +51,7 @@ export interface TimesheetReport {
 
 interface TimesheetTableProps {
   data: TimesheetReport[];
-  onDataUpdate: (newData: TimesheetReport[]) => void;
+  onDataUpdate: (updater: (prevData: TimesheetReport[]) => TimesheetReport[]) => void;
 }
 
 export const TimesheetTable: FC<TimesheetTableProps> = ({
@@ -103,27 +103,31 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     row: TimesheetReport,
     hoursToReconcile: number
   ) => {
-    const { data, error } = await supabase.rpc("reconcile_hours", {
-      p_employee_id: row.employee_id,
-      p_event_date: row.event_date,
-      p_hours_to_reconcile: hoursToReconcile,
-    });
-
-    if (error) {
+    try {
+      const { data, error } = await supabase.rpc("reconcile_hours", {
+        p_employee_id: row.employee_id,
+        p_event_date: row.event_date,
+        p_hours_to_reconcile: hoursToReconcile,
+      });
+  
+      if (error) throw error;
+  
+      if (data) {
+        const updatedRow = data[0] as TimesheetReport; // Note the change here
+        
+        onDataUpdate((prevData) =>
+          prevData.map((item) =>
+            item.id === updatedRow.id ? updatedRow : item
+          )
+        );
+        
+        toast.success("Hours reconciled successfully");
+      } else {
+        toast.error("No data returned from reconciliation");
+      }
+    } catch (error) {
       console.error("Error reconciling hours:", error);
       toast.error("Failed to reconcile hours");
-    } else if (data) {
-      // Fetch updated data
-      const { data: updatedData, error: fetchError } = await supabase.rpc(
-        "get_timesheet_data"
-      );
-      if (fetchError) {
-        console.error("Error fetching updated timesheet data:", fetchError);
-        toast.error("Failed to fetch updated data");
-      } else {
-        onDataUpdate(updatedData);
-        toast.success("Hours reconciled successfully");
-      }
     }
   };
 
