@@ -1,44 +1,60 @@
-//api/getUserRole.ts for getting user role used in time off review
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "@/utils/cors";
-import { supabase } from "@/utils/supabase/client";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method === "OPTIONS") {
-    res.status(200).json({ message: "CORS preflight request success" });
-    return;
+// Initialize Supabase client (make sure to use server-side initialization)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function GET(request: Request) {
+  // Handle CORS
+  if (request.method === "OPTIONS") {
+    return new NextResponse("ok", { headers: corsHeaders });
   }
 
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "authorization, x-client-info, apikey, content-type"
-  );
-
-  const { email } = req.query;
+  const { searchParams } = new URL(request.url);
+  const email = searchParams.get("email");
 
   if (!email) {
-    return res.status(400).json({ error: "Email parameter is required" });
+    return NextResponse.json(
+      { error: "Email parameter is required" },
+      { status: 400 }
+    );
   }
 
-  const { data, error } = await supabase
-    .from("employees")
-    .select("role")
-    .ilike("contact_info", email.toString().toLowerCase())
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("role")
+      .ilike("contact_info", email.toLowerCase())
+      .maybeSingle();
 
-  if (error) {
-    console.error("Error fetching user role:", error);
-    return res.status(500).json({ error: error.message });
+    if (error) {
+      console.error("Error fetching user role:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ role: data.role }, { headers: corsHeaders });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
+}
 
-  if (!data) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  res.status(200).json({ role: data.role });
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: {
+      ...corsHeaders,
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+    },
+  });
 }
