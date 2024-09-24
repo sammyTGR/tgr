@@ -30,6 +30,7 @@ import React from "react";
 import { toast } from "sonner";
 import { TimesheetRowActions } from "./timesheet-row-actions";
 import { ReconcileDialogForm } from "./reconcile-popoverform";
+import { addDays, startOfWeek, endOfWeek } from "date-fns";
 
 export interface TimesheetReport {
   id: number;
@@ -57,11 +58,13 @@ interface TimesheetTableProps {
   onDataUpdate: (
     updater: (prevData: TimesheetReport[]) => TimesheetReport[]
   ) => void;
+  onFilteredDataUpdate: (filteredData: TimesheetReport[]) => void;
 }
 
 export const TimesheetTable: FC<TimesheetTableProps> = ({
   data,
   onDataUpdate,
+  onFilteredDataUpdate,
 }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [isAllExpanded, setIsAllExpanded] = useState(false);
@@ -74,6 +77,9 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     { employee_id: number; name: string }[]
   >([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(
+    null
+  );
+  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(
     null
   );
 
@@ -104,6 +110,49 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     };
     fetchSickTimeData();
   }, []);
+
+  // Function to generate pay periods
+  const generatePayPeriods = () => {
+    const periods = [];
+    const startDate = new Date(2023, 8, 24); // September 24, 2023 (a Sunday)
+    const today = new Date();
+    let currentDate = startDate;
+
+    while (currentDate <= today) {
+      const periodStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // 0 represents Sunday
+      const periodEnd = endOfWeek(addDays(periodStart, 13), {
+        weekStartsOn: 0,
+      });
+      periods.push({
+        label: `${format(periodStart, "MMM d")} - ${format(
+          periodEnd,
+          "MMM d, yyyy"
+        )}`,
+        start: periodStart,
+        end: periodEnd,
+      });
+      currentDate = addDays(periodEnd, 1);
+    }
+
+    return periods.reverse(); // Most recent first
+  };
+
+  const payPeriods = generatePayPeriods();
+
+  // Function to filter data based on selected pay period
+  const filterByPayPeriod = (data: TimesheetReport[]) => {
+    if (!selectedPayPeriod) return data;
+
+    const selectedPeriod = payPeriods.find(
+      (p) => p.label === selectedPayPeriod
+    );
+    if (!selectedPeriod) return data;
+
+    return data.filter((row) => {
+      const rowDate = new Date(row.event_date || "");
+      return rowDate >= selectedPeriod.start && rowDate <= selectedPeriod.end;
+    });
+  };
 
   const handleReconcileHours = async (
     row: TimesheetReport,
@@ -181,7 +230,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
   // }, [data]);
 
   // Filter data based on selected dates and employee
-  const filteredData = data.filter((row) => {
+  const filteredData = filterByPayPeriod(data).filter((row) => {
     const rowDate = new Date(row.event_date || "");
 
     // Normalize the dates to ensure they all represent the same time (e.g., midnight)
@@ -217,6 +266,10 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
       return dateB.getTime() - dateA.getTime();
     });
   });
+
+  useEffect(() => {
+    onFilteredDataUpdate(filteredData);
+  }, [filteredData, onFilteredDataUpdate]);
 
   const toggleExpand = (employee_id: number) => {
     setExpandedRows((prev) => ({
@@ -317,6 +370,37 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
             <Button
               variant="linkHover1"
               onClick={() => setSelectedEmployeeId(null)}
+              className="mt-2"
+            >
+              Clear
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-4">
+          <CardHeader className="flex items-center justify-between">
+            <CardTitle>Select Pay Period</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={selectedPayPeriod || ""}
+              onValueChange={(value) => setSelectedPayPeriod(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Pay Period" />
+              </SelectTrigger>
+              <SelectContent>
+                {payPeriods.map((period) => (
+                  <SelectItem key={period.label} value={period.label}>
+                    {period.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="linkHover1"
+              onClick={() => setSelectedPayPeriod(null)}
               className="mt-2"
             >
               Clear

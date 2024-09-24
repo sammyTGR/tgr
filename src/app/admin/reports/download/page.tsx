@@ -9,6 +9,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Button } from "@/components/ui/button";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
 
 interface SickTimeReport {
   employee_id: number;
@@ -44,6 +45,9 @@ const AdminReportsPage = () => {
   const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
   const [activeTab, setActiveTab] = useState("timesheet");
   const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [filteredTimesheetData, setFilteredTimesheetData] = useState<
+    TimesheetReport[]
+  >([]);
 
   useEffect(() => {
     const fetchSickTimeData = async () => {
@@ -82,6 +86,10 @@ const AdminReportsPage = () => {
     });
   };
 
+  const handleFilteredDataUpdate = (filteredData: TimesheetReport[]) => {
+    setFilteredTimesheetData(filteredData);
+  };
+
   const handleDownload = () => {
     let dataToExport: any[] = [];
     let fileName = "";
@@ -95,18 +103,21 @@ const AdminReportsPage = () => {
       }));
       fileName = "sick_time_report.xlsx";
     } else if (activeTab === "timesheet") {
-      dataToExport = timesheetData.map((row) => ({
+      dataToExport = filteredTimesheetData.map((row) => ({
         Employee: row.name,
-        Date: row.event_date,
+        Date: row.event_date
+          ? format(new Date(row.event_date), "M-dd-yyyy")
+          : "N/A",
         "Start Time": row.start_time,
         "End Time": row.end_time,
-        "Total Hours Logged": row.calculated_total_hours,
-        "Scheduled Hours": row.scheduled_hours,
-        "Sick Time Usage": row.sick_time_usage,
-        "Vacation Time Usage": row.vacation_time_usage,
-        "Regular Time": row.regular_time,
-        Overtime: row.overtime,
-        "Total Hours With Sick": row.total_hours_with_sick,
+        "Total Hours Logged": row.calculated_total_hours || "N/A",
+        "Scheduled Hours": row.scheduled_hours?.toFixed(2),
+        "Sick Time Usage": row.sick_time_usage?.toFixed(2) || "N/A",
+        "Vacation Time Usage": row.vacation_time_usage?.toFixed(2) || "N/A",
+        "Regular Time": row.regular_time.toFixed(2),
+        Overtime: row.overtime.toFixed(2),
+        "Available Sick Time": row.available_sick_time?.toFixed(2) || "N/A",
+        "Total Hours With Sick": row.total_hours_with_sick?.toFixed(2) || "N/A",
       }));
       fileName = "timesheet_report.xlsx";
     }
@@ -167,6 +178,7 @@ const AdminReportsPage = () => {
                 <TimesheetTable
                   data={timesheetData}
                   onDataUpdate={handleTimesheetDataUpdate}
+                  onFilteredDataUpdate={handleFilteredDataUpdate}
                 />
               ) : (
                 <p>No timesheet data available.</p>
