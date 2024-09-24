@@ -23,9 +23,9 @@ import {
 import { cn } from "@/lib/utils";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { supabase } from "@/utils/supabase/client";
-import useUnreadMessages from "@/pages/api/fetch-unread";
-import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
-import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
+import useUnreadMessages from "@/app/api/fetch-unread/route";
+import useUnreadOrders from "@/app/api/useUnreadOrders"; // Import the hook
+import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route"; // Import the hook
 import { useRouter } from "next/navigation"; // Import useRouter
 import {
   DropdownMenu,

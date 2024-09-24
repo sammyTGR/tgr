@@ -27,6 +27,7 @@ interface TimesheetReport {
   end_time: string | null;
   lunch_start: string | null;
   lunch_end: string | null;
+  stored_total_hours: string | null;
   calculated_total_hours: string | null;
   scheduled_hours: number;
   sick_time_usage: number;
@@ -34,6 +35,8 @@ interface TimesheetReport {
   regular_time: number;
   overtime: number;
   available_sick_time: number;
+  hoursToReconcile?: number;
+  total_hours_with_sick?: number;
 }
 
 const AdminReportsPage = () => {
@@ -72,7 +75,11 @@ const AdminReportsPage = () => {
   const handleTimesheetDataUpdate = (
     updater: (prevData: TimesheetReport[]) => TimesheetReport[]
   ) => {
-    setTimesheetData((prevData) => updater(prevData));
+    setTimesheetData((prevData) => {
+      const newData = updater(prevData);
+      console.log("Updated timesheet data:", newData);
+      return newData;
+    });
   };
 
   const handleDownload = () => {
@@ -93,12 +100,13 @@ const AdminReportsPage = () => {
         Date: row.event_date,
         "Start Time": row.start_time,
         "End Time": row.end_time,
-        "Total Hours": row.calculated_total_hours,
+        "Total Hours Logged": row.calculated_total_hours,
         "Scheduled Hours": row.scheduled_hours,
         "Sick Time Usage": row.sick_time_usage,
         "Vacation Time Usage": row.vacation_time_usage,
         "Regular Time": row.regular_time,
         Overtime: row.overtime,
+        "Total Hours With Sick": row.total_hours_with_sick,
       }));
       fileName = "timesheet_report.xlsx";
     }

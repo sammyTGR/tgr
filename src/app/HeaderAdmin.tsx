@@ -28,9 +28,9 @@ import {
 import { cn } from "@/lib/utils";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { supabase } from "@/utils/supabase/client";
-import useUnreadMessages from "@/pages/api/fetch-unread";
-import useUnreadOrders from "@/pages/api/useUnreadOrders"; // Import the hook
-import useUnreadTimeOffRequests from "@/pages/api/useUnreadTimeOffRequests"; // Import the hook
+import useUnreadMessages from "@/app/api/fetch-unread/route";
+// import useUnreadOrders from "@/app/api/useUnreadOrders/route"; // Import the hook
+// import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route"; // Import the hook
 import { useRouter } from "next/navigation"; // Import useRouter
 import {
   DropdownMenu,
@@ -288,10 +288,30 @@ const HeaderAdmin = React.memo(() => {
   const router = useRouter(); // Instantiate useRouter
   const { setTheme } = useTheme();
   const [isChatActive, setIsChatActive] = useState(false);
-  const unreadOrderCount = useUnreadOrders(); // Use the hook to get unread orders
-  const unreadTimeOffCount = useUnreadTimeOffRequests(); // Use the hook to get unread time-off requests
+  const [unreadOrderCount, setUnreadOrderCount] = useState(0);
+  const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
   const { resetUnreadCounts } = useUnreadCounts();
   const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
+
+  const fetchUnreadOrders = async () => {
+    try {
+      const response = await fetch("/api/useUnreadOrders");
+      const data = await response.json();
+      setUnreadOrderCount(data.unreadOrderCount);
+    } catch (error) {
+      console.error("Error fetching unread orders:", error);
+    }
+  };
+
+  const fetchUnreadTimeOffRequests = async () => {
+    try {
+      const response = await fetch("/api/useUnreadTimeOffRequests");
+      const data = await response.json();
+      setUnreadTimeOffCount(data.unreadTimeOffCount);
+    } catch (error) {
+      console.error("Error fetching unread time-off requests:", error);
+    }
+  };
 
   const fetchUserAndEmployee = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -381,6 +401,8 @@ const HeaderAdmin = React.memo(() => {
   useEffect(() => {
     if (user && !isChatActive) {
       fetchUnreadCounts();
+      fetchUnreadOrders();
+      fetchUnreadTimeOffRequests();
 
       const groupChatMessageSubscription = supabase
         .channel("group-chat-changes")
@@ -417,7 +439,27 @@ const HeaderAdmin = React.memo(() => {
         )
         .subscribe();
 
+      const ordersSubscription = supabase
+        .channel("orders")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          fetchUnreadOrders
+        )
+        .subscribe();
+
+      const timeOffSubscription = supabase
+        .channel("time_off_requests")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "time_off_requests" },
+          fetchUnreadTimeOffRequests
+        )
+        .subscribe();
+
       return () => {
+        ordersSubscription.unsubscribe();
+        timeOffSubscription.unsubscribe();
         groupChatMessageSubscription.unsubscribe();
         directMessageSubscription.unsubscribe();
       };

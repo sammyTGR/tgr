@@ -40,6 +40,7 @@ export interface TimesheetReport {
   end_time: string | null;
   lunch_start: string | null;
   lunch_end: string | null;
+  stored_total_hours: string | null;
   calculated_total_hours: string | null;
   scheduled_hours: number;
   sick_time_usage: number;
@@ -47,11 +48,15 @@ export interface TimesheetReport {
   regular_time: number;
   overtime: number;
   available_sick_time: number;
+  hoursToReconcile?: number;
+  total_hours_with_sick?: number;
 }
 
 interface TimesheetTableProps {
   data: TimesheetReport[];
-  onDataUpdate: (updater: (prevData: TimesheetReport[]) => TimesheetReport[]) => void;
+  onDataUpdate: (
+    updater: (prevData: TimesheetReport[]) => TimesheetReport[]
+  ) => void;
 }
 
 export const TimesheetTable: FC<TimesheetTableProps> = ({
@@ -61,6 +66,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [latestUpdate, setLatestUpdate] = useState<number | null>(null);
   const [sickTimeData, setSickTimeData] = useState<
     { employee_id: number; available_sick_time: number }[]
   >([]);
@@ -103,33 +109,76 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     row: TimesheetReport,
     hoursToReconcile: number
   ) => {
+    console.log("Reconciling hours:", { row, hoursToReconcile });
     try {
-      const { data, error } = await supabase.rpc("reconcile_hours", {
-        p_employee_id: row.employee_id,
-        p_event_date: row.event_date,
-        p_hours_to_reconcile: hoursToReconcile,
+      const response = await fetch("/api/reconcile-hours", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeId: row.employee_id,
+          eventDate: row.event_date,
+          hoursToReconcile: hoursToReconcile,
+          scheduledHours: row.scheduled_hours,
+          calculatedTotalHours: row.calculated_total_hours,
+        }),
       });
-  
-      if (error) throw error;
-  
-      if (data) {
-        const updatedRow = data[0] as TimesheetReport; // Note the change here
-        
-        onDataUpdate((prevData) =>
-          prevData.map((item) =>
-            item.id === updatedRow.id ? updatedRow : item
-          )
-        );
-        
-        toast.success("Hours reconciled successfully");
-      } else {
-        toast.error("No data returned from reconciliation");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to reconcile hours");
       }
-    } catch (error) {
+
+      const updatedRow = await response.json();
+      console.log("Updated row:", updatedRow);
+
+      // Update the local state immediately
+      onDataUpdate((prevData) =>
+        prevData.map((item) =>
+          item.id === row.id
+            ? {
+                ...item,
+                sick_time_usage: hoursToReconcile,
+                available_sick_time: updatedRow.available_sick_time,
+              }
+            : item
+        )
+      );
+
+      // Trigger a refresh of the data
+      setLatestUpdate(Date.now());
+
+      toast.success("Hours reconciled successfully");
+    } catch (error: any) {
       console.error("Error reconciling hours:", error);
-      toast.error("Failed to reconcile hours");
+      toast.error(error.message || "Failed to reconcile hours");
     }
   };
+
+  useEffect(() => {
+    if (latestUpdate) {
+      const refreshData = async () => {
+        const { data, error } = await supabase.rpc("get_timesheet_data");
+        if (error) {
+          console.error(
+            "Error fetching updated timesheet data:",
+            error.message
+          );
+          toast.error("Failed to refresh data");
+        } else {
+          onDataUpdate(() => data as TimesheetReport[]);
+          console.log("Data refreshed successfully");
+        }
+      };
+
+      refreshData();
+    }
+  }, [latestUpdate]);
+
+  // useEffect(() => {
+  //   console.log("Current data:", data);
+  // }, [data]);
 
   // Filter data based on selected dates and employee
   const filteredData = data.filter((row) => {
@@ -291,13 +340,14 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
             <TableHead>End Time</TableHead>
             {/* <TableHead>Lunch Start</TableHead>
             <TableHead>Lunch End</TableHead> */}
-            <TableHead>Total Hours Worked</TableHead>
+            <TableHead>Total Hours Logged</TableHead>
             <TableHead>Scheduled Hours</TableHead>
             <TableHead>Sick Time Usage</TableHead>
             <TableHead>Vacation Time Usage</TableHead>
             <TableHead>Regular Time</TableHead>
             <TableHead>Overtime</TableHead>
             <TableHead>Available Sick Time</TableHead>
+            <TableHead>Total Hours</TableHead> {/* New column */}
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -330,12 +380,21 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
                     <TableCell>{row.start_time}</TableCell>
                     <TableCell>{row.end_time}</TableCell>
                     <TableCell>{row.calculated_total_hours || "N/A"}</TableCell>
-                    <TableCell>{row.scheduled_hours.toFixed(2)}</TableCell>
-                    <TableCell>{row.sick_time_usage.toFixed(2)}</TableCell>
-                    <TableCell>{row.vacation_time_usage.toFixed(2)}</TableCell>
+                    <TableCell>{row.scheduled_hours?.toFixed(2)}</TableCell>
+                    <TableCell>
+                      {row.sick_time_usage?.toFixed(2) || "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {row.vacation_time_usage?.toFixed(2) || "N/A"}
+                    </TableCell>
                     <TableCell>{row.regular_time.toFixed(2)}</TableCell>
                     <TableCell>{row.overtime.toFixed(2)}</TableCell>
-                    <TableCell>{row.available_sick_time.toFixed(2)}</TableCell>
+                    <TableCell>
+                      {row.available_sick_time?.toFixed(2) || "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {row.total_hours_with_sick?.toFixed(2) || "N/A"}
+                    </TableCell>
                     <TableCell>
                       <TimesheetRowActions
                         row={row}

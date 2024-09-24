@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +111,7 @@ export function EditEmployeeDialog({
       <DialogContent className="max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Employee</DialogTitle>
+          <DialogDescription>Edit Staff Details</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -202,7 +204,7 @@ export function EditEmployeeDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="position">Position</Label>
               <Select
                 value={editedEmployee.position}
@@ -219,7 +221,7 @@ export function EditEmployeeDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
             <div className="grid gap-2">
               <Label htmlFor="role">Role</Label>
               <Select

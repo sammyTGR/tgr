@@ -76,7 +76,7 @@ export default function TimeOffRequestPage() {
       const startDate = toZonedTime(now, timeZone);
       const endDate = toZonedTime(now, timeZone);
 
-      const response = await fetch("/api/calendar", {
+      const response = await fetch("/app/api/calendar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -103,7 +103,7 @@ export default function TimeOffRequestPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setEmployeeNames(data.map((employee: { name: string }) => employee.name));
+      setEmployeeNames(data.map((employee: any) => employee.name));
     } catch (error: any) {
       console.error("Failed to fetch employee names:", error.message);
     }
@@ -116,13 +116,6 @@ export default function TimeOffRequestPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      // Ensure "Other" is added only once
-      const otherExists = data.some(
-        (reason: TimeOffReason) => reason.reason === "Other"
-      );
-      if (!otherExists) {
-        data.push({ id: data.length + 1, reason: "Other" });
-      }
       setTimeOffReasons(data);
     } catch (error: any) {
       console.error("Failed to fetch time off reasons:", error.message);
@@ -384,6 +377,7 @@ export default function TimeOffRequestPage() {
                     ))}
                 </SelectContent>
               </Select>
+
               <Select
                 value={timeOffData.reason}
                 onValueChange={handleReasonChange}

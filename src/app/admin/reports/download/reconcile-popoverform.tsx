@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,27 +30,38 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
   const [canReconcile, setCanReconcile] = useState(false);
 
   useEffect(() => {
-    const scheduledMinutes = row.scheduled_hours * 60;
-    const [workedHours, workedMinutes] = (row.calculated_total_hours || "00:00").split(":").map(Number);
+    const scheduledMinutes = (row.scheduled_hours ?? 0) * 60;
+    const [workedHours, workedMinutes] = (row.calculated_total_hours || "00:00")
+      .split(":")
+      .map(Number);
     const totalWorkedMinutes = workedHours * 60 + workedMinutes;
 
     const diffMinutes = scheduledMinutes - totalWorkedMinutes;
     const diffHours = Math.floor(diffMinutes / 60);
     const remainingMinutes = diffMinutes % 60;
 
-    const formattedDiff = `${diffHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+    const formattedDiff = `${diffHours
+      .toString()
+      .padStart(2, "0")}:${remainingMinutes.toString().padStart(2, "0")}`;
     const diffInHours = (diffMinutes / 60).toFixed(2);
 
     setDifference(formattedDiff);
     setHoursToReconcile(diffInHours);
-    setCanReconcile(diffMinutes > 0 && row.available_sick_time > 0);
+    setCanReconcile(diffMinutes > 0 && (row.available_sick_time ?? 0) > 0);
   }, [row]);
 
   const handleReconcile = () => {
     const hours = parseFloat(hoursToReconcile);
-    if (canReconcile && hours > 0 && hours <= row.available_sick_time) {
+    if (
+      canReconcile &&
+      hours > 0 &&
+      row.available_sick_time !== null &&
+      hours <= row.available_sick_time
+    ) {
       onReconcile(row, hours);
       onClose();
+    } else {
+      console.log("Cannot reconcile:", { canReconcile, hours, row });
     }
   };
 
@@ -58,6 +70,10 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Reconcile Hours</DialogTitle>
+          <DialogDescription>
+            Adjust the hours to reconcile the difference between scheduled and
+            worked hours.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -66,7 +82,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="scheduled"
-              value={row.scheduled_hours.toFixed(2)}
+              value={row.scheduled_hours?.toFixed(2) || "N/A"}
               readOnly
               className="col-span-3"
             />
@@ -99,7 +115,7 @@ export const ReconcileDialogForm: FC<ReconcileDialogFormProps> = ({
             </Label>
             <Input
               id="available"
-              value={row.available_sick_time.toFixed(2)}
+              value={row.available_sick_time?.toFixed(2) || "N/A"}
               readOnly
               className="col-span-3"
             />
