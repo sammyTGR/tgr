@@ -267,10 +267,6 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     });
   });
 
-  useEffect(() => {
-    onFilteredDataUpdate(filteredData);
-  }, [filteredData, onFilteredDataUpdate]);
-
   const toggleExpand = (employee_id: number) => {
     setExpandedRows((prev) => ({
       ...prev,
