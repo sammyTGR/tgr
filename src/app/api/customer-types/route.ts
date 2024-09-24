@@ -8,13 +8,14 @@ export async function GET() {
       .select("customer_type")
       .neq("customer_type", null)
       .order("customer_type", { ascending: true });
+    // console.log("Raw data from Supabase:", data); // Add this line
 
     if (error) throw error;
 
-    // Filter out distinct customer types
+    // Filter out distinct customer types and remove empty strings
     const distinctCustomerTypes = Array.from(
       new Set(data.map((item) => item.customer_type))
-    );
+    ).filter((type) => type && type.trim() !== "");
 
     return NextResponse.json(distinctCustomerTypes);
   } catch (error: any) {

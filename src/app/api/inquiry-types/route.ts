@@ -8,13 +8,14 @@ export async function GET() {
       .select("inquiry_type")
       .neq("inquiry_type", null)
       .order("inquiry_type", { ascending: true });
+    // console.log("Raw data from Supabase:", data); // Add this line
 
     if (error) throw error;
 
-    // Filter out distinct inquiry types
+    // Filter out distinct inquiry types and remove empty strings
     const distinctInquiryTypes = Array.from(
       new Set(data.map((item) => item.inquiry_type))
-    );
+    ).filter((type) => type && type.trim() !== "");
 
     return NextResponse.json(distinctInquiryTypes);
   } catch (error: any) {
