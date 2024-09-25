@@ -11,6 +11,8 @@ import GunsmithInspection from "../../../../emails/GunsmithInspection";
 import OrderCustomerContacted from "../../../../emails/OrderCustomerContacted";
 import OrderSetStatus from "../../../../emails/OrderSetStatus";
 import SuggestionReply from "../../../../emails/SuggestionReply";
+import AdminOvertimeAlert from "../../../../emails/AdminOvertimeAlert";
+import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -122,6 +124,22 @@ export async function POST(request: Request) {
           endDate: templateData.endDate,
           reason: templateData.reason,
           other_reason: templateData.other_reason,
+        });
+        fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "EmployeeOvertimeAlert":
+        emailTemplate = EmployeeOvertimeAlert({
+          employeeName: templateData.employeeName,
+          clockInTime: templateData.clockInTime,
+          currentTime: templateData.currentTime,
+        });
+        fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "AdminOvertimeAlert":
+        emailTemplate = AdminOvertimeAlert({
+          employeeName: templateData.employeeName,
+          clockInTime: templateData.clockInTime,
+          currentTime: templateData.currentTime,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;

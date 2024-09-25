@@ -244,6 +244,47 @@ const EmployeeProfilePage = () => {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const sendOvertimeAlert = async (
+    employeeName: string,
+    recipientEmail: string | string[],
+    clockInTime: string,
+    currentTime: string,
+    templateName: string
+  ) => {
+    try {
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: recipientEmail,
+          subject: "Overtime Alert",
+          templateName: templateName,
+          templateData: {
+            employeeName,
+            clockInTime,
+            currentTime,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send overtime alert email");
+      }
+
+      console.log(
+        `Overtime alert sent to ${
+          Array.isArray(recipientEmail)
+            ? recipientEmail.join(", ")
+            : recipientEmail
+        }`
+      );
+    } catch (error) {
+      console.error("Error sending overtime alert:", error);
+    }
+  };
+
   const timeZone = "America/Los_Angeles";
   const handleClockIn = async () => {
     const timeZone = "America/Los_Angeles";
@@ -314,7 +355,60 @@ const EmployeeProfilePage = () => {
         );
 
         toast.success(`Welcome Back ${employee.name}!`);
+        scheduleOvertimeAlert(now);
       }
+    }
+  };
+
+  const scheduleOvertimeAlert = (clockInTime: Date) => {
+    const alertTime = new Date(clockInTime.getTime() + 9 * 60 * 60 * 1000); // 9 hours after clock-in
+    const now = new Date();
+    const timeUntilAlert = alertTime.getTime() - now.getTime();
+
+    if (timeUntilAlert > 0) {
+      setTimeout(() => {
+        sendOvertimeAlert(
+          employee.name,
+          employee.contact_info,
+          formatTZ(clockInTime, "h:mm a", { timeZone }),
+          formatTZ(new Date(), "h:mm a", { timeZone }),
+          "EmployeeOvertimeAlert"
+        );
+        sendOvertimeAlertToAdmins(
+          employee.name,
+          formatTZ(clockInTime, "h:mm a", { timeZone }),
+          formatTZ(new Date(), "h:mm a", { timeZone })
+        );
+      }, timeUntilAlert);
+    }
+  };
+
+  const sendOvertimeAlertToAdmins = async (
+    employeeName: string,
+    clockInTime: string,
+    currentTime: string
+  ) => {
+    try {
+      const { data: admins, error } = await supabase
+        .from("employees")
+        .select("contact_info")
+        .in("role", ["admin", "super admin"]);
+
+      if (error) throw error;
+
+      const adminEmails = admins.map((admin) => admin.contact_info);
+
+      if (adminEmails.length > 0) {
+        await sendOvertimeAlert(
+          employeeName,
+          adminEmails,
+          clockInTime,
+          currentTime,
+          "AdminOvertimeAlert"
+        );
+      }
+    } catch (error) {
+      console.error("Failed to send overtime alert to admins:", error);
     }
   };
 
