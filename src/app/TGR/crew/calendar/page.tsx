@@ -32,11 +32,12 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { toZonedTime, format as formatTZ, format } from "date-fns-tz";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./calendar.module.css"; // Create this CSS module file
 import classNames from "classnames";
 import { ShiftFilter } from "./ShiftFilter";
+import { parseISO } from "date-fns";
 
 const title = "TGR Crew Calendar";
 const timeZone = "America/Los_Angeles"; // Define your time zone
@@ -310,10 +311,12 @@ export default function Component() {
   const updateScheduleStatus = async (
     employee_id: number,
     schedule_date: string,
-    status: string
+    status: string,
+    start_time?: string,
+    end_time?: string
   ) => {
     try {
-      const formattedDate = new Date(schedule_date).toISOString().split("T")[0];
+      const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
       const response = await fetch("/api/update_schedule_status", {
         method: "POST",
         headers: {
@@ -323,6 +326,8 @@ export default function Component() {
           employee_id,
           schedule_date: formattedDate,
           status,
+          start_time,
+          end_time,
         }),
       });
 

@@ -221,49 +221,60 @@ export default function ApproveRequestsPage() {
       if (!request) {
         throw new Error("Request not found");
       }
-  
+
       let templateName: string;
       let templateData: any;
-  
+
+      const formatDateWithDay = (dateString: string) => {
+        const date = parseISO(dateString);
+        return format(date, "EEEE, MMMM d, yyyy");
+      };
+
       switch (action) {
         case "time_off":
           templateName = "TimeOffApproved";
           templateData = {
             name: request.name,
-            startDate: request.start_date,
-            endDate: request.end_date,
+            startDate: formatDateWithDay(request.start_date),
+            endDate: formatDateWithDay(request.end_date),
           };
           break;
         case "deny":
           templateName = "TimeOffDenied";
           templateData = {
             name: request.name,
-            startDate: request.start_date,
-            endDate: request.end_date,
+            startDate: formatDateWithDay(request.start_date),
+            endDate: formatDateWithDay(request.end_date),
           };
           break;
         case "called_out":
           templateName = "CalledOut";
-          templateData = { name: request.name, date: request.start_date };
+          templateData = {
+            name: request.name,
+            date: formatDateWithDay(request.start_date),
+          };
           break;
         case "left_early":
           templateName = "LeftEarly";
-          templateData = { name: request.name, date: request.start_date };
+          templateData = {
+            name: request.name,
+            date: formatDateWithDay(request.start_date),
+          };
           break;
         default:
           if (action.startsWith("Custom: ")) {
             templateName = "CustomStatus";
             templateData = {
               name: request.name,
-              startDate: request.start_date,
-              endDate: request.end_date,
+              startDate: formatDateWithDay(request.start_date),
+              endDate: formatDateWithDay(request.end_date),
               customMessage: action.slice(8),
             };
           } else {
             throw new Error("Invalid action");
           }
       }
-  
+
       const subject =
         action === "deny"
           ? "Time Off Request Denied"
@@ -276,7 +287,7 @@ export default function ApproveRequestsPage() {
           : action.startsWith("Custom: ")
           ? "Time Off Request Custom Approval"
           : "Time Off Request Status Update";
-  
+
       // Call the API to approve the request
       const response = await fetch("/api/approve_request", {
         method: "POST",
@@ -290,17 +301,17 @@ export default function ApproveRequestsPage() {
           use_vacation_time,
         }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const result = await response.json();
       console.log("API response:", result);
-  
+
       // Send email after successful API call
       await sendEmail(request.email, subject, templateName, templateData);
-  
+
       // Update local state
       setRequests((prevRequests) =>
         prevRequests.map((req) =>
@@ -309,10 +320,9 @@ export default function ApproveRequestsPage() {
             : req
         )
       );
-  
+
       // Re-fetch the updated requests after handling the action
       await fetchRequests();
-  
     } catch (error: any) {
       console.error("Failed to handle request:", error.message);
     }

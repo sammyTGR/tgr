@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { format, parseISO } from "date-fns";
 import TimeOffApproved from "../../../../emails/TimeOffApproved";
 import TimeOffRequest from "../../../../emails/TimeOffRequest";
 import TimeOffDenied from "../../../../emails/TimeOffDenied";
@@ -30,28 +31,49 @@ export async function POST(request: Request) {
     let emailTemplate;
     let fromEmail;
 
+    const formatDateIfString = (dateString: string) => {
+      if (typeof dateString === "string") {
+        const date = parseISO(dateString);
+        return format(date, "EEEE, MMMM d, yyyy");
+      }
+      return dateString; // Return as is if it's already formatted
+    };
+
     switch (templateName) {
       case "TimeOffApproved":
-        emailTemplate = TimeOffApproved(templateData);
+        emailTemplate = TimeOffApproved({
+          ...templateData,
+          startDate: formatDateIfString(templateData.startDate),
+          endDate: formatDateIfString(templateData.endDate),
+        });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "TimeOffDenied":
-        emailTemplate = TimeOffDenied(templateData);
+        emailTemplate = TimeOffDenied({
+          ...templateData,
+          startDate: formatDateIfString(templateData.startDate),
+          endDate: formatDateIfString(templateData.endDate),
+        });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "CalledOut":
-        emailTemplate = CalledOut(templateData);
+        emailTemplate = CalledOut({
+          ...templateData,
+          date: formatDateIfString(templateData.date),
+        });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "LeftEarly":
-        emailTemplate = LeftEarly(templateData);
+        emailTemplate = LeftEarly({
+          ...templateData,
+          date: formatDateIfString(templateData.date),
+        });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "CustomStatus":
         emailTemplate = CustomStatus({
-          name: templateData.name,
-          date: templateData.date,
-          status: templateData.status || templateData.customMessage,
+          ...templateData,
+          date: formatDateIfString(templateData.date),
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;

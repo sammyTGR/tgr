@@ -6,8 +6,11 @@ import ShiftUpdated from "../../../../emails/ShiftUpdated";
 import LeftEarly from "../../../../emails/LeftEarly";
 import CustomStatus from "../../../../emails/CustomStatus";
 import CalledOut from "../../../../emails/CalledOut";
+import { format, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const timeZone = "America/Los_Angeles";
 
 export async function POST(request: Request) {
   const { employee_id, schedule_date, status, start_time, end_time } =
@@ -91,9 +94,8 @@ export async function POST(request: Request) {
 
     const email = employeeData.contact_info;
     const employeeName = employeeData.name;
-    const scheduleDayOfWeek = new Date(schedule_date).toLocaleString("en-US", {
-      weekday: "long",
-    });
+    const zonedDate = toZonedTime(parseISO(schedule_date), timeZone);
+    const formattedDate = format(zonedDate, "EEEE, MMMM d, yyyy");
 
     let subject: string;
     let EmailTemplate: React.ComponentType<any>;
@@ -105,7 +107,7 @@ export async function POST(request: Request) {
         EmailTemplate = ShiftAdded;
         templateData = {
           name: employeeName,
-          date: `${scheduleDayOfWeek}, ${schedule_date}`,
+          date: formattedDate,
           startTime: start_time,
           endTime: end_time,
         };
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
         EmailTemplate = ShiftUpdated;
         templateData = {
           name: employeeName,
-          date: `${scheduleDayOfWeek}, ${schedule_date}`,
+          date: formattedDate,
           startTime: start_time,
           endTime: end_time,
         };
@@ -125,7 +127,7 @@ export async function POST(request: Request) {
         EmailTemplate = LeftEarly;
         templateData = {
           name: employeeName,
-          date: `${scheduleDayOfWeek}, ${schedule_date}`,
+          date: formattedDate,
         };
         break;
       case "called_out":
@@ -133,7 +135,7 @@ export async function POST(request: Request) {
         EmailTemplate = CalledOut;
         templateData = {
           name: employeeName,
-          date: `${scheduleDayOfWeek}, ${schedule_date}`,
+          date: formattedDate,
         };
         break;
       default:
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
           EmailTemplate = CustomStatus;
           templateData = {
             name: employeeName,
-            date: `${scheduleDayOfWeek}, ${schedule_date}`,
+            date: formattedDate,
             status: status.replace("Custom:", "").trim(),
           };
         } else {
