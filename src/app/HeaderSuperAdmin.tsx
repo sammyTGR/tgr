@@ -77,9 +77,9 @@ const auditComponents = [
 
 const schedComponents = [
   {
-    title: "Calendar",
+    title: "Team Calendar",
     href: "/TGR/crew/calendar",
-    description: "Where Dey At",
+    description: "View Team Schedules",
   },
   {
     title: "Submit Time Off",
@@ -252,12 +252,12 @@ const manageComps = [
     description: "Trial Onboarding",
   },
   {
-    title: "Products Test Page",
+    title: "Products & Pricing",
     href: "/pricing",
-    description: "Trial Products Page",
+    description: "All Products & Subscriptions",
   },
   {
-    title: "Classes Test Page",
+    title: "Classes Schedule",
     href: "/public/classes",
     description: "Class Scheduling Page",
   },
