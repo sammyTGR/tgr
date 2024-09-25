@@ -307,7 +307,7 @@ export default function ApproveRequestsPage() {
       }
 
       const result = await response.json();
-      console.log("API response:", result);
+      // console.log("API response:", result);
 
       // Send email after successful API call
       await sendEmail(request.email, subject, templateName, templateData);
