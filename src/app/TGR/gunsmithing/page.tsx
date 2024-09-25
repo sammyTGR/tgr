@@ -15,6 +15,17 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "sonner";
 import AllFirearmsList from "./AllFirearmsList";
@@ -23,6 +34,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import styles from "./profiles.module.css";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
+import DailyChecklist from "./DailyChecklist";
 
 const words = "Gunsmithing Maintenance";
 
@@ -32,6 +44,10 @@ export default function GunsmithingMaintenance() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userUuid, setUserUuid] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDailyChecklistSubmitted, setIsDailyChecklistSubmitted] =
+    useState(false);
+  const [selectedTab, setSelectedTab] = useState("dailyChecklist");
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [newFirearm, setNewFirearm] = useState({
     firearm_type: "handgun",
     firearm_name: "",
@@ -91,17 +107,17 @@ export default function GunsmithingMaintenance() {
     }
 
     // Clear the status field for each firearm
-    const updatedData = data.map((item: FirearmsMaintenanceData) => ({
-      ...item,
-      status: "", // Clear the status
-    }));
+    // const updatedData = data.map((item: FirearmsMaintenanceData) => ({
+    //   ...item,
+    //   status: "", // Clear the status
+    // }));
 
     if (role === "gunsmith") {
       // Separate handguns and long guns
-      const handguns = updatedData.filter(
+      const handguns = data.filter(
         (item: FirearmsMaintenanceData) => item.firearm_type === "handgun"
       );
-      const longGuns = updatedData.filter(
+      const longGuns = data.filter(
         (item: FirearmsMaintenanceData) => item.firearm_type === "long gun"
       );
 
@@ -113,7 +129,7 @@ export default function GunsmithingMaintenance() {
     }
 
     // For admin and super admin, return full data
-    return updatedData;
+    return data;
   }, []);
 
   const fetchPersistedData = useCallback(async (userUuid: string) => {
@@ -175,8 +191,21 @@ export default function GunsmithingMaintenance() {
     }
   }, [fetchData, userRole, userUuid]);
 
+  const handleTabChange = (value: string) => {
+    if (!isDailyChecklistSubmitted && value !== "dailyChecklist") {
+      setIsAlertOpen(true);
+    } else {
+      setSelectedTab(value);
+    }
+  };
+
   const handleStatusChange = async (id: number, status: string | null) => {
     try {
+      const updatedData = data.map((item) =>
+        item.id === id
+          ? { ...item, status: status !== null ? status : "" }
+          : item
+      );
       const { error } = await supabase
         .from("firearms_maintenance")
         .update({ status })
@@ -193,6 +222,8 @@ export default function GunsmithingMaintenance() {
             : item
         )
       );
+      setData(updatedData);
+      await persistData(userUuid || "", updatedData);
     } catch (error) {
       console.error("Error updating status:", error);
     }
@@ -200,6 +231,11 @@ export default function GunsmithingMaintenance() {
 
   const handleNotesChange = async (id: number, notes: string) => {
     try {
+      const updatedData = data.map((item) =>
+        item.id === id
+          ? { ...item, status: status !== null ? status : "" }
+          : item
+      );
       const { error } = await supabase
         .from("firearms_maintenance")
         .update({
@@ -223,17 +259,20 @@ export default function GunsmithingMaintenance() {
             : item
         )
       );
+      setData(updatedData);
+      await persistData(userUuid || "", updatedData);
     } catch (error) {
       console.error("Error updating maintenance notes:", error);
     }
   };
 
-  const handleUpdateFrequency = (id: number, frequency: number) => {
+  const handleUpdateFrequency = async (id: number, frequency: number) => {
     setData((prevData) =>
       prevData.map((item) =>
         item.id === id ? { ...item, maintenance_frequency: frequency } : item
       )
     );
+    await persistData(userUuid || "", data);
   };
 
   const handleAddFirearm = async () => {
@@ -360,7 +399,7 @@ export default function GunsmithingMaintenance() {
     );
 
     if (incompleteFirearms.length > 0) {
-      alert(
+      toast.error(
         "Please ensure all firearms have detailed notes and a status before submitting."
       );
       return;
@@ -385,24 +424,26 @@ export default function GunsmithingMaintenance() {
         .delete()
         .eq("user_uuid", userUuid);
 
-      // Generate the new list
-      const response = await fetch("/api/firearms-maintenance", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "generateNewList", data: { userUuid } }),
-      });
+      // Generate a new list of firearms
+      const newFirearmsList = await fetchFirearmsMaintenanceData(
+        userRole || ""
+      );
 
-      if (!response.ok) {
-        throw new Error("Failed to generate new list");
-      }
+      // Reset status and maintenance_notes for the new list
+      const resetFirearmsList = newFirearmsList.map((firearm) => ({
+        ...firearm,
+        status: "",
+        maintenance_notes: "",
+      }));
 
-      // Show a toast notification
+      // Update the state with the new list
+      setData(resetFirearmsList);
+
+      // Persist the new list
+      await persistData(userUuid || "", resetFirearmsList);
+
+      // Show a success notification
       toast.success("Maintenance list submitted successfully!");
-
-      // Reload the page to show the new list
-      location.reload();
     } catch (error) {
       console.error("Failed to submit maintenance list:", error);
       toast.error("Failed to submit maintenance list.");
@@ -426,7 +467,11 @@ export default function GunsmithingMaintenance() {
       const { firearms } = await response.json();
       setData(firearms);
 
-      // Persist the new list
+      // Clear the persisted list and save the new one
+      await supabase
+        .from("persisted_firearms_list")
+        .delete()
+        .eq("user_uuid", userUuid);
       await persistData(userUuid || "", firearms);
 
       toast.success("Firearms list regenerated successfully!");
@@ -439,11 +484,34 @@ export default function GunsmithingMaintenance() {
   return (
     <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
       <Toaster position="top-right" />
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Daily Checklist Not Submitted</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please submit the daily checklist before starting maintenance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="flex flex-col h-screen my-8">
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Tabs defaultValue="maintenance" className="flex-1 flex flex-col">
+          <Tabs
+            defaultValue="dailyChecklist"
+            className="flex-1 flex flex-col"
+            value={selectedTab}
+            onValueChange={handleTabChange}
+          >
             <div className="container justify-start px-4 mt-4">
               <TabsList>
+                <TabsTrigger value="dailyChecklist">
+                  Daily Checklist
+                </TabsTrigger>
                 <TabsTrigger value="maintenance">
                   Weekly Maintenance
                 </TabsTrigger>
@@ -459,6 +527,23 @@ export default function GunsmithingMaintenance() {
             >
               <ScrollArea className="h-[calc(100vh-300px)] overflow-auto">
                 <div className="container px-4 mt-4">
+                  <TabsContent value="dailyChecklist" className="mt-0">
+                    <Card className="h-full">
+                      <CardHeader>
+                        <CardTitle className="text-2xl font-bold">
+                          <TextGenerateEffect words="Daily Checklist" />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <DailyChecklist
+                          userRole={userRole}
+                          userUuid={userUuid}
+                          onSubmit={() => setIsDailyChecklistSubmitted(true)}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
                   <TabsContent value="maintenance" className="mt-0">
                     <Card className="h-full">
                       <CardHeader>
@@ -500,11 +585,18 @@ export default function GunsmithingMaintenance() {
                                 onNotesChange={handleNotesChange}
                                 onUpdateFrequency={handleUpdateFrequency}
                                 onDeleteFirearm={handleDeleteFirearm}
-                                pageIndex={pageIndex}
-                                setPageIndex={setPageIndex}
                               />
                             )
                           )}
+                        </div>
+                        <div className="container justify-start p-4 mt-4">
+                          <Button
+                            variant="ringHover"
+                            onClick={handleSubmit}
+                            className="w-full max-w-lg"
+                          >
+                            Submit Maintenance List
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -528,15 +620,6 @@ export default function GunsmithingMaintenance() {
                 <ScrollBar orientation="vertical" />
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
-              <div className="container justify-start p-2">
-                <Button
-                  variant="ringHover"
-                  onClick={handleSubmit}
-                  className="max-w-lg"
-                >
-                  Submit Maintenance List
-                </Button>
-              </div>
             </div>
           </Tabs>
         </div>

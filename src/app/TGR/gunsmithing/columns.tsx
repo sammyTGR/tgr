@@ -23,6 +23,7 @@ export const columns: ColumnDef<FirearmsMaintenanceData>[] = [
   {
     accessorKey: "maintenance_frequency",
     header: "Maintenance Frequency",
+    id: "maintenance_frequency",
   },
   {
     accessorKey: "maintenance_notes",

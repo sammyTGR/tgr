@@ -10,6 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useEffect } from "react";
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
@@ -18,6 +19,14 @@ interface DataTableViewOptionsProps<TData> {
 export function DataTableViewOptions<TData>({
   table,
 }: DataTableViewOptionsProps<TData>) {
+  useEffect(() => {
+    // Hide the maintenance_frequency column by default
+    const column = table.getColumn("maintenance_frequency");
+    if (column) {
+      column.toggleVisibility(false);
+    }
+  }, [table]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
