@@ -1,5 +1,4 @@
 "use client";
-// *ts-ignore
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { useRole } from "@/context/RoleContext"; // Import the useRole hook
+import { useRole } from "@/context/RoleContext";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { supabase } from "@/utils/supabase/client";
@@ -63,28 +62,26 @@ export default function TimeOffRequestPage() {
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    fetchCalendarData();
     fetchEmployeeNames();
     fetchTimeOffReasons();
   }, []);
 
-  const fetchCalendarData = async () => {
+  useEffect(() => {
+    if (selectedDates.length > 0) {
+      const start_date = format(selectedDates[0], "yyyy-MM-dd");
+      const end_date = format(selectedDates[selectedDates.length - 1], "yyyy-MM-dd");
+      fetchCalendarData(start_date, end_date);
+    }
+  }, [selectedDates]);
+
+  const fetchCalendarData = async (start_date: string, end_date: string) => {
     try {
-      const now = new Date();
-      const timeZone = "America/Los_Angeles";
-
-      const startDate = toZonedTime(now, timeZone);
-      const endDate = toZonedTime(now, timeZone);
-
-      const response = await fetch("/app/api/calendar", {
+      const response = await fetch("/api/calendar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          start_date: format(startDate, "yyyy-MM-dd"),
-          end_date: format(endDate, "yyyy-MM-dd"),
-        }),
+        body: JSON.stringify({ start_date, end_date }),
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -93,6 +90,7 @@ export default function TimeOffRequestPage() {
       setCalendarData(data);
     } catch (error: any) {
       console.error("Failed to fetch calendar data:", error.message);
+      toast.error("Failed to fetch calendar data. Please try again.");
     }
   };
 
@@ -103,22 +101,29 @@ export default function TimeOffRequestPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setEmployeeNames(data.map((employee: any) => employee.name));
+      setEmployeeNames(data);
     } catch (error: any) {
       console.error("Failed to fetch employee names:", error.message);
+      toast.error("Failed to fetch employee names. Please refresh the page.");
     }
   };
 
   const fetchTimeOffReasons = async () => {
     try {
+      // console.log("Fetching time off reasons...");
       const response = await fetch("/api/time_off_reasons");
+      // console.log("Response status:", response.status);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       const data = await response.json();
+      // console.log("Fetched time off reasons:", data);
       setTimeOffReasons(data);
     } catch (error: any) {
       console.error("Failed to fetch time off reasons:", error.message);
+      toast.error("Failed to fetch time off reasons. Please refresh the page.");
     }
   };
 
@@ -221,7 +226,7 @@ export default function TimeOffRequestPage() {
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+        .in("name", ["Sammy"]);
 
       if (employeesError) throw employeesError;
 
@@ -255,7 +260,7 @@ export default function TimeOffRequestPage() {
         throw new Error("Failed to send email");
       }
 
-      console.log("Notification email sent to super admins");
+      // console.log("Notification email sent to super admins");
     } catch (error) {
       console.error("Failed to send notification email:", error);
     }
@@ -268,21 +273,13 @@ export default function TimeOffRequestPage() {
       return;
     }
 
-    const timeZone = "America/Los_Angeles"; // Set to San Francisco time zone
-
+    const timeZone = "America/Los_Angeles";
     const start_date = formatTZ(
-      toZonedTime(
-        new Date(Math.min(...selectedDates.map((date) => date.getTime()))),
-        timeZone
-      ),
+      toZonedTime(new Date(Math.min(...selectedDates.map(date => date.getTime()))), timeZone),
       "yyyy-MM-dd"
     );
-
     const end_date = formatTZ(
-      toZonedTime(
-        new Date(Math.max(...selectedDates.map((date) => date.getTime()))),
-        timeZone
-      ),
+      toZonedTime(new Date(Math.max(...selectedDates.map(date => date.getTime()))), timeZone),
       "yyyy-MM-dd"
     );
 
@@ -291,6 +288,7 @@ export default function TimeOffRequestPage() {
       start_date,
       end_date,
     };
+
     try {
       const response = await fetch("/api/time_off", {
         method: "POST",
@@ -300,13 +298,15 @@ export default function TimeOffRequestPage() {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        const errorText = await response.text(); // Fetch response text for better debugging
+        const errorText = await response.text();
         console.error("Server response:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
+      
       // Refresh calendar data after submission
-      fetchCalendarData();
+      fetchCalendarData(start_date, end_date);
+      
       // Reset form
       setTimeOffData({
         employee_name: "",
@@ -315,17 +315,20 @@ export default function TimeOffRequestPage() {
       });
       setSelectedDates([]);
       setShowOtherTextarea(false);
+      
       // Show success toast
-      toast("Your Request Has Been Submitted", {
+      toast.success("Your Request Has Been Submitted", {
         position: "bottom-right",
         action: {
           label: "Noice!",
           onClick: () => {},
         },
       });
+      
       await sendNotificationToAdmins(payload, selectedDates);
     } catch (error: any) {
       console.error("Failed to submit time off request:", error.message);
+      toast.error("Failed to submit time off request. Please try again.");
     }
   };
 

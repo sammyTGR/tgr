@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-
-const supabase = createClient();
+import { corsHeaders } from "@/utils/cors";
+import { cookies } from "next/headers";
 
 interface Employee {
   employee_id: number;
@@ -30,10 +30,11 @@ async function getCalendarData(
   start_date: string,
   end_date: string
 ): Promise<EmployeeCalendar[]> {
+  const cookieStore = cookies();
+  const supabase = createClient();
   const { data, error } = await supabase
     .from("schedules")
-    .select(
-      `
+    .select(`
       day_of_week,
       start_time,
       end_time,
@@ -46,8 +47,7 @@ async function getCalendarData(
         role,
         contact_info
       )
-    `
-    )
+    `)
     .gte("schedule_date", start_date)
     .lte("schedule_date", end_date)
     .order("employee_id", { ascending: true });
@@ -57,9 +57,9 @@ async function getCalendarData(
     throw new Error(error.message);
   }
 
-  if (!data) {
-    console.error("No data returned from the query");
-    throw new Error("No data returned");
+  if (!data || data.length === 0) {
+    // console.log("No data returned from the query");
+    return [];
   }
 
   const result: EmployeeCalendar[] = data.reduce(
@@ -102,7 +102,16 @@ async function getCalendarData(
 export async function POST(request: Request) {
   try {
     const { start_date, end_date } = await request.json();
+    
+    if (!start_date || !end_date) {
+      return NextResponse.json(
+        { error: "start_date and end_date are required" },
+        { status: 400 }
+      );
+    }
+
     const data = await getCalendarData(start_date, end_date);
+    // console.log(`Fetched calendar data for ${start_date} to ${end_date}`);
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Error in handler:", error.message);
@@ -120,10 +129,8 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version",
+      ...corsHeaders,
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
     },
   });
 }

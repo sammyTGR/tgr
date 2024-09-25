@@ -1,32 +1,34 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
+import { corsHeaders } from "@/utils/cors";
 
 export async function POST(request: Request) {
-  const { request_id, action, use_sick_time, use_vacation_time } =
-    await request.json();
-
-  console.log("Processing request:", {
-    request_id,
-    action,
-    use_sick_time,
-    use_vacation_time,
-  });
-
-  if (!request_id || typeof action !== "string") {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
-
-  if (use_sick_time && use_vacation_time) {
-    return NextResponse.json(
-      {
-        error:
-          "Cannot use both sick time and vacation time for the same request",
-      },
-      { status: 400 }
-    );
-  }
-
+  // console.log("POST request received for approve_request");
   try {
+    const { request_id, action, use_sick_time, use_vacation_time } = await request.json();
+
+    // console.log("Processing request:", {
+    //   request_id,
+    //   action,
+    //   use_sick_time,
+    //   use_vacation_time,
+    // });
+
+    if (!request_id || typeof action !== "string") {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    if (use_sick_time && use_vacation_time) {
+      return NextResponse.json(
+        {
+          error: "Cannot use both sick time and vacation time for the same request",
+        },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createClient();
+
     // Update the status of the time off request
     const { data: timeOffData, error: timeOffError } = await supabase
       .from("time_off_requests")
@@ -104,12 +106,12 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("Request processed successfully:", timeOffData);
+    // console.log("Request processed successfully:", timeOffData);
     return NextResponse.json(timeOffData);
-  } catch (err) {
+  } catch (err: any) {
     console.error("Unexpected error updating request status:", err);
     return NextResponse.json(
-      { error: "Unexpected error updating request status" },
+      { error: err.message || "Unexpected error updating request status" },
       { status: 500 }
     );
   }
@@ -119,10 +121,8 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
+      ...corsHeaders,
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
     },
   });
 }
