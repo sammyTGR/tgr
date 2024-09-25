@@ -1,10 +1,19 @@
+"use client";
+
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { useState, useEffect } from "react";
 
 const title = "Contact Us";
 const sub = "Get in touch with our team for any inquiries or support.";
 
 export default function Component() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <section className="w-full py-12 md:py-24 lg:py-32">
       <div className="container grid gap-12 px-4 md:px-6">
@@ -22,7 +31,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage alt="Main Phone" src="/placeholder-avatar.jpg" />
+                  <AvatarImage alt="Main Phone" src="/Circular.jpg" />
                   <AvatarFallback>TGR</AvatarFallback>
                 </Avatar>
                 <div>
@@ -148,7 +157,44 @@ export default function Component() {
             </div>
           </div>
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Store Manager</h3>
+            <h3 className="text-xl font-bold">Assistant Manager</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage
+                    alt="Russell Spence"
+                    src="/placeholder-avatar.jpg"
+                  />
+                  <AvatarFallback>RS</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">Russell Spence</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Assistant Manager
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    russell.spence@thegunrange.biz
+                  </a>
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  <a className="text-blue-500 hover:underline" href="#">
+                    (916) 972-1484
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">
+              Store Manager | Project Manager
+            </h3>
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
