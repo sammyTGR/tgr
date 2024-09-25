@@ -45,6 +45,7 @@ const AdminReportsPage = () => {
   const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
   const [activeTab, setActiveTab] = useState("timesheet");
   const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(null);
   const [filteredTimesheetData, setFilteredTimesheetData] = useState<
     TimesheetReport[]
   >([]);
@@ -122,6 +123,8 @@ const AdminReportsPage = () => {
       fileName = "timesheet_report.xlsx";
     }
 
+
+
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
@@ -129,6 +132,10 @@ const AdminReportsPage = () => {
 
     saveAs(new Blob([wbout], { type: "application/octet-stream" }), fileName);
   };
+
+  useEffect(() => {
+    console.log("Filtered Timesheet Data:", filteredTimesheetData);
+  }, [filteredTimesheetData]);
 
   const handleExpandCollapseAll = () => {
     setIsAllExpanded(!isAllExpanded);
@@ -179,6 +186,7 @@ const AdminReportsPage = () => {
                   data={timesheetData}
                   onDataUpdate={handleTimesheetDataUpdate}
                   onFilteredDataUpdate={handleFilteredDataUpdate}
+                  selectedPayPeriod={selectedPayPeriod}
                 />
               ) : (
                 <p>No timesheet data available.</p>

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
 import { corsHeaders } from "@/utils/cors";
 
+const supabase = createClient();
 export async function GET() {
   try {
     const { data, error } = await supabase.from("employees").select("name");

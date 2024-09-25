@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from "react";
+import { FC, useState, useEffect, useCallback, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format, parse } from "date-fns";
+import { format, isSameDay, parse } from "date-fns";
 import {
   Popover,
   PopoverTrigger,
@@ -59,13 +59,18 @@ interface TimesheetTableProps {
     updater: (prevData: TimesheetReport[]) => TimesheetReport[]
   ) => void;
   onFilteredDataUpdate: (filteredData: TimesheetReport[]) => void;
+  selectedPayPeriod: string | null;
 }
 
 export const TimesheetTable: FC<TimesheetTableProps> = ({
   data,
   onDataUpdate,
   onFilteredDataUpdate,
+  selectedPayPeriod: initialSelectedPayPeriod,
 }) => {
+  const [localSelectedPayPeriod, setLocalSelectedPayPeriod] = useState<
+    string | null
+  >(initialSelectedPayPeriod);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -137,22 +142,26 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     return periods.reverse(); // Most recent first
   };
 
-  const payPeriods = generatePayPeriods();
+  const payPeriods = useMemo(() => generatePayPeriods(), []);
 
   // Function to filter data based on selected pay period
-  const filterByPayPeriod = (data: TimesheetReport[]) => {
-    if (!selectedPayPeriod) return data;
+  const filterByPayPeriod = useCallback(
+    (data: TimesheetReport[]) => {
+      if (!localSelectedPayPeriod) return data;
 
-    const selectedPeriod = payPeriods.find(
-      (p) => p.label === selectedPayPeriod
-    );
-    if (!selectedPeriod) return data;
+      const selectedPeriod = payPeriods.find(
+        (p) => p.label === localSelectedPayPeriod
+      );
+      if (!selectedPeriod) return data;
 
-    return data.filter((row) => {
-      const rowDate = new Date(row.event_date || "");
-      return rowDate >= selectedPeriod.start && rowDate <= selectedPeriod.end;
-    });
-  };
+      return data.filter((row) => {
+        if (!row.event_date) return false;
+        const rowDate = new Date(row.event_date);
+        return rowDate >= selectedPeriod.start && rowDate <= selectedPeriod.end;
+      });
+    },
+    [localSelectedPayPeriod, payPeriods]
+  );
 
   const handleReconcileHours = async (
     row: TimesheetReport,
@@ -225,30 +234,57 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     }
   }, [latestUpdate]);
 
-  // useEffect(() => {
-  //   console.log("Current data:", data);
-  // }, [data]);
+  const handlePayPeriodChange = (value: string | null) => {
+    setLocalSelectedPayPeriod(value);
+    const newFilteredData = filterData(
+      data,
+      value,
+      selectedDates,
+      selectedEmployeeId
+    );
+    onFilteredDataUpdate(newFilteredData);
+  };
+
+  // Add this function to centralize filtering logic
+  const filterData = (
+    data: TimesheetReport[],
+    payPeriod: string | null,
+    dates: Date[],
+    employeeId: number | null
+  ) => {
+    return data.filter((row) => {
+      const rowDate = new Date(row.event_date || "");
+
+      // Pay period filter
+      const isPeriodMatch = payPeriod
+        ? isDateInPayPeriod(rowDate, payPeriod, payPeriods)
+        : true;
+
+      // Date range filter
+      const isInDateRange =
+        dates.length === 0 || dates.some((date) => isSameDay(date, rowDate));
+
+      // Employee filter
+      const isEmployeeMatch = !employeeId || row.employee_id === employeeId;
+
+      return isPeriodMatch && isInDateRange && isEmployeeMatch;
+    });
+  };
+
+  // Helper function to check if a date is within a pay period
+  const isDateInPayPeriod = (
+    date: Date,
+    payPeriodLabel: string,
+    periods: any[]
+  ) => {
+    const period = periods.find((p) => p.label === payPeriodLabel);
+    return period ? date >= period.start && date <= period.end : false;
+  };
 
   // Filter data based on selected dates and employee
-  const filteredData = filterByPayPeriod(data).filter((row) => {
-    const rowDate = new Date(row.event_date || "");
-
-    // Normalize the dates to ensure they all represent the same time (e.g., midnight)
-    const selectedDatesSet = new Set(
-      selectedDates.map((date) => new Date(date.setHours(0, 0, 0, 0)).getTime())
-    );
-    const normalizedRowDate = new Date(rowDate.setHours(0, 0, 0, 0)).getTime();
-
-    const isInRange = selectedDates.length
-      ? selectedDatesSet.has(normalizedRowDate)
-      : true;
-
-    const isSelectedEmployee = selectedEmployeeId
-      ? row.employee_id === selectedEmployeeId
-      : true;
-
-    return isInRange && isSelectedEmployee;
-  });
+  const filteredData = useMemo(() => {
+    return filterData(data, localSelectedPayPeriod, selectedDates, selectedEmployeeId);
+  }, [data, localSelectedPayPeriod, selectedDates, selectedEmployeeId]);
 
   // Group and sort data by employee and event_date
   const groupedData = filteredData.reduce((acc, row) => {
@@ -290,7 +326,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
   return (
     <div>
-      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
+      <div className="grid p-2 gap-4 md:grid-cols-4 lg:grid-cols-4">
         <Card className="mb-4">
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Select Date Range</CardTitle>
@@ -328,7 +364,15 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
               <PopoverContent className="w-auto p-0" align="start">
                 <CustomCalendarMulti
                   selectedDates={selectedDates}
-                  onDatesChange={setSelectedDates}
+                  onDatesChange={(dates) => {
+                    setSelectedDates(dates);
+                    const newFilteredData = filteredData.filter((row) => {
+                      // Apply date range filter
+                      // This is a simplified version, you may need to adjust based on your needs
+                      return true;
+                    });
+                    onFilteredDataUpdate(newFilteredData);
+                  }}
                   disabledDays={() => false}
                 />
               </PopoverContent>
@@ -346,7 +390,14 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
           <CardContent>
             <Select
               value={selectedEmployeeId ? selectedEmployeeId.toString() : ""}
-              onValueChange={(value) => setSelectedEmployeeId(Number(value))}
+              onValueChange={(value) => {
+                const newEmployeeId = Number(value);
+                setSelectedEmployeeId(newEmployeeId);
+                const newFilteredData = filteredData.filter((row) =>
+                  newEmployeeId ? row.employee_id === newEmployeeId : true
+                );
+                onFilteredDataUpdate(newFilteredData);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Employee" />
@@ -379,8 +430,8 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
           </CardHeader>
           <CardContent>
             <Select
-              value={selectedPayPeriod || ""}
-              onValueChange={(value) => setSelectedPayPeriod(value)}
+              value={localSelectedPayPeriod || ""}
+              onValueChange={handlePayPeriodChange}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Pay Period" />
@@ -396,7 +447,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
             <Button
               variant="linkHover1"
-              onClick={() => setSelectedPayPeriod(null)}
+              onClick={() => handlePayPeriodChange(null)}
               className="mt-2"
             >
               Clear

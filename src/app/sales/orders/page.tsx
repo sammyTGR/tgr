@@ -125,82 +125,33 @@ export default function OrdersComponent() {
   }, [userUuid]);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchData = async () => {
       try {
-        const { data: customerData, error: customerError } = await supabase
-          .from("orderlist")
-          .select("customer_type")
-          .not("customer_type", "is", null);
-
-        if (customerError) throw customerError;
-
-        const { data: inquiryData, error: inquiryError } = await supabase
-          .from("orderlist")
-          .select("inquiry_type")
-          .not("inquiry_type", "is", null);
-
-        if (inquiryError) throw inquiryError;
-
-        const uniqueCustomerTypes = Array.from(
-          new Set(customerData.map((item) => item.customer_type))
-        ).filter((type) => type && type.trim() !== "");
-        const uniqueInquiryTypes = Array.from(
-          new Set(inquiryData.map((item) => item.inquiry_type))
-        ).filter((type) => type && type.trim() !== "");
-
-        setCustomerTypes(uniqueCustomerTypes);
-        setInquiryTypes(uniqueInquiryTypes);
-
-        // console.log("Initial Customer Types:", uniqueCustomerTypes);
-        // console.log("Initial Inquiry Types:", uniqueInquiryTypes);
+        const [customerTypesResponse, inquiryTypesResponse] = await Promise.all([
+          fetch("/api/customer-types"),
+          fetch("/api/inquiry-types")
+        ]);
+  
+        if (!customerTypesResponse.ok || !inquiryTypesResponse.ok) {
+          throw new Error("One or more API calls failed");
+        }
+  
+        const customerTypesData = await customerTypesResponse.json();
+        const inquiryTypesData = await inquiryTypesResponse.json();
+  
+        console.log("Fetched customer types:", customerTypesData);
+        console.log("Fetched inquiry types:", inquiryTypesData);
+  
+        setCustomerTypes(customerTypesData);
+        setInquiryTypes(inquiryTypesData);
       } catch (error) {
-        console.error("Error fetching initial data:", error);
-        toast.error("Failed to load initial form data. Please try again.");
+        console.error("Error fetching data:", error);
+        // You might want to set an error state here to display to the user
+        // setError("Failed to load dropdown options. Please try again later.");
       }
     };
-
-    fetchInitialData();
-
-    // Set up real-time subscriptions
-    const customerSubscription = supabase
-      .channel("customer_types_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orderlist",
-          filter: "customer_type=is.not.null",
-        },
-        (payload) => {
-          // console.log("Customer type change received:", payload);
-          fetchInitialData(); // Re-fetch all data when a change occurs
-        }
-      )
-      .subscribe();
-
-    const inquirySubscription = supabase
-      .channel("inquiry_types_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orderlist",
-          filter: "inquiry_type=is.not.null",
-        },
-        (payload) => {
-          // console.log("Inquiry type change received:", payload);
-          fetchInitialData(); // Re-fetch all data when a change occurs
-        }
-      )
-      .subscribe();
-
-    // Cleanup function
-    return () => {
-      customerSubscription.unsubscribe();
-      inquirySubscription.unsubscribe();
-    };
+  
+    fetchData();
   }, []);
 
   const onSubmit = async (data: FormData) => {
@@ -255,17 +206,11 @@ export default function OrdersComponent() {
                         <SelectValue placeholder="Select customer type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {customerTypes.length > 0 ? (
-                          customerTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no_types">
-                            No customer types available
+                        {customerTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
                           </SelectItem>
-                        )}
+                        ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -287,17 +232,11 @@ export default function OrdersComponent() {
                         <SelectValue placeholder="Select inquiry type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {inquiryTypes.length > 0 ? (
-                          inquiryTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no_types">
-                            No inquiry types available
+                        {inquiryTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
                           </SelectItem>
-                        )}
+                        ))}
                       </SelectContent>
                     </Select>
                   )}

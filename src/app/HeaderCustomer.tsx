@@ -96,6 +96,12 @@ const HeaderCustomer = React.memo(() => {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
+              <Link href="/pricing">
+                <Button variant="linkHover2">Products & Pricing</Button>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
               <NavigationMenuTrigger>Account</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">

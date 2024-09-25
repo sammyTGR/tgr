@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
+
+const supabase = createClient();
 
 interface Employee {
   employee_id: number;
