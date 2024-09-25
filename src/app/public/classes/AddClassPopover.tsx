@@ -16,7 +16,7 @@ interface PopoverFormProps {
   buttonText: string;
   placeholder: string;
   initialData?: ClassScheduleData;
-  setClassSchedules: React.Dispatch<React.SetStateAction<ClassScheduleData[]>>;
+  // setClassSchedules: React.Dispatch<React.SetStateAction<ClassScheduleData[]>>;
 }
 
 interface ClassScheduleData {
@@ -36,7 +36,7 @@ interface ClassScheduleData {
 export const AddClassPopover: React.FC<PopoverFormProps> = ({
   onSubmit,
   buttonText,
-  setClassSchedules,
+  // setClassSchedules,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -128,7 +128,7 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
       await onSubmit("", classData);
 
       // Use type assertion here
-      setClassSchedules((prev) => [...prev, classData as ClassScheduleData]);
+      // setClassSchedules((prev) => [...prev, classData as ClassScheduleData]);
 
       toast.success("Class added successfully");
       resetForm();

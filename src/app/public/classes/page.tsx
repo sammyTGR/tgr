@@ -195,7 +195,7 @@ export default function Component() {
           onSubmit={handleAddClass}
           buttonText="Add A Class"
           placeholder="Enter class details"
-          setClassSchedules={setClassSchedules}
+          // setClassSchedules={setClassSchedules}
         />
       )}
 
