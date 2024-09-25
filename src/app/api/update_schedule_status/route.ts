@@ -140,7 +140,7 @@ export async function POST(request: Request) {
         break;
       default:
         if (status.startsWith("Custom:")) {
-          subject = "Custom Status Update";
+          subject = "Schedule Update";
           EmailTemplate = CustomStatus;
           templateData = {
             name: employeeName,
