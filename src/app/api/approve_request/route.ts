@@ -5,7 +5,8 @@ import { corsHeaders } from "@/utils/cors";
 export async function POST(request: Request) {
   // console.log("POST request received for approve_request");
   try {
-    const { request_id, action, use_sick_time, use_vacation_time } = await request.json();
+    const { request_id, action, use_sick_time, use_vacation_time } =
+      await request.json();
 
     // console.log("Processing request:", {
     //   request_id,
@@ -21,7 +22,8 @@ export async function POST(request: Request) {
     if (use_sick_time && use_vacation_time) {
       return NextResponse.json(
         {
-          error: "Cannot use both sick time and vacation time for the same request",
+          error:
+            "Cannot use both sick time and vacation time for the same request",
         },
         { status: 400 }
       );
@@ -32,7 +34,12 @@ export async function POST(request: Request) {
     // Update the status of the time off request
     const { data: timeOffData, error: timeOffError } = await supabase
       .from("time_off_requests")
-      .update({ status: action, use_sick_time, use_vacation_time })
+      .update({
+        status: action,
+        use_sick_time,
+        use_vacation_time,
+        is_read: true,
+      })
       .eq("request_id", request_id)
       .select("employee_id, start_date, end_date, email")
       .single();
