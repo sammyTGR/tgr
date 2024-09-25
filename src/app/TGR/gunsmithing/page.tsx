@@ -48,6 +48,8 @@ export default function GunsmithingMaintenance() {
     useState(false);
   const [selectedTab, setSelectedTab] = useState("dailyChecklist");
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [persistedListId, setPersistedListId] = useState<number | null>(null);
+
   const [newFirearm, setNewFirearm] = useState({
     firearm_type: "handgun",
     firearm_name: "",
@@ -133,63 +135,144 @@ export default function GunsmithingMaintenance() {
   }, []);
 
   const fetchPersistedData = useCallback(async (userUuid: string) => {
-    const { data, error } = await supabase
-      .from("persisted_firearms_list")
-      .select("*")
-      .eq("user_uuid", userUuid)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("persisted_firearms_list")
+        .select("id, firearms_list")
+        // .eq("user_uuid", userUuid)
+        .single();
 
-    if (error && error.code !== "PGRST116") {
-      console.error("Error fetching persisted data:", error.message);
-      throw new Error(error.message);
+      if (error) {
+        if (error.code === "PGRST116") {
+          // console.log("No persisted data found for user");
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error fetching persisted data:", error);
+      throw error;
     }
-
-    return data;
   }, []);
 
   const persistData = useCallback(
-    async (userUuid: string, firearmsList: FirearmsMaintenanceData[]) => {
-      const { error } = await supabase
-        .from("persisted_firearms_list")
-        .upsert({ user_uuid: userUuid, firearms_list: firearmsList });
+    async (firearmsList: FirearmsMaintenanceData[]) => {
+      if (!userUuid) {
+        console.error("Cannot persist data: user_uuid is null or undefined");
+        toast.error("Failed to save data. User ID is missing.");
+        return;
+      }
 
-      if (error) {
-        console.error("Error persisting data:", error.message);
-        throw new Error(error.message);
+      const persistedData = {
+        firearms_list: firearmsList,
+        user_uuid: userUuid, // Add this line
+      };
+
+      try {
+        if (persistedListId) {
+          const { error } = await supabase
+            .from("persisted_firearms_list")
+            .update(persistedData)
+            .eq("id", persistedListId);
+
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase
+            .from("persisted_firearms_list")
+            .insert([persistedData])
+            .select();
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            setPersistedListId(data[0].id);
+          }
+        }
+
+        // toast.success("Data saved successfully.");
+      } catch (error) {
+        console.error("Error persisting data:", error);
+        toast.error("Failed to save data. Please try again.");
       }
     },
-    []
+    [persistedListId, userUuid] // Add userUuid to the dependency array
   );
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const persistedData = await fetchPersistedData(userUuid || "");
-      if (persistedData) {
-        setData(persistedData.firearms_list);
-      } else {
-        const fetchedData = await fetchFirearmsMaintenanceData(userRole || "");
-        setData(fetchedData);
-        await persistData(userUuid || "", fetchedData);
+  const fetchData = useCallback(
+    async (retryCount = 0) => {
+      setLoading(true);
+      try {
+        if (!userRole) {
+          // console.log("User role not available, waiting...");
+          return;
+        }
+
+        if (userRole === "gunsmith" && userUuid) {
+          const persistedData = await fetchPersistedData(userUuid || "");
+          if (persistedData) {
+            // console.log("Found persisted data:", persistedData);
+            if (Array.isArray(persistedData.firearms_list)) {
+              setData(persistedData.firearms_list as FirearmsMaintenanceData[]);
+              setPersistedListId(persistedData.id);
+            } else {
+              console.error("Persisted firearms_list is not an array");
+              throw new Error("Invalid persisted data format");
+            }
+          } else {
+            // console.log("No persisted data found, fetching new data");
+            const fetchedData = await fetchFirearmsMaintenanceData(userRole);
+            setData(fetchedData);
+            await persistData(fetchedData);
+          }
+        } else {
+          // For admin and super admin, always fetch fresh data
+          const fetchedData = await fetchFirearmsMaintenanceData(userRole);
+          setData(fetchedData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        if (
+          error instanceof Error &&
+          error.message.includes("statement timeout") &&
+          retryCount < 3
+        ) {
+          // console.log(`Retrying fetch (attempt ${retryCount + 1})...`);
+          setTimeout(() => fetchData(retryCount + 1), 1000 * (retryCount + 1));
+        } else {
+          toast.error("Failed to load data. Please try again later.");
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      setLoading(false);
-    }
-  }, [
-    fetchFirearmsMaintenanceData,
-    fetchPersistedData,
-    persistData,
-    userRole,
-    userUuid,
-  ]);
+    },
+    [fetchFirearmsMaintenanceData, fetchPersistedData, persistData, userRole]
+  );
 
   useEffect(() => {
-    if (userRole && userUuid) {
+    if (userRole) {
       fetchData();
     }
-  }, [fetchData, userRole, userUuid]);
+  }, [fetchData, userRole]);
+
+  useEffect(() => {
+    // Check if the checklist has been submitted today
+    const lastSubmissionDate = localStorage.getItem(
+      "lastDailyChecklistSubmission"
+    );
+    const today = new Date().toDateString();
+
+    if (lastSubmissionDate === today) {
+      setIsDailyChecklistSubmitted(true);
+    } else {
+      setIsDailyChecklistSubmitted(false);
+    }
+  }, []);
+
+  const handleDailyChecklistSubmit = useCallback(() => {
+    setIsDailyChecklistSubmitted(true);
+  }, []);
 
   const handleTabChange = (value: string) => {
     if (!isDailyChecklistSubmitted && value !== "dailyChecklist") {
@@ -223,7 +306,7 @@ export default function GunsmithingMaintenance() {
         )
       );
       setData(updatedData);
-      await persistData(userUuid || "", updatedData);
+      await persistData(updatedData);
     } catch (error) {
       console.error("Error updating status:", error);
     }
@@ -260,7 +343,7 @@ export default function GunsmithingMaintenance() {
         )
       );
       setData(updatedData);
-      await persistData(userUuid || "", updatedData);
+      await persistData(updatedData);
     } catch (error) {
       console.error("Error updating maintenance notes:", error);
     }
@@ -272,7 +355,7 @@ export default function GunsmithingMaintenance() {
         item.id === id ? { ...item, maintenance_frequency: frequency } : item
       )
     );
-    await persistData(userUuid || "", data);
+    await persistData(data);
   };
 
   const handleAddFirearm = async () => {
@@ -289,7 +372,7 @@ export default function GunsmithingMaintenance() {
       if (newFirearmData && newFirearmData.length > 0) {
         setData((prevData) => {
           const updatedData = [...prevData, newFirearmData[0]];
-          persistData(userUuid || "", updatedData);
+          persistData(updatedData);
 
           // Calculate the new page index based on the total number of items
           const newPageIndex = Math.floor(updatedData.length / pageSize);
@@ -342,7 +425,7 @@ export default function GunsmithingMaintenance() {
 
       const updatedData = data.filter((item) => item.id !== id);
       setData(updatedData);
-      await persistData(userUuid || "", updatedData);
+      await persistData(updatedData);
     } catch (error) {
       console.error("Error deleting firearm:", error);
     }
@@ -380,7 +463,7 @@ export default function GunsmithingMaintenance() {
               );
             }
 
-            persistData(userUuid || "", updatedData);
+            persistData(updatedData);
             return updatedData;
           });
         }
@@ -406,7 +489,6 @@ export default function GunsmithingMaintenance() {
     }
 
     try {
-      // Update the maintenance notes, status, and last maintenance date in the database
       for (const firearm of data) {
         await supabase
           .from("firearms_maintenance")
@@ -419,30 +501,26 @@ export default function GunsmithingMaintenance() {
       }
 
       // Clear persisted list after submission
-      await supabase
-        .from("persisted_firearms_list")
-        .delete()
-        .eq("user_uuid", userUuid);
+      if (persistedListId) {
+        await supabase
+          .from("persisted_firearms_list")
+          .delete()
+          .eq("id", persistedListId);
+        setPersistedListId(null);
+      }
 
-      // Generate a new list of firearms
       const newFirearmsList = await fetchFirearmsMaintenanceData(
         userRole || ""
       );
-
-      // Reset status and maintenance_notes for the new list
       const resetFirearmsList = newFirearmsList.map((firearm) => ({
         ...firearm,
         status: "",
         maintenance_notes: "",
       }));
 
-      // Update the state with the new list
       setData(resetFirearmsList);
+      await persistData(resetFirearmsList);
 
-      // Persist the new list
-      await persistData(userUuid || "", resetFirearmsList);
-
-      // Show a success notification
       toast.success("Maintenance list submitted successfully!");
     } catch (error) {
       console.error("Failed to submit maintenance list:", error);
@@ -472,7 +550,7 @@ export default function GunsmithingMaintenance() {
         .from("persisted_firearms_list")
         .delete()
         .eq("user_uuid", userUuid);
-      await persistData(userUuid || "", firearms);
+      await persistData(firearms);
 
       toast.success("Firearms list regenerated successfully!");
     } catch (error) {
@@ -538,7 +616,7 @@ export default function GunsmithingMaintenance() {
                         <DailyChecklist
                           userRole={userRole}
                           userUuid={userUuid}
-                          onSubmit={() => setIsDailyChecklistSubmitted(true)}
+                          onSubmit={handleDailyChecklistSubmit}
                         />
                       </CardContent>
                     </Card>

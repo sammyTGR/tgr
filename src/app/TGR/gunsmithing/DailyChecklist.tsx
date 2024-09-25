@@ -63,21 +63,27 @@ export default function DailyChecklist({
   };
 
   const handleSubmit = async () => {
-    // console.log("Starting submission");
     try {
       const updates = firearms.map((firearm) => ({
         ...firearm,
         last_maintenance_date: new Date().toISOString(),
       }));
-      //   console.log("Updates prepared:", updates);
-      const { data, error } = await supabase
+
+      const { error } = await supabase
         .from("firearms_maintenance")
         .upsert(updates, { onConflict: "id" });
-      //   console.log("Supabase response:", { data, error });
+
       if (error) throw error;
-      //   console.log("Submission successful");
+
+      // Update localStorage with the current date
+      localStorage.setItem(
+        "lastDailyChecklistSubmission",
+        new Date().toDateString()
+      );
+
       toast.success("Daily maintenance notes updated successfully");
       await fetchFirearmsWithGunsmith(); // Refresh the list after submission
+      onSubmit(); // Call the onSubmit function to update the parent component
     } catch (error) {
       console.error("Error in submission:", error);
       toast.error("Failed to update maintenance notes");
