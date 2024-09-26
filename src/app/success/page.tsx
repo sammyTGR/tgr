@@ -60,7 +60,9 @@ function SuccessPageContent() {
   }, [sessionId]);
 
   if (verifyPaymentMutation.isPending || classQuery.isPending) {
-    return <div>Verifying payment...</div>;
+    return (
+      <div>Our gnomes are working hard to verify your payment quickly...</div>
+    );
   }
 
   if (verifyPaymentMutation.isError || classQuery.isError) {
@@ -83,40 +85,49 @@ function SuccessPageContent() {
   const classDetails = classQuery.data;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Payment Successful!</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p>Thank you for your purchase.</p>
-        {classDetails && (
-          <div className="mt-4">
-            <h2 className="text-xl font-semibold">{classDetails.title}</h2>
-            <p>{classDetails.description}</p>
-            <p>
-              Date: {new Date(classDetails.start_time).toLocaleDateString()}
-            </p>
-            <p>
-              Time: {new Date(classDetails.start_time).toLocaleTimeString()} -{" "}
-              {new Date(classDetails.end_time).toLocaleTimeString()}
-            </p>
-            <p>Price: ${classDetails.price.toFixed(2)}</p>
-          </div>
-        )}
-        <Button
-          className="mt-4"
-          onClick={() => (window.location.href = "/classes")}
-        >
-          Back to Classes
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="flex justify-center items-center h-screen">
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Successful!</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Thank you for your purchase!</p>
+          {classDetails && (
+            <div className="mt-4">
+              <h2 className="text-xl font-semibold">{classDetails.title}</h2>
+              <p>{classDetails.description}</p>
+              <p>
+                Date: {new Date(classDetails.start_time).toLocaleDateString()}
+              </p>
+              <p>
+                Time: {new Date(classDetails.start_time).toLocaleTimeString()} -{" "}
+                {new Date(classDetails.end_time).toLocaleTimeString()}
+              </p>
+              <p>Price: ${classDetails.price.toFixed(2)}</p>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => (window.location.href = "/public/classes")}
+          >
+            Back to Classes
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 export default function SuccessPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div>
+          We swear, our gnomes are trying their best to get this done ASAP...
+        </div>
+      }
+    >
       <SuccessPageContent />
     </Suspense>
   );

@@ -1,153 +1,105 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/utils/stripe/config";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { Database } from "@/types_db";
+import { createClient } from "@/utils/supabase/server";
 import Stripe from "stripe";
 
 export async function POST(req: Request) {
   const { sessionId } = await req.json();
+  console.log("Received session ID:", sessionId);
 
   try {
+    console.log("Retrieving Stripe session...");
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items", "line_items.data.price.product"],
     });
+    console.log("Stripe session retrieved:", session);
 
     if (session.payment_status !== "paid") {
       throw new Error("Payment not successful");
     }
 
-    const supabase = createServerComponentClient<Database>({ cookies });
+    const supabase = createClient();
 
-    // Fetch user details from Supabase
-    let userData;
-    // First, try to fetch from customers table
+    console.log("Fetching user details...");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Error fetching user:", userError);
+      throw new Error("Could not get user");
+    }
+
+    console.log("User found:", user);
+
+    // Fetch customer data from the customers table
     const { data: customerData, error: customerError } = await supabase
       .from("customers")
-      .select("first_name, last_name, email")
-      .eq("user_uuid", session.client_reference_id)
+      .select("*")
+      .eq("user_uuid", user.id)
       .single();
 
-    if (customerError || !customerData) {
-      // If not found in customers, check employees table
-      const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .select("name, email")
-        .eq("user_uuid", session.client_reference_id)
-        .single();
-
-      if (employeeError || !employeeData) {
-        throw new Error("User not found in customers or employees table");
-      }
-
-      // Split the name into first_name and last_name
-      const [first_name, ...lastNameParts] = employeeData.name.split(" ");
-      const last_name = lastNameParts.join(" ");
-
-      userData = {
-        first_name,
-        last_name,
-        email: employeeData.email,
-      };
-    } else {
-      userData = customerData;
+    if (customerError) {
+      console.error("Error fetching customer data:", customerError);
+      throw new Error("Could not fetch customer data");
     }
 
-    if (session.mode === "subscription") {
-      const subscription = session.subscription as Stripe.Subscription;
-      const { error: subscriptionError } = await supabase
-        .from("subscriptions")
-        .upsert({
-          id: subscription.id,
-          user_id: session.client_reference_id,
-          status: subscription.status,
-          price_id: session.metadata?.price_id,
-          quantity: subscription.items.data[0].quantity,
-          cancel_at_period_end: subscription.cancel_at_period_end,
-          created: new Date(subscription.created * 1000).toISOString(),
-          current_period_start: new Date(
-            subscription.current_period_start * 1000
-          ).toISOString(),
-          current_period_end: new Date(
-            subscription.current_period_end * 1000
-          ).toISOString(),
-          ended_at: subscription.ended_at
-            ? new Date(subscription.ended_at * 1000).toISOString()
-            : null,
-          cancel_at: subscription.cancel_at
-            ? new Date(subscription.cancel_at * 1000).toISOString()
-            : null,
-          canceled_at: subscription.canceled_at
-            ? new Date(subscription.canceled_at * 1000).toISOString()
-            : null,
-          trial_start: subscription.trial_start
-            ? new Date(subscription.trial_start * 1000).toISOString()
-            : null,
-          trial_end: subscription.trial_end
-            ? new Date(subscription.trial_end * 1000).toISOString()
-            : null,
-          metadata: subscription.metadata,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          email: userData.email,
-        });
-
-      if (subscriptionError) throw subscriptionError;
-    } else {
-      // Handle one-time purchase
-      const lineItems = session.line_items?.data;
-      if (!lineItems || lineItems.length === 0) {
-        throw new Error("No line items found in the session");
-      }
-
-      const purchasePromises = lineItems.map((item) => {
-        const product = item.price?.product;
-        let productId: string;
-        let productName: string;
-
-        if (typeof product === "string") {
-          productId = product;
-          productName = "Unknown Product"; // You might want to fetch the product details separately
-        } else if (product && "id" in product && "name" in product) {
-          productId = product.id;
-          productName = product.name;
-        } else {
-          throw new Error("Invalid product data");
-        }
-
-        return supabase.from("purchases").insert({
-          user_id: session.client_reference_id,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          email: userData.email,
-          product_id: productId,
-          product_name: productName,
-          amount: item.amount_total ? item.amount_total / 100 : null, // Stripe amounts are in cents
-          currency: session.currency,
-          status: session.payment_status,
-          payment_intent_id: session.payment_intent as string,
-          stripe_session_id: session.id,
-          created_at: new Date().toISOString(),
-        });
-      });
-
-      const results = await Promise.all(purchasePromises);
-      const errors = results.filter((result) => result.error);
-      if (errors.length > 0) {
-        throw new Error(
-          `Error inserting purchases: ${errors
-            .map((e) => e.error?.message)
-            .join(", ")}`
-        );
-      }
+    if (!customerData) {
+      console.error("Customer data not found");
+      throw new Error("Customer data not found");
     }
 
-    return NextResponse.json({
-      success: true,
-      productName:
-        (session.line_items?.data[0]?.price?.product as Stripe.Product)?.name ||
-        "Product",
-    });
+    console.log("Customer data fetched:", customerData);
+
+    // Process the purchase
+    console.log("Processing purchase...");
+    const product = session.line_items?.data[0]?.price
+      ?.product as Stripe.Product | null;
+
+    const { data: purchaseData, error: purchaseError } = await supabase
+      .from("purchases")
+      .insert({
+        user_id: user.id,
+        first_name: customerData.first_name,
+        last_name: customerData.last_name,
+        email: customerData.email,
+        product_id:
+          session.metadata?.productId ||
+          (product && "id" in product ? product.id : null),
+        product_name:
+          session.metadata?.productName ||
+          (product && "name" in product ? product.name : null),
+        amount: session.amount_total ? session.amount_total / 100 : null,
+        currency: session.currency,
+        status: session.payment_status,
+        payment_intent_id: session.payment_intent as string,
+        stripe_session_id: session.id,
+      })
+      .select();
+
+    if (purchaseError) {
+      console.error("Error inserting purchase:", purchaseError);
+      throw new Error(`Failed to record purchase: ${purchaseError.message}`);
+    }
+
+    console.log("Purchase recorded successfully:", purchaseData);
+
+    // Update customer payment status and last payment date
+    const { error: updateError } = await supabase
+      .from("customers")
+      .update({
+        payment_status: "active",
+        last_payment_date: new Date().toISOString(),
+      })
+      .eq("user_uuid", user.id);
+
+    if (updateError) {
+      console.error("Error updating customer payment status:", updateError);
+      // Don't throw an error here, as the purchase was successful
+    }
+
+    return NextResponse.json({ success: true, purchase: purchaseData[0] });
   } catch (error) {
     console.error("Error verifying payment:", error);
     return NextResponse.json(

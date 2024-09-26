@@ -85,6 +85,32 @@ export interface Database {
           trial_period_days: number | null;
           metadata: Json | null;
         };
+        Insert: {
+          id: string;
+          product_id?: string | null;
+          active?: boolean | null;
+          currency?: string | null;
+          description?: string | null;
+          type?: string | null;
+          unit_amount?: number | null;
+          interval?: string | null;
+          interval_count?: number | null;
+          trial_period_days?: number | null;
+          metadata?: Json | null;
+        };
+        Update: {
+          id?: string;
+          product_id?: string | null;
+          active?: boolean | null;
+          currency?: string | null;
+          description?: string | null;
+          type?: string | null;
+          unit_amount?: number | null;
+          interval?: string | null;
+          interval_count?: number | null;
+          trial_period_days?: number | null;
+          metadata?: Json | null;
+        };
       };
       subscriptions: {
         Row: {
@@ -155,9 +181,7 @@ export type Tables<T extends keyof Database["public"]["Tables"]> =
 export type Customers = Tables<"customers">;
 export type ClassEnrollments = Tables<"class_enrollments">;
 export type Products = Tables<"products">;
-export type Price = Tables<"prices"> & {
-  type: "one_time" | "recurring";
-};
+export type Price = Database["public"]["Tables"]["prices"]["Row"];
 export type Subscriptions = Tables<"subscriptions">;
 export type Invoices = Tables<"invoices">;
 export type InvoiceItems = Tables<"invoice_items">;

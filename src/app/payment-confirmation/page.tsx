@@ -33,7 +33,7 @@ export default function PaymentConfirmation() {
 
         if (!response.ok) throw new Error(data.error);
 
-        setProductName(data.productName);
+        setProductName(data.purchase.product_name);
         setStatus("success");
       } catch (error) {
         console.error("Error verifying payment:", error);
@@ -45,33 +45,37 @@ export default function PaymentConfirmation() {
   }, [sessionId]);
 
   if (status === "loading") {
-    return <div>Verifying your payment...</div>;
+    return <div>Our gnomes are working as quickly as they can...</div>;
   }
 
   if (status === "error") {
     return (
-      <div>
-        <h1>Payment Verification Failed</h1>
+      <div className="max-w-2xl mx-auto mt-10 p-6 shadow-md rounded-lg">
+        <h1 className="text-3xl font-bold mb-6">Payment Verification Failed</h1>
         <p>
           We couldn&apos;t verify your payment. Please contact support if you
           believe this is an error.
         </p>
         <Link href="/pricing">
-          <Button>Return to Pricing</Button>
+          <Button variant="outline" className="mt-6">
+            Return to Products
+          </Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white shadow-md rounded-lg">
+    <div className="max-w-2xl mx-auto mt-10 p-6 shadow-md rounded-lg">
       <h1 className="text-3xl font-bold mb-6">Payment Confirmed!</h1>
-      <p className="mb-4">Thank you for your purchase of {productName}.</p>
+      <p className="mb-4">Thank you for your purchase of {productName}!</p>
       <p className="mb-6">
         Your transaction was successful and your account has been updated.
       </p>
-      <Link href="/dashboard">
-        <Button>Go to Dashboard</Button>
+      <Link href="/pricing">
+        <Button variant="outline" className="mt-6">
+          Go to Products
+        </Button>
       </Link>
     </div>
   );

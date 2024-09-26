@@ -38,7 +38,8 @@ export function PaymentButton({ classId }: PaymentButtonProps) {
       },
       onSuccess: (data: CheckoutSession) => {
         if (data.url) {
-          window.location.href = data.url;
+          // Use window.location.assign instead of window.location.href
+          window.location.assign(data.url);
         } else {
           console.error("No URL returned from checkout session creation");
           toast.error("Failed to initiate payment. Please try again.");

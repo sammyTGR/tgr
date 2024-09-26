@@ -151,7 +151,7 @@ export function EditEmployeeDialog({
               <Input
                 id="extension"
                 name="extension"
-                value={editedEmployee.phone_number}
+                value={editedEmployee.extension || ""}
                 onChange={handleInputChange}
               />
             </div>

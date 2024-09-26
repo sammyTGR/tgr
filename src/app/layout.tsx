@@ -11,6 +11,7 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { UnreadCountsProvider } from "../components/UnreadCountsContext";
+import QueryProvider from "@/providers/QueryProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,21 +35,25 @@ export default function RootLayout({
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
           <body className={inter.className}>
-            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <UnreadCountsProvider>
-                <NotificationsProvider>
-                  <Header />
-                  <main>{children}</main>
-                  <Toaster />
-                </NotificationsProvider>
-              </UnreadCountsProvider>
-            </ThemeProvider>
+            <QueryProvider>
+              <NextSSRPlugin
+                routerConfig={extractRouterConfig(ourFileRouter)}
+              />
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <UnreadCountsProvider>
+                  <NotificationsProvider>
+                    <Header />
+                    <main>{children}</main>
+                    <Toaster />
+                  </NotificationsProvider>
+                </UnreadCountsProvider>
+              </ThemeProvider>
+            </QueryProvider>
           </body>
         </html>
       </GoogleOAuthProvider>

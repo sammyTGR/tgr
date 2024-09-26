@@ -10,6 +10,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { useTransition } from "react";
+import { Price } from "@/types_db"; // Make sure to export this type from your types_db.ts file
 
 type Product = Tables<"products"> & { prices: Tables<"prices">[] };
 type Customer = Tables<"customers">;
@@ -30,23 +31,25 @@ export default function Pricing({ user, products, subscription }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const handleStripeCheckout = async (
-    price: Tables<"prices"> & { type: "one_time" | "recurring" },
-    product: Product
-  ) => {
+  const handleStripeCheckout = async (price: Price, product: Product) => {
     if (!user) {
       return router.push("/sign-in");
     }
     startTransition(async () => {
       try {
+        const billingInterval: "one_time" | "month" | "year" =
+          price.type === "recurring"
+            ? price.interval === "year" || price.interval === "month"
+              ? price.interval
+              : "month" // Default to "month" if interval is not "year" or "month"
+            : "one_time";
+
         const { sessionId } = await checkoutWithStripe(price, {
           productId: product.id,
           productName: product.name,
-          billingInterval:
-            price.type === "recurring"
-              ? (price.interval as "year" | "month" | "one_time")
-              : "one_time",
+          billingInterval,
         });
+
         if (sessionId) {
           const stripe = await getStripe();
           stripe?.redirectToCheckout({ sessionId });

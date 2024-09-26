@@ -1,14 +1,11 @@
 "use server";
 
 import { stripe } from "./config";
-import { getURL } from "./helpers";
 import { createClient } from "@/utils/supabase/server";
-import { Database } from "@/types_db";
+import { Database, Price } from "@/types_db";
 
 export async function checkoutWithStripe(
-  price: Database["public"]["Tables"]["prices"]["Row"] & {
-    type: "one_time" | "recurring";
-  },
+  price: Price,
   metadata: {
     productId: string;
     productName: string;
@@ -22,6 +19,12 @@ export async function checkoutWithStripe(
 
   if (!user) throw new Error("Could not get user");
 
+  // Determine the correct mode based on the price type
+  const mode = price.type === "recurring" ? "subscription" : "payment";
+
+  // Get the base URL dynamically
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL! || "http://localhost:3000";
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     billing_address_collection: "required",
@@ -32,10 +35,10 @@ export async function checkoutWithStripe(
         quantity: 1,
       },
     ],
-    mode: price.type === "recurring" ? "subscription" : "payment",
+    mode,
     allow_promotion_codes: true,
-    success_url: `${getURL()}/payment-confirmation?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${getURL()}/`,
+    success_url: `${baseUrl}/payment-confirmation?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/`,
     metadata: {
       ...metadata,
       userId: user.id,

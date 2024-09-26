@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       success_url: `${req.headers.get(
         "origin"
       )}/success?session_id={CHECKOUT_SESSION_ID}&class_id=${classId}`,
-      cancel_url: `${req.headers.get("origin")}/classes`,
+      cancel_url: `${req.headers.get("origin")}/public/classes`,
       metadata: {
         class_id: classId.toString(),
       },
