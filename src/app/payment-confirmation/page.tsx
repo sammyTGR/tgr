@@ -1,54 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
-export default function PaymentConfirmation() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
-  );
-  const [productName, setProductName] = useState<string>("");
+function PaymentConfirmationContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
 
-  useEffect(() => {
-    const verifyPayment = async () => {
-      if (!sessionId) {
-        setStatus("error");
-        return;
-      }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["verifyPayment", sessionId],
+    queryFn: async () => {
+      if (!sessionId) throw new Error("Session ID not found");
+      const response = await fetch("/api/verify-stripe-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (!response.ok) throw new Error("Error verifying payment");
+      return response.json();
+    },
+    enabled: !!sessionId,
+  });
 
-      try {
-        const response = await fetch("/api/verify-stripe-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ sessionId }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) throw new Error(data.error);
-
-        setProductName(data.purchase.product_name);
-        setStatus("success");
-      } catch (error) {
-        console.error("Error verifying payment:", error);
-        setStatus("error");
-      }
-    };
-
-    verifyPayment();
-  }, [sessionId]);
-
-  if (status === "loading") {
+  if (isLoading) {
     return <div>Our gnomes are working as quickly as they can...</div>;
   }
 
-  if (status === "error") {
+  if (error) {
     return (
       <div className="max-w-2xl mx-auto mt-10 p-6 shadow-md rounded-lg">
         <h1 className="text-3xl font-bold mb-6">Payment Verification Failed</h1>
@@ -56,6 +37,7 @@ export default function PaymentConfirmation() {
           We couldn&apos;t verify your payment. Please contact support if you
           believe this is an error.
         </p>
+        <p className="text-red-500 mb-6">{(error as Error).message}</p>
         <Link href="/pricing">
           <Button variant="outline" className="mt-6">
             Return to Products
@@ -68,7 +50,9 @@ export default function PaymentConfirmation() {
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 shadow-md rounded-lg">
       <h1 className="text-3xl font-bold mb-6">Payment Confirmed!</h1>
-      <p className="mb-4">Thank you for your purchase of {productName}!</p>
+      <p className="mb-4">
+        Thank you for your purchase of {data.purchase.product_name}!
+      </p>
       <p className="mb-6">
         Your transaction was successful and your account has been updated.
       </p>
@@ -78,5 +62,13 @@ export default function PaymentConfirmation() {
         </Button>
       </Link>
     </div>
+  );
+}
+
+export default function PaymentConfirmation() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentConfirmationContent />
+    </Suspense>
   );
 }
