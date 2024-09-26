@@ -58,6 +58,7 @@ export default function AddEmployeeDialog({
       last_name: "",
       lanid: "",
       phone_number: "",
+      extension: null,
       street_address: "",
       city: "",
       state: "",
@@ -72,8 +73,8 @@ export default function AddEmployeeDialog({
       hire_date: null,
       birthday: null,
       promotion_date: null,
-      status:"",
-      term_date:null
+      status: "",
+      term_date: null,
     }
   );
 
@@ -184,6 +185,7 @@ export default function AddEmployeeDialog({
         last_name: "",
         lanid: "",
         phone_number: "",
+        extension: null,
         street_address: "",
         city: "",
         state: "",
@@ -198,8 +200,8 @@ export default function AddEmployeeDialog({
         hire_date: null,
         birthday: null,
         promotion_date: null,
-        status:"",
-        term_date:null
+        status: "",
+        term_date: null,
       });
       setSchedule(initialSchedule);
       onClose();
@@ -246,6 +248,15 @@ export default function AddEmployeeDialog({
                   value={newEmployee.phone_number}
                   onChange={handleInputChange}
                   required
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="extension">Phone Extension</Label>
+                <Input
+                  id="extension"
+                  name="extension"
+                  value={newEmployee.extension || ""}
+                  onChange={handleInputChange}
                 />
               </div>
               <div className="flex flex-col space-y-2">
