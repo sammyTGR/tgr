@@ -49,6 +49,7 @@ export default function GunsmithingMaintenance() {
   const [selectedTab, setSelectedTab] = useState("dailyChecklist");
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [persistedListId, setPersistedListId] = useState<number | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   const [newFirearm, setNewFirearm] = useState({
     firearm_type: "handgun",
@@ -616,6 +617,7 @@ export default function GunsmithingMaintenance() {
                         <DailyChecklist
                           userRole={userRole}
                           userUuid={userUuid}
+                          userName={userName}
                           onSubmit={handleDailyChecklistSubmit}
                         />
                       </CardContent>
