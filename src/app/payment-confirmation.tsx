@@ -53,8 +53,8 @@ export default function PaymentConfirmation() {
       <div>
         <h1>Payment Verification Failed</h1>
         <p>
-          We couldn't verify your payment. Please contact support if you believe
-          this is an error.
+          We couldn&apos;t verify your payment. Please contact support if you
+          believe this is an error.
         </p>
         <Link href="/pricing">
           <Button>Return to Pricing</Button>
