@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
+import { useTransition } from "react";
 
 type Product = Tables<"products"> & { prices: Tables<"prices">[] };
 type Customer = Tables<"customers">;
@@ -27,28 +28,33 @@ export default function Pricing({ user, products, subscription }: Props) {
     useState<BillingInterval>("one_time");
   const [priceIdLoading, setPriceIdLoading] = useState<string>();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const handleStripeCheckout = async (
-    price: Tables<"prices"> & { type: "one_time" | "recurring" }
+    price: Tables<"prices"> & { type: "one_time" | "recurring" },
+    product: Product
   ) => {
-    setPriceIdLoading(price.id);
     if (!user) {
       return router.push("/sign-in");
     }
-    try {
-      const { sessionId, error } = await checkoutWithStripe(price, "/");
-      if (error) {
-        throw new Error(error.message);
+    startTransition(async () => {
+      try {
+        const { sessionId } = await checkoutWithStripe(price, {
+          productId: product.id,
+          productName: product.name,
+          billingInterval:
+            price.type === "recurring"
+              ? (price.interval as "year" | "month" | "one_time")
+              : "one_time",
+        });
+        if (sessionId) {
+          const stripe = await getStripe();
+          stripe?.redirectToCheckout({ sessionId });
+        }
+      } catch (error) {
+        alert((error as Error)?.message);
       }
-      if (sessionId) {
-        const stripe = await getStripe();
-        stripe?.redirectToCheckout({ sessionId });
-      }
-    } catch (error) {
-      return alert((error as Error)?.message);
-    } finally {
-      setPriceIdLoading(undefined);
-    }
+    });
   };
 
   if (!products.length) {
@@ -173,7 +179,8 @@ export default function Pricing({ user, products, subscription }: Props) {
                       handleStripeCheckout(
                         price as Tables<"prices"> & {
                           type: "one_time" | "recurring";
-                        }
+                        },
+                        product
                       )
                     }
                     className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"

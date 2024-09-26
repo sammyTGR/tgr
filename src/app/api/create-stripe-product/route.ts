@@ -1,3 +1,5 @@
+"use server";
+
 import { NextResponse } from "next/server";
 import { stripe } from "@/utils/stripe/config";
 import { createClient } from "@/utils/supabase/server";

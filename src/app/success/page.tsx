@@ -1,72 +1,118 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+interface ClassDetails {
+  id: number;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  price: number;
+}
 
 function SuccessPageContent() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [errorMessage, setErrorMessage] = useState<string>("");
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id");
+  const classId = searchParams?.get("class_id");
+
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/verify-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to verify payment");
+      }
+      return response.json();
+    },
+  });
+
+  const classQuery = useQuery({
+    queryKey: ["class", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("class_schedules")
+        .select("*")
+        .eq("id", classId)
+        .single();
+
+      if (error) throw error;
+      return data as ClassDetails;
+    },
+    enabled: !!classId,
+  });
 
   useEffect(() => {
-    const verifyPayment = async () => {
-      if (sessionId) {
-        try {
-          const response = await fetch("/api/verify-payment", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ sessionId }),
-          });
-
-          const result = await response.json();
-
-          if (response.ok) {
-            setStatus("success");
-          } else {
-            setStatus("error");
-            setErrorMessage(result.error || "Unknown error occurred");
-          }
-        } catch (error) {
-          console.error("Error verifying payment:", error);
-          setStatus("error");
-          setErrorMessage("Network error occurred");
-        }
-      }
-    };
-
-    verifyPayment();
+    if (sessionId) {
+      verifyPaymentMutation.mutate();
+    }
   }, [sessionId]);
 
-  if (status === "loading") {
+  if (verifyPaymentMutation.isPending || classQuery.isPending) {
     return <div>Verifying payment...</div>;
   }
 
-  if (status === "error") {
+  if (verifyPaymentMutation.isError || classQuery.isError) {
     return (
-      <div>
-        <h1>Payment Error</h1>
-        <p>There was an error processing your payment: {errorMessage}</p>
-        <p>Please contact support for assistance.</p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>
+            There was an error processing your payment:{" "}
+            {verifyPaymentMutation.error?.message || classQuery.error?.message}
+          </p>
+          <p>Please contact support for assistance.</p>
+        </CardContent>
+      </Card>
     );
   }
 
+  const classDetails = classQuery.data;
+
   return (
-    <div>
-      <h1>Payment Successful!</h1>
-      <p>Thank you for your purchase.</p>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Payment Successful!</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p>Thank you for your purchase.</p>
+        {classDetails && (
+          <div className="mt-4">
+            <h2 className="text-xl font-semibold">{classDetails.title}</h2>
+            <p>{classDetails.description}</p>
+            <p>
+              Date: {new Date(classDetails.start_time).toLocaleDateString()}
+            </p>
+            <p>
+              Time: {new Date(classDetails.start_time).toLocaleTimeString()} -{" "}
+              {new Date(classDetails.end_time).toLocaleTimeString()}
+            </p>
+            <p>Price: ${classDetails.price.toFixed(2)}</p>
+          </div>
+        )}
+        <Button
+          className="mt-4"
+          onClick={() => (window.location.href = "/classes")}
+        >
+          Back to Classes
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function SuccessPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SuccessPageContent />
-    </Suspense>
-  );
+  return <SuccessPageContent />;
 }
