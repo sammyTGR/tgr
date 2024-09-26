@@ -21,11 +21,17 @@ export const columns: ColumnDef<Employee>[] = [
     ),
   },
   {
-    accessorKey: "department",
+    accessorKey: "extension",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Department" />
+      <DataTableColumnHeader column={column} title="Extension" />
     ),
   },
+  // {
+  //   accessorKey: "department",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Department" />
+  //   ),
+  // },
   // {
   //   accessorKey: "position",
   //   header: ({ column }) => (

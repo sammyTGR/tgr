@@ -20,6 +20,7 @@ export interface Employee {
   promotion_date: string | null;
   status: string | null;
   term_date: string | null;
+  extension: number | null;
 }
 
 export interface ReferenceSchedule {

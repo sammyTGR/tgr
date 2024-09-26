@@ -147,6 +147,15 @@ export function EditEmployeeDialog({
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="extension">Phone Extension</Label>
+              <Input
+                id="extension"
+                name="extension"
+                value={editedEmployee.phone_number}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="street_address">Street Address</Label>
               <Input
                 id="street_address"
