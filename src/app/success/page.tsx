@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
 
 interface ClassDetails {
   id: number;
@@ -114,5 +115,9 @@ function SuccessPageContent() {
 }
 
 export default function SuccessPage() {
-  return <SuccessPageContent />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessPageContent />
+    </Suspense>
+  );
 }

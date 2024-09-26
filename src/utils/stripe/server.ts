@@ -2,8 +2,7 @@
 
 import { stripe } from "./config";
 import { getURL } from "./helpers";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 import { Database } from "@/types_db";
 
 export async function checkoutWithStripe(
@@ -16,7 +15,7 @@ export async function checkoutWithStripe(
     billingInterval: "one_time" | "month" | "year";
   }
 ) {
-  const supabase = createServerComponentClient<Database>({ cookies });
+  const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
