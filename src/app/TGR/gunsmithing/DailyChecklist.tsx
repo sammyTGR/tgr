@@ -41,8 +41,13 @@ export default function DailyChecklist({
   const [activeRequestId, setActiveRequestId] = useState<number | null>(null);
   const [activeResponseId, setActiveResponseId] = useState<number | null>(null);
   const [showOnlyPendingRequests, setShowOnlyPendingRequests] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<{[key: number]: string}>({});
+  const [pendingRequests, setPendingRequests] = useState<{
+    [key: number]: string;
+  }>({});
   const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
+  const [editingResponseId, setEditingResponseId] = useState<number | null>(
+    null
+  );
 
   const fetchFirearmsWithGunsmith = useCallback(async () => {
     setLoading(true);
@@ -52,10 +57,14 @@ export default function DailyChecklist({
         .select("*")
         .eq("rental_notes", "With Gunsmith");
       if (error) throw error;
-      setFirearms(data.map(firearm => ({
-        ...firearm,
-        has_new_request: firearm.admin_request && !firearm.gunsmith_response
-      })) || []);
+      setFirearms(
+        data.map((firearm) => ({
+          ...firearm,
+          has_new_request: Boolean(
+            firearm.admin_request && !firearm.gunsmith_response
+          ),
+        })) || []
+      );
     } catch (error: unknown) {
       console.error("Error fetching firearms:", error);
       toast.error("Failed to fetch firearms");
@@ -75,7 +84,7 @@ export default function DailyChecklist({
   };
 
   const handleAdminRequestChange = (id: number, request: string) => {
-    setPendingRequests({...pendingRequests, [id]: request});
+    setPendingRequests({ ...pendingRequests, [id]: request });
   };
 
   const submitAdminRequest = async (id: number) => {
@@ -92,29 +101,31 @@ export default function DailyChecklist({
 
       const { error } = await supabase
         .from("firearms_maintenance")
-        .update({ 
+        .update({
           admin_request: pendingRequests[id],
           admin_name: adminName,
           admin_uuid: userUuid,
-          gunsmith_response: null
+          gunsmith_response: null,
         })
         .eq("id", id);
 
       if (error) throw error;
 
-      setFirearms(firearms.map(f => 
-        f.id === id 
-          ? {
-              ...f,
-              admin_request: pendingRequests[id],
-              admin_name: adminName,
-              has_new_request: true,
-              gunsmith_response: undefined
-            } 
-          : f
-      ) as FirearmWithGunsmith[]);
+      setFirearms(
+        firearms.map((f) =>
+          f.id === id
+            ? {
+                ...f,
+                admin_request: pendingRequests[id],
+                admin_name: adminName,
+                has_new_request: true,
+                gunsmith_response: undefined,
+              }
+            : f
+        ) as FirearmWithGunsmith[]
+      );
       delete pendingRequests[id];
-      setPendingRequests({...pendingRequests});
+      setPendingRequests({ ...pendingRequests });
       setEditingRequestId(null);
       toast.success("Request submitted successfully");
     } catch (error) {
@@ -124,21 +135,58 @@ export default function DailyChecklist({
   };
 
   const editAdminRequest = (id: number) => {
-    const firearm = firearms.find(f => f.id === id);
+    const firearm = firearms.find((f) => f.id === id);
     if (firearm) {
-      setPendingRequests({...pendingRequests, [id]: firearm.admin_request || ''});
+      setPendingRequests({
+        ...pendingRequests,
+        [id]: firearm.admin_request || "",
+      });
       setEditingRequestId(id);
     }
   };
 
   const handleGunsmithResponseChange = (id: number, response: string) => {
     setFirearms(
-      firearms.map((f) => 
-        f.id === id 
-          ? { ...f, gunsmith_response: response, has_new_request: false } 
+      firearms.map((f) =>
+        f.id === id
+          ? { ...f, gunsmith_response: response, has_new_request: false }
           : f
       )
     );
+  };
+
+  const submitGunsmithResponse = async (id: number) => {
+    try {
+      const firearm = firearms.find((f) => f.id === id);
+      if (!firearm) throw new Error("Firearm not found");
+
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({
+          gunsmith_response: firearm.gunsmith_response,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setFirearms(
+        firearms.map((f) =>
+          f.id === id
+            ? { ...f, gunsmith_response: firearm.gunsmith_response }
+            : f
+        )
+      );
+      setActiveResponseId(null);
+      setEditingResponseId(null);
+      toast.success("Response submitted successfully");
+    } catch (error) {
+      console.error("Error submitting response:", error);
+      toast.error("Failed to submit response");
+    }
+  };
+
+  const toggleEditResponse = (id: number) => {
+    setEditingResponseId(editingResponseId === id ? null : id);
   };
 
   const handleSubmit = async () => {
@@ -146,7 +194,6 @@ export default function DailyChecklist({
       const updates = firearms.map((firearm) => ({
         ...firearm,
         last_maintenance_date: new Date().toISOString(),
-        has_new_request: firearm.admin_request && !firearm.gunsmith_response
       }));
 
       const { error } = await supabase
@@ -160,7 +207,9 @@ export default function DailyChecklist({
         new Date().toDateString()
       );
 
-      toast.success("Daily maintenance notes and requests updated successfully");
+      toast.success(
+        "Daily maintenance notes and requests updated successfully"
+      );
       await fetchFirearmsWithGunsmith();
       onSubmit();
     } catch (error) {
@@ -170,7 +219,7 @@ export default function DailyChecklist({
   };
 
   const filteredFirearms = showOnlyPendingRequests
-    ? firearms.filter(f => f.has_new_request)
+    ? firearms.filter((f) => f.has_new_request)
     : firearms;
 
   if (loading) return <div>Loading...</div>;
@@ -179,12 +228,14 @@ export default function DailyChecklist({
     <div className="flex flex-col min-h-screen">
       <div className="flex-grow">
         <h2 className="text-xl font-semibold mb-4">Firearms With Gunsmith</h2>
-        <Button 
-          variant="gooeyLeft" 
+        <Button
+          variant="gooeyLeft"
           onClick={() => setShowOnlyPendingRequests(!showOnlyPendingRequests)}
           className="mb-4"
         >
-          {showOnlyPendingRequests ? "Show All Firearms" : "Show Only Pending Requests"}
+          {showOnlyPendingRequests
+            ? "Show All Firearms"
+            : "Show Only Pending Requests"}
         </Button>
         {filteredFirearms.length === 0 ? (
           <p>No firearms currently with gunsmith.</p>
@@ -195,14 +246,15 @@ export default function DailyChecklist({
                 <h3 className="font-medium flex items-center">
                   {firearm.firearm_name} ({firearm.firearm_type})
                   {firearm.has_new_request && (
-                    <Badge variant="destructive" className="ml-2">New Status Update Request</Badge>
+                    <Badge variant="destructive" className="ml-2">
+                      New Status Update Request
+                    </Badge>
                   )}
                 </h3>
                 <p>Status: {firearm.status || "N/A"}</p>
-                <p>Last Maintenance: {firearm.last_maintenance_date || "N/A"}</p>
-                {/* <p>
-                  Maintenance Frequency: {firearm.maintenance_frequency || "N/A"}
-                </p> */}
+                <p>
+                  Last Maintenance: {firearm.last_maintenance_date || "N/A"}
+                </p>
                 <Textarea
                   value={firearm.maintenance_notes || ""}
                   onChange={(e) => handleNoteChange(firearm.id, e.target.value)}
@@ -211,20 +263,31 @@ export default function DailyChecklist({
                 />
                 {(userRole === "admin" || userRole === "super admin") && (
                   <>
-                    {(!firearm.admin_request || firearm.admin_uuid === userUuid) && (
+                    {(!firearm.admin_request ||
+                      firearm.admin_uuid === userUuid) && (
                       <Button
                         variant="outline"
-                        onClick={() => editingRequestId === firearm.id ? setEditingRequestId(null) : editAdminRequest(firearm.id)}
+                        onClick={() =>
+                          editingRequestId === firearm.id
+                            ? setEditingRequestId(null)
+                            : editAdminRequest(firearm.id)
+                        }
                         className="mt-2"
                       >
-                        {editingRequestId === firearm.id ? "Cancel Edit" : (firearm.admin_request ? "Edit Request" : "Make Request")}
+                        {editingRequestId === firearm.id
+                          ? "Cancel Edit"
+                          : firearm.admin_request
+                          ? "Edit Request"
+                          : "Make Request"}
                       </Button>
                     )}
                     {editingRequestId === firearm.id && (
                       <>
                         <Textarea
                           value={pendingRequests[firearm.id] || ""}
-                          onChange={(e) => handleAdminRequestChange(firearm.id, e.target.value)}
+                          onChange={(e) =>
+                            handleAdminRequestChange(firearm.id, e.target.value)
+                          }
                           placeholder="Enter request or question..."
                           className="mt-2"
                         />
@@ -234,7 +297,9 @@ export default function DailyChecklist({
                           className="mt-2"
                           disabled={!pendingRequests[firearm.id]}
                         >
-                          {firearm.admin_request ? "Update Request" : "Submit Request"}
+                          {firearm.admin_request
+                            ? "Update Request"
+                            : "Submit Request"}
                         </Button>
                       </>
                     )}
@@ -243,24 +308,62 @@ export default function DailyChecklist({
                 {firearm.admin_request && (
                   <div className="mt-6">
                     <p className="text-small font-small text-muted-foreground">
-                      Status Update Request from {firearm.admin_name || 'Unknown'}:
+                      Status Update Request from{" "}
+                      {firearm.admin_name || "Unknown"}:
                     </p>
-                    <h3 className="text-large font-medium text-foreground mb-2">{firearm.admin_request}</h3>
-                    <Button
-                      variant="outline"
-                      onClick={() => setActiveResponseId(activeResponseId === firearm.id ? null : firearm.id)}
-                      className="mt-2"
-                    >
-                      {activeResponseId === firearm.id ? "Cancel Response" : "Respond"}
-                    </Button>
-                    {activeResponseId === firearm.id && (
-                      <Textarea
-                        value={firearm.gunsmith_response || ""}
-                        onChange={(e) => handleGunsmithResponseChange(firearm.id, e.target.value)}
-                        placeholder="Enter response to status update request..."
-                        className="mt-2"
-                      />
-                    )}
+                    <h3 className="text-large font-medium text-foreground mb-2">
+                      {firearm.admin_request}
+                    </h3>
+                    <div className="mt-4">
+                      <p className="text-small font-small text-muted-foreground">
+                        Gunsmith Response:
+                      </p>
+                      {editingResponseId === firearm.id ? (
+                        <>
+                          <Textarea
+                            value={firearm.gunsmith_response || ""}
+                            onChange={(e) =>
+                              handleGunsmithResponseChange(
+                                firearm.id,
+                                e.target.value
+                              )
+                            }
+                            placeholder="Enter response to status update request..."
+                            className="mt-2"
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => submitGunsmithResponse(firearm.id)}
+                            className="mt-2 mr-2"
+                            disabled={!firearm.gunsmith_response}
+                          >
+                            Update Response
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => toggleEditResponse(firearm.id)}
+                            className="mt-2"
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-medium font-medium text-foreground">
+                            {firearm.gunsmith_response || "No response yet."}
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => toggleEditResponse(firearm.id)}
+                            className="mt-2"
+                          >
+                            {firearm.gunsmith_response
+                              ? "Edit Response"
+                              : "Add Response"}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -269,9 +372,9 @@ export default function DailyChecklist({
         )}
       </div>
       <div className="mt-8">
-        <Button 
-          variant="gooeyRight" 
-          onClick={handleSubmit} 
+        <Button
+          variant="gooeyRight"
+          onClick={handleSubmit}
           disabled={firearms.length === 0}
           className="w-full"
         >
