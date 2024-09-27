@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  console.log("Received reconciliation request");
+  //console.log("Received reconciliation request");
   try {
     const {
       employeeId,
@@ -13,13 +13,13 @@ export async function POST(req: Request) {
       calculatedTotalHours,
     } = await req.json();
 
-    console.log("Request data:", {
-      employeeId,
-      eventDate,
-      hoursToReconcile,
-      scheduledHours,
-      calculatedTotalHours,
-    });
+    // console.log("Request data:", {
+    //   employeeId,
+    //   eventDate,
+    //   hoursToReconcile,
+    //   scheduledHours,
+    //   calculatedTotalHours,
+    // });
 
     const supabase = createRouteHandlerClient({ cookies });
 
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       available_sick_time: newAvailableSickTime,
     };
 
-    console.log("Reconciliation successful. Updated data:", updatedData);
+    //console.log("Reconciliation successful. Updated data:", updatedData);
     return NextResponse.json(updatedData);
   } catch (error) {
     console.error("Unexpected error during reconciliation:", error);

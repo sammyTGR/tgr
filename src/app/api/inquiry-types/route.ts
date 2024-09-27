@@ -21,7 +21,7 @@ export async function GET() {
     // console.log("Raw data from Supabase:", data);
 
     if (!data || data.length === 0) {
-      console.log("No data returned from Supabase");
+      //console.log("No data returned from Supabase");
       return NextResponse.json([]);
     }
 

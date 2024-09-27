@@ -139,8 +139,8 @@ export default function OrdersComponent() {
         const customerTypesData = await customerTypesResponse.json();
         const inquiryTypesData = await inquiryTypesResponse.json();
   
-        console.log("Fetched customer types:", customerTypesData);
-        console.log("Fetched inquiry types:", inquiryTypesData);
+        //console.log("Fetched customer types:", customerTypesData);
+        //console.log("Fetched inquiry types:", inquiryTypesData);
   
         setCustomerTypes(customerTypesData);
         setInquiryTypes(inquiryTypesData);

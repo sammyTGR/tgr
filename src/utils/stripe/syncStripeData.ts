@@ -59,9 +59,9 @@ export async function syncStripeData() {
       console.error("Error upserting prices:", pricesError);
     }
 
-    console.log(
-      `Synced ${productsToUpsert.length} products and ${pricesToUpsert.length} prices successfully`
-    );
+    // console.log(
+    //   `Synced ${productsToUpsert.length} products and ${pricesToUpsert.length} prices successfully`
+    // );
   } catch (error) {
     console.error("Error syncing Stripe data:", error);
     throw error;

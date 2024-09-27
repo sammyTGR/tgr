@@ -9,7 +9,7 @@ import { Database } from "@/types_db";
 export async function POST(req: Request) {
   try {
     const { classId } = await req.json();
-    console.log("Received classId:", classId);
+    //console.log("Received classId:", classId);
 
     const supabase = createServerComponentClient<Database>({ cookies });
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
-    console.log("Class data:", JSON.stringify(classData, null, 2));
+    //console.log("Class data:", JSON.stringify(classData, null, 2));
 
     if (!classData.stripe_price_id) {
       console.error("Stripe price ID is missing for the class:", classId);
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       client_reference_id: user.id,
     });
 
-    console.log("Stripe session created:", session.id);
+    //console.log("Stripe session created:", session.id);
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (err: any) {
     console.error("Detailed error:", err);

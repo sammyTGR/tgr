@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       break;
 
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      //console.log(`Unhandled event type ${event.type}`);
   }
 
   return NextResponse.json({ received: true });
@@ -222,5 +222,5 @@ async function handleSubscriptionScheduleEvent(
   eventType: string
 ) {
   // Handle subscription schedule events if necessary
-  console.log(`Handled ${eventType} for subscription schedule ${schedule.id}`);
+  //console.log(`Handled ${eventType} for subscription schedule ${schedule.id}`);
 }

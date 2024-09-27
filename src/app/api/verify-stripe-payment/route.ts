@@ -5,14 +5,14 @@ import Stripe from "stripe";
 
 export async function POST(req: Request) {
   const { sessionId } = await req.json();
-  console.log("Received session ID:", sessionId);
+  //console.log("Received session ID:", sessionId);
 
   try {
-    console.log("Retrieving Stripe session...");
+    //console.log("Retrieving Stripe session...");
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items", "line_items.data.price.product"],
     });
-    console.log("Stripe session retrieved:", session);
+    //console.log("Stripe session retrieved:", session);
 
     if (session.payment_status !== "paid") {
       throw new Error("Payment not successful");
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     const supabase = createClient();
 
-    console.log("Fetching user details...");
+    //console.log("Fetching user details...");
     const {
       data: { user },
       error: userError,
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       throw new Error("Could not get user");
     }
 
-    console.log("User found:", user);
+    //console.log("User found:", user);
 
     // Fetch customer data from the customers table
     const { data: customerData, error: customerError } = await supabase
@@ -50,10 +50,10 @@ export async function POST(req: Request) {
       throw new Error("Customer data not found");
     }
 
-    console.log("Customer data fetched:", customerData);
+    //console.log("Customer data fetched:", customerData);
 
     // Process the purchase
-    console.log("Processing purchase...");
+    //console.log("Processing purchase...");
     const product = session.line_items?.data[0]?.price
       ?.product as Stripe.Product | null;
 
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       throw new Error(`Failed to record purchase: ${purchaseError.message}`);
     }
 
-    console.log("Purchase recorded successfully:", purchaseData);
+    //console.log("Purchase recorded successfully:", purchaseData);
 
     // Update customer payment status and last payment date
     const { error: updateError } = await supabase
