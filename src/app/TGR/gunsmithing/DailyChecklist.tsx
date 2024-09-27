@@ -191,10 +191,39 @@ export default function DailyChecklist({
 
   const handleSubmit = async () => {
     try {
-      const updates = firearms.map((firearm) => ({
-        ...firearm,
-        last_maintenance_date: new Date().toISOString(),
-      }));
+      const updates = firearms.map(
+        ({
+          id,
+          firearm_type,
+          firearm_name,
+          last_maintenance_date,
+          maintenance_frequency,
+          maintenance_notes,
+          status,
+          assigned_to,
+          rental_notes,
+          verified_status,
+          admin_request,
+          gunsmith_response,
+          admin_name,
+          admin_uuid,
+        }) => ({
+          id,
+          firearm_type,
+          firearm_name,
+          last_maintenance_date: new Date().toISOString(),
+          maintenance_frequency,
+          maintenance_notes,
+          status,
+          assigned_to,
+          rental_notes,
+          verified_status,
+          admin_request,
+          gunsmith_response,
+          admin_name,
+          admin_uuid,
+        })
+      );
 
       const { error } = await supabase
         .from("firearms_maintenance")
