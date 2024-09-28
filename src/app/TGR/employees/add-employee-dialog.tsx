@@ -75,6 +75,9 @@ export default function AddEmployeeDialog({
       promotion_date: null,
       status: "",
       term_date: null,
+      newRole: null,
+      newPayType: null,
+      newPayRate: null,
     }
   );
 
@@ -202,6 +205,9 @@ export default function AddEmployeeDialog({
         promotion_date: null,
         status: "",
         term_date: null,
+        newRole: null,
+        newPayType: null,
+        newPayRate: null,
       });
       setSchedule(initialSchedule);
       onClose();

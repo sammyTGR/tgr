@@ -18,6 +18,9 @@ export interface Employee {
   hire_date: string | null;
   birthday: string | null;
   promotion_date: string | null;
+  newRole: string | null;
+  newPayType: string | null;
+  newPayRate: number | null;
   status: string | null;
   term_date: string | null;
   extension: number | null;
@@ -29,4 +32,11 @@ export interface ReferenceSchedule {
   start_time: string | null;
   end_time: string | null;
   name: string;
+}
+
+export interface PromotionData {
+  promotionDate: string;
+  newRole: string;
+  newPayType: string;
+  newPayRate: number;
 }

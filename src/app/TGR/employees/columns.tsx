@@ -66,23 +66,17 @@ export const columns: ColumnDef<Employee>[] = [
       <DataTableColumnHeader column={column} title="Pay Rate" />
     ),
     cell: ({ row }) => {
-      const pay_rate = parseFloat(row.getValue("pay_rate"));
-      const pay_type = row.getValue("pay_rate");
-
-      if (isNaN(pay_rate)) return "Invalid";
-
-      const formatted = new Intl.NumberFormat("en-US", {
+      const employee = row.original;
+      if (employee.pay_rate === null) return "N/A";
+      const formattedRate = new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(pay_rate);
-
-      return (
-        <div className="text-left font-medium">
-          {formatted}/{pay_type === "salary" ? "year" : "hour"}
-        </div>
-      );
+      }).format(employee.pay_rate);
+      return `${formattedRate}${
+        employee.pay_type === "salary" ? "/year" : "/hour"
+      }`;
     },
   },
   {
@@ -113,10 +107,20 @@ export const columns: ColumnDef<Employee>[] = [
       }
     },
   },
-  // {
-  //   accessorKey: "promotion_date",
-  //   header: "Promotion Date",
-  // },
+  {
+    accessorKey: "promotion_date",
+    header: "Promotion Date",
+    cell: ({ row }) => {
+      const date = row.getValue("promotion_date");
+      if (!date || typeof date !== "string") return null;
+      try {
+        const zonedDate = toZonedTime(new Date(date), timeZone);
+        return format(zonedDate, "M-dd-yy", { timeZone });
+      } catch {
+        return "Invalid Date";
+      }
+    },
+  },
   // {
   //   accessorKey: "rank",
   //   header: "Employee Number",

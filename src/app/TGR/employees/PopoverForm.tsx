@@ -294,7 +294,12 @@ export function EditEmployeeDialog({
               />
             </div> */}
             <div className="grid gap-2">
-              <Label htmlFor="pay_rate">Pay Rate</Label>
+              <Label htmlFor="pay_rate">
+                Pay Rate{" "}
+                {editedEmployee.pay_type === "salary"
+                  ? "(per year)"
+                  : "(per hour)"}
+              </Label>
               <Input
                 id="pay_rate"
                 name="pay_rate"
