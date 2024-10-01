@@ -36,6 +36,30 @@ export async function POST(req: Request) {
       const subscription = event.data.object as Stripe.Subscription;
       await handleSubscriptionChange(supabase, subscription);
       break;
+    case "checkout.session.completed":
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.product_type === "training") {
+        const { data: enrollmentData, error: enrollmentError } = await supabase
+          .from("class_enrollments")
+          .select("*")
+          .eq("stripe_session_id", session.id)
+          .single();
+
+        if (enrollmentError) {
+          console.error("Error fetching class enrollment:", enrollmentError);
+        } else if (enrollmentData) {
+          // Update the class enrollment
+          await supabase
+            .from("class_enrollments")
+            .update({
+              payment_status: "paid",
+              user_name:
+                session.customer_details?.name || enrollmentData.user_name,
+            })
+            .eq("id", enrollmentData.id);
+        }
+      }
+      break;
 
     // Invoice events
     case "invoice.created":

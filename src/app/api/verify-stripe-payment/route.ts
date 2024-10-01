@@ -5,14 +5,11 @@ import Stripe from "stripe";
 
 export async function POST(req: Request) {
   const { sessionId } = await req.json();
-  //console.log("Received session ID:", sessionId);
 
   try {
-    //console.log("Retrieving Stripe session...");
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items", "line_items.data.price.product"],
     });
-    //console.log("Stripe session retrieved:", session);
 
     if (session.payment_status !== "paid") {
       throw new Error("Payment not successful");
@@ -20,7 +17,6 @@ export async function POST(req: Request) {
 
     const supabase = createClient();
 
-    //console.log("Fetching user details...");
     const {
       data: { user },
       error: userError,
@@ -30,8 +26,6 @@ export async function POST(req: Request) {
       console.error("Error fetching user:", userError);
       throw new Error("Could not get user");
     }
-
-    //console.log("User found:", user);
 
     // Fetch customer data from the customers table
     const { data: customerData, error: customerError } = await supabase
@@ -50,40 +44,60 @@ export async function POST(req: Request) {
       throw new Error("Customer data not found");
     }
 
-    //console.log("Customer data fetched:", customerData);
-
-    // Process the purchase
-    //console.log("Processing purchase...");
     const product = session.line_items?.data[0]?.price
       ?.product as Stripe.Product | null;
+    const isTrainingClass = session.metadata?.product_type === "training";
+    let purchaseData = null;
+    let productName = null;
 
-    const { data: purchaseData, error: purchaseError } = await supabase
-      .from("purchases")
-      .insert({
-        user_id: user.id,
-        first_name: customerData.first_name,
-        last_name: customerData.last_name,
-        email: customerData.email,
-        product_id:
-          session.metadata?.productId ||
-          (product && "id" in product ? product.id : null),
-        product_name:
-          session.metadata?.productName ||
-          (product && "name" in product ? product.name : null),
-        amount: session.amount_total ? session.amount_total / 100 : null,
-        currency: session.currency,
-        status: session.payment_status,
-        payment_intent_id: session.payment_intent as string,
-        stripe_session_id: session.id,
-      })
-      .select();
+    if (isTrainingClass) {
+      // Update class_enrollments table for training classes
+      const { error: enrollmentError } = await supabase
+        .from("class_enrollments")
+        .update({
+          payment_status: "paid",
+          stripe_session_id: session.id,
+        })
+        .eq("stripe_session_id", session.id);
 
-    if (purchaseError) {
-      console.error("Error inserting purchase:", purchaseError);
-      throw new Error(`Failed to record purchase: ${purchaseError.message}`);
+      if (enrollmentError) {
+        console.error("Error updating class enrollment:", enrollmentError);
+        throw new Error(
+          `Failed to update class enrollment: ${enrollmentError.message}`
+        );
+      }
+      productName = session.metadata?.productName || "Training Class";
+    } else {
+      // Only insert into purchases table for non-training products
+      const { data, error: purchaseError } = await supabase
+        .from("purchases")
+        .insert({
+          user_id: user.id,
+          first_name: customerData.first_name,
+          last_name: customerData.last_name,
+          email: customerData.email,
+          product_id:
+            session.metadata?.productId ||
+            (product && "id" in product ? product.id : null),
+          product_name:
+            session.metadata?.productName ||
+            (product && "name" in product ? product.name : null),
+          amount: session.amount_total ? session.amount_total / 100 : null,
+          currency: session.currency,
+          status: session.payment_status,
+          payment_intent_id: session.payment_intent as string,
+          stripe_session_id: session.id,
+        })
+        .select();
+
+      if (purchaseError) {
+        console.error("Error inserting purchase:", purchaseError);
+        throw new Error(`Failed to record purchase: ${purchaseError.message}`);
+      }
+
+      purchaseData = data[0];
+      productName = purchaseData.product_name || "your item";
     }
-
-    //console.log("Purchase recorded successfully:", purchaseData);
 
     // Update customer payment status and last payment date
     const { error: updateError } = await supabase
@@ -99,7 +113,11 @@ export async function POST(req: Request) {
       // Don't throw an error here, as the purchase was successful
     }
 
-    return NextResponse.json({ success: true, purchase: purchaseData[0] });
+    return NextResponse.json({
+      success: true,
+      purchase: purchaseData,
+      productName: productName,
+    });
   } catch (error) {
     console.error("Error verifying payment:", error);
     return NextResponse.json(

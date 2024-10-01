@@ -96,45 +96,25 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
         "yyyy-MM-dd HH:mm:ss"
       );
 
-      // Create Stripe product
-      const response = await fetch("/api/create-stripe-product", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: title,
-          description,
-          price: parseFloat(price),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create Stripe product");
-      }
-
-      const { productId, priceId } = await response.json();
-
-      const classData: Partial<ClassScheduleData> = {
+      const newClass: Partial<ClassScheduleData> = {
         title,
         description,
+        price: parseFloat(price),
         start_time: startTimeZoned,
         end_time: endTimeZoned,
-        stripe_product_id: productId,
-        stripe_price_id: priceId,
-        price: parseFloat(price),
       };
 
-      await onSubmit("", classData);
-
-      // Use type assertion here
-      // setClassSchedules((prev) => [...prev, classData as ClassScheduleData]);
+      await onSubmit("", newClass);
 
       toast.success("Class added successfully");
       resetForm();
     } catch (error) {
       console.error("Error creating class:", error);
-      toast.error("Failed to create class. Please try again.");
+      toast.error(
+        `Failed to create class: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       setIsLoading(false);
     }

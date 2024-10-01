@@ -16,6 +16,10 @@ import {
   isSameDay,
   addMonths,
   subMonths,
+  startOfWeek,
+  endOfWeek,
+  isSameMonth,
+  getDay,
 } from "date-fns";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -77,27 +81,39 @@ export default function Component() {
 
   const handleAddClass = async (
     id: string,
-    updates: Partial<ClassSchedule>
+    newClass: Partial<ClassSchedule>
   ) => {
-    const { data, error } = await supabase
-      .from("class_schedules")
-      .insert([
-        {
-          title: updates.title,
-          description: updates.description,
-          start_time: updates.start_time,
-          end_time: updates.end_time,
-          price: updates.price,
-          stripe_product_id: updates.stripe_product_id,
-          stripe_price_id: updates.stripe_price_id,
-        },
-      ])
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from("class_schedules")
+        .insert([newClass])
+        .select();
 
-    if (error) {
+      if (error) {
+        console.error("Error adding class:", error);
+        toast.error("Failed to add class. Please try again.");
+      } else if (data && data.length > 0) {
+        setClassSchedules((prev) => [...prev, data[0] as ClassSchedule]);
+
+        // Update selectedEvent if the new class is on the currently selected date
+        const newClassDate = new Date(data[0].start_time);
+        if (
+          selectedEvent &&
+          selectedEvent.length > 0 &&
+          isSameDay(newClassDate, new Date(selectedEvent[0].start_time))
+        ) {
+          setSelectedEvent((prev) =>
+            prev
+              ? [...prev, data[0] as ClassSchedule]
+              : [data[0] as ClassSchedule]
+          );
+        }
+
+        toast.success("Class added successfully");
+      }
+    } catch (error) {
       console.error("Error adding class:", error);
-    } else {
-      setClassSchedules((prev) => [...prev, ...(data as ClassSchedule[])]);
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -162,6 +178,25 @@ export default function Component() {
     }
   };
 
+  // Add these new functions and constants
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const getCalendarDays = (date: Date) => {
+    const start = startOfWeek(startOfMonth(date), { weekStartsOn: 0 });
+    const end = endOfWeek(endOfMonth(date), { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  };
+
+  const calendarDays = getCalendarDays(currentMonth);
+
+  const getCalendarCellClass = (day: Date) => {
+    let classes = "text-center p-2 cursor-pointer relative";
+    if (!isSameMonth(day, currentMonth)) {
+      classes += " text-gray-400";
+    }
+    return classes;
+  };
+
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold mb-8">Available Classes</h1>
@@ -170,7 +205,6 @@ export default function Component() {
           onSubmit={handleAddClass}
           buttonText="Add A Class"
           placeholder="Enter class details"
-          // setClassSchedules={setClassSchedules}
         />
       )}
 
@@ -196,8 +230,13 @@ export default function Component() {
               <ChevronRightIcon className="h-6 w-6" />
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-4">
-            {daysInMonth.map((day) => {
+          <div className="grid grid-cols-7 gap-1">
+            {weekDays.map((day) => (
+              <div key={day} className="text-center font-bold">
+                {day}
+              </div>
+            ))}
+            {calendarDays.map((day, index) => {
               const eventsForDay = classSchedules.filter((event) =>
                 isSameDay(new Date(event.start_time), day)
               );
@@ -205,10 +244,13 @@ export default function Component() {
               return (
                 <div
                   key={format(day, "yyyy-MM-dd")}
-                  className="text-center w-8 h-8 leading-8 cursor-pointer relative"
+                  className={getCalendarCellClass(day)}
                   onClick={() => handleDateClick(day)}
+                  style={{
+                    gridColumnStart: index === 0 ? getDay(day) + 1 : undefined,
+                  }}
                 >
-                  <span className="font-bold">{format(day, "d")}</span>
+                  <span>{format(day, "d")}</span>
                   {eventsForDay.length > 0 && (
                     <div className="absolute bottom-0 left-0 w-full h-1 bg-green-500" />
                   )}
@@ -222,14 +264,14 @@ export default function Component() {
         <div className="rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">Class Details</h2>
-            <div className="relative">
+            {/* <div className="relative">
               <Input
                 className="pr-10"
                 placeholder="Search by class name"
                 type="search"
               />
               <MagnifyingGlassIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5" />
-            </div>
+            </div> */}
           </div>
           <div className="grid grid-cols-1 gap-4">
             {selectedEvent ? (
