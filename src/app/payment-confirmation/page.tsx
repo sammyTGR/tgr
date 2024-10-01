@@ -34,8 +34,8 @@ function PaymentConfirmationContent() {
       <div className="max-w-2xl mx-auto mt-10 p-6 shadow-md rounded-lg">
         <h1 className="text-3xl font-bold mb-6">Payment Verification Failed</h1>
         <p>
-          We couldn't verify your payment. Please contact support if you believe
-          this is an error.
+          We couldn&apos;t verify your payment. Please contact support if you
+          believe this is an error.
         </p>
         <p className="text-red-500 mb-6">{(error as Error).message}</p>
         <Link href="/pricing">
