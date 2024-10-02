@@ -37,7 +37,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./calendar.module.css"; // Create this CSS module file
 import classNames from "classnames";
 import { ShiftFilter } from "./ShiftFilter";
-import { parseISO } from "date-fns";
+import { startOfWeek, addDays, isSameWeek, isFriday, parseISO } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 const title = "TGR Crew Calendar";
 const timeZone = "America/Los_Angeles"; // Define your time zone
@@ -49,13 +50,19 @@ interface CalendarEvent {
   schedule_date: string;
   status?: string;
   employee_id: number; // Ensure this is part of the event
+  birthday?: string;
 }
 
 interface EmployeeCalendar {
   employee_id: number; // Ensure this is part of the employee
   name: string;
+  rank: number;
+  department: string; // Add this line
   events: CalendarEvent[];
 }
+
+let lastAssignedIndex = -1;
+let assignmentCycle: number[] = [];
 
 const daysOfWeek = [
   "Sunday",
@@ -83,6 +90,12 @@ const fetchEmployeeNames = async (): Promise<
     return [];
   }
 };
+
+// Add this type definition
+type BreakRoomDuty = {
+  employee: EmployeeCalendar;
+  dutyDate: Date;
+} | null;
 
 export default function Component() {
   const [data, setData] = useState<{
@@ -152,7 +165,7 @@ export default function Component() {
     const timeZone = "America/Los_Angeles";
     const startOfWeek = toZonedTime(getStartOfWeek(currentDate), timeZone);
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
 
     try {
       const { data, error } = await supabase
@@ -165,7 +178,7 @@ export default function Component() {
           day_of_week,
           status,
           employee_id,
-          employees:employee_id (name)
+          employees:employee_id (name, birthday, department)
         `
         )
         .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
@@ -182,6 +195,8 @@ export default function Component() {
           groupedData[item.employee_id] = {
             employee_id: item.employee_id,
             name: item.employees.name,
+            department: item.employees.department, // Add this line
+            rank: item.employees.rank,
             events: [],
           };
         }
@@ -194,6 +209,7 @@ export default function Component() {
           schedule_date: item.schedule_date,
           status: item.status,
           employee_id: item.employee_id,
+          birthday: item.employees.birthday,
         });
       });
 
@@ -203,6 +219,17 @@ export default function Component() {
       return [];
     }
   }, [currentDate]);
+
+  const {
+    data: calendarData,
+    isLoading: calendarLoading,
+    error: calendarError,
+  } = useQuery({
+    queryKey: ["calendarData", currentDate],
+    queryFn: fetchCalendarData,
+  });
+
+  const employeeNames = calendarData ? calendarData.map((emp) => emp.name) : [];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -356,6 +383,83 @@ export default function Component() {
     }
   };
 
+  const getBreakRoomDutyEmployee = async (
+    employees: EmployeeCalendar[],
+    currentWeekStart: Date
+  ) => {
+    const salesEmployees = employees.filter(
+      (emp) => emp.department === "Sales"
+    );
+    if (salesEmployees.length === 0) return null;
+
+    // If we've completed a cycle or it's the first time, reset the cycle
+    if (
+      lastAssignedIndex === -1 ||
+      lastAssignedIndex >= salesEmployees.length - 1
+    ) {
+      assignmentCycle = salesEmployees.map((_, index) => index);
+      lastAssignedIndex = -1;
+    }
+
+    // Move to the next employee in the cycle
+    lastAssignedIndex++;
+    const selectedEmployeeIndex = assignmentCycle[lastAssignedIndex];
+    const selectedEmployee = salesEmployees[selectedEmployeeIndex];
+
+    // Define the order of days to check, starting with Friday, then Thursday backwards
+    const daysToCheck = [
+      "Friday",
+      "Thursday",
+      "Wednesday",
+      "Tuesday",
+      "Monday",
+      "Saturday",
+      "Sunday",
+    ];
+    let dutyDate = null;
+
+    for (const day of daysToCheck) {
+      const checkDate = addDays(
+        startOfWeek(currentWeekStart),
+        daysOfWeek.indexOf(day)
+      );
+      const formattedDate = format(checkDate, "yyyy-MM-dd");
+
+      const { data: schedules, error } = await supabase
+        .from("schedules")
+        .select("*")
+        .eq("employee_id", selectedEmployee.employee_id)
+        .eq("schedule_date", formattedDate);
+
+      if (error) {
+        console.error("Error fetching schedule:", error);
+        continue;
+      }
+
+      if (schedules && schedules.length > 0) {
+        dutyDate = checkDate;
+        break;
+      }
+    }
+
+    if (!dutyDate) {
+      console.error(
+        "No scheduled work day found for the selected employee this week"
+      );
+      return null;
+    }
+
+    return { employee: selectedEmployee, dutyDate };
+  };
+
+  const { data: breakRoomDuty, isLoading: breakRoomDutyLoading } =
+    useQuery<BreakRoomDuty>({
+      queryKey: ["breakRoomDuty", currentDate],
+      queryFn: () =>
+        getBreakRoomDutyEmployee(calendarData || [], startOfWeek(currentDate)),
+      enabled: !!calendarData,
+    });
+
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
@@ -378,6 +482,21 @@ export default function Component() {
           >
             {eventsByDay[day].map((calendarEvent, index) => (
               <div key={index} className="relative">
+                {calendarEvent.birthday &&
+                isSameDayOfYear(
+                  parseISO(calendarEvent.schedule_date),
+                  parseISO(calendarEvent.birthday)
+                ) ? (
+                  <div className="text-teal-500 dark:text-teal-400 font-bold">
+                    Happy Birthday! 🎉
+                  </div>
+                ) : null}
+                {breakRoomDuty &&
+                breakRoomDuty.employee.employee_id === employee.employee_id &&
+                format(parseISO(calendarEvent.schedule_date), "yyyy-MM-dd") ===
+                  format(breakRoomDuty.dutyDate, "yyyy-MM-dd") ? (
+                  <div className="text-red-500 font-bold">Break Room Duty</div>
+                ) : null}
                 {calendarEvent.status === "added_day" ? (
                   <div className="text-pink-500 dark:text-pink-300">
                     {`${formatTZ(
@@ -551,6 +670,22 @@ export default function Component() {
       </TableRow>
     );
   };
+
+  // Add this helper function at the end of your component or in a separate utils file
+  const isSameDayOfYear = (date1: Date, date2: Date) => {
+    return (
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
+  if (calendarLoading || breakRoomDutyLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (calendarError) {
+    return <div>Error loading calendar data</div>;
+  }
 
   return (
     <RoleBasedWrapper

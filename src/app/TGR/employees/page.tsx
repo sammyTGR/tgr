@@ -82,7 +82,7 @@ export default function EmployeesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Employee updated successfully");
+      // toast.success("Employee updated successfully");
     },
     onError: (error: any) => {
       console.error("Error updating employee:", error);

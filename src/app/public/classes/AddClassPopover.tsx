@@ -106,7 +106,7 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
 
       await onSubmit("", newClass);
 
-      toast.success("Class added successfully");
+      // toast.success("Class added successfully");
       resetForm();
     } catch (error) {
       console.error("Error creating class:", error);

@@ -7,6 +7,7 @@ import { supabase } from "@/utils/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Suspense } from "react";
+import { Progress } from "@/components/ui/progress";
 
 interface ClassDetails {
   id: number;
@@ -106,13 +107,22 @@ function SuccessPageContent() {
               <p>Price: ${classDetails.price.toFixed(2)}</p>
             </div>
           )}
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => (window.location.href = "/public/classes")}
-          >
-            Back to Classes
-          </Button>
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => (window.location.href = "/public/classes")}
+            >
+              Back to Classes
+            </Button>
+            <Button
+              variant="linkHover2"
+              className="mt-4"
+              onClick={() => (window.location.href = "/customer/orders")}
+            >
+              View Your Purchases
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -123,8 +133,11 @@ export default function SuccessPage() {
   return (
     <Suspense
       fallback={
-        <div>
-          We swear, our gnomes are trying their best to get this done ASAP...
+        <div className="flex flex-col items-center justify-center h-screen">
+          <Progress value={33} className="w-[60%] mb-4" />
+          <p>
+            We swear, our gnomes are trying their best to get this done ASAP...
+          </p>
         </div>
       }
     >

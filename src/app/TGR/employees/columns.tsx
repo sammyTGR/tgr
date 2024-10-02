@@ -26,12 +26,12 @@ export const columns: ColumnDef<Employee>[] = [
       <DataTableColumnHeader column={column} title="Extension" />
     ),
   },
-  // {
-  //   accessorKey: "department",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Department" />
-  //   ),
-  // },
+  {
+    accessorKey: "department",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Department" />
+    ),
+  },
   // {
   //   accessorKey: "position",
   //   header: ({ column }) => (
@@ -52,10 +52,10 @@ export const columns: ColumnDef<Employee>[] = [
   //   accessorKey: "phone_number",
   //   header: "Phone Number",
   // },
-  {
-    accessorKey: "lanid",
-    header: "LANID",
-  },
+  // {
+  //   accessorKey: "lanid",
+  //   header: "LANID",
+  // },
   // {
   //   accessorKey: "pay_type",
   //   header: "Pay Type",
