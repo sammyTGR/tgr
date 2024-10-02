@@ -37,8 +37,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./calendar.module.css"; // Create this CSS module file
 import classNames from "classnames";
 import { ShiftFilter } from "./ShiftFilter";
-import { startOfWeek, addDays, isSameWeek, isFriday, parseISO } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { startOfWeek, addDays, isSameWeek, isFriday, parseISO, subDays, isSameDay } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const title = "TGR Crew Calendar";
 const timeZone = "America/Los_Angeles"; // Define your time zone
@@ -97,6 +97,103 @@ type BreakRoomDuty = {
   dutyDate: Date;
 } | null;
 
+const getBreakRoomDutyEmployee = async (
+  employees: EmployeeCalendar[],
+  currentWeekStart: Date
+): Promise<BreakRoomDuty> => {
+  const formattedWeekStart = format(currentWeekStart, "yyyy-MM-dd");
+
+  // Check if there's already an assignment for this week
+  const { data: existingDuty, error: existingDutyError } = await supabase
+    .from("break_room_duty")
+    .select("*")
+    .eq("week_start", formattedWeekStart);
+
+  if (existingDutyError) {
+    console.error("Error fetching existing duty:", existingDutyError);
+    return null;
+  }
+
+  if (existingDuty && existingDuty.length > 0) {
+    const employee = employees.find(emp => emp.employee_id === existingDuty[0].employee_id);
+    return employee ? { employee, dutyDate: new Date(existingDuty[0].duty_date) } : null;
+  }
+
+  // If no existing duty, create a new assignment
+  const salesEmployees = employees.filter(emp => emp.department === "Sales")
+    .sort((a, b) => a.rank - b.rank);
+
+  if (salesEmployees.length === 0) return null;
+
+  // Find the next employee in the rotation
+  const { data: lastAssignment, error: lastAssignmentError } = await supabase
+    .from("break_room_duty")
+    .select("employee_id")
+    .order("week_start", { ascending: false })
+    .limit(1);
+
+  if (lastAssignmentError) {
+    console.error("Error fetching last assignment:", lastAssignmentError);
+    return null;
+  }
+
+  let nextEmployeeIndex = 0;
+  if (lastAssignment && lastAssignment.length > 0) {
+    const lastIndex = salesEmployees.findIndex(emp => emp.employee_id === lastAssignment[0].employee_id);
+    nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+  }
+
+  const selectedEmployee = salesEmployees[nextEmployeeIndex];
+
+  // Define the order of days to check, only Friday
+  const daysToCheck = ["Friday"];
+  let dutyDate = null;
+
+  for (const day of daysToCheck) {
+    const dayIndex = daysOfWeek.indexOf(day);
+    const checkDate = addDays(currentWeekStart, dayIndex);
+    const formattedDate = format(checkDate, "yyyy-MM-dd");
+
+    const { data: schedules, error } = await supabase
+      .from("schedules")
+      .select("*")
+      .eq("employee_id", selectedEmployee.employee_id)
+      .eq("schedule_date", formattedDate)
+      .in("status", ["scheduled", "added_day"]);
+
+    if (error) {
+      console.error("Error fetching schedule:", error);
+      continue;
+    }
+
+    if (schedules && schedules.length > 0) {
+      dutyDate = checkDate;
+      break;
+    }
+  }
+
+  if (!dutyDate) {
+    console.error("No scheduled work day found for the selected employee on Friday this week");
+    return null;
+  }
+
+  // Insert the new assignment into the break_room_duty table
+  const { error: insertError } = await supabase
+    .from("break_room_duty")
+    .insert({
+      week_start: formattedWeekStart,
+      employee_id: selectedEmployee.employee_id,
+      duty_date: format(dutyDate, "yyyy-MM-dd"),
+    });
+
+  if (insertError) {
+    console.error("Error inserting break room duty:", insertError);
+    return null;
+  }
+
+  return { employee: selectedEmployee, dutyDate };
+};
+
 export default function Component() {
   const [data, setData] = useState<{
     calendarData: EmployeeCalendar[];
@@ -113,6 +210,7 @@ export default function Component() {
   const [currentEvent, setCurrentEvent] = useState<CalendarEvent | null>(null);
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const filterEventsByShiftAndDay = (events: CalendarEvent[]) => {
     return events.filter((event) => {
@@ -383,82 +481,17 @@ export default function Component() {
     }
   };
 
-  const getBreakRoomDutyEmployee = async (
-    employees: EmployeeCalendar[],
-    currentWeekStart: Date
-  ) => {
-    const salesEmployees = employees.filter(
-      (emp) => emp.department === "Sales"
-    );
-    if (salesEmployees.length === 0) return null;
-
-    // If we've completed a cycle or it's the first time, reset the cycle
-    if (
-      lastAssignedIndex === -1 ||
-      lastAssignedIndex >= salesEmployees.length - 1
-    ) {
-      assignmentCycle = salesEmployees.map((_, index) => index);
-      lastAssignedIndex = -1;
-    }
-
-    // Move to the next employee in the cycle
-    lastAssignedIndex++;
-    const selectedEmployeeIndex = assignmentCycle[lastAssignedIndex];
-    const selectedEmployee = salesEmployees[selectedEmployeeIndex];
-
-    // Define the order of days to check, starting with Friday, then Thursday backwards
-    const daysToCheck = [
-      "Friday",
-      "Thursday",
-      "Wednesday",
-      "Tuesday",
-      "Monday",
-      "Saturday",
-      "Sunday",
-    ];
-    let dutyDate = null;
-
-    for (const day of daysToCheck) {
-      const checkDate = addDays(
-        startOfWeek(currentWeekStart),
-        daysOfWeek.indexOf(day)
-      );
-      const formattedDate = format(checkDate, "yyyy-MM-dd");
-
-      const { data: schedules, error } = await supabase
-        .from("schedules")
-        .select("*")
-        .eq("employee_id", selectedEmployee.employee_id)
-        .eq("schedule_date", formattedDate);
-
-      if (error) {
-        console.error("Error fetching schedule:", error);
-        continue;
-      }
-
-      if (schedules && schedules.length > 0) {
-        dutyDate = checkDate;
-        break;
-      }
-    }
-
-    if (!dutyDate) {
-      console.error(
-        "No scheduled work day found for the selected employee this week"
-      );
-      return null;
-    }
-
-    return { employee: selectedEmployee, dutyDate };
-  };
-
-  const { data: breakRoomDuty, isLoading: breakRoomDutyLoading } =
-    useQuery<BreakRoomDuty>({
-      queryKey: ["breakRoomDuty", currentDate],
-      queryFn: () =>
-        getBreakRoomDutyEmployee(calendarData || [], startOfWeek(currentDate)),
-      enabled: !!calendarData,
-    });
+  const { data: breakRoomDuty, isLoading: breakRoomDutyLoading, error: breakRoomDutyError } = useQuery<BreakRoomDuty, Error>({
+    queryKey: ["breakRoomDuty", format(startOfWeek(currentDate), "yyyy-MM-dd")],
+    queryFn: () => getBreakRoomDutyEmployee(calendarData || [], startOfWeek(currentDate)),
+    enabled: !!calendarData,
+  });
+  
+  // In your component, add error handling:
+  if (breakRoomDutyError) {
+    console.error("Error fetching break room duty:", breakRoomDutyError);
+    // You can also display an error message to the user here
+  }
 
   const renderEmployeeRow = (employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
@@ -493,8 +526,10 @@ export default function Component() {
                 ) : null}
                 {breakRoomDuty &&
                 breakRoomDuty.employee.employee_id === employee.employee_id &&
-                format(parseISO(calendarEvent.schedule_date), "yyyy-MM-dd") ===
-                  format(breakRoomDuty.dutyDate, "yyyy-MM-dd") ? (
+                isSameDay(
+                  subDays(parseISO(calendarEvent.schedule_date), 1),
+                  breakRoomDuty.dutyDate
+                ) ? (
                   <div className="text-red-500 font-bold">Break Room Duty</div>
                 ) : null}
                 {calendarEvent.status === "added_day" ? (
