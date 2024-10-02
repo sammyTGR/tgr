@@ -444,19 +444,9 @@ export default function Pricing({ user, products, subscription }: Props) {
           })
         ) : (
           filteredSubscriptionProducts.map((product) => {
-            const price = product.prices.find((price) => {
-              if (
-                billingInterval === "monthly" ||
-                billingInterval === "yearly"
-              ) {
-                return (
-                  price.type === "recurring" &&
-                  price.interval === billingInterval
-                );
-              } else {
-                return price.type === "one_time";
-              }
-            });
+            const price = product.prices.find((price) =>
+              price.type === "recurring" && price.interval === billingInterval
+            );
 
             if (!price) return null;
 
@@ -489,11 +479,9 @@ export default function Pricing({ user, products, subscription }: Props) {
                     <span className="flex-shrink text-3xl font-extrabold">
                       {priceString}
                     </span>
-                    {price.type === "recurring" && (
-                      <span className="text-base font-medium">
-                        /{price.interval}
-                      </span>
-                    )}
+                    <span className="text-base font-medium">
+                      /{price.interval}
+                    </span>
                   </p>
                   <Button
                     variant="outline"
@@ -501,11 +489,7 @@ export default function Pricing({ user, products, subscription }: Props) {
                     onClick={() => handleStripeCheckout(price, product)}
                     className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
                   >
-                    {subscription
-                      ? "Manage"
-                      : price.type === "one_time"
-                      ? "Add to Cart"
-                      : "Subscribe"}
+                    {subscription ? "Manage" : "Subscribe"}
                   </Button>
                 </div>
               </div>

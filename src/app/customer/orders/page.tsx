@@ -53,18 +53,17 @@ export default function OrderHistory() {
     ] = await Promise.all([
       supabase
         .from("purchases")
-        .select("id, created_at, amount, quantity, product_name")
+        .select("id, created_at, amount, quantity, product_name, stripe_session_id")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
       supabase
         .from("class_enrollments")
-        .select(
-          `
+        .select(`
           id, 
           created_at, 
-          class_id
-        `
-        )
+          class_id,
+          stripe_session_id
+        `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
     ]);
@@ -72,13 +71,14 @@ export default function OrderHistory() {
     if (purchasesError) throw purchasesError;
     if (enrollmentsError) throw enrollmentsError;
 
-    //console.log('Purchases:', purchases);
-    //console.log('Enrollments:', enrollments);
-
-    const formattedPurchases: Purchase[] = (purchases || []).map((p) => ({
-      ...p,
-      type: "product" as const,
-    }));
+    // Filter out purchases that have a matching stripe_session_id in class_enrollments
+    const enrollmentSessionIds = new Set(enrollments?.map(e => e.stripe_session_id) || []);
+    const formattedPurchases: Purchase[] = (purchases || [])
+      .filter(p => !enrollmentSessionIds.has(p.stripe_session_id))
+      .map((p) => ({
+        ...p,
+        type: "product" as const,
+      }));
 
     const enrollmentsWithDetails: ClassEnrollment[] = await Promise.all(
       (enrollments || []).map(async (e) => {
