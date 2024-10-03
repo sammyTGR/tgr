@@ -6,21 +6,12 @@ import { Database } from "@/types_db"; // Updated import
 
 export async function POST(req: Request) {
   const { sessionId } = await req.json();
-  // console.log(
-  //   `[${new Date().toISOString()}] Received verification request for session ID: ${sessionId}`
-  // );
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    // console.log(
-    //   `[${new Date().toISOString()}] Stripe session:`,
-    //   JSON.stringify(session, null, 2)
-    // );
 
     if (session.payment_status !== "paid") {
-      console.error(
-        `[${new Date().toISOString()}] Payment not successful for session ${sessionId}`
-      );
+      console.error(`Payment not successful for session ${sessionId}`);
       return NextResponse.json(
         { error: "Payment not successful" },
         { status: 400 }
@@ -35,33 +26,23 @@ export async function POST(req: Request) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error(
-        `[${new Date().toISOString()}] Error fetching user:`,
-        userError
-      );
+      console.error(`Error fetching user:`, userError);
       return NextResponse.json(
         { error: "User not authenticated" },
         { status: 401 }
       );
     }
 
-    // console.log(
-    //   `[${new Date().toISOString()}] User ID from Supabase auth:`,
-    //   user.id
-    // );
-
     const classId = session.metadata?.class_id;
     if (!classId) {
-      console.error(
-        `[${new Date().toISOString()}] Class ID not found in session metadata`
-      );
+      console.error(`Class ID not found in session metadata`);
       return NextResponse.json(
         { error: "Class ID not found in session" },
         { status: 400 }
       );
     }
 
-    // Fetch user name (keeping your existing logic)
+    // Fetch user name
     let userName: string;
     const { data: customerData, error: customerError } = await supabase
       .from("customers")
@@ -78,7 +59,7 @@ export async function POST(req: Request) {
 
       if (employeeError || !employeeData) {
         console.error(
-          `[${new Date().toISOString()}] Error fetching user details:`,
+          `Error fetching user details:`,
           employeeError || customerError
         );
         return NextResponse.json(
@@ -91,119 +72,39 @@ export async function POST(req: Request) {
       userName = `${customerData.first_name} ${customerData.last_name}`;
     }
 
-    // console.log(`[${new Date().toISOString()}] User Name:`, userName);
+    // Upsert enrollment
+    const { data: enrollment, error: upsertError } = await supabase
+      .from("class_enrollments")
+      .upsert(
+        {
+          user_id: user.id,
+          class_id: parseInt(classId),
+          payment_status: session.payment_status,
+          stripe_session_id: session.id,
+          user_name: userName,
+        },
+        {
+          onConflict: "user_id,class_id,stripe_session_id",
+        }
+      )
+      .select()
+      .single();
 
-    // Check if enrollment already exists
-    const { data: existingEnrollment, error: existingEnrollmentError } =
-      await supabase
-        .from("class_enrollments")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("class_id", parseInt(classId))
-        .eq("stripe_session_id", session.id)
-        .single();
-
-    if (
-      existingEnrollmentError &&
-      existingEnrollmentError.code !== "PGRST116"
-    ) {
-      console.error(
-        `[${new Date().toISOString()}] Error checking existing enrollment:`,
-        existingEnrollmentError
-      );
+    if (upsertError) {
+      console.error(`Error upserting enrollment:`, upsertError);
       return NextResponse.json(
-        { error: "Error checking existing enrollment" },
+        { error: "Error processing enrollment" },
         { status: 500 }
       );
     }
 
-    if (existingEnrollment) {
-      // console.log(
-      //   `[${new Date().toISOString()}] Enrollment already exists for user ${user.id} and class ${classId}`
-      // );
-      return NextResponse.json({
-        success: true,
-        enrollmentData: existingEnrollment,
-        action: "existing",
-      });
-    }
-
-    // Insert new enrollment only if no existing enrollment was found
-    const enrollmentData = {
-      user_id: user.id,
-      class_id: parseInt(classId),
-      payment_status: session.payment_status,
-      stripe_session_id: session.id,
-      user_name: userName,
-    };
-
-    // console.log(
-    //   `[${new Date().toISOString()}] Inserting new enrollment:`,
-    //   JSON.stringify(enrollmentData, null, 2)
-    // );
-
-    const { data: newEnrollment, error: insertError } = await supabase
-      .from("class_enrollments")
-      .insert(enrollmentData)
-      .select()
-      .single();
-
-    if (insertError) {
-      if (insertError.code === '23505') { // Unique constraint violation
-        // console.log(
-        //   `[${new Date().toISOString()}] Enrollment already exists, fetching existing record`
-        // );
-        const { data: existingEnrollment, error: fetchError } = await supabase
-          .from("class_enrollments")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("class_id", parseInt(classId))
-          .eq("stripe_session_id", session.id)
-          .single();
-
-        if (fetchError) {
-          console.error(
-            `[${new Date().toISOString()}] Error fetching existing enrollment:`,
-            fetchError
-          );
-          return NextResponse.json(
-            { error: "Error fetching existing enrollment" },
-            { status: 500 }
-          );
-        }
-
-        return NextResponse.json({
-          success: true,
-          enrollmentData: existingEnrollment,
-          action: "existing",
-        });
-      } else {
-        console.error(
-          `[${new Date().toISOString()}] Error inserting enrollment:`,
-          insertError
-        );
-        return NextResponse.json(
-          { error: "Error inserting enrollment", details: insertError },
-          { status: 500 }
-        );
-      }
-    }
-
-    // console.log(
-    //   `[${new Date().toISOString()}] New enrollment inserted:`,
-    //   JSON.stringify(newEnrollment, null, 2)
-    // );
-
     return NextResponse.json({
       success: true,
-      enrollmentData: newEnrollment,
-      action: "inserted",
+      enrollmentData: enrollment,
+      action: "upserted",
     });
   } catch (error) {
-    console.error(
-      `[${new Date().toISOString()}] Error verifying payment for session ${sessionId}:`,
-      error
-    );
+    console.error(`Error verifying payment for session ${sessionId}:`, error);
     return NextResponse.json(
       { error: "Error verifying payment" },
       { status: 500 }
