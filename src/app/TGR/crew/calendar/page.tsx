@@ -38,9 +38,9 @@ import styles from "./calendar.module.css"; // Create this CSS module file
 import classNames from "classnames";
 import { ShiftFilter } from "./ShiftFilter";
 import { startOfWeek, addDays, isSameWeek, isFriday, parseISO, subDays, isSameDay } from "date-fns";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
-const title = "TGR Crew Calendar";
+const title = "TGR Team Calendar";
 const timeZone = "America/Los_Angeles"; // Define your time zone
 
 interface CalendarEvent {
@@ -382,14 +382,20 @@ export default function Component() {
     );
   };
 
-  const updateScheduleStatus = async (
-    employee_id: number,
-    schedule_date: string,
-    status: string,
-    start_time?: string,
-    end_time?: string
-  ) => {
-    try {
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      employee_id,
+      schedule_date,
+      status,
+      start_time,
+      end_time,
+    }: {
+      employee_id: number;
+      schedule_date: string;
+      status: string;
+      start_time?: string | null;
+      end_time?: string | null;
+    }) => {
       const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
       const response = await fetch("/api/update_schedule_status", {
         method: "POST",
@@ -409,29 +415,83 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      queryClient.setQueryData(["calendarData", currentDate], (oldData: EmployeeCalendar[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.map(employee => {
-          if (employee.employee_id === employee_id) {
-            return {
-              ...employee,
-              events: employee.events.map(event => {
-                if (event.schedule_date === formattedDate) {
-                  return { ...event, status, start_time, end_time };
-                }
-                return event;
-              }),
-            };
-          }
-          return employee;
-        });
-      });
-    } catch (error) {
-      console.error(
-        "Failed to update schedule status:",
-        (error as Error).message
+      return response.json();
+    },
+    onMutate: async (newStatus) => {
+      await queryClient.cancelQueries({ queryKey: ["calendarData", currentDate] });
+
+      const previousData = queryClient.getQueryData<EmployeeCalendar[]>(["calendarData", currentDate]);
+
+      queryClient.setQueryData<EmployeeCalendar[] | undefined>(
+        ["calendarData", currentDate],
+        (old) => {
+          if (!old) return old;
+          return old.map((employee) => {
+            if (employee.employee_id === newStatus.employee_id) {
+              return {
+                ...employee,
+                events: employee.events.map((event) => {
+                  if (event.schedule_date === newStatus.schedule_date) {
+                    return {
+                      ...event,
+                      status: newStatus.status,
+                      start_time: newStatus.start_time ?? event.start_time,
+                      end_time: newStatus.end_time ?? event.end_time,
+                    };
+                  }
+                  return event;
+                }),
+              };
+            }
+            return employee;
+          });
+        }
       );
-    }
+
+      return { previousData };
+    },
+    onError: (err, newStatus, context) => {
+      queryClient.setQueryData(["calendarData", currentDate], context?.previousData);
+    },
+    onSettled: (data, error, variables) => {
+      if (!error) {
+        queryClient.setQueryData<EmployeeCalendar[] | undefined>(
+          ["calendarData", currentDate],
+          (old) => {
+            if (!old) return old;
+            return old.map((employee) => {
+              if (employee.employee_id === variables.employee_id) {
+                return {
+                  ...employee,
+                  events: employee.events.map((event) => {
+                    if (event.schedule_date === variables.schedule_date) {
+                      return {
+                        ...event,
+                        status: variables.status,
+                        start_time: variables.start_time ?? event.start_time,
+                        end_time: variables.end_time ?? event.end_time,
+                      };
+                    }
+                    return event;
+                  }),
+                };
+              }
+              return employee;
+            });
+          }
+        );
+      }
+    },
+  });
+
+  const updateScheduleStatus = (
+    employee_id: number,
+    schedule_date: string,
+    status: string,
+    start_time?: string,
+    end_time?: string
+  ) => {
+    updateStatusMutation.mutate({ employee_id, schedule_date, status, start_time, end_time });
   };
 
   const handleCustomStatusSubmit = () => {
