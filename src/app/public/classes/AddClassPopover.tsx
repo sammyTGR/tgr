@@ -12,16 +12,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 
 interface PopoverFormProps {
-  onSubmit: (id: string, updates: Partial<ClassScheduleData>) => void;
+  onSubmit: (id: string, updates: Partial<ClassScheduleData>) => Promise<void>;
   buttonText: string;
   placeholder: string;
   initialData?: ClassScheduleData;
-  // setClassSchedules: React.Dispatch<React.SetStateAction<ClassScheduleData[]>>;
 }
 
 interface ClassScheduleData {
   id: number;
-  title: string;
+  name: string;
   description: string;
   start_time: string;
   end_time: string;
@@ -36,19 +35,19 @@ interface ClassScheduleData {
 export const AddClassPopover: React.FC<PopoverFormProps> = ({
   onSubmit,
   buttonText,
-  // setClassSchedules,
 }) => {
-  const [title, setTitle] = useState("");
+  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [price, setPrice] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const validateForm = () => {
-    if (!title.trim()) {
-      toast.error("Please enter a class title");
+    if (!name.trim()) {
+      toast.error("Please enter a class name");
       return false;
     }
     if (!description.trim()) {
@@ -71,11 +70,18 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
       toast.error("Please enter a valid price");
       return false;
     }
+    if (
+      new Date(`${selectedDate.toDateString()} ${endTime}`) <=
+      new Date(`${selectedDate.toDateString()} ${startTime}`)
+    ) {
+      toast.error("End time must be after start time");
+      return false;
+    }
     return true;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || isLoading) return;
 
     setIsLoading(true);
 
@@ -86,30 +92,52 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
           new Date(`${selectedDate!.toISOString().split("T")[0]}T${startTime}`),
           timeZone
         ),
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        { timeZone }
       );
       const endTimeZoned = formatTZ(
         toZonedTime(
           new Date(`${selectedDate!.toISOString().split("T")[0]}T${endTime}`),
           timeZone
         ),
-        "yyyy-MM-dd HH:mm:ss"
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        { timeZone }
       );
 
       const newClass: Partial<ClassScheduleData> = {
-        title,
+        name,
         description,
-        price: parseFloat(price),
+        price: parseFloat(parseFloat(price).toFixed(2)),
         start_time: startTimeZoned,
         end_time: endTimeZoned,
       };
 
-      await onSubmit("", newClass);
+      console.log("Sending data to API:", newClass);
 
-      // toast.success("Class added successfully");
+      // Call the API to create Stripe product and class
+      const response = await fetch("/api/create-stripe-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newClass),
+      });
+
+      const responseData = await response.json();
+      console.log("API response:", responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to create class");
+      }
+
+      // Call onSubmit with the data returned from the API
+      await onSubmit("", responseData.classData);
+
+      toast.success("Class added successfully");
       resetForm();
+      setIsOpen(false);
     } catch (error) {
-      console.error("Error creating class:", error);
+      console.error("Detailed error creating class:", error);
       toast.error(
         `Failed to create class: ${
           error instanceof Error ? error.message : String(error)
@@ -121,7 +149,7 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
   };
 
   const resetForm = () => {
-    setTitle("");
+    setName("");
     setDescription("");
     setStartTime("");
     setEndTime("");
@@ -130,19 +158,19 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="linkHover1">{buttonText}</Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="p-4 w-80">
         <div className="space-y-4">
           <div>
-            <Label htmlFor="title">Class Title</Label>
+            <Label htmlFor="name">Class Name</Label>
             <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter class title"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter class name"
             />
           </div>
           <div>
@@ -170,6 +198,7 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   initialFocus
+                  disabled={(date) => date < new Date()}
                 />
               </PopoverContent>
             </Popover>

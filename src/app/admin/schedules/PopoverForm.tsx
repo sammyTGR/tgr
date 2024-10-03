@@ -52,7 +52,12 @@ interface PopoverFormProps {
     | "editTimesheet"
     | "updateSchedule";
   row?: TimesheetData;
-  fetchSchedule?: (employeeId: number, date: string) => Promise<{ start_time: string; end_time: string } | null>;
+  fetchSchedule?: (
+    employeeId: number,
+    date: string
+  ) => Promise<{ start_time: string; end_time: string } | null>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const PopoverForm: React.FC<PopoverFormProps> = ({
@@ -63,6 +68,8 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   formType,
   row,
   fetchSchedule,
+  open,
+  onOpenChange,
 }) => {
   const [employeeName, setEmployeeName] = useState("");
   const [weeks, setWeeks] = useState("");
@@ -152,6 +159,9 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
       );
     }
     resetForm();
+    if (onOpenChange) {
+      onOpenChange(false);
+    }
   };
 
   const resetForm = () => {
@@ -182,7 +192,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="linkHover2">{buttonText}</Button>
       </PopoverTrigger>
@@ -251,7 +261,8 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                   className="mt-2"
                 />
               )}
-              {(formType === "addSchedule" || formType === "updateSchedule") && (
+              {(formType === "addSchedule" ||
+                formType === "updateSchedule") && (
                 <>
                   <div>
                     <Label>Date</Label>

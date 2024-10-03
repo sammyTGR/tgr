@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AddClassPopover } from "./AddClassPopover";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +21,7 @@ import {
   isSameMonth,
   getDay,
 } from "date-fns";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/context/RoleContext";
@@ -28,6 +29,7 @@ import { EditClassPopover } from "./EditClassPopover";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PaymentButton } from "@/components/PaymentButton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface ClassSchedule {
   id: number;
@@ -43,142 +45,190 @@ export interface ClassSchedule {
   updated_at?: string;
 }
 
+const timeZone = "America/Los_Angeles";
+
 export default function Component() {
   const [editingClass, setEditingClass] = useState<ClassSchedule | null>(null);
-  const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<ClassSchedule[] | null>(
     null
   );
   const { role } = useRole();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const isAdmin = role === "admin" || role === "super admin";
 
-  useEffect(() => {
-    const fetchClassSchedules = async () => {
+  const {
+    data: classSchedules,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["classSchedules"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("class_schedules")
         .select("*")
         .order("start_time");
 
-      if (error) {
-        console.error("Error fetching class schedules:", error);
-      } else if (data) {
-        setClassSchedules(data);
+      if (error) throw error;
+      return data as ClassSchedule[];
+    },
+  });
+
+  const addClassMutation = useMutation({
+    mutationFn: async (newClass: Partial<ClassSchedule>) => {
+      const response = await fetch("/api/create-stripe-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newClass),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add class");
       }
-    };
-    fetchClassSchedules();
-  }, []);
 
-  const handleDateClick = (day: Date) => {
-    const eventsForDay = classSchedules.filter((event) =>
-      isSameDay(new Date(event.start_time), day)
-    );
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classSchedules"] });
+    },
+  });
 
-    setSelectedEvent(eventsForDay.length > 0 ? eventsForDay : null);
-  };
+  const editClassMutation = useMutation({
+    mutationFn: async (updatedClass: ClassSchedule) => {
+      const formattedStartTime = formatTZ(
+        toZonedTime(new Date(updatedClass.start_time), timeZone),
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        { timeZone }
+      );
+      const formattedEndTime = formatTZ(
+        toZonedTime(new Date(updatedClass.end_time), timeZone),
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        { timeZone }
+      );
+
+      const { data, error } = await supabase
+        .from("class_schedules")
+        .update({
+          ...updatedClass,
+          start_time: formattedStartTime,
+          end_time: formattedEndTime,
+        })
+        .eq("id", updatedClass.id)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classSchedules"] });
+    },
+  });
+
+  const deleteClassMutation = useMutation({
+    mutationFn: async (classId: number) => {
+      // Fetch the class details to get Stripe IDs
+      const { data: classData, error: fetchError } = await supabase
+        .from("class_schedules")
+        .select("stripe_product_id, stripe_price_id")
+        .eq("id", classId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete from Stripe
+      const stripeResponse = await fetch("/api/delete-stripe-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: classData.stripe_product_id,
+          priceId: classData.stripe_price_id,
+        }),
+      });
+
+      if (!stripeResponse.ok) {
+        const errorText = await stripeResponse.text();
+        throw new Error(errorText);
+      }
+
+      // Delete from Supabase
+      const { error } = await supabase
+        .from("class_schedules")
+        .delete()
+        .eq("id", classId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, deletedClassId) => {
+      queryClient.invalidateQueries({ queryKey: ["classSchedules"] });
+      // Update the selectedEvent state
+      setSelectedEvent((prevEvents) =>
+        prevEvents
+          ? prevEvents.filter((event) => event.id !== deletedClassId)
+          : null
+      );
+    },
+  });
 
   const handleAddClass = async (
     id: string,
     newClass: Partial<ClassSchedule>
   ) => {
     try {
-      const { data, error } = await supabase
-        .from("class_schedules")
-        .insert([newClass])
-        .select();
-
-      if (error) {
-        console.error("Error adding class:", error);
-        toast.error("Failed to add class. Please try again.");
-      } else if (data && data.length > 0) {
-        setClassSchedules((prev) => [...prev, data[0] as ClassSchedule]);
-
-        // Update selectedEvent if the new class is on the currently selected date
-        const newClassDate = new Date(data[0].start_time);
-        if (
-          selectedEvent &&
-          selectedEvent.length > 0 &&
-          isSameDay(newClassDate, new Date(selectedEvent[0].start_time))
-        ) {
-          setSelectedEvent((prev) =>
-            prev
-              ? [...prev, data[0] as ClassSchedule]
-              : [data[0] as ClassSchedule]
-          );
-        }
-
-        toast.success("Class added successfully");
-      }
+      await addClassMutation.mutateAsync(newClass);
+      toast.success("Class added successfully");
     } catch (error) {
       console.error("Error adding class:", error);
-      toast.error("An unexpected error occurred. Please try again.");
+      toast.error("Failed to add class");
     }
-  };
-
-  const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
-  });
-
-  const goToPreviousMonth = () => {
-    setCurrentMonth((prevMonth) => subMonths(prevMonth, 1));
-  };
-
-  const goToNextMonth = () => {
-    setCurrentMonth((prevMonth) => addMonths(prevMonth, 1));
   };
 
   const handleEditClass = async (
     updatedClass: ClassSchedule
   ): Promise<void> => {
-    const { data, error } = await supabase
-      .from("class_schedules")
-      .update(updatedClass)
-      .eq("id", updatedClass.id)
-      .select();
-
-    if (error) {
-      console.error("Error updating class:", error);
-      toast.error("Failed to update class. Please try again.");
-    } else {
-      setClassSchedules((prevSchedules) =>
-        prevSchedules.map((schedule) =>
-          schedule.id === updatedClass.id ? updatedClass : schedule
-        )
-      );
-      setSelectedEvent((prevEvents) =>
-        prevEvents
-          ? prevEvents.map((event) =>
-              event.id === updatedClass.id ? updatedClass : event
-            )
-          : null
-      );
+    try {
+      await editClassMutation.mutateAsync(updatedClass);
       setEditingClass(null);
       toast.success("Class updated successfully");
+    } catch (error) {
+      console.error("Error updating class:", error);
+      toast.error("Failed to update class. Please try again.");
     }
   };
 
   const handleDeleteClass = async (classId: number) => {
-    const { error } = await supabase
-      .from("class_schedules")
-      .delete()
-      .eq("id", classId);
-
-    if (error) {
+    try {
+      await deleteClassMutation.mutateAsync(classId);
+      toast.success("Class deleted successfully");
+    } catch (error) {
       console.error("Error deleting class:", error);
-    } else {
-      setClassSchedules((prevSchedules) =>
-        prevSchedules.filter((schedule) => schedule.id !== classId)
-      );
-      setSelectedEvent((prevEvents) =>
-        prevEvents ? prevEvents.filter((event) => event.id !== classId) : null
-      );
+      toast.error("Failed to delete class. Please try again.");
     }
   };
 
-  // Add these new functions and constants
+  const handleDateClick = (day: Date) => {
+    const eventsForDay = classSchedules?.filter((event) =>
+      isSameDay(toZonedTime(new Date(event.start_time), timeZone), day)
+    );
+
+    setSelectedEvent(
+      eventsForDay && eventsForDay.length > 0 ? eventsForDay : null
+    );
+  };
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth((prevMonth: Date) => subMonths(prevMonth, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth((prevMonth: Date) => addMonths(prevMonth, 1));
+  };
+
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const getCalendarDays = (date: Date) => {
@@ -196,6 +246,9 @@ export default function Component() {
     }
     return classes;
   };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>An error occurred: {error.message}</div>;
 
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -237,8 +290,11 @@ export default function Component() {
               </div>
             ))}
             {calendarDays.map((day, index) => {
-              const eventsForDay = classSchedules.filter((event) =>
-                isSameDay(new Date(event.start_time), day)
+              const eventsForDay = classSchedules?.filter((event) =>
+                isSameDay(
+                  toZonedTime(new Date(event.start_time), timeZone),
+                  day
+                )
               );
 
               return (
@@ -251,7 +307,7 @@ export default function Component() {
                   }}
                 >
                   <span>{format(day, "d")}</span>
-                  {eventsForDay.length > 0 && (
+                  {eventsForDay && eventsForDay.length > 0 && (
                     <div className="absolute bottom-0 left-0 w-full h-1 bg-green-500" />
                   )}
                 </div>
@@ -264,14 +320,14 @@ export default function Component() {
         <div className="rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">Class Details</h2>
-            {/* <div className="relative">
+            <div className="relative">
               <Input
                 className="pr-10"
                 placeholder="Search by class name"
                 type="search"
               />
               <MagnifyingGlassIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5" />
-            </div> */}
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-4">
             {selectedEvent ? (
@@ -286,8 +342,23 @@ export default function Component() {
                     </h3>
                     <p>{event.description || "No description available"}</p>
                     <p>
-                      {new Date(event.start_time).toLocaleDateString()} -{" "}
-                      {new Date(event.start_time).toLocaleTimeString()}
+                      {formatTZ(
+                        toZonedTime(new Date(event.start_time), timeZone),
+                        "M/dd/yy",
+                        { timeZone }
+                      )}{" "}
+                      :{" "}
+                      {formatTZ(
+                        toZonedTime(new Date(event.start_time), timeZone),
+                        "h:mm a",
+                        { timeZone }
+                      )}{" "}
+                      -{" "}
+                      {formatTZ(
+                        toZonedTime(new Date(event.end_time), timeZone),
+                        "h:mm a",
+                        { timeZone }
+                      )}
                     </p>
                   </div>
                   <div className="flex flex-col space-y-2">

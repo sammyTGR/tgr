@@ -3,18 +3,21 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/utils/stripe/config";
 import { createClient } from "@/utils/supabase/server";
-import Stripe from "stripe";
 
 export async function POST(req: Request) {
   try {
     const { name, description, price, start_time, end_time } = await req.json();
+    console.log("Received data:", {
+      name,
+      description,
+      price,
+      start_time,
+      end_time,
+    });
 
-    // Convert price to cents for Stripe
-    const priceCents = Math.round(parseFloat(price) * 100);
-
-    let product: Stripe.Product;
+    // Create Stripe product with metadata
+    let product;
     try {
-      // Create Stripe product with metadata
       product = await stripe.products.create({
         name,
         description,
@@ -23,7 +26,7 @@ export async function POST(req: Request) {
           training: "true",
         },
       });
-      console.log("Created Stripe product:", JSON.stringify(product, null, 2));
+      console.log("Stripe product created:", product);
     } catch (stripeError) {
       console.error("Error creating Stripe product:", stripeError);
       return NextResponse.json(
@@ -32,14 +35,15 @@ export async function POST(req: Request) {
       );
     }
 
-    let priceObject: Stripe.Price;
+    // Create Stripe price
+    let stripePrice;
     try {
-      // Create Stripe price
-      priceObject = await stripe.prices.create({
+      stripePrice = await stripe.prices.create({
         product: product.id,
-        unit_amount: priceCents,
+        unit_amount: Math.round(price * 100), // Stripe uses cents
         currency: "usd",
       });
+      console.log("Stripe price created:", stripePrice);
     } catch (stripeError) {
       console.error("Error creating Stripe price:", stripeError);
       return NextResponse.json(
@@ -50,20 +54,34 @@ export async function POST(req: Request) {
 
     const supabase = createClient();
 
-    // Insert into class_schedules table only
-    const { data, error } = await supabase
-      .from("class_schedules")
-      .insert({
-        title: name,
-        description,
-        price,
-        start_time,
-        end_time,
-        stripe_product_id: product.id,
-        stripe_price_id: priceObject.id,
-      })
-      .select()
-      .single();
+    // Insert into class_schedules table
+    let data, error;
+    try {
+      const result = await supabase
+        .from("class_schedules")
+        .insert({
+          title: name, // Use 'title' instead of 'name' to match the table structure
+          description,
+          price,
+          start_time,
+          end_time,
+          stripe_product_id: product.id,
+          stripe_price_id: stripePrice.id,
+        })
+        .select()
+        .single();
+
+      data = result.data;
+      error = result.error;
+
+      console.log("Supabase insert result:", { data, error });
+    } catch (supabaseError) {
+      console.error("Error inserting into class_schedules:", supabaseError);
+      return NextResponse.json(
+        { error: "Error creating class schedule", details: supabaseError },
+        { status: 500 }
+      );
+    }
 
     if (error) {
       console.error("Error inserting into class_schedules:", error);
@@ -75,7 +93,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       productId: product.id,
-      priceId: priceObject.id,
+      priceId: stripePrice.id,
       classData: data,
       productMetadata: product.metadata,
     });

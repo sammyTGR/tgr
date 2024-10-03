@@ -129,6 +129,10 @@ const ManageSchedules = () => {
     { employee_id: number; name: string }[]
   >([]);
   const [timesheets, setTimesheets] = useState<TimesheetData[]>([]);
+  const [addSchedulePopoverOpen, setAddSchedulePopoverOpen] = useState(false);
+  const [updateSchedulePopoverOpen, setUpdateSchedulePopoverOpen] =
+    useState(false);
+
   useEffect(() => {
     fetchReferenceSchedules();
     fetchActualSchedules();
@@ -599,9 +603,9 @@ const ManageSchedules = () => {
         console.error("Error adding/updating schedule:", result.error);
         toast.error("Failed to add/update schedule");
       } else {
-        // console.log("Schedule added/updated successfully:", result.data);
         fetchActualSchedules();
         toast.success("Schedule added/updated successfully");
+        setAddSchedulePopoverOpen(false); // Close the popover
       }
     } else {
       console.error(
@@ -636,6 +640,7 @@ const ManageSchedules = () => {
     } else {
       toast.success(`Updated schedule for ${employeeName} on ${date}`);
       fetchReferenceSchedules();
+      setUpdateSchedulePopoverOpen(false);
     }
   };
 
@@ -740,25 +745,13 @@ const ManageSchedules = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
-                    onSubmit={(
-                      employeeName: string,
-                      _,
-                      date?: string,
-                      startTime?: string,
-                      endTime?: string
-                    ) =>
-                      handleAddSchedule(
-                        employeeName,
-                        undefined,
-                        date,
-                        startTime,
-                        endTime
-                      )
-                    }
+                    onSubmit={handleAddSchedule}
                     buttonText="Add An Unscheduled Shift"
                     placeholder="Enter employee name and details"
                     formType="addSchedule"
                     employees={employees}
+                    open={addSchedulePopoverOpen}
+                    onOpenChange={setAddSchedulePopoverOpen}
                   />
                 </CardContent>
               </Card>
@@ -769,26 +762,14 @@ const ManageSchedules = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
-                    onSubmit={(
-                      employeeName: string,
-                      _,
-                      date?: string,
-                      startTime?: string,
-                      endTime?: string
-                    ) =>
-                      handleUpdateSchedule(
-                        employeeName,
-                        undefined,
-                        date,
-                        startTime,
-                        endTime
-                      )
-                    }
+                    onSubmit={handleUpdateSchedule}
                     buttonText="Update Existing Shift"
                     placeholder="Enter employee name and details"
                     formType="updateSchedule"
                     employees={employees}
                     fetchSchedule={fetchSchedule}
+                    open={updateSchedulePopoverOpen}
+                    onOpenChange={setUpdateSchedulePopoverOpen}
                   />
                 </CardContent>
               </Card>
