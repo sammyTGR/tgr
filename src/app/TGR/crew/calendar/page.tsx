@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
@@ -116,7 +116,10 @@ const getBreakRoomDutyEmployee = async (
 
   if (existingDuty && existingDuty.length > 0) {
     const employee = employees.find(emp => emp.employee_id === existingDuty[0].employee_id);
-    return employee ? { employee, dutyDate: new Date(existingDuty[0].duty_date) } : null;
+    return employee ? { 
+      employee, 
+      dutyDate: parseISO(existingDuty[0].duty_date)
+    } : null;
   }
 
   // If no existing duty, create a new assignment
@@ -191,18 +194,13 @@ const getBreakRoomDutyEmployee = async (
     return null;
   }
 
-  return { employee: selectedEmployee, dutyDate };
+  return { 
+    employee: selectedEmployee, 
+    dutyDate: dutyDate
+  };
 };
 
 export default function Component() {
-  const [data, setData] = useState<{
-    calendarData: EmployeeCalendar[];
-    employeeNames: string[];
-  }>({
-    calendarData: [],
-    employeeNames: [],
-  });
-  const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const role = useRole().role; // Access the role property directly
   const [customStatus, setCustomStatus] = useState("");
@@ -211,55 +209,9 @@ export default function Component() {
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const queryClient = useQueryClient();
-
-  const filterEventsByShiftAndDay = (events: CalendarEvent[]) => {
-    return events.filter((event) => {
-      // Filter by selected day if any
-      if (selectedDay && event.day_of_week !== selectedDay) {
-        return false;
-      }
-
-      // Filter by shift if any are selected
-      if (selectedShifts.length > 0) {
-        const startTime = event.start_time
-          ? new Date(`1970-01-01T${event.start_time}`)
-          : null;
-        if (!startTime) return false;
-        const hours = startTime.getHours();
-        const minutes = startTime.getMinutes();
-        const time = hours + minutes / 60;
-
-        return (
-          (selectedShifts.includes("morning") && time < 10) ||
-          (selectedShifts.includes("mid") && time >= 10 && time < 11.5) ||
-          (selectedShifts.includes("closing") && time >= 11.5)
-        );
-      }
-
-      return true;
-    });
-  };
-
-  const filteredCalendarData = data.calendarData
-    .map((employee) => ({
-      ...employee,
-      events: filterEventsByShiftAndDay(employee.events),
-    }))
-    .filter((employee) => employee.events.length > 0);
-
-  const handleDayClick = (day: string) => {
-    if (role === "admin" || role === "super admin" || role === "user") {
-      setSelectedDay((prevDay) => (prevDay === day ? null : day));
-    }
-  };
-
-  const handleShiftFilter = (shifts: string[]) => {
-    setSelectedShifts(shifts);
-  };
-
-  const fetchCalendarData = useCallback(async (): Promise<
-    EmployeeCalendar[]
-  > => {
+  const [lateStartTime, setLateStartTime] = useState("");
+  
+  const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
     const timeZone = "America/Los_Angeles";
     const startOfWeek = toZonedTime(getStartOfWeek(currentDate), timeZone);
     const endOfWeek = new Date(startOfWeek);
@@ -276,7 +228,7 @@ export default function Component() {
           day_of_week,
           status,
           employee_id,
-          employees:employee_id (name, birthday, department)
+          employees:employee_id (name, birthday, department, rank)
         `
         )
         .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
@@ -293,13 +245,12 @@ export default function Component() {
           groupedData[item.employee_id] = {
             employee_id: item.employee_id,
             name: item.employees.name,
-            department: item.employees.department, // Add this line
+            department: item.employees.department,
             rank: item.employees.rank,
             events: [],
           };
         }
 
-        const timeZone = "America/Los_Angeles";
         groupedData[item.employee_id].events.push({
           day_of_week: item.day_of_week,
           start_time: item.start_time ? item.start_time : null,
@@ -318,6 +269,25 @@ export default function Component() {
     }
   }, [currentDate]);
 
+  
+
+  const filterEventsByShiftAndDay = useCallback((events: CalendarEvent[]) => {
+    return events.filter((event) => {
+      if (selectedDay && event.day_of_week !== selectedDay) return false;
+      if (selectedShifts.length > 0) {
+        const startTime = event.start_time ? new Date(`1970-01-01T${event.start_time}`) : null;
+        if (!startTime) return false;
+        const time = startTime.getHours() + startTime.getMinutes() / 60;
+        return (
+          (selectedShifts.includes("morning") && time < 10) ||
+          (selectedShifts.includes("mid") && time >= 10 && time < 11.5) ||
+          (selectedShifts.includes("closing") && time >= 11.5)
+        );
+      }
+      return true;
+    });
+  }, [selectedDay, selectedShifts]);
+
   const {
     data: calendarData,
     isLoading: calendarLoading,
@@ -327,56 +297,33 @@ export default function Component() {
     queryFn: fetchCalendarData,
   });
 
-  const employeeNames = calendarData ? calendarData.map((emp) => emp.name) : [];
+  const employeeNames = useMemo(() => 
+    calendarData ? calendarData.map((emp) => emp.name) : []
+  , [calendarData]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [calendarData, employeeData] = await Promise.all([
-        fetchCalendarData(),
-        fetchEmployeeNames(),
-      ]);
+  const filteredCalendarData = useMemo(() => {
+    if (!calendarData) return [];
+    return calendarData
+      .map((employee) => ({
+        ...employee,
+        events: filterEventsByShiftAndDay(employee.events),
+      }))
+      .filter((employee) => employee.events.length > 0);
+  }, [calendarData, filterEventsByShiftAndDay]);
 
-      const employeeRanks = employeeData.reduce((acc, employee) => {
-        acc[employee.name] = employee.rank;
-        return acc;
-      }, {} as { [key: string]: number });
+  const sortedFilteredCalendarData = useMemo(() => {
+    return [...filteredCalendarData].sort((a, b) => a.rank - b.rank);
+  }, [filteredCalendarData]);
 
-      calendarData.sort(
-        (a, b) => employeeRanks[a.name] - employeeRanks[b.name]
-      );
+  const handleDayClick = (day: string) => {
+    if (role === "admin" || role === "super admin" || role === "user") {
+      setSelectedDay((prevDay) => (prevDay === day ? null : day));
+    }
+  };
 
-      setData({ calendarData, employeeNames: employeeData.map((e) => e.name) });
-    };
-
-    fetchData();
-
-    const timeOffSubscription = supabase
-      .channel("time_off_requests")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "time_off_requests" },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    const schedulesSubscription = supabase
-      .channel("schedules")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "schedules" },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(timeOffSubscription);
-      supabase.removeChannel(schedulesSubscription);
-    };
-  }, [fetchCalendarData]);
+  const handleShiftFilter = (shifts: string[]) => {
+    setSelectedShifts(shifts);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -389,7 +336,14 @@ export default function Component() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
+  const getStartOfWeek = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    const diff = start.getDate() - day;
+    return new Date(start.setDate(diff));
+  };
+
+  const weekDates = useMemo(() => {
     const startOfWeek = getStartOfWeek(currentDate);
     const weekDatesTemp: { [key: string]: string } = {};
     daysOfWeek.forEach((day, index) => {
@@ -397,15 +351,10 @@ export default function Component() {
       date.setDate(startOfWeek.getDate() + index);
       weekDatesTemp[day] = `${date.getMonth() + 1}/${date.getDate()}`;
     });
-    setWeekDates(weekDatesTemp);
+    return weekDatesTemp;
   }, [currentDate]);
 
-  const getStartOfWeek = (date: Date) => {
-    const start = new Date(date);
-    const day = start.getDay();
-    const diff = start.getDate() - day;
-    return new Date(start.setDate(diff));
-  };
+
 
   const handlePreviousWeek = () => {
     setCurrentDate((prev) => {
@@ -460,7 +409,23 @@ export default function Component() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      await fetchCalendarData();
+      queryClient.setQueryData(["calendarData", currentDate], (oldData: EmployeeCalendar[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(employee => {
+          if (employee.employee_id === employee_id) {
+            return {
+              ...employee,
+              events: employee.events.map(event => {
+                if (event.schedule_date === formattedDate) {
+                  return { ...event, status, start_time, end_time };
+                }
+                return event;
+              }),
+            };
+          }
+          return employee;
+        });
+      });
     } catch (error) {
       console.error(
         "Failed to update schedule status:",
@@ -493,7 +458,7 @@ export default function Component() {
     // You can also display an error message to the user here
   }
 
-  const renderEmployeeRow = (employee: EmployeeCalendar) => {
+  const renderEmployeeRow = useCallback((employee: EmployeeCalendar) => {
     const eventsByDay: { [key: string]: CalendarEvent[] } = {};
     daysOfWeek.forEach((day) => {
       eventsByDay[day] = employee.events.filter(
@@ -526,29 +491,16 @@ export default function Component() {
                 ) : null}
                 {breakRoomDuty &&
                 breakRoomDuty.employee.employee_id === employee.employee_id &&
-                isSameDay(
-                  subDays(parseISO(calendarEvent.schedule_date), 1),
-                  breakRoomDuty.dutyDate
-                ) ? (
-                  <div className="text-red-500 font-bold">Break Room Duty</div>
+                isSameDay(parseISO(calendarEvent.schedule_date), breakRoomDuty.dutyDate) &&
+                (calendarEvent.status === "scheduled" || calendarEvent.status === "added_day") ? (
+                  <div className="text-pink-600 font-bold">
+                    Break Room Duty 🧹
+                    {!isFriday(breakRoomDuty.dutyDate) && " (Rescheduled)"}
+                  </div>
                 ) : null}
                 {calendarEvent.status === "added_day" ? (
                   <div className="text-pink-500 dark:text-pink-300">
-                    {`${formatTZ(
-                      toZonedTime(
-                        new Date(`1970-01-01T${calendarEvent.start_time}`),
-                        timeZone
-                      ),
-                      "h:mma",
-                      { timeZone }
-                    )}-${formatTZ(
-                      toZonedTime(
-                        new Date(`1970-01-01T${calendarEvent.end_time}`),
-                        timeZone
-                      ),
-                      "h:mma",
-                      { timeZone }
-                    )}`}
+                    {formatTime(calendarEvent.start_time)}-{formatTime(calendarEvent.end_time)}
                   </div>
                 ) : calendarEvent.start_time && calendarEvent.end_time ? (
                   calendarEvent.status === "time_off" ? (
@@ -556,7 +508,7 @@ export default function Component() {
                       Approved Time Off
                     </div>
                   ) : calendarEvent.status === "called_out" ? (
-                    <div className="text-red-500 dark:text-red-400">
+                    <div className="text-red-600 dark:text-red-600">
                       Called Out
                     </div>
                   ) : calendarEvent.status === "left_early" ? (
@@ -565,53 +517,26 @@ export default function Component() {
                     </div>
                   ) : calendarEvent.status === "updated_shift" ? (
                     <div className="text-orange-500 dark:text-orange-400">
-                      {`${formatTZ(
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.start_time}`),
-                          timeZone
-                        ),
-                        "h:mma",
-                        { timeZone }
-                      )}-${formatTZ(
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.end_time}`),
-                          timeZone
-                        ),
-                        "h:mma",
-                        { timeZone }
-                      )}`}
+                      {formatTime(calendarEvent.start_time)}-{formatTime(calendarEvent.end_time)}
                     </div>
                   ) : calendarEvent.status &&
                     calendarEvent.status.startsWith("Custom:") ? (
                     <div className="text-green-500 dark:text-green-400">
                       {calendarEvent.status.replace("Custom:", "").trim()}
                     </div>
+                  ) : calendarEvent.status && calendarEvent.status.startsWith("Late Start") ? (
+                    <div className="text-red-500 dark:text-red-400">
+                      {calendarEvent.status}
+                    </div>
                   ) : (
                     <div
                       className={
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.start_time}`),
-                          timeZone
-                        ).getHours() < 12
+                        new Date(`1970-01-01T${calendarEvent.start_time}`).getHours() < 12
                           ? "text-amber-500 dark:text-amber-400"
                           : "text-blue-500 dark:text-blue-400"
                       }
                     >
-                      {`${formatTZ(
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.start_time}`),
-                          timeZone
-                        ),
-                        "h:mma",
-                        { timeZone }
-                      )}-${formatTZ(
-                        toZonedTime(
-                          new Date(`1970-01-01T${calendarEvent.end_time}`),
-                          timeZone
-                        ),
-                        "h:mma",
-                        { timeZone }
-                      )}`}
+                      {formatTime(calendarEvent.start_time)}-{formatTime(calendarEvent.end_time)}
                     </div>
                   )
                 ) : null}
@@ -671,21 +596,29 @@ export default function Component() {
                                 setDialogOpen(true);
                               }}
                             >
-                              Custom Status
+                              Late Start
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
-                            <DialogTitle className="p-4">
-                              Enter Custom Status
-                            </DialogTitle>
-                            <Textarea
-                              value={customStatus}
-                              onChange={(e) => setCustomStatus(e.target.value)}
-                              placeholder="Enter custom status"
+                            <DialogTitle className="p-4">Enter Late Start Time</DialogTitle>
+                            <input
+                              type="time"
+                              value={lateStartTime}
+                              onChange={(e) => setLateStartTime(e.target.value)}
+                              className="border rounded p-2"
                             />
                             <Button
                               variant="linkHover1"
-                              onClick={handleCustomStatusSubmit}
+                              onClick={() => {
+                                const formattedTime = new Date(`1970-01-01T${lateStartTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                updateScheduleStatus(
+                                  calendarEvent.employee_id,
+                                  calendarEvent.schedule_date,
+                                  `Late Start ${formattedTime}`
+                                );
+                                setDialogOpen(false);
+                                setLateStartTime("");
+                              }}
                             >
                               Submit
                             </Button>
@@ -704,7 +637,7 @@ export default function Component() {
         ))}
       </TableRow>
     );
-  };
+  }, [breakRoomDuty, role, updateScheduleStatus, formatTime, dialogOpen, lateStartTime]);
 
   // Add this helper function at the end of your component or in a separate utils file
   const isSameDayOfYear = (date1: Date, date2: Date) => {
@@ -802,8 +735,12 @@ export default function Component() {
                       }`}
                     >
                       <TableBody>
-                        {filteredCalendarData.map((employee) =>
-                          renderEmployeeRow(employee)
+                        {sortedFilteredCalendarData.length > 0 ? (
+                          sortedFilteredCalendarData.map((employee) => renderEmployeeRow(employee))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={8}>No schedules found</TableCell>
+                          </TableRow>
                         )}
                       </TableBody>
                     </Table>

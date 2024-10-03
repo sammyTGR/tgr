@@ -6,6 +6,7 @@ import ShiftUpdated from "../../../../emails/ShiftUpdated";
 import LeftEarly from "../../../../emails/LeftEarly";
 import CustomStatus from "../../../../emails/CustomStatus";
 import CalledOut from "../../../../emails/CalledOut";
+import LateStart from "../../../../emails/LateStart";
 import { format, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
@@ -101,55 +102,66 @@ export async function POST(request: Request) {
     let EmailTemplate: React.ComponentType<any>;
     let templateData: any;
 
-    switch (status) {
-      case "added_day":
-        subject = "New Shift Added to Your Schedule";
-        EmailTemplate = ShiftAdded;
-        templateData = {
-          name: employeeName,
-          date: formattedDate,
-          startTime: start_time,
-          endTime: end_time,
-        };
-        break;
-      case "updated_shift":
-        subject = "Your Shift Has Been Updated";
-        EmailTemplate = ShiftUpdated;
-        templateData = {
-          name: employeeName,
-          date: formattedDate,
-          startTime: start_time,
-          endTime: end_time,
-        };
-        break;
-      case "left_early":
-        subject = "Left Early Notification";
-        EmailTemplate = LeftEarly;
-        templateData = {
-          name: employeeName,
-          date: formattedDate,
-        };
-        break;
-      case "called_out":
-        subject = "Called Out Confirmation";
-        EmailTemplate = CalledOut;
-        templateData = {
-          name: employeeName,
-          date: formattedDate,
-        };
-        break;
-      default:
-        if (status.startsWith("Custom:")) {
-          subject = "Schedule Update";
-          EmailTemplate = CustomStatus;
+    if (status.startsWith("Late Start")) {
+      const lateStartTime = status.split("Late Start ")[1];
+      subject = "Late Start Notification";
+      EmailTemplate = LateStart;
+      templateData = {
+        name: employeeName,
+        date: formattedDate,
+        startTime: lateStartTime,
+      };
+    } else {
+      switch (status) {
+        case "added_day":
+          subject = "New Shift Added to Your Schedule";
+          EmailTemplate = ShiftAdded;
           templateData = {
             name: employeeName,
             date: formattedDate,
-            status: status.replace("Custom:", "").trim(),
+            startTime: start_time,
+            endTime: end_time,
           };
-        } else {
-          throw new Error("Invalid status");
-        }
+          break;
+        case "updated_shift":
+          subject = "Your Shift Has Been Updated";
+          EmailTemplate = ShiftUpdated;
+          templateData = {
+            name: employeeName,
+            date: formattedDate,
+            startTime: start_time,
+            endTime: end_time,
+          };
+          break;
+        case "left_early":
+          subject = "Left Early Notification";
+          EmailTemplate = LeftEarly;
+          templateData = {
+            name: employeeName,
+            date: formattedDate,
+          };
+          break;
+        case "called_out":
+          subject = "Called Out Confirmation";
+          EmailTemplate = CalledOut;
+          templateData = {
+            name: employeeName,
+            date: formattedDate,
+          };
+          break;
+        default:
+          if (status.startsWith("Custom:")) {
+            subject = "Schedule Update";
+            EmailTemplate = CustomStatus;
+            templateData = {
+              name: employeeName,
+              date: formattedDate,
+              status: status.replace("Custom:", "").trim(),
+            };
+          } else {
+            throw new Error("Invalid status");
+          }
+      }
     }
 
     try {
