@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useTransition } from "react";
 import { Price } from "@/types_db";
 import { supabase } from "@/utils/supabase/client";
+import { format, toZonedTime } from "date-fns-tz";
 
 type Product = Tables<"products"> & {
   prices: Tables<"prices">[];
@@ -156,6 +157,33 @@ export default function Pricing({ user, products, subscription }: Props) {
         alert((error as Error)?.message);
       }
     });
+  };
+
+  const formatTZ = (
+    date: string | number | Date,
+    timeZone: string,
+    formatStr: string
+  ) => {
+    const zonedDate = toZonedTime(new Date(date), timeZone);
+    return format(zonedDate, formatStr, { timeZone });
+  };
+
+  const formatClassTime = (
+    start: string | number | Date,
+    end: string | number | Date,
+    timeZone: string
+  ): { date: string; time: string } => {
+    const dateFormat = "EEEE, MMMM d";
+    const timeFormat = "h:mm a";
+
+    const startDate = formatTZ(start, timeZone, dateFormat);
+    const startTime = formatTZ(start, timeZone, timeFormat);
+    const endTime = formatTZ(end, timeZone, timeFormat);
+
+    return {
+      date: startDate,
+      time: `${startTime} - ${endTime}`,
+    };
   };
 
   // Separate products into physical products, training classes, and subscriptions
@@ -309,7 +337,9 @@ export default function Pricing({ user, products, subscription }: Props) {
                     <h2 className="flex-grow text-2xl font-semibold leading-6">
                       {product.name}
                     </h2>
-                    <p className="mt-4 flex-grow">{product.description}</p>
+                    <p className="mt-4 text-muted-foreground flex-grow">
+                      {product.description}
+                    </p>
                     <p className="flex-shrink mt-8">
                       <span className="flex-shrink text-3xl font-extrabold">
                         {priceString}
@@ -336,42 +366,51 @@ export default function Pricing({ user, products, subscription }: Props) {
                 </div>
               );
             })}
-            {filteredClasses.map((classSchedule) => (
-              <div
-                key={classSchedule.id}
-                className="rounded-lg shadow-md divide-y divide-gray-200 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 flex flex-col"
-              >
-                <div className="p-6 flex flex-col flex-grow">
-                  <h2 className="flex-grow text-2xl font-semibold leading-6">
-                    {classSchedule.title}
-                  </h2>
-                  <p className="mt-4 flex-grow">{classSchedule.description}</p>
-                  <p className="mt-2">
-                    Start: {new Date(classSchedule.start_time).toLocaleString()}
-                  </p>
-                  <p className="mt-2">
-                    End: {new Date(classSchedule.end_time).toLocaleString()}
-                  </p>
-                  <p className="flex-shrink mt-8">
-                    <span className="flex-shrink text-3xl font-extrabold">
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "usd",
-                        minimumFractionDigits: 0,
-                      }).format(classSchedule.price || 0)}
-                    </span>
-                  </p>
-                  <Button
-                    variant="outline"
-                    disabled={!user}
-                    onClick={() => handleClassEnrollment(classSchedule)}
-                    className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
-                  >
-                    Register for Class
-                  </Button>
+            {filteredClasses.map((classSchedule) => {
+              const classTime = formatClassTime(
+                classSchedule.start_time,
+                classSchedule.end_time,
+                "America/Los_Angeles"
+              );
+
+              return (
+                <div
+                  key={classSchedule.id}
+                  className="rounded-lg shadow-md divide-y divide-gray-200 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 flex flex-col"
+                >
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h2 className="flex-grow text-2xl font-semibold leading-6">
+                      {classSchedule.title}
+                    </h2>
+                    <p className="mt-4 text-muted-foreground flex-grow">
+                      {classSchedule.description}
+                    </p>
+                    <p className="mt-2">
+                      {classTime.date}
+                      <br />
+                      {classTime.time}
+                    </p>
+                    <p className="flex-shrink mt-8">
+                      <span className="flex-shrink text-3xl font-extrabold">
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "usd",
+                          minimumFractionDigits: 0,
+                        }).format(classSchedule.price || 0)}
+                      </span>
+                    </p>
+                    <Button
+                      variant="outline"
+                      disabled={!user}
+                      onClick={() => handleClassEnrollment(classSchedule)}
+                      className="w-full py-2 mt-8 text-sm font-semibold text-center rounded-md hover:bg-muted"
+                    >
+                      Register for Class
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         ) : billingInterval === "one_time" ? (
           filteredPhysicalProducts.map((product) => {
@@ -415,7 +454,9 @@ export default function Pricing({ user, products, subscription }: Props) {
                   <h2 className="flex-grow text-2xl font-semibold leading-6">
                     {product.name}
                   </h2>
-                  <p className="mt-4 flex-grow">{product.description}</p>
+                  <p className="mt-4 text-muted-foreground flex-grow">
+                    {product.description}
+                  </p>
                   <p className="flex-shrink mt-8">
                     <span className="flex-shrink text-3xl font-extrabold">
                       {priceString}
@@ -444,8 +485,9 @@ export default function Pricing({ user, products, subscription }: Props) {
           })
         ) : (
           filteredSubscriptionProducts.map((product) => {
-            const price = product.prices.find((price) =>
-              price.type === "recurring" && price.interval === billingInterval
+            const price = product.prices.find(
+              (price) =>
+                price.type === "recurring" && price.interval === billingInterval
             );
 
             if (!price) return null;
@@ -474,7 +516,9 @@ export default function Pricing({ user, products, subscription }: Props) {
                   <h2 className="flex-grow text-2xl font-semibold leading-6">
                     {product.name}
                   </h2>
-                  <p className="mt-4 flex-grow">{product.description}</p>
+                  <p className="mt-4 text-muted-foreground flex-grow">
+                    {product.description}
+                  </p>
                   <p className="flex-shrink mt-8">
                     <span className="flex-shrink text-3xl font-extrabold">
                       {priceString}

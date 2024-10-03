@@ -30,6 +30,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PaymentButton } from "@/components/PaymentButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatCurrency } from "@/lib/utils";
 
 export interface ClassSchedule {
   id: number;
@@ -184,7 +185,7 @@ export default function Component() {
       toast.success("Class added successfully");
     } catch (error) {
       console.error("Error adding class:", error);
-      toast.error("Failed to add class");
+      // toast.error("Failed to add class");
     }
   };
 
@@ -337,11 +338,13 @@ export default function Component() {
                   className="rounded-lg p-4 flex justify-between items-center"
                 >
                   <div>
-                    <h3 className="text-lg font-medium">
+                    <h3 className="text-lg font-bold">
                       {event.title || "No title available"}
                     </h3>
-                    <p>{event.description || "No description available"}</p>
-                    <p>
+                    <p className="text-muted-foreground p-1">
+                      {event.description || "No description available"}
+                    </p>
+                    <p className="text-sm font-semibold">
                       {formatTZ(
                         toZonedTime(new Date(event.start_time), timeZone),
                         "M/dd/yy",
@@ -359,6 +362,12 @@ export default function Component() {
                         "h:mm a",
                         { timeZone }
                       )}
+                    </p>
+                    <p className="mt-2 font-semibold">
+                      Price:{" "}
+                      {event.price !== undefined
+                        ? formatCurrency(event.price)
+                        : "Free"}
                     </p>
                   </div>
                   <div className="flex flex-col space-y-2">
