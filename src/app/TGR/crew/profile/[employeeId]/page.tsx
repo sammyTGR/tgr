@@ -391,8 +391,8 @@ const EmployeeProfilePage = () => {
     try {
       const { data: admins, error } = await supabase
         .from("employees")
-        .select("contact_info")
-        .in("role", ["admin", "super admin"]);
+        .select("contact_info, name")
+        .in("name", ["Sammy", "Russ", "Slim Jim"]);
 
       if (error) throw error;
 
