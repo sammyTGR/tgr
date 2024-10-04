@@ -189,7 +189,7 @@ export default function ApproveRequestsPage() {
     templateData: any
   ) => {
     try {
-      console.log("Sending email:", { email, subject, templateName, templateData });
+      //console.log("Sending email:", { email, subject, templateName, templateData });
       const response = await fetch("/api/send_email", {
         method: "POST",
         headers: {
@@ -205,7 +205,7 @@ export default function ApproveRequestsPage() {
         throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(responseData)}`);
       }
 
-      console.log("Email sent successfully:", responseData);
+      //console.log("Email sent successfully:", responseData);
       return responseData;
     } catch (error: any) {
       console.error("Failed to send email:", error);
@@ -222,7 +222,7 @@ export default function ApproveRequestsPage() {
     use_vacation_time: boolean = false
   ) => {
     try {
-      console.log("Handling request:", { request_id, action, emailMessage, use_sick_time, use_vacation_time });
+      //console.log("Handling request:", { request_id, action, emailMessage, use_sick_time, use_vacation_time });
       
       const request = requests.find((req) => req.request_id === request_id);
       if (!request) {
@@ -282,7 +282,7 @@ export default function ApproveRequestsPage() {
           }
       }
 
-      console.log("Prepared template data:", templateData);
+      //console.log("Prepared template data:", templateData);
 
       const subject =
         action === "deny"
@@ -297,7 +297,7 @@ export default function ApproveRequestsPage() {
           ? "Time Off Request Custom Approval"
           : "Time Off Request Status Update";
 
-      console.log("Calling approve_request API");
+      //console.log("Calling approve_request API");
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: {
@@ -317,12 +317,12 @@ export default function ApproveRequestsPage() {
       }
 
       const result = await response.json();
-      console.log("API response:", result);
+      //console.log("API response:", result);
 
-      console.log("Sending email");
+      //console.log("Sending email");
       await sendEmail(request.email, subject, templateName, templateData);
 
-      console.log("Updating local state");
+      //console.log("Updating local state");
       setRequests((prevRequests) =>
         prevRequests.map((req) =>
           req.request_id === request_id
@@ -331,10 +331,10 @@ export default function ApproveRequestsPage() {
         )
       );
 
-      console.log("Re-fetching updated requests");
+      //console.log("Re-fetching updated requests");
       await fetchRequests();
 
-      console.log("Request handled successfully");
+      //console.log("Request handled successfully");
     } catch (error: any) {
       console.error("Failed to handle request:", error);
       // You might want to show an error message to the user here
