@@ -10,7 +10,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
+import styles from "./table.module.css";
 import {
   Table,
   TableBody,
@@ -31,6 +31,8 @@ import { ChevronDown } from "lucide-react";
 import { DataTablePagination } from "./pagination";
 import { ColumnDef, RangeWalkData } from "./columns";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import classNames from "classnames";
 
 interface DataTableProps<TData extends RangeWalkData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -50,8 +52,11 @@ export function DataTable<TData extends RangeWalkData, TValue>({
   onNotesChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -127,7 +132,14 @@ export function DataTable<TData extends RangeWalkData, TValue>({
         </DropdownMenu>
       </div>
       <div className="flex-1 overflow-hidden rounded-md border w-full">
-        <div className="h-full overflow-y-auto">
+        <div className="max-h-[calc(100vh-100px)] overflow-auto">
+          {/* <div className="overflow-hidden">
+            <ScrollArea
+              className={classNames(
+                styles.noScroll,
+                "h-[calc(100vh-300px)] w-[calc(100vw-100px)] overflow-auto"
+              )}
+            > */}
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -139,10 +151,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                       }
                     )?.style;
                     return (
-                      <TableHead
-                        key={header.id}
-                        style={metaStyle}
-                      >
+                      <TableHead key={header.id} style={metaStyle}>
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -155,6 +164,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                 </TableRow>
               ))}
             </TableHeader>
+
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
@@ -169,10 +179,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                         }
                       )?.style;
                       return (
-                        <TableCell
-                          key={cell.id}
-                          style={metaStyle}
-                        >
+                        <TableCell key={cell.id} style={metaStyle}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -203,6 +210,10 @@ export function DataTable<TData extends RangeWalkData, TValue>({
               )}
             </TableBody>
           </Table>
+          {/* <ScrollBar orientation="vertical" />
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div> */}
         </div>
       </div>
       <div className="flex-none mt-4">

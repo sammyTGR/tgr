@@ -134,7 +134,7 @@ const SalesPage = () => {
               .upsert(batch);
 
             if (error) {
-              console.error("Error upserting data batch:", error);
+              //console.("Error upserting data batch:", error);
               // Continue with the next batch instead of rejecting
             } else {
               processedCount += batch.length;
@@ -149,13 +149,13 @@ const SalesPage = () => {
           // );
           resolve();
         } catch (error) {
-          console.error("Error processing data:", error);
+          //console.("Error processing data:", error);
           reject(error);
         }
       };
 
       reader.onerror = (error) => {
-        console.error("Error reading file:", error);
+        //console.("Error reading file:", error);
         reject(error);
       };
 
@@ -177,7 +177,7 @@ const SalesPage = () => {
           .select("*", { count: "exact", head: true });
 
         if (error) {
-          console.error("Error checking record count:", error);
+          //console.("Error checking record count:", error);
           toast.error("Failed to verify data upload.");
         } else {
           toast.success(
@@ -189,7 +189,7 @@ const SalesPage = () => {
         setFileName(null);
         setFileInputKey((prevKey) => prevKey + 1);
       } catch (error) {
-        console.error("Error during upload and processing:", error);
+        //console.("Error during upload and processing:", error);
         toast.error("Failed to upload and process file.");
       } finally {
         setLoading(false);
@@ -224,7 +224,7 @@ const SalesPage = () => {
         setTotalNet(totalNet);
         setTotalNetMinusExclusions(totalNetMinusExclusions);
       } catch (error) {
-        console.error("Error fetching chart data:", error);
+        //console.("Error fetching chart data:", error);
       }
     }
   };

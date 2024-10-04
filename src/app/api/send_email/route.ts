@@ -163,7 +163,7 @@ export async function POST(request: Request) {
       data: resendRes,
     });
   } catch (error: any) {
-    console.error("Error sending email:", error);
+    // console.error("Error sending email:", error);
     return NextResponse.json(
       { error: "Internal Server Error", details: error.message },
       { status: 500 }

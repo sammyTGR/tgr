@@ -55,7 +55,7 @@ const ContestPage = () => {
     const fetchEmployees = async () => {
       const { data, error } = await supabase.from("employees").select("lanid");
       if (error) {
-        console.error(error);
+        //console.(error);
       } else {
         setEmployees(data);
       }
@@ -66,7 +66,7 @@ const ContestPage = () => {
         .from("points_calculation")
         .select("*");
       if (error) {
-        console.error(error);
+        //console.(error);
       } else {
         setPointsCalculation(data);
       }
@@ -103,7 +103,7 @@ const ContestPage = () => {
             .lte("audit_date", endDate);
 
           if (allAuditError) {
-            console.error(allAuditError);
+            //console.(allAuditError);
           } else {
             const lanids = Array.from(
               new Set(allAuditData.map((audit) => audit.salesreps))
@@ -118,7 +118,7 @@ const ContestPage = () => {
               .not("subcategory_label", "eq", "");
 
             if (allSalesError) {
-              console.error(allSalesError);
+              //console.(allSalesError);
             } else {
               setSalesData(allSalesData);
               setAuditData(allAuditData);
@@ -148,7 +148,7 @@ const ContestPage = () => {
             .lte("audit_date", endDate);
 
           if (salesError || auditError) {
-            console.error(salesError || auditError);
+            //console.(salesError || auditError);
           } else {
             setSalesData(salesData);
             setAuditData(auditData);

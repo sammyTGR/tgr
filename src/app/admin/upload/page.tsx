@@ -14,8 +14,8 @@ export default function Home() {
           toast.success("File uploaded successfully!");
         }}
         onUploadError={(error: Error) => {
-          console.error("Upload Error:", error.message);
-          console.error("Error Stack:", error.stack);
+          //console.("Upload Error:", error.message);
+          //console.("Error Stack:", error.stack);
           toast.error("Error uploading file: " + error.message);
         }}
       />

@@ -99,9 +99,9 @@ const PreviousDaySalesStackedBarChart = () => {
         setTotalMinusFirearms(totalMinusFirearms);
       } catch (error) {
         if (error instanceof Error) {
-          console.error("Error fetching chart data:", error.message);
+          //console.("Error fetching chart data:", error.message);
         } else {
-          console.error("Error fetching chart data:", error);
+          //console.("Error fetching chart data:", error);
         }
       }
     };

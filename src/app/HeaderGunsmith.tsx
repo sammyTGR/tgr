@@ -130,7 +130,7 @@ const HeaderGunsmith = React.memo(() => {
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
 
       if (fetchError) {
-        console.error("Error fetching messages to update:", fetchError.message);
+        //console.("Error fetching messages to update:", fetchError.message);
         return;
       }
 

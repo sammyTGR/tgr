@@ -40,7 +40,7 @@ export default function ScheduleGeneratorPage() {
         .from("employees")
         .select("employee_id, name");
       if (error) {
-        console.error("Error fetching employees:", error);
+        //console.("Error fetching employees:", error);
       } else {
         setEmployees(data);
       }
@@ -110,7 +110,7 @@ export default function ScheduleGeneratorPage() {
       }
       setMessage(result.message);
     } catch (error: any) {
-      console.error("Failed to submit schedule:", error);
+      //console.("Failed to submit schedule:", error);
       setMessage(`Failed to submit schedule: ${error.message}`);
     }
   };
@@ -152,7 +152,7 @@ export default function ScheduleGeneratorPage() {
       }
       setMessage(result.message);
     } catch (error: any) {
-      console.error("Error generating schedules:", error);
+      //console.("Error generating schedules:", error);
       setMessage(`Error generating schedules: ${error.message}`);
     } finally {
       setLoading(false);

@@ -79,7 +79,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
           .order("order", { ascending: true });
 
         if (listError) {
-          console.error("Error fetching lists:", listError);
+          //console.("Error fetching lists:", listError);
           return;
         }
 
@@ -89,7 +89,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
           .order("order", { ascending: true });
 
         if (itemError) {
-          console.error("Error fetching items:", itemError);
+          //console.("Error fetching items:", itemError);
           return;
         }
 
@@ -103,7 +103,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
           setLists(listsWithItems);
         }
       } catch (error) {
-        console.error("Error in fetchLists:", error);
+        //console.("Error in fetchLists:", error);
       }
     };
 
@@ -117,7 +117,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         if (userData) {
           setUsername(userData.name);
         } else {
-          console.error("Error fetching username:", error?.message);
+          //console.("Error fetching username:", error?.message);
         }
       }
     };
@@ -313,7 +313,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         .eq("id", update.id);
 
       if (error) {
-        console.error("Error updating list order:", error);
+        //console.("Error updating list order:", error);
         // You might want to handle this error more gracefully
       }
     }
@@ -327,7 +327,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         .eq("id", item.id);
 
       if (error) {
-        console.error("Error updating item order:", error);
+        //console.("Error updating item order:", error);
         // You might want to handle this error more gracefully
       }
     }
@@ -342,7 +342,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         .delete()
         .eq("id", idToDelete);
       if (error) {
-        console.error("Error deleting item:", error);
+        //console.("Error deleting item:", error);
       } else {
         setLists((prevLists) =>
           prevLists.map((list) =>
@@ -356,13 +356,13 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         );
       }
     } else {
-      console.error("You do not have permission to delete this item.");
+      //console.("You do not have permission to delete this item.");
     }
   };
 
   const addNewItem = async (listId: string, newItem: string) => {
     if (!user || !username) {
-      console.error("User or username is not defined");
+      //console.("User or username is not defined");
       return;
     }
 
@@ -374,7 +374,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
       .limit(1);
 
     if (fetchError) {
-      console.error("Error fetching existing items:", fetchError);
+      //console.("Error fetching existing items:", fetchError);
       return;
     }
 
@@ -394,7 +394,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
 
     const { data, error } = await supabase.from("items").insert([newItemData]);
     if (error) {
-      console.error("Error adding item:", error);
+      //console.("Error adding item:", error);
     } else if (data) {
       setLists((prevLists) =>
         prevLists.map((list) =>
@@ -414,7 +414,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
       .limit(1);
 
     if (fetchError) {
-      console.error("Error fetching existing lists:", fetchError);
+      //console.("Error fetching existing lists:", fetchError);
       return;
     }
 
@@ -434,7 +434,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
       .select();
 
     if (error) {
-      console.error("Error adding list:", error);
+      //console.("Error adding list:", error);
     } else if (data && data.length > 0) {
       const newList: List = {
         id: data[0].id,
@@ -452,7 +452,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
       .update({ title })
       .eq("id", id);
     if (error) {
-      console.error("Error updating list title:", error);
+      //console.("Error updating list title:", error);
     } else {
       setLists((prevLists) =>
         prevLists.map((list) => (list.id === id ? { ...list, title } : list))
@@ -475,7 +475,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
 
       // console.log(`List ${listId} deleted successfully`);
     } catch (error) {
-      console.error("Error deleting list:", error);
+      //console.("Error deleting list:", error);
     }
   };
 
@@ -501,7 +501,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
 
       // console.log(`Item ${id} updated successfully`);
     } catch (error) {
-      console.error("Error updating item:", error);
+      //console.("Error updating item:", error);
     }
   };
 
@@ -524,7 +524,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
 
       console.log(`List ${listId} cleared successfully`);
     } catch (error) {
-      console.error("Error clearing list:", error);
+      //console.("Error clearing list:", error);
     }
   }, []);
 
@@ -624,7 +624,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
 
                         // console.log(`Item ${id} deleted successfully`);
                       } catch (error) {
-                        console.error("Error deleting item:", error);
+                        //console.("Error deleting item:", error);
                         // Optionally, you can show an error message to the user here
                         // For example: setErrorMessage("Failed to delete item. Please try again.");
                       }
@@ -665,7 +665,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
 
                         // console.log(`Item ${id} updated successfully`);
                       } catch (error) {
-                        console.error("Error updating item:", error);
+                        //console.("Error updating item:", error);
                         // Optionally, you can show an error message to the user here
                         // For example: setErrorMessage("Failed to update item. Please try again.");
                       }

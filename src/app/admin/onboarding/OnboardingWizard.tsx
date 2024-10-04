@@ -446,7 +446,7 @@ const OnboardingWizard = () => {
       .select();
 
     if (error) {
-      console.error("Error saving employee data:", error);
+      //console.("Error saving employee data:", error);
       throw error;
     }
 
@@ -521,7 +521,7 @@ const OnboardingWizard = () => {
       }
 
       if (error) {
-        console.error(`Error updating/inserting schedule for ${day}:`, error);
+        //console.(`Error updating/inserting schedule for ${day}:`, error);
         throw error;
       }
     }
@@ -556,13 +556,13 @@ const OnboardingWizard = () => {
         .select();
 
       if (employeeError) {
-        console.error("Error inserting employee:", employeeError);
+        //console.("Error inserting employee:", employeeError);
         toast.error("Failed to add employee");
         return;
       }
 
       if (!newEmployee || newEmployee.length === 0) {
-        console.error("No employee data returned after insertion");
+        //console.("No employee data returned after insertion");
         toast.error("Failed to add employee");
         return;
       }
@@ -583,7 +583,7 @@ const OnboardingWizard = () => {
         .insert(scheduleData);
 
       if (scheduleError) {
-        console.error("Error inserting schedule:", scheduleError);
+        //console.("Error inserting schedule:", scheduleError);
         toast.error("Failed to add employee schedule");
         return;
       }
@@ -595,7 +595,7 @@ const OnboardingWizard = () => {
       setData(initialData);
       setStep(1);
     } catch (error) {
-      console.error("Error during onboarding:", error);
+      //console.("Error during onboarding:", error);
       toast.error("An unexpected error occurred during onboarding");
     }
   };

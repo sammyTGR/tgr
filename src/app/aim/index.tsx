@@ -48,7 +48,7 @@ export default function AimPage() {
       setError(
         err instanceof Error ? err.message : "Error searching inventory"
       );
-      console.error(err);
+      //console.(err);
     }
   };
 

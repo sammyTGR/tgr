@@ -55,7 +55,7 @@ import { Progress } from "@/components/ui/progress";
 import { useRole } from "@/context/RoleContext";
 import { Textarea } from "@/components/ui/textarea";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import DailyChecklist from "@/app/TGR/gunsmithing/DailyChecklist"; 
+import DailyChecklist from "@/app/TGR/gunsmithing/DailyChecklist";
 
 interface Certificate {
   id: number;
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
         firearmsCount,
       });
     } catch (error) {
-      console.error("Error fetching daily checklist status:", error);
+      //console.("Error fetching daily checklist status:", error);
     }
   };
 
@@ -319,7 +319,7 @@ export default function AdminDashboard() {
       .single();
 
     if (error) {
-      console.error("Error fetching latest daily deposit:", error);
+      //console.("Error fetching latest daily deposit:", error);
     } else {
       setDailyDeposit(data);
     }
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
       } else if (responseData && Array.isArray(responseData.data)) {
         salesData = responseData.data;
       } else {
-        console.error("Unexpected data format:", responseData);
+        //console.("Unexpected data format:", responseData);
         return null;
       }
 
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
 
       return { totalGross, totalNet, totalNetMinusExclusions, salesData };
     } else {
-      console.error("Error fetching sales data:", response.statusText);
+      //console.("Error fetching sales data:", response.statusText);
       return null;
     }
   }
@@ -438,7 +438,7 @@ export default function AdminDashboard() {
       .not("last_maintenance_date", "is", null); // Ensure we only get entries with a maintenance date
 
     if (error) {
-      console.error("Error fetching latest gunsmith maintenance:", error);
+      //console.("Error fetching latest gunsmith maintenance:", error);
     } else {
       // console.log("Fetched gunsmith maintenance data:", data);
       if (data && data.length > 0) {
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
       .single();
 
     if (error) {
-      console.error("Error fetching latest checklist submission:", error);
+      //console.("Error fetching latest checklist submission:", error);
     } else {
       setChecklist(data);
     }
@@ -476,7 +476,7 @@ export default function AdminDashboard() {
       .single();
 
     if (error) {
-      console.error("Error fetching latest range walk report:", error);
+      //console.("Error fetching latest range walk report:", error);
     } else {
       setRangeWalk(data);
     }
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
       .order("expiration", { ascending: true });
 
     if (error) {
-      console.error("Error fetching certificates:", error);
+      //console.("Error fetching certificates:", error);
     } else {
       setCertificates(data);
     }
@@ -514,7 +514,7 @@ export default function AdminDashboard() {
       .order("domain");
 
     if (error) {
-      console.error("Error fetching domains:", error.message);
+      //console.("Error fetching domains:", error.message);
     } else {
       setDomains(data as Domain[]);
     }
@@ -526,7 +526,7 @@ export default function AdminDashboard() {
       .insert({ domain: newDomain.toLowerCase() });
 
     if (error) {
-      console.error("Error adding domain:", error.message);
+      //console.("Error adding domain:", error.message);
     } else {
       setNewDomain("");
       fetchDomains();
@@ -542,7 +542,7 @@ export default function AdminDashboard() {
       .eq("id", editingDomain.id);
 
     if (error) {
-      console.error("Error updating domain:", error.message);
+      //console.("Error updating domain:", error.message);
     } else {
       setEditingDomain(null);
       fetchDomains();
@@ -556,7 +556,7 @@ export default function AdminDashboard() {
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting domain:", error.message);
+      //console.("Error deleting domain:", error.message);
     } else {
       fetchDomains();
     }
@@ -609,7 +609,7 @@ export default function AdminDashboard() {
               .upsert(batch);
 
             if (error) {
-              console.error("Error upserting data batch:", error);
+              //console.("Error upserting data batch:", error);
               // Continue with the next batch instead of rejecting
             } else {
               processedCount += batch.length;
@@ -624,13 +624,13 @@ export default function AdminDashboard() {
           // );
           resolve();
         } catch (error) {
-          console.error("Error processing data:", error);
+          //console.("Error processing data:", error);
           reject(error);
         }
       };
 
       reader.onerror = (error) => {
-        console.error("Error reading file:", error);
+        //console.("Error reading file:", error);
         reject(error);
       };
 
@@ -652,7 +652,7 @@ export default function AdminDashboard() {
           .select("*", { count: "exact", head: true });
 
         if (error) {
-          console.error("Error checking record count:", error);
+          //console.("Error checking record count:", error);
           toast.error("Failed to verify data upload.");
         } else {
           toast.success(`Successfully uploaded ${count} records.`);
@@ -662,7 +662,7 @@ export default function AdminDashboard() {
         setFileName(null);
         setFileInputKey((prevKey) => prevKey + 1);
       } catch (error) {
-        console.error("Error during upload and processing:", error);
+        //console.("Error during upload and processing:", error);
         toast.error("Failed to upload and process file.");
       } finally {
         setLoading(false);
@@ -691,7 +691,7 @@ export default function AdminDashboard() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching suggestions:", error);
+      //console.("Error fetching suggestions:", error);
     } else {
       setSuggestions(data || []);
     }
@@ -720,7 +720,7 @@ export default function AdminDashboard() {
       const result = await response.json();
       // console.log("Email sent successfully:", result);
     } catch (error: any) {
-      console.error("Failed to send email:", error.message);
+      //console.("Failed to send email:", error.message);
       throw error; // Re-throw the error so we can handle it in the calling function
     }
   };
@@ -739,7 +739,7 @@ export default function AdminDashboard() {
     } = await supabase.auth.getUser();
 
     if (userError) {
-      console.error("Error getting current user:", userError);
+      //console.("Error getting current user:", userError);
       toast.error("Failed to get current user information");
       return;
     }
@@ -762,7 +762,7 @@ export default function AdminDashboard() {
       .eq("id", suggestion.id);
 
     if (error) {
-      console.error("Error replying to suggestion:", error);
+      //console.("Error replying to suggestion:", error);
       toast.error("Failed to reply to suggestion");
     } else {
       // Send email
@@ -781,7 +781,7 @@ export default function AdminDashboard() {
 
         toast.success("Replied to suggestion and sent email");
       } catch (error) {
-        console.error("Error sending email:", error);
+        //console.("Error sending email:", error);
         toast.error("Failed to send email, but reply was saved");
       }
 
@@ -793,7 +793,7 @@ export default function AdminDashboard() {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
       <div className="section w-full overflow-hidden">
-        <h1 className="text-3xl font-bold ml-8">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
           {/*chat card*/}
           <div className="w-full overflow-hidden">
@@ -868,7 +868,6 @@ export default function AdminDashboard() {
                 type="certificate"
                 details={certificates}
               />
-              
 
               {/* Certificate Renewals List*/}
               {/* <Card className="flex flex-col overflow-hidden">
@@ -1239,6 +1238,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
             <Card className="flex flex-col col-span-full mt-2 mb-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

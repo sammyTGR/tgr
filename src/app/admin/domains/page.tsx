@@ -34,7 +34,7 @@ export default function ManageEmployeeDomains() {
       .order("domain");
 
     if (error) {
-      console.error("Error fetching domains:", error.message);
+      //console.("Error fetching domains:", error.message);
     } else {
       setDomains(data as Domain[]);
     }
@@ -46,7 +46,7 @@ export default function ManageEmployeeDomains() {
       .insert({ domain: newDomain.toLowerCase() });
 
     if (error) {
-      console.error("Error adding domain:", error.message);
+      //console.("Error adding domain:", error.message);
     } else {
       setNewDomain("");
       fetchDomains();
@@ -62,7 +62,7 @@ export default function ManageEmployeeDomains() {
       .eq("id", editingDomain.id);
 
     if (error) {
-      console.error("Error updating domain:", error.message);
+      //console.("Error updating domain:", error.message);
     } else {
       setEditingDomain(null);
       fetchDomains();
@@ -76,7 +76,7 @@ export default function ManageEmployeeDomains() {
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting domain:", error.message);
+      //console.("Error deleting domain:", error.message);
     } else {
       fetchDomains();
     }

@@ -40,7 +40,7 @@ export default function Home() {
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
       if (userError) {
-        console.error("Error fetching user:", userError.message);
+        //console.("Error fetching user:", userError.message);
         setLoading(false);
         setRoleValidating(false); // End role validation
         setNoSession(true);
@@ -87,7 +87,7 @@ export default function Home() {
           setProgress(100); // Final progress
           return; // Show the customer landing page
         } else {
-          console.error("Invalid role for user:", user?.email);
+          //console.("Invalid role for user:", user?.email);
           setLoading(false);
           setRoleValidating(false); // End role validation
           setNoSession(true);

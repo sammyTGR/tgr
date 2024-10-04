@@ -147,7 +147,7 @@ const ManageSchedules = () => {
       .or("status.eq.scheduled,status.eq.added_day");
 
     if (schedulesError) {
-      console.error("Error fetching actual schedules:", schedulesError);
+      //console.("Error fetching actual schedules:", schedulesError);
       return;
     }
 
@@ -178,7 +178,7 @@ const ManageSchedules = () => {
       const zonedDate = toZonedTime(date, timeZone);
       return format(zonedDate, "h:mm a");
     } catch (error) {
-      console.error("Error formatting time:", error);
+      //console.("Error formatting time:", error);
       return "";
     }
   };
@@ -188,7 +188,7 @@ const ManageSchedules = () => {
       .from("reference_schedules")
       .select("*");
     if (schedulesError) {
-      console.error("Error fetching reference schedules:", schedulesError);
+      //console.("Error fetching reference schedules:", schedulesError);
       return;
     }
 
@@ -196,7 +196,7 @@ const ManageSchedules = () => {
       .from("employees")
       .select("employee_id, name");
     if (employeesError) {
-      console.error("Error fetching employees:", employeesError);
+      //console.("Error fetching employees:", employeesError);
       return;
     }
 
@@ -247,7 +247,7 @@ const ManageSchedules = () => {
       .select("employee_id, name, status")
       .eq("status", "active");
     if (employeesError) {
-      console.error("Error fetching employees:", employeesError);
+      //console.("Error fetching employees:", employeesError);
       return;
     }
     setEmployees(employees);
@@ -259,7 +259,7 @@ const ManageSchedules = () => {
       .select("*");
 
     if (timesheetsError) {
-      console.error("Error fetching timesheets:", timesheetsError);
+      //console.("Error fetching timesheets:", timesheetsError);
       return;
     }
 
@@ -335,7 +335,7 @@ const ManageSchedules = () => {
       .eq("id", id);
 
     if (error) {
-      console.error("Error updating timesheet:", error);
+      //console.("Error updating timesheet:", error);
     } else {
       // console.log("Timesheet updated successfully.");
       fetchTimesheets();
@@ -348,7 +348,7 @@ const ManageSchedules = () => {
   ) => {
     const employee = employees.find((emp) => emp.name === employeeName);
     if (!employee) {
-      console.error("Employee not found:", employeeName);
+      //console.("Employee not found:", employeeName);
       return;
     }
 
@@ -367,16 +367,16 @@ const ManageSchedules = () => {
         .update({ name: employee.name })
         .eq("employee_id", employee.employee_id);
       if (updateError) {
-        console.error(
-          "Error updating employee name in schedules:",
-          updateError
-        );
+        // console.error(
+        //   "Error updating employee name in schedules:",
+        //   updateError
+        // );
       } else {
         // console.log("Schedules generated successfully.");
         fetchReferenceSchedules();
       }
     } else {
-      console.error("Error generating schedules:", error);
+      //console.("Error generating schedules:", error);
     }
   };
 
@@ -388,7 +388,7 @@ const ManageSchedules = () => {
       .eq("status", "active");
 
     if (employeeError) {
-      console.error("Error fetching employee ID:", employeeError);
+      //console.("Error fetching employee ID:", employeeError);
       return;
     }
 
@@ -406,7 +406,7 @@ const ManageSchedules = () => {
       .eq("status", "scheduled");
 
     if (error) {
-      console.error("Error clearing schedules:", error);
+      //console.("Error clearing schedules:", error);
     } else {
       // console.log("Schedules cleared for employee:", employeeName);
       fetchReferenceSchedules();
@@ -416,7 +416,7 @@ const ManageSchedules = () => {
   const handleGenerateAllSchedules = async (weeks?: string) => {
     const parsedWeeks = parseInt(weeks || "0", 10);
     if (isNaN(parsedWeeks)) {
-      console.error("Invalid number of weeks:", weeks);
+      //console.("Invalid number of weeks:", weeks);
       return;
     }
 
@@ -428,7 +428,7 @@ const ManageSchedules = () => {
     );
 
     if (error) {
-      console.error("Error generating schedules:", error);
+      //console.("Error generating schedules:", error);
       return;
     }
 
@@ -462,7 +462,7 @@ const ManageSchedules = () => {
   ) => {
     const employee = employees.find((emp) => emp.employee_id === employeeId);
     if (!employee) {
-      console.error("Employee not found:", employeeId);
+      //console.("Employee not found:", employeeId);
       toast.error("Employee not found");
       return;
     }
@@ -496,7 +496,7 @@ const ManageSchedules = () => {
         .single();
 
       if (fetchError && fetchError.code !== "PGRST116") {
-        console.error("Error fetching existing timesheet entry:", fetchError);
+        //console.("Error fetching existing timesheet entry:", fetchError);
         toast.error("Failed to check existing timesheet entry");
         return;
       }
@@ -518,7 +518,7 @@ const ManageSchedules = () => {
       }
 
       if (result.error) {
-        console.error("Error adding/updating timesheet entry:", result.error);
+        //console.("Error adding/updating timesheet entry:", result.error);
         toast.error("Failed to add/update timesheet entry");
       } else {
         // console.log("Timesheet entry added/updated successfully:", result.data);
@@ -542,7 +542,7 @@ const ManageSchedules = () => {
   ) => {
     const employee = employees.find((emp) => emp.name === employeeName);
     if (!employee) {
-      console.error("Employee not found:", employeeName);
+      //console.("Employee not found:", employeeName);
       toast.error("Employee not found");
       return;
     }
@@ -581,7 +581,7 @@ const ManageSchedules = () => {
         .single();
 
       if (fetchError && fetchError.code !== "PGRST116") {
-        console.error("Error fetching existing schedule:", fetchError);
+        //console.("Error fetching existing schedule:", fetchError);
         toast.error("Failed to check existing schedule");
         return;
       }
@@ -600,7 +600,7 @@ const ManageSchedules = () => {
       }
 
       if (result.error) {
-        console.error("Error adding/updating schedule:", result.error);
+        //console.("Error adding/updating schedule:", result.error);
         toast.error("Failed to add/update schedule");
       } else {
         fetchActualSchedules();
@@ -624,7 +624,7 @@ const ManageSchedules = () => {
   ) => {
     const employee = employees.find((emp) => emp.name === employeeName);
     if (!employee || !date || !startTime || !endTime) {
-      console.error("Missing required information for updating schedule");
+      //console.("Missing required information for updating schedule");
       return;
     }
 

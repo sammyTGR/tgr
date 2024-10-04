@@ -15,7 +15,6 @@ import { supabase } from "@/utils/supabase/client";
 import { ScheduleData } from "./data-schema";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
-
 interface ScheduleRowActionsProps<TData> {
   row: Row<TData>;
   fetchReferenceSchedules: () => void; // Function to refresh schedules after update
@@ -32,32 +31,36 @@ export function ScheduleRowActions<TData>({
 
   useEffect(() => {
     const checkUserRole = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
       if (error) {
-        console.error("Error fetching user:", error.message);
+        //console.("Error fetching user:", error.message);
         return;
       }
-      
+
       if (user) {
         const { data: profile, error: profileError } = await supabase
-          .from('employees')
-          .select('role')
-          .eq('user_uuid', user.id)
+          .from("employees")
+          .select("role")
+          .eq("user_uuid", user.id)
           .single();
-  
+
         if (profileError) {
-          console.error("Error fetching profile:", profileError.message);
+          //console.("Error fetching profile:", profileError.message);
           return;
         }
-  
+
         // console.log("Role from profiles table:", profile?.role);
-        
-        const isSuperAdmin = profile?.role?.toLowerCase().trim() === 'super admin';
+
+        const isSuperAdmin =
+          profile?.role?.toLowerCase().trim() === "super admin";
         setIsSuperAdmin(isSuperAdmin);
         // console.log("Is super admin (after lowercase and trim):", isSuperAdmin);
       }
     };
-  
+
     checkUserRole();
   }, []);
 
@@ -69,7 +72,7 @@ export function ScheduleRowActions<TData>({
       .eq("id", schedule.id);
 
     if (error) {
-      console.error(`Error updating ${field}:`, error);
+      //console.(`Error updating ${field}:`, error);
     } else {
       // console.log(`Successfully updated ${field} to ${value} for schedule ID ${schedule.id}`);
       fetchReferenceSchedules(); // Refresh the data
@@ -134,26 +137,26 @@ export function ScheduleRowActions<TData>({
         <DropdownMenuSeparator className="my-2" />
         <DropdownMenuItem onClick={applyChanges}>Apply</DropdownMenuItem>
         {isSuperAdmin && (
-        <DropdownMenuItem
-          onClick={async () => {
-            const confirmed = confirm(
-              "Are you sure you want to delete this schedule?"
-            );
-            if (confirmed) {
-              const { error } = await supabase
-                .from("reference_schedules")
-                .delete()
-                .eq("id", schedule.id);
-              if (error) {
-                console.error("Error deleting schedule:", error);
-              } else {
-                fetchReferenceSchedules();
+          <DropdownMenuItem
+            onClick={async () => {
+              const confirmed = confirm(
+                "Are you sure you want to delete this schedule?"
+              );
+              if (confirmed) {
+                const { error } = await supabase
+                  .from("reference_schedules")
+                  .delete()
+                  .eq("id", schedule.id);
+                if (error) {
+                  //console.("Error deleting schedule:", error);
+                } else {
+                  fetchReferenceSchedules();
+                }
               }
-            }
-          }}
-        >
-          Delete
-        </DropdownMenuItem>
+            }}
+          >
+            Delete
+          </DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

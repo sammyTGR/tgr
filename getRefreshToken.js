@@ -28,6 +28,6 @@ rl.question('Enter the code from that page here: ', async (code) => {
     console.log('Refresh Token:', tokens.refresh_token);
     rl.close();
   } catch (error) {
-    console.error('Error retrieving access token', error);
+    //console.('Error retrieving access token', error);
   }
 });

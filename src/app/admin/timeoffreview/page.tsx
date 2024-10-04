@@ -72,7 +72,7 @@ export default function ApproveRequestsPage() {
       // console.log("Fetched and sorted data:", data);
       setRequests(data);
     } catch (error: any) {
-      console.error("Failed to fetch time off requests:", error.message);
+      //console.("Failed to fetch time off requests:", error.message);
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +111,7 @@ export default function ApproveRequestsPage() {
         prevRequests.filter((request) => request.request_id !== request_id)
       );
     } catch (error) {
-      console.error("Failed to deny request:", error);
+      //console.("Failed to deny request:", error);
     }
   };
 
@@ -178,7 +178,7 @@ export default function ApproveRequestsPage() {
       );
       setRequests(updatedRequests);
     } catch (error: any) {
-      console.error("Failed to mark as duplicate:", error.message);
+      //console.("Failed to mark as duplicate:", error.message);
     }
   };
 
@@ -201,14 +201,18 @@ export default function ApproveRequestsPage() {
       const responseData = await response.json();
 
       if (!response.ok) {
-        console.error("Email sending failed:", responseData);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(responseData)}`);
+        //console.("Email sending failed:", responseData);
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${JSON.stringify(
+            responseData
+          )}`
+        );
       }
 
       //console.log("Email sent successfully:", responseData);
       return responseData;
     } catch (error: any) {
-      console.error("Failed to send email:", error);
+      //console.("Failed to send email:", error);
       // You might want to show an error message to the user here
       throw error; // Re-throw the error so it can be caught in handleRequest
     }
@@ -223,7 +227,7 @@ export default function ApproveRequestsPage() {
   ) => {
     try {
       //console.log("Handling request:", { request_id, action, emailMessage, use_sick_time, use_vacation_time });
-      
+
       const request = requests.find((req) => req.request_id === request_id);
       if (!request) {
         throw new Error("Request not found");
@@ -313,7 +317,9 @@ export default function ApproveRequestsPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${errorText}`
+        );
       }
 
       const result = await response.json();
@@ -336,7 +342,7 @@ export default function ApproveRequestsPage() {
 
       //console.log("Request handled successfully");
     } catch (error: any) {
-      console.error("Failed to handle request:", error);
+      //console.("Failed to handle request:", error);
       // You might want to show an error message to the user here
     }
   };

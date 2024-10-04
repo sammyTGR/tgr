@@ -25,7 +25,7 @@ const SalesTableRowActions = ({
     if (!error) {
       onUpdate(sale.id, { status });
     } else {
-      console.error("Error updating sale:", error);
+      //console.("Error updating sale:", error);
     }
   };
 

@@ -19,7 +19,7 @@ export default function AuditReview() {
       .order("audit_date", { ascending: false }); // Ensure sorting is handled by Supabase
 
     if (error) {
-      console.error("Error fetching initial data:", error.message);
+      //console.("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
     return data as AuditData[];
@@ -33,12 +33,15 @@ export default function AuditReview() {
       setData(fetchedData);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      //console.("Failed to fetch data:", error);
       setLoading(false);
     }
   }, [fetchAuditData]);
 
-  const columns = useMemo(() => createColumns(fetchAuditData), [fetchAuditData]);
+  const columns = useMemo(
+    () => createColumns(fetchAuditData),
+    [fetchAuditData]
+  );
 
   useEffect(() => {
     fetchData();

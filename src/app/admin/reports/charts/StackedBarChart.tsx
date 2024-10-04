@@ -55,7 +55,7 @@ const StackedBarChart = () => {
         setChartData(processedData);
         setCategories(categories);
       } catch (error) {
-        console.error("Error fetching chart data:", error);
+        //console.("Error fetching chart data:", error);
       }
     };
 

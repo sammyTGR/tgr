@@ -45,7 +45,9 @@ const AdminReportsPage = () => {
   const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
   const [activeTab, setActiveTab] = useState("timesheet");
   const [isAllExpanded, setIsAllExpanded] = useState(false);
-  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(null);
+  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(
+    null
+  );
   const [filteredTimesheetData, setFilteredTimesheetData] = useState<
     TimesheetReport[]
   >([]);
@@ -56,7 +58,7 @@ const AdminReportsPage = () => {
         "get_all_employee_sick_time_usage"
       );
       if (error) {
-        console.error("Error fetching sick time data:", error.message);
+        //console.("Error fetching sick time data:", error.message);
       } else {
         // console.log("Fetched Sick Time Data:", data);
         setSickTimeData(data as SickTimeReport[]);
@@ -66,7 +68,7 @@ const AdminReportsPage = () => {
     const fetchTimesheetData = async () => {
       const { data, error } = await supabase.rpc("get_timesheet_data");
       if (error) {
-        console.error("Error fetching timesheet data:", error.message);
+        //console.("Error fetching timesheet data:", error.message);
       } else {
         // console.log("Timesheet Data:", data); // For debugging
         setTimesheetData(data as TimesheetReport[]);
@@ -122,8 +124,6 @@ const AdminReportsPage = () => {
       }));
       fileName = "timesheet_report.xlsx";
     }
-
-
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();

@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import DOMPurify from "isomorphic-dompurify";
 import {
   Pencil1Icon,
   TrashIcon,
@@ -293,7 +294,7 @@ const EmployeeProfile = () => {
 
       return Object.values(groupedData);
     } catch (error) {
-      console.error("Failed to fetch calendar data:", (error as Error).message);
+      //console.("Failed to fetch calendar data:", (error as Error).message);
       return [];
     }
   }, [currentDate]);
@@ -381,7 +382,7 @@ const EmployeeProfile = () => {
       setSelectedAbsenceReason(null);
       setCustomAbsenceReason("");
     } catch (error) {
-      console.error("Failed to add absence:", error);
+      //console.("Failed to add absence:", error);
     }
   };
 
@@ -391,7 +392,7 @@ const EmployeeProfile = () => {
         "get_all_employee_sick_time_usage"
       );
       if (error) {
-        console.error("Error fetching sick time data:", error.message);
+        //console.("Error fetching sick time data:", error.message);
       } else {
         // console.log("Fetched Sick Time Data:", data);
         setSickTimeData(data as SickTimeReport[]);
@@ -443,7 +444,7 @@ const EmployeeProfile = () => {
       .single();
 
     if (error) {
-      console.error("Error fetching review:", error);
+      //console.("Error fetching review:", error);
       return;
     }
 
@@ -471,7 +472,7 @@ const EmployeeProfile = () => {
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting review:", error);
+      //console.("Error deleting review:", error);
     } else {
       setReviews((prevReviews) =>
         prevReviews.filter((review) => review.id !== id)
@@ -512,7 +513,7 @@ const EmployeeProfile = () => {
         .lte("audit_date", endDate);
 
       if (salesError || auditError) {
-        console.error(salesError || auditError);
+        //console.(salesError || auditError);
         return;
       }
 
@@ -565,7 +566,7 @@ const EmployeeProfile = () => {
       summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
       setSummaryData(summary);
     } catch (error) {
-      console.error("Error fetching or calculating summary data:", error);
+      //console.("Error fetching or calculating summary data:", error);
     }
   };
 
@@ -579,7 +580,7 @@ const EmployeeProfile = () => {
       .single();
 
     if (error) {
-      console.error("Error fetching employee name:", error);
+      //console.("Error fetching employee name:", error);
       return null;
     }
     return data?.name || null;
@@ -587,59 +588,78 @@ const EmployeeProfile = () => {
 
   useEffect(() => {
     if (user && employeeId) {
-      fetchEmployeeData();
-      fetchNotes();
-      fetchReviews();
-      fetchAbsences();
-      subscribeToNoteChanges();
+      const fetchData = async () => {
+        try {
+          await fetchEmployeeData();
+          await fetchNotes();
+          await fetchReviews();
+          await fetchAbsences();
+          subscribeToNoteChanges();
 
-      const scheduleSubscription = supabase
-        .channel("schedules-changes")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "schedules" },
-          async (payload: { new: any; old: any; eventType: string }) => {
-            const newRecord = payload.new;
+          const scheduleSubscription = supabase
+            .channel("schedules-changes")
+            .on(
+              "postgres_changes",
+              { event: "*", schema: "public", table: "schedules" },
+              async (payload: { new: any; old: any; eventType: string }) => {
+                try {
+                  const newRecord = payload.new;
 
-            if (
-              newRecord.employee_id === employeeId &&
-              (["called_out", "left_early"].includes(newRecord.status) ||
-                newRecord.status.toLowerCase().includes("late"))
-            ) {
-              const status =
-                newRecord.status === "called_out"
-                  ? "Called Out"
-                  : newRecord.status === "left_early"
-                  ? "Left Early"
-                  : newRecord.status.replace(/^Custom:\s*/i, "").trim();
+                  if (
+                    newRecord.employee_id === employeeId &&
+                    (["called_out", "left_early"].includes(newRecord.status) ||
+                      newRecord.status.toLowerCase().includes("late"))
+                  ) {
+                    const status =
+                      newRecord.status === "called_out"
+                        ? "Called Out"
+                        : newRecord.status === "left_early"
+                        ? "Left Early"
+                        : newRecord.status.replace(/^Custom:\s*/i, "").trim();
 
-              const createdByName = await fetchEmployeeNameByUserUUID(user.id);
-              if (!createdByName) return;
+                    const createdByName = await fetchEmployeeNameByUserUUID(
+                      user.id
+                    );
+                    if (!createdByName) return;
 
-              const { error } = await supabase
-                .from("employee_absences")
-                .insert([
-                  {
-                    employee_id: newRecord.employee_id,
-                    schedule_date: newRecord.schedule_date,
-                    status: status,
-                    created_by: createdByName,
-                  },
-                ]);
+                    const { error } = await supabase
+                      .from("employee_absences")
+                      .insert([
+                        {
+                          employee_id: newRecord.employee_id,
+                          schedule_date: newRecord.schedule_date,
+                          status: status,
+                          created_by: createdByName,
+                        },
+                      ]);
 
-              if (error) {
-                console.error("Error inserting absence:", error);
-              } else {
-                fetchAbsences(); // Refetch absences after insertion
+                    if (error) {
+                      throw new Error(
+                        `Error inserting absence: ${error.message}`
+                      );
+                    } else {
+                      await fetchAbsences();
+                    }
+                  }
+                } catch (error) {
+                  console.error(
+                    "Error in schedule subscription handler:",
+                    error
+                  );
+                }
               }
-            }
-          }
-        )
-        .subscribe();
+            )
+            .subscribe();
 
-      return () => {
-        supabase.removeChannel(scheduleSubscription);
+          return () => {
+            supabase.removeChannel(scheduleSubscription);
+          };
+        } catch (error) {
+          console.error("Error in useEffect:", error);
+        }
       };
+
+      fetchData();
     }
   }, [user, employeeId]);
 
@@ -660,7 +680,7 @@ const EmployeeProfile = () => {
         .single();
 
       if (error) {
-        console.error("Error fetching employee name:", error);
+        //console.("Error fetching employee name:", error);
         return null;
       }
       return data?.name || null;
@@ -671,7 +691,7 @@ const EmployeeProfile = () => {
         .from("points_calculation")
         .select("*");
       if (error) {
-        console.error(error);
+        //console.(error);
       } else {
         setPointsCalculation(data);
       }
@@ -715,7 +735,7 @@ const EmployeeProfile = () => {
           .lte("audit_date", endDate);
 
         if (salesError || auditError) {
-          console.error(salesError || auditError);
+          //console.(salesError || auditError);
         } else {
           setSalesData(salesData);
           setAuditData(auditData);
@@ -766,7 +786,7 @@ const EmployeeProfile = () => {
       .single();
 
     if (error) {
-      console.error("Error fetching employee data:", error.message);
+      //console.("Error fetching employee data:", error.message);
     } else {
       setEmployee(data);
     }
@@ -782,7 +802,7 @@ const EmployeeProfile = () => {
       .single();
 
     if (error) {
-      console.error("Error fetching employee name:", error);
+      //console.("Error fetching employee name:", error);
       return null;
     }
     return data?.name || null;
@@ -797,7 +817,7 @@ const EmployeeProfile = () => {
       .eq("profile_employee_id", employeeId);
 
     if (error) {
-      console.error("Error fetching notes:", error);
+      //console.("Error fetching notes:", error);
     } else {
       setNotes(data as Note[]);
     }
@@ -812,7 +832,7 @@ const EmployeeProfile = () => {
       .eq("employee_id", employeeId);
 
     if (error) {
-      console.error("Error fetching reviews:", error);
+      //console.("Error fetching reviews:", error);
     } else {
       setReviews(data as Review[]);
     }
@@ -827,7 +847,7 @@ const EmployeeProfile = () => {
       .eq("employee_id", employeeId);
 
     if (absencesError) {
-      console.error("Error fetching absences:", absencesError);
+      //console.("Error fetching absences:", absencesError);
     } else {
       setAbsences(absencesData);
     }
@@ -839,7 +859,7 @@ const EmployeeProfile = () => {
       .or("status.eq.called_out,status.eq.left_early,status.ilike.%late%");
 
     if (schedulesError) {
-      console.error("Error fetching schedules:", schedulesError);
+      //console.("Error fetching schedules:", schedulesError);
     } else {
       const formattedAbsences = schedulesData.map(
         (absence: { schedule_date: string; status: string }) => {
@@ -884,7 +904,7 @@ const EmployeeProfile = () => {
       .order("audit_date", { ascending: false });
 
     if (error) {
-      console.error("Error fetching audits:", error);
+      //console.("Error fetching audits:", error);
     } else {
       setAudits(data as Audit[]);
     }
@@ -956,7 +976,7 @@ const EmployeeProfile = () => {
       .select();
 
     if (error) {
-      console.error("Error adding note:", error);
+      //console.("Error adding note:", error);
     } else if (data) {
       setNotes((prevNotes) => [data[0], ...prevNotes]);
       switch (type) {
@@ -997,7 +1017,7 @@ const EmployeeProfile = () => {
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting note:", error);
+      //console.("Error deleting note:", error);
     } else {
       setNotes(notes.filter((note) => note.id !== id));
     }
@@ -1008,7 +1028,7 @@ const EmployeeProfile = () => {
       .eq("id", id);
 
     if (absenceError) {
-      console.error("Error deleting absence:", absenceError);
+      //console.("Error deleting absence:", absenceError);
     } else {
       setAbsences(absences.filter((absence) => absence.id !== id));
     }
@@ -1017,13 +1037,15 @@ const EmployeeProfile = () => {
   const handleEditNote = async (id: number, updatedNote: string | null) => {
     if (updatedNote === null || updatedNote.trim() === "") return;
 
+    const sanitizedNote = DOMPurify.sanitize(updatedNote);
+
     const { error } = await supabase
       .from("employee_profile_notes")
       .update({ note: updatedNote })
       .eq("id", id);
 
     if (error) {
-      console.error("Error updating note:", error);
+      //console.("Error updating note:", error);
     } else {
       setNotes(
         notes.map((note) =>
@@ -1049,7 +1071,7 @@ const EmployeeProfile = () => {
       .eq("id", id);
 
     if (error) {
-      console.error("Error reviewing note:", error);
+      //console.("Error reviewing note:", error);
     } else {
       setNotes(
         notes.map((note) =>
@@ -1106,7 +1128,7 @@ const EmployeeProfile = () => {
         .select();
 
       if (error) {
-        console.error("Error updating review:", error);
+        //console.("Error updating review:", error);
       } else if (data) {
         setReviews((prevReviews) =>
           prevReviews.map((review) =>
@@ -1124,7 +1146,7 @@ const EmployeeProfile = () => {
         .select();
 
       if (error) {
-        console.error("Error adding review:", error);
+        //console.("Error adding review:", error);
       } else if (data) {
         setReviews((prevReviews) => [data[0], ...prevReviews]);
         setShowReviewDialog(false); // Close the dialog after insert
@@ -1142,7 +1164,7 @@ const EmployeeProfile = () => {
       .select();
 
     if (error) {
-      console.error("Error publishing review:", error);
+      //console.("Error publishing review:", error);
     } else if (data) {
       setReviews((prevReviews) =>
         prevReviews.map((review) =>

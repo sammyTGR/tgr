@@ -8,7 +8,7 @@ const fetchData = async (): Promise<AuditData[]> => {
   const { data, error } = await client.from("Auditsinput").select("*");
 
   if (error) {
-    console.error("Error fetching data:", error.message);
+    //console.("Error fetching data:", error.message);
     throw new Error(error.message);
   }
 

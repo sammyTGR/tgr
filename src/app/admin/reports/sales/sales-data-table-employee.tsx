@@ -64,7 +64,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
       const { data, count, error } = await response.json();
 
       if (error) {
-        console.error("Error fetching sales data:", error);
+        //console.("Error fetching sales data:", error);
         toast.error("Failed to fetch sales data.");
       } else {
         // console.log("Fetched sales data:", data);
@@ -74,7 +74,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
         }
       }
     } catch (error) {
-      console.error("Failed to fetch sales data:", error);
+      //console.("Failed to fetch sales data:", error);
       toast.error("Failed to fetch sales data.");
     }
   };
@@ -94,7 +94,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
 
     if (!response.ok) {
       const { error } = await response.json();
-      console.error("Error updating sales data:", error);
+      //console.("Error updating sales data:", error);
       toast.error("Failed to update labels.");
     } else {
       setSales((currentSales) =>

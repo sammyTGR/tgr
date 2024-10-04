@@ -46,7 +46,7 @@ export default function Board() {
       .from("weekly_agenda_columns")
       .select("*");
     if (error) {
-      console.error("Error fetching columns:", error);
+      //console.("Error fetching columns:", error);
     } else {
       setColumns(data);
     }
@@ -55,7 +55,7 @@ export default function Board() {
   const fetchCards = async () => {
     const { data, error } = await supabase.from("weekly_agenda").select("*");
     if (error) {
-      console.error("Error fetching cards:", error);
+      //console.("Error fetching cards:", error);
     } else {
       setCards(data);
     }
@@ -99,7 +99,7 @@ export default function Board() {
       .insert([{ column_name, title, created_by: user.email }]) // Include created_by field
       .select();
     if (error) {
-      console.error("Error adding card:", error);
+      //console.("Error adding card:", error);
     } else {
       setCards((prevCards) => [...prevCards, data[0]]);
     }
@@ -111,7 +111,7 @@ export default function Board() {
       .update({ column_name })
       .eq("id", id);
     if (error) {
-      console.error("Error updating card column:", error);
+      //console.("Error updating card column:", error);
     } else {
       fetchCards();
     }
@@ -123,7 +123,7 @@ export default function Board() {
       .update({ title })
       .eq("id", id);
     if (error) {
-      console.error("Error updating card title:", error);
+      //console.("Error updating card title:", error);
     } else {
       fetchCards();
     }
@@ -139,12 +139,12 @@ export default function Board() {
         .delete()
         .eq("id", id);
       if (error) {
-        console.error("Error deleting card:", error);
+        //console.("Error deleting card:", error);
       } else {
         setCards((prevCards) => prevCards.filter((card) => card.id !== id));
       }
     } else {
-      console.error("You do not have permission to delete this card.");
+      //console.("You do not have permission to delete this card.");
     }
   };
 
@@ -155,12 +155,12 @@ export default function Board() {
         .insert([{ title }])
         .select();
       if (error) {
-        console.error("Error adding column:", error);
+        //console.("Error adding column:", error);
       } else {
         setColumns((prevColumns) => [...prevColumns, data[0]]);
       }
     } else {
-      console.error("You do not have permission to add columns.");
+      //console.("You do not have permission to add columns.");
     }
   };
 
@@ -170,7 +170,7 @@ export default function Board() {
       .update({ title })
       .eq("id", id);
     if (error) {
-      console.error("Error updating column title:", error);
+      //console.("Error updating column title:", error);
     } else {
       fetchColumns();
     }
@@ -183,14 +183,14 @@ export default function Board() {
         .delete()
         .eq("id", id);
       if (error) {
-        console.error("Error deleting column:", error);
+        //console.("Error deleting column:", error);
       } else {
         setColumns((prevColumns) =>
           prevColumns.filter((column) => column.id !== id)
         );
       }
     } else {
-      console.error("You do not have permission to delete this column.");
+      //console.("You do not have permission to delete this column.");
     }
   };
 

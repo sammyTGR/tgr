@@ -86,7 +86,7 @@ export default function AuditsPage() {
         .from("points_calculation")
         .select("*");
       if (error) {
-        console.error("Error fetching points calculation:", error);
+        //console.("Error fetching points calculation:", error);
       } else {
         setPointsCalculation(data);
       }
@@ -131,7 +131,7 @@ export default function AuditsPage() {
       ] = await Promise.all([salesQuery, auditQuery]);
 
       if (salesError || auditError) {
-        console.error(salesError || auditError);
+        //console.(salesError || auditError);
         return;
       }
 
@@ -188,7 +188,7 @@ export default function AuditsPage() {
       summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
       setSummaryData(summary);
     } catch (error) {
-      console.error("Error fetching or calculating summary data:", error);
+      //console.("Error fetching or calculating summary data:", error);
     }
   };
 
@@ -205,7 +205,7 @@ export default function AuditsPage() {
         .select("lanid");
 
       if (error) {
-        console.error("Error fetching employees:", error);
+        //console.("Error fetching employees:", error);
       } else {
         setEmployees(data || []);
       }
@@ -241,7 +241,7 @@ export default function AuditsPage() {
       .order("audit_date", { ascending: false });
 
     if (error) {
-      console.error("Error fetching initial data:", error.message);
+      //console.("Error fetching initial data:", error.message);
       throw new Error(error.message);
     }
     return new Map(data.map((item) => [item.audits_id, item]));
@@ -253,7 +253,7 @@ export default function AuditsPage() {
       const fetchedData = await fetchAuditData();
       setDataMap(fetchedData);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      //console.("Failed to fetch data:", error);
     } finally {
       setLoading(false);
     }

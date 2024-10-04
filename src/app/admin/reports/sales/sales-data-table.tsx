@@ -94,7 +94,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
       .update(updates)
       .eq("id", id);
     if (error) {
-      console.error("Error updating sales data:", error);
+      //console.("Error updating sales data:", error);
       toast.error("Failed to update labels.");
     } else {
       setSales((currentSales) =>
@@ -167,11 +167,11 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
         setSales(filteredData);
         setPageCount(Math.ceil(filteredData.length / pageSize));
       } else {
-        console.error("Unexpected data format:", data);
+        //console.("Unexpected data format:", data);
         toast.error("Received unexpected data format");
       }
     } catch (error) {
-      console.error("Failed to fetch sales data:", error);
+      //console.("Failed to fetch sales data:", error);
       toast.error("Failed to fetch sales data.");
     } finally {
       setIsLoading(false);

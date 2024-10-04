@@ -129,7 +129,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     const fetchOptions = async () => {
       const { data, error } = await supabase.from("Auditlists").select("*");
       if (error) {
-        console.error("Error fetching options:", error);
+        //console.("Error fetching options:", error);
         toast.error("Failed to fetch dropdown options");
       } else if (data) {
         const options: {

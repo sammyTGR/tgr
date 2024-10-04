@@ -176,7 +176,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     const fetchOptions = async () => {
       const { data, error } = await supabase.from("Auditlists").select("*");
       if (error) {
-        console.error("Failed to fetch options:", error.message);
+        //console.("Failed to fetch options:", error.message);
       } else if (data) {
         updateOptions(data);
       }
@@ -253,7 +253,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
         .insert(records);
 
       if (error) {
-        console.error("Detailed API error:", error);
+        //console.("Detailed API error:", error);
         throw new Error(
           `Failed to append data: ${error.message || JSON.stringify(error)}`
         );
@@ -266,7 +266,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
         onAuditSubmitted();
       }
     } catch (error: any) {
-      console.error("Error during form submission:", error);
+      //console.("Error during form submission:", error);
       toast.success(
         `An error occurred during form submission: ${
           error.message || "Check server logs for more details."
@@ -493,7 +493,8 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                                 field.onChange(date);
                               }}
                               disabledDays={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
+                                date > new Date() ||
+                                date < new Date("1900-01-01")
                               }
                             />
                           </PopoverContent>
@@ -509,7 +510,10 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
             </div>
 
             {fields.map((field, index) => (
-              <div key={field.id} className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+              <div
+                key={field.id}
+                className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4"
+              >
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction Type</CardTitle>
@@ -594,7 +598,10 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                       name={`audits.${index}.errorNotes`}
                       control={control}
                       render={({ field }) => (
-                        <Textarea {...field} placeholder="Details On What Was Audited" />
+                        <Textarea
+                          {...field}
+                          placeholder="Details On What Was Audited"
+                        />
                       )}
                     />
                   </CardContent>

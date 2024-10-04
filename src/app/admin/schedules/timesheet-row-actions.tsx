@@ -69,7 +69,7 @@ export function TimesheetRowActions({
       .select();
 
     if (error) {
-      console.error(`Error clearing ${field}:`, error);
+      //console.(`Error clearing ${field}:`, error);
     } else if (data && data.length > 0) {
       updateTimesheet(data[0] as TimesheetData);
       // Update local state
@@ -114,7 +114,7 @@ export function TimesheetRowActions({
         .select();
 
       if (error) {
-        console.error("Error updating timesheet:", error);
+        //console.("Error updating timesheet:", error);
       } else if (data && data.length > 0) {
         updateTimesheet(data[0] as TimesheetData);
         fetchTimesheets(); // Refresh the entire timesheet data

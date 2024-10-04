@@ -45,7 +45,7 @@ const Dashboard = () => {
     const { data, error } = await query;
 
     if (error) {
-      console.error("Error fetching employees:", error);
+      //console.("Error fetching employees:", error);
     } else {
       setEmployees(data);
     }
@@ -60,7 +60,7 @@ const Dashboard = () => {
       .select("employee_id, name, pay_rate");
 
     if (error) {
-      console.error("Error creating employee:", error);
+      //console.("Error creating employee:", error);
     } else {
       setEmployees([...employees, ...data]);
       setNewEmployeeName("");

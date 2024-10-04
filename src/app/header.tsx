@@ -34,7 +34,7 @@ export default function Header() {
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
       if (userError) {
-        console.error("Error fetching user:", userError.message);
+        //console.("Error fetching user:", userError.message);
         setLoading(false);
         return;
       }
@@ -55,10 +55,10 @@ export default function Header() {
           .single();
 
         if (customerError || !customerData) {
-          console.error(
-            "Error fetching role:",
-            customerError?.message || roleError?.message
-          );
+          // console.error(
+          //   "Error fetching role:",
+          //   customerError?.message || roleError?.message
+          // );
           setLoading(false);
           return;
         }

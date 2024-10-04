@@ -338,7 +338,7 @@ const HeaderSuperAdmin = React.memo(() => {
       const data = await response.json();
       setUnreadOrderCount(data.unreadOrderCount);
     } catch (error) {
-      console.error("Error fetching unread orders:", error);
+      //console.("Error fetching unread orders:", error);
     }
   };
 
@@ -348,7 +348,7 @@ const HeaderSuperAdmin = React.memo(() => {
       const data = await response.json();
       setUnreadTimeOffCount(data.unreadTimeOffCount);
     } catch (error) {
-      console.error("Error fetching unread time-off requests:", error);
+      //console.("Error fetching unread time-off requests:", error);
     }
   };
 
@@ -362,7 +362,7 @@ const HeaderSuperAdmin = React.memo(() => {
         .eq("user_uuid", userData.user.id)
         .single();
       if (error) {
-        console.error("Error fetching employee data:", error.message);
+        //console.("Error fetching employee data:", error.message);
       } else {
         setEmployeeId(employeeData.employee_id);
       }
@@ -412,7 +412,7 @@ const HeaderSuperAdmin = React.memo(() => {
       .not("read_by", "cs", `{${user.id}}`);
 
     if (dmError) {
-      console.error("Error fetching unread direct messages:", dmError.message);
+      //console.("Error fetching unread direct messages:", dmError.message);
     }
 
     if (groupError) {

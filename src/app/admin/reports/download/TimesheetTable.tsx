@@ -95,7 +95,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
         .from("employees")
         .select("employee_id, name");
       if (error) {
-        console.error("Error fetching employees:", error);
+        //console.("Error fetching employees:", error);
       } else {
         setEmployees(data || []);
       }
@@ -108,7 +108,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     const fetchSickTimeData = async () => {
       const { data, error } = await supabase.rpc("get_all_sick_time_data");
       if (error) {
-        console.error("Error fetching sick time data:", error);
+        //console.("Error fetching sick time data:", error);
       } else {
         setSickTimeData(data);
       }
@@ -209,7 +209,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
       toast.success("Hours reconciled successfully");
     } catch (error: any) {
-      console.error("Error reconciling hours:", error);
+      //console.("Error reconciling hours:", error);
       toast.error(error.message || "Failed to reconcile hours");
     }
   };
@@ -219,10 +219,10 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
       const refreshData = async () => {
         const { data, error } = await supabase.rpc("get_timesheet_data");
         if (error) {
-          console.error(
-            "Error fetching updated timesheet data:",
-            error.message
-          );
+          // console.error(
+          //   "Error fetching updated timesheet data:",
+          //   error.message
+          // );
           toast.error("Failed to refresh data");
         } else {
           onDataUpdate(() => data as TimesheetReport[]);
@@ -283,7 +283,12 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
 
   // Filter data based on selected dates and employee
   const filteredData = useMemo(() => {
-    return filterData(data, localSelectedPayPeriod, selectedDates, selectedEmployeeId);
+    return filterData(
+      data,
+      localSelectedPayPeriod,
+      selectedDates,
+      selectedEmployeeId
+    );
   }, [data, localSelectedPayPeriod, selectedDates, selectedEmployeeId]);
 
   // Group and sort data by employee and event_date

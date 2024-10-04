@@ -72,6 +72,8 @@ import { CustomCalendarMulti } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Separator } from "@radix-ui/react-dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -360,6 +362,7 @@ const EmployeeProfilePage = () => {
     }
   };
 
+  // sends alert to employee and admins simultaneously
   const scheduleOvertimeAlert = (clockInTime: Date) => {
     const alertTime = new Date(clockInTime.getTime() + 9 * 60 * 60 * 1000); // 9 hours after clock-in
     const now = new Date();
@@ -367,28 +370,53 @@ const EmployeeProfilePage = () => {
 
     if (timeUntilAlert > 0) {
       setTimeout(() => {
-        sendOvertimeAlert(
-          employee.name,
-          employee.contact_info,
-          formatTZ(clockInTime, "h:mm a", { timeZone }),
-          formatTZ(new Date(), "h:mm a", { timeZone }),
-          "EmployeeOvertimeAlert"
-        );
-        sendOvertimeAlertToAdmins(
-          employee.name,
-          formatTZ(clockInTime, "h:mm a", { timeZone }),
-          formatTZ(new Date(), "h:mm a", { timeZone })
-        );
+        Promise.all([
+          sendOvertimeAlert(
+            employee.name,
+            employee.contact_info,
+            formatTZ(clockInTime, "h:mm a", { timeZone }),
+            formatTZ(new Date(), "h:mm a", { timeZone }),
+            "EmployeeOvertimeAlert"
+          ),
+          sendOvertimeAlertToAdmins(
+            employee.employee_id.toString(),
+            employee.name,
+            formatTZ(clockInTime, "h:mm a", { timeZone }),
+            formatTZ(new Date(), "h:mm a", { timeZone })
+          ),
+        ]).catch((error) => {
+          console.error("Failed to send overtime alerts:", error);
+        });
       }, timeUntilAlert);
     }
   };
 
+  const getLatestClockEvent = async (employeeId: string) => {
+    const { data, error } = await supabase
+      .from("employee_clock_events")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .order("start_time", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    return data[0];
+  };
+
   const sendOvertimeAlertToAdmins = async (
+    employeeId: string,
     employeeName: string,
     clockInTime: string,
     currentTime: string
   ) => {
     try {
+      const latestClockEvent = await getLatestClockEvent(employeeId);
+
+      if (latestClockEvent && latestClockEvent.end_time) {
+        console.log("Employee has already clocked out. No alert needed.");
+        return;
+      }
+
       const { data: admins, error } = await supabase
         .from("employees")
         .select("contact_info, name")
@@ -459,7 +487,7 @@ const EmployeeProfilePage = () => {
         .eq("event_date", eventDate);
 
       if (error) {
-        console.error("Error ending shift:", error);
+        //console.error("Error ending shift:", error);
       } else {
         setIsClockedIn(false);
         setOnLunchBreak(false);
@@ -474,7 +502,7 @@ const EmployeeProfilePage = () => {
         toast.success(`Thank You For Your Hard Work Today ${employee.name}!`);
       }
     } else {
-      console.error("Invalid duration calculated");
+      //console.error("Invalid duration calculated");
     }
   };
 
@@ -492,7 +520,7 @@ const EmployeeProfilePage = () => {
       .eq("id", currentShift?.id);
 
     if (error) {
-      console.error("Error starting lunch break:", error);
+      //console.error("Error starting lunch break:", error);
     } else {
       setOnLunchBreak(true);
       setLunchBreakTime(formatTZ(now, "h:mm a", { timeZone })); // Update to actual lunch start time
@@ -523,7 +551,7 @@ const EmployeeProfilePage = () => {
       .single();
 
     if (error) {
-      console.error("Error ending lunch break:", error);
+      //console.error("Error ending lunch break:", error);
     } else {
       setOnLunchBreak(false);
       setDialogOpen(false);
@@ -545,7 +573,7 @@ const EmployeeProfilePage = () => {
       .single();
 
     if (error && error.code !== "PGRST116") {
-      console.error("Error fetching current shift:", error);
+      //console.error("Error fetching current shift:", error);
     } else if (data) {
       setIsClockedIn(!!data.start_time && !data.end_time);
       setOnLunchBreak(!!data.lunch_start && !data.lunch_end && !data.end_time);
@@ -1176,9 +1204,11 @@ const EmployeeProfilePage = () => {
               </Avatar>
 
               <div>
-                <h1 className="text-xl font-bold">Welcome {employee?.name}</h1>
+                <h1 className="text-xl font-bold">
+                  Welcome {DOMPurify.sanitize(employee?.name || "")}
+                </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {employee?.position}
+                  {DOMPurify.sanitize(employee?.position || "")}
                 </p>
               </div>
             </div>

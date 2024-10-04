@@ -87,7 +87,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
   const fetchOptions = async () => {
     const { data, error } = await supabase.from("Auditsinput").select("*");
     if (error) {
-      console.error("Error fetching options:", error);
+      //console.("Error fetching options:", error);
       return;
     }
     updateOptions(data);
@@ -159,7 +159,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
       if (error) throw error;
       onClose();
     } catch (error) {
-      console.error("Error updating audit:", error);
+      //console.("Error updating audit:", error);
     }
   };
 

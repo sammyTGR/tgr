@@ -75,22 +75,22 @@ const schedComponents = [
   {
     title: "Calendar",
     href: "/TGR/crew/calendar",
-    description: "Where Dey At",
+    description: "Team Calendar",
   },
   {
-    title: "Submit Time Off",
+    title: "Time Off Requests",
     href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
+    description: "Submit Time Off",
   },
   {
     title: "Review Time Off Requests",
     href: "/admin/timeoffreview",
-    description: "View All Requests For Time Off",
+    description: "Respond To Time Off Requests",
   },
   {
-    title: "Create Schedules",
+    title: "Schedules & Timesheets",
     href: "/admin/schedules",
-    description: "Manage Schedules",
+    description: "Schedules & Timesheets",
   },
 ];
 
@@ -245,14 +245,9 @@ const comboComps = [
     description: "View All Certifications",
   },
   {
-    title: "Submit Range Walks",
-    href: "/TGR/rangewalk",
-    description: "Submit Daily Range Walks",
-  },
-  {
-    title: "Submit Range Repairs",
-    href: "/TGR/rangewalk/report",
-    description: "View All Range Walks & Repairs",
+    title: "Range Walks & Repairs",
+    href: "/TGR/crew/range",
+    description: "Submit Range Walks & Repairs",
   },
   {
     title: "Submit Daily Deposits",
@@ -299,7 +294,7 @@ const HeaderAdmin = React.memo(() => {
       const data = await response.json();
       setUnreadOrderCount(data.unreadOrderCount);
     } catch (error) {
-      console.error("Error fetching unread orders:", error);
+      //console.("Error fetching unread orders:", error);
     }
   };
 
@@ -309,7 +304,7 @@ const HeaderAdmin = React.memo(() => {
       const data = await response.json();
       setUnreadTimeOffCount(data.unreadTimeOffCount);
     } catch (error) {
-      console.error("Error fetching unread time-off requests:", error);
+      //console.("Error fetching unread time-off requests:", error);
     }
   };
 
@@ -323,7 +318,7 @@ const HeaderAdmin = React.memo(() => {
         .eq("user_uuid", userData.user.id)
         .single();
       if (error) {
-        console.error("Error fetching employee data:", error.message);
+        //console.("Error fetching employee data:", error.message);
       } else {
         setEmployeeId(employeeData.employee_id);
       }
@@ -500,7 +495,7 @@ const HeaderAdmin = React.memo(() => {
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
 
       if (fetchError) {
-        console.error("Error fetching messages to update:", fetchError.message);
+        //console.("Error fetching messages to update:", fetchError.message);
         return;
       }
 

@@ -28,7 +28,7 @@ const SalesDonutChart = () => {
         const data = await fetchData();
         setChartData(data);
       } catch (error) {
-        console.error("Error fetching chart data:", error);
+        //console.("Error fetching chart data:", error);
       }
     };
 

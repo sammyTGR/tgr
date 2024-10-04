@@ -116,7 +116,7 @@ export async function middleware(request: NextRequest) {
     .maybeSingle(); // Use maybeSingle to handle cases where no rows are returned
 
   if (employeeError) {
-    console.error("Error fetching employee role:", employeeError.message);
+    //console.("Error fetching employee role:", employeeError.message);
   } else if (!employeeData) {
     // Insert logic in the OAuth callback, not here.
     // console.log("No employee data found, handling this in OAuth callback");

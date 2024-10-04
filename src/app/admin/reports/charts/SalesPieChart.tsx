@@ -1,8 +1,8 @@
 // src/app/admin/reports/sales/SalesDonutChart.tsx
 import React, { useEffect, useState } from "react";
 import { DonutChart, Card, Title, Text, EventProps } from "@tremor/react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Terminal } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 const dataFormatter = (number: number) =>
   `$ ${Intl.NumberFormat("us").format(number).toString()}`;
@@ -23,7 +23,7 @@ const SalesPieChart = () => {
         const data = await response.json();
         setChartData(data);
       } catch (error) {
-        console.error("Error fetching chart data:", error);
+        //console.("Error fetching chart data:", error);
       }
     };
 
@@ -67,10 +67,8 @@ const SalesPieChart = () => {
               onValueChange={(v) => setValue(v)}
             />
             <pre className="mt-8 rounded-md bg-gray-950 p-3 text-sm text-white dark:bg-gray-800">
-            {JSON.stringify(value, null, 2)}
-             </pre>
-            
-
+              {JSON.stringify(value, null, 2)}
+            </pre>
           </div>
         </div>
       </Card>
