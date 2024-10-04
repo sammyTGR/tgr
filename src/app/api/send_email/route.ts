@@ -45,37 +45,37 @@ export async function POST(request: Request) {
       case "TimeOffApproved":
         emailTemplate = TimeOffApproved({
           ...templateData,
-          startDate: formatDateIfString(templateData.startDate),
-          endDate: formatDateIfString(templateData.endDate),
+          startDate: templateData.startDate,
+          endDate: templateData.endDate,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "TimeOffDenied":
         emailTemplate = TimeOffDenied({
           ...templateData,
-          startDate: formatDateIfString(templateData.startDate),
-          endDate: formatDateIfString(templateData.endDate),
+          startDate: templateData.startDate,
+          endDate: templateData.endDate,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "CalledOut":
         emailTemplate = CalledOut({
           ...templateData,
-          date: formatDateIfString(templateData.date),
+          date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "LeftEarly":
         emailTemplate = LeftEarly({
           ...templateData,
-          date: formatDateIfString(templateData.date),
+          date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;
       case "CustomStatus":
         emailTemplate = CustomStatus({
           ...templateData,
-          date: formatDateIfString(templateData.date),
+          date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;

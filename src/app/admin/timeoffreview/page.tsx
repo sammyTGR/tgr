@@ -6,8 +6,7 @@ import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
-import { format } from "date-fns";
-import { parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -190,6 +189,7 @@ export default function ApproveRequestsPage() {
     templateData: any
   ) => {
     try {
+      console.log("Sending email:", { email, subject, templateName, templateData });
       const response = await fetch("/api/send_email", {
         method: "POST",
         headers: {
@@ -198,14 +198,19 @@ export default function ApproveRequestsPage() {
         body: JSON.stringify({ email, subject, templateName, templateData }),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error("Email sending failed:", responseData);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${JSON.stringify(responseData)}`);
       }
 
-      const result = await response.json();
-      // console.log("Email sent successfully:", result);
+      console.log("Email sent successfully:", responseData);
+      return responseData;
     } catch (error: any) {
-      console.error("Failed to send email:", error.message);
+      console.error("Failed to send email:", error);
+      // You might want to show an error message to the user here
+      throw error; // Re-throw the error so it can be caught in handleRequest
     }
   };
 
@@ -217,6 +222,8 @@ export default function ApproveRequestsPage() {
     use_vacation_time: boolean = false
   ) => {
     try {
+      console.log("Handling request:", { request_id, action, emailMessage, use_sick_time, use_vacation_time });
+      
       const request = requests.find((req) => req.request_id === request_id);
       if (!request) {
         throw new Error("Request not found");
@@ -275,6 +282,8 @@ export default function ApproveRequestsPage() {
           }
       }
 
+      console.log("Prepared template data:", templateData);
+
       const subject =
         action === "deny"
           ? "Time Off Request Denied"
@@ -288,7 +297,7 @@ export default function ApproveRequestsPage() {
           ? "Time Off Request Custom Approval"
           : "Time Off Request Status Update";
 
-      // Call the API to approve the request
+      console.log("Calling approve_request API");
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: {
@@ -303,16 +312,17 @@ export default function ApproveRequestsPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const result = await response.json();
-      // console.log("API response:", result);
+      console.log("API response:", result);
 
-      // Send email after successful API call
+      console.log("Sending email");
       await sendEmail(request.email, subject, templateName, templateData);
 
-      // Update local state
+      console.log("Updating local state");
       setRequests((prevRequests) =>
         prevRequests.map((req) =>
           req.request_id === request_id
@@ -321,10 +331,13 @@ export default function ApproveRequestsPage() {
         )
       );
 
-      // Re-fetch the updated requests after handling the action
+      console.log("Re-fetching updated requests");
       await fetchRequests();
+
+      console.log("Request handled successfully");
     } catch (error: any) {
-      console.error("Failed to handle request:", error.message);
+      console.error("Failed to handle request:", error);
+      // You might want to show an error message to the user here
     }
   };
 
