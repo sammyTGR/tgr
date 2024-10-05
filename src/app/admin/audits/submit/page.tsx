@@ -6,7 +6,9 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 export default function SubmitAudits() {
   return (
-    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
+    >
       <main>
         <header>
           <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">

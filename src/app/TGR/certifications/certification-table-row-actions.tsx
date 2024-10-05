@@ -73,7 +73,7 @@ const CertificationTableRowActions = ({
         </DropdownMenuItem>
 
         {/* Conditionally render Delete and Edit options for admins and super admins */}
-        {(role === "admin" || role === "super admin") && (
+        {(role === "admin" || role === "super admin" || role === "dev") && (
           <>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>Edit Certificate</DropdownMenuSubTrigger>

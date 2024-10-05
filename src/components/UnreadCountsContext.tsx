@@ -5,6 +5,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
@@ -34,20 +35,31 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
-  const isChatPage = pathname === "/TGR/crew/chat"; // Adjust this path as needed
+  const isChatPage = pathname === "/TGR/crew/chat";
+  const subscriptionsRef = useRef<{ unsubscribe: () => void }[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error.message);
+        return;
+      }
       if (userData && userData.user) {
         setUser(userData.user);
+        // console.log("User set in UnreadCountsProvider:", userData.user);
       }
     };
     fetchUser();
   }, []);
 
   const fetchUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      // console.log("No user, skipping fetchUnreadCounts");
+      return;
+    }
+
+    // console.log("Fetching unread counts for user:", user.id);
 
     // Fetch unread direct messages
     const { data: dmData, error: dmError } = await supabase
@@ -74,11 +86,17 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
     }
 
     let totalUnread = (dmData?.length || 0) + (groupData?.length || 0);
+    console.log("Total unread messages:", totalUnread);
     setTotalUnreadCount(totalUnread);
   }, [user]);
 
   const resetUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      // console.log("No user, skipping resetUnreadCounts");
+      return;
+    }
+
+    // console.log("Resetting unread counts for user:", user.id);
 
     // Reset unread direct messages
     const { error: dmError } = await supabase
@@ -119,82 +137,120 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
       }
     }
 
+    console.log("Unread counts reset, setting total to 0");
     setTotalUnreadCount(0);
   }, [user]);
 
   useEffect(() => {
     if (user) {
+      // console.log("User available, setting up subscriptions");
       if (isChatPage) {
+        // console.log("On chat page, resetting unread counts");
         resetUnreadCounts();
       } else {
+        // console.log("Not on chat page, fetching unread counts");
         fetchUnreadCounts();
       }
 
-      // Fetch user's group chats
-      const fetchUserGroupChats = async () => {
-        const { data: groupChats, error } = await supabase
-          .from("group_chats")
-          .select("id")
-          .contains("users", [user.id]);
+      const setupSubscriptions = async () => {
+        try {
+          const { data: groupChats, error } = await supabase
+            .from("group_chats")
+            .select("id")
+            .contains("users", [user.id]);
 
-        if (error) {
-          console.error("Error fetching user's group chats:", error.message);
-          return [];
+          if (error) {
+            throw new Error(
+              `Error fetching user's group chats: ${error.message}`
+            );
+          }
+
+          const userGroupChats = groupChats.map((chat) => chat.id);
+          // console.log("User group chats:", userGroupChats);
+
+          const groupChatMessageSubscription = supabase
+            .channel("group_chat_messages")
+            .on(
+              "postgres_changes",
+              {
+                event: "INSERT",
+                schema: "public",
+                table: "group_chat_messages",
+              },
+              (payload) => {
+                // console.log("New group chat message:", payload);
+                if (
+                  payload.new.sender_id !== user.id &&
+                  (!payload.new.read_by ||
+                    !payload.new.read_by.includes(user.id)) &&
+                  userGroupChats.includes(payload.new.group_chat_id)
+                ) {
+                  // console.log("Incrementing unread count for group message");
+                  setTotalUnreadCount((prev) => prev + 1);
+                }
+              }
+            )
+            .subscribe((status) => {
+              // console.log("Group chat subscription status:", status);
+            });
+
+          const directMessageSubscription = supabase
+            .channel("direct_messages")
+            .on(
+              "postgres_changes",
+              { event: "INSERT", schema: "public", table: "direct_messages" },
+              (payload) => {
+                // console.log("New direct message:", payload);
+                if (
+                  payload.new.receiver_id === user.id &&
+                  !payload.new.is_read
+                ) {
+                  // console.log("Incrementing unread count for direct message");
+                  setTotalUnreadCount((prev) => prev + 1);
+                }
+              }
+            )
+            .subscribe((status) => {
+              // console.log("Direct message subscription status:", status);
+            });
+
+          subscriptionsRef.current = [
+            groupChatMessageSubscription,
+            directMessageSubscription,
+          ];
+        } catch (error) {
+          // console.error("Error setting up subscriptions:", error);
         }
-        return groupChats.map((chat) => chat.id);
       };
 
-      // Fetch group chats and set up subscriptions
-      fetchUserGroupChats().then((userGroupChats) => {
-        const groupChatMessageSubscription = supabase
-          .channel("group_chat_messages")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "group_chat_messages" },
-            (payload) => {
-              if (
-                payload.new.sender_id !== user.id &&
-                (!payload.new.read_by ||
-                  !payload.new.read_by.includes(user.id)) &&
-                userGroupChats.includes(payload.new.group_chat_id)
-              ) {
-                setTotalUnreadCount((prev) => prev + 1);
-              }
-            }
-          )
-          .subscribe();
+      setupSubscriptions();
 
-        const directMessageSubscription = supabase
-          .channel("direct_messages")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "direct_messages" },
-            (payload) => {
-              if (payload.new.receiver_id === user.id && !payload.new.is_read) {
-                setTotalUnreadCount((prev) => prev + 1);
-              }
-            }
-          )
-          .subscribe();
-
-        return () => {
-          groupChatMessageSubscription.unsubscribe();
-          directMessageSubscription.unsubscribe();
-        };
-      });
+      return () => {
+        // console.log("Cleaning up subscriptions");
+        subscriptionsRef.current.forEach((subscription) =>
+          subscription.unsubscribe()
+        );
+      };
     }
   }, [user, isChatPage, fetchUnreadCounts, resetUnreadCounts]);
 
   const updateTotalUnreadCount = useCallback(
     (countOrUpdater: number | ((prevCount: number) => number)) => {
       if (typeof countOrUpdater === "function") {
-        setTotalUnreadCount((prevCount) => countOrUpdater(prevCount));
+        setTotalUnreadCount((prevCount) => {
+          const newCount = countOrUpdater(prevCount);
+          // console.log("Updating total unread count:", newCount);
+          return newCount;
+        });
       } else {
+        // console.log("Setting total unread count:", countOrUpdater);
         setTotalUnreadCount(countOrUpdater);
       }
     },
     []
   );
+
+  // console.log("Current total unread count:", totalUnreadCount);
 
   return (
     <UnreadCountsContext.Provider

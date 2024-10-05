@@ -39,7 +39,10 @@ const Dashboard = () => {
 
     // If the user's role is 'admin', filter out other 'admin' and 'super admin'
     if (role === "admin" || role === "auditor") {
-      query = query.neq("role", "admin").neq("role", "super admin");
+      query = query
+        .neq("role", "admin")
+        .neq("role", "super admin")
+        .neq("role", "dev");
     }
 
     const { data, error } = await query;
@@ -69,7 +72,7 @@ const Dashboard = () => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin", "dev"]}>
       <section className="w-full py-12 md:py-12">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">

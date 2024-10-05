@@ -160,7 +160,7 @@ export default function ScheduleGeneratorPage() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin"]}>
+    <RoleBasedWrapper allowedRoles={["super admin", "dev"]}>
       <div className="flex flex-col w-full max-w-md mx-auto py-8 md:py-12">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Generate Schedules</h1>

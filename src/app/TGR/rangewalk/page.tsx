@@ -141,7 +141,7 @@ export default function Component() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <Card className="w-full max-w-md mx-auto my-24">
         <CardHeader>

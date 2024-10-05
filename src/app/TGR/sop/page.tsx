@@ -29,7 +29,14 @@ const SlidesPage: React.FC = () => {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+      allowedRoles={[
+        "gunsmith",
+        "user",
+        "auditor",
+        "admin",
+        "super admin",
+        "dev",
+      ]}
     >
       <div className="flex flex-col items-center justify-center text-center mt-12 ">
         <h1 className="flex justify-start ">

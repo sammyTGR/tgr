@@ -132,6 +132,7 @@ export default function Board() {
   const deleteCard = async (id: string, createdBy: string) => {
     if (
       role === "super admin" ||
+      role === "dev" ||
       (role === "admin" && user.email === createdBy)
     ) {
       const { error } = await supabase
@@ -149,7 +150,7 @@ export default function Board() {
   };
 
   const addColumn = async (title: string) => {
-    if (role === "super admin") {
+    if (role === "super admin" || role === "dev") {
       const { data, error } = await supabase
         .from("weekly_agenda_columns")
         .insert([{ title }])
@@ -177,7 +178,7 @@ export default function Board() {
   };
 
   const deleteColumn = async (id: string) => {
-    if (role === "super admin") {
+    if (role === "super admin" || role === "dev") {
       const { error } = await supabase
         .from("weekly_agenda_columns")
         .delete()
@@ -198,7 +199,9 @@ export default function Board() {
     <Card className="h-full mt-4">
       <CardHeader>
         <CardTitle>Weekly Agenda</CardTitle>
-        {role === "super admin" && <AddColumn handleAddColumn={addColumn} />}
+        {(role === "super admin" || role === "dev") && (
+          <AddColumn handleAddColumn={addColumn} />
+        )}
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -380,7 +383,7 @@ const Column = ({
             <>
               <h3 className={`font-medium ${headingColor}`}>{title}</h3>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {role === "super admin" && (
+                {(role === "super admin" || role === "dev") && (
                   <button
                     onClick={handleEditColumn}
                     className="text-yellow-500"
@@ -388,7 +391,7 @@ const Column = ({
                     <Pencil1Icon />
                   </button>
                 )}
-                {role === "super admin" && (
+                {(role === "super admin" || role === "dev") && (
                   <button
                     onClick={() => deleteColumn(column.id)}
                     className="text-red-500"
@@ -493,13 +496,14 @@ const KanbanCard = ({
           <div className="flex justify-between items-center">
             <p className="text-sm ">{title}</p>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {(role === "super admin" || user.email === created_by) && (
+              {(role === "super admin" ||
+                (role === "dev" && user.email === created_by)) && (
                 <button onClick={handleEdit} className="text-yellow-500">
                   <Pencil1Icon />
                 </button>
               )}
               {(role === "super admin" ||
-                (role === "admin" && user.email === created_by)) && (
+                (role === "dev" && user.email === created_by)) && (
                 <button
                   onClick={() => handleDeleteCard(id, created_by)}
                   className="text-red-500"

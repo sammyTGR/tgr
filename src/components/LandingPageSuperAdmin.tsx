@@ -24,7 +24,7 @@ const subwords = "Weekly Checks For 9MM Quality Control";
 const LandingPageSuperAdmin: React.FC = React.memo(() => {
   const { role } = useRole();
 
-  if (role !== "super admin") {
+  if (role !== "super admin" && role !== "dev") {
     return (
       <div>
         <h1>You must be signed in to view this page.</h1>

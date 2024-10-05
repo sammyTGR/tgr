@@ -165,7 +165,7 @@ const RangewalkForm: React.FC<RangewalkFormProps> = ({
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <CardHeader>
         <CardTitle>Range Walk Report</CardTitle>

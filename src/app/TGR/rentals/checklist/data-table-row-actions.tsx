@@ -212,7 +212,7 @@ export function DataTableRowActions({
           <DropdownMenuItem onSelect={() => setOpenVerification(true)}>
             Verify Firearm
           </DropdownMenuItem>
-          {["admin", "super admin"].includes(userRole) && (
+          {["admin", "super admin", "dev"].includes(userRole) && (
             <>
               <DropdownMenuItem
                 onSelect={async () => {
@@ -285,7 +285,7 @@ export function DataTableRowActions({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
-          {["admin", "super admin"].includes(userRole) && (
+          {["admin", "super admin", "dev"].includes(userRole) && (
             <>
               <DropdownMenuItem onSelect={() => setOpenEditFirearm(true)}>
                 Edit Firearm

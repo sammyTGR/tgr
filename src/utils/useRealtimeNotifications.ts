@@ -5,12 +5,14 @@ import { toast } from "sonner";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import { usePathname, useRouter } from "next/navigation";
+import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const useRealtimeNotifications = () => {
   const { user } = useRole();
   const pathname = usePathname();
   const router = useRouter();
   const [userGroupChats, setUserGroupChats] = useState<number[]>([]);
+  const { setTotalUnreadCount } = useUnreadCounts();
 
   const fetchUserGroupChats = useCallback(async () => {
     if (!user) return [];
@@ -98,6 +100,7 @@ const useRealtimeNotifications = () => {
 
           // Fetch the current chat context from localStorage
           const currentChat = localStorage.getItem("currentChat");
+          const isChatActive = localStorage.getItem("isChatActive") === "true";
 
           console.log("Notification context:", {
             isOnChatPage,
@@ -106,11 +109,13 @@ const useRealtimeNotifications = () => {
             chatId: isGroupChat
               ? `group_${payload.new.group_chat_id}`
               : payload.new.sender_id,
+            isChatActive,
           });
 
           if (
             !isOnChatPage ||
             document.hidden ||
+            !isChatActive ||
             (currentChat !==
               (isGroupChat
                 ? `group_${payload.new.group_chat_id}`
@@ -220,7 +225,14 @@ const useRealtimeNotifications = () => {
       groupChatChannel?.unsubscribe();
       groupChatCreationChannel?.unsubscribe();
     };
-  }, [user, pathname, router, userGroupChats, fetchUserGroupChats]);
+  }, [
+    user,
+    pathname,
+    router,
+    userGroupChats,
+    fetchUserGroupChats,
+    setTotalUnreadCount,
+  ]);
 
   return null;
 };

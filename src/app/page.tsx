@@ -24,10 +24,10 @@ export default function Home() {
       } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        console.error(
-          "Error fetching session or no active session found:",
-          sessionError?.message || "Auth session missing!"
-        );
+        // console.error(
+        //   "Error fetching session or no active session found:",
+        //   sessionError?.message || "Auth session missing!"
+        // );
         setLoading(false);
         setNoSession(true);
         setProgress(100); // Final progress
@@ -100,7 +100,7 @@ export default function Home() {
         setLoading(false); // End loading before redirection
         setRoleValidating(false); // End role validation
         setProgress(100); // Final progress
-        if (role === "admin" || role === "super admin") {
+        if (role === "admin" || role === "super admin" || role === "dev") {
           router.push("/admin/reports/dashboard");
         } else {
           router.push(`/TGR/crew/profile/${employee_id}`);

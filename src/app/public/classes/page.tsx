@@ -58,7 +58,7 @@ export default function Component() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const isAdmin = role === "admin" || role === "super admin";
+  const isAdmin = role === "admin" || role === "super admin" || role === "dev";
 
   const {
     data: classSchedules,

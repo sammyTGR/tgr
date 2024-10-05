@@ -791,7 +791,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
       <div className="section w-full overflow-hidden">
         <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
@@ -1045,7 +1045,7 @@ export default function AdminDashboard() {
           <div className="w-full overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
               {/* File Upload Section */}
-              {role === "super admin" && (
+              {(role === "super admin" || role === "dev") && (
                 <Card className="flex flex-col h-full">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
@@ -1081,7 +1081,7 @@ export default function AdminDashboard() {
                 </Card>
               )}
 
-              {role === "super admin" && !loading && (
+              {(role === "super admin" || role === "dev") && !loading && (
                 <Card className="flex flex-col overflow-hidden">
                   <CardHeader>
                     <CardTitle>Manage Approved Domains</CardTitle>

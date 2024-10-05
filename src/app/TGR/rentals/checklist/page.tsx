@@ -159,7 +159,7 @@ export default function FirearmsChecklist() {
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, role")
-        .in("role", ["gunsmith", "admin", "super admin"]);
+        .in("role", ["gunsmith", "admin", "super admin", "dev"]);
 
       if (employeesError) throw employeesError;
 
@@ -639,7 +639,7 @@ export default function FirearmsChecklist() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div className="h-screen max-w-8xl mx-auto flex flex-col">
         <Toaster position="top-right" />
@@ -669,10 +669,10 @@ export default function FirearmsChecklist() {
                 />
               )}
 
-              {["admin", "super admin"].includes(userRole || "") && (
+              {["admin", "super admin", "dev"].includes(userRole || "") && (
                 <AddFirearmForm onAdd={handleAddFirearm} />
               )}
-              {["super admin"].includes(userRole || "") && (
+              {["super admin", "dev"].includes(userRole || "") && (
                 <>
                   <Button
                     variant="linkHover1"

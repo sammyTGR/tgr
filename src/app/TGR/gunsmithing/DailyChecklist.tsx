@@ -455,7 +455,9 @@ export default function DailyChecklist({
                     ));
                   })()}
                   {/* New Request Button (for admin and super admin) */}
-                  {(userRole === "admin" || userRole === "super admin") && (
+                  {(userRole === "admin" ||
+                    userRole === "super admin" ||
+                    userRole === "dev") && (
                     <div className="mt-4">
                       {activeRequestFirearmId === firearm.id ? (
                         <>

@@ -128,7 +128,11 @@ export async function middleware(request: NextRequest) {
 
     // Redirect to the correct profile page based on role
     if (url.pathname === "/auth" || url.pathname === "/") {
-      if (userRole === "admin" || userRole === "super admin") {
+      if (
+        userRole === "admin" ||
+        userRole === "super admin" ||
+        userRole === "dev"
+      ) {
         return NextResponse.redirect(
           new URL("/admin/reports/dashboard", request.url)
         );

@@ -336,7 +336,11 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
   const handleDelete = async (listId: string, idToDelete: number) => {
     const list = lists.find((list) => list.id === listId);
     const item = list?.items.find((item) => item.id === idToDelete);
-    if ((item && item.user_id === user.id) || role === "super admin") {
+    if (
+      (item && item.user_id === user.id) ||
+      role === "super admin" ||
+      role === "dev"
+    ) {
       const { error } = await supabase
         .from("items")
         .delete()
@@ -529,9 +533,9 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
   }, []);
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
       <main className="flex grid-cols-4 justify-center mt-10 h-screen px-2 mx-auto select-none">
-        {role === "super admin" && (
+        {(role === "super admin" || role === "dev") && (
           <div className="flex justify-start p-4 mb-4">
             <AddNewList addNewList={addNewList} />
           </div>

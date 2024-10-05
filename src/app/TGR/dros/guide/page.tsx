@@ -175,7 +175,7 @@ export default function DROSGuide() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div>
         <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">

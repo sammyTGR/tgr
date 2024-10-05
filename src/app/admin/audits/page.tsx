@@ -299,7 +299,7 @@ export default function AuditsPage() {
   const data = useMemo(() => Array.from(dataMap.values()), [dataMap]);
 
   return (
-    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin", "dev"]}>
       <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <div className="mb-10 my-8">
           <SupportNavMenu />

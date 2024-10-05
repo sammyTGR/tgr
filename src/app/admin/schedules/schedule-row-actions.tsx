@@ -55,7 +55,8 @@ export function ScheduleRowActions<TData>({
         // console.log("Role from profiles table:", profile?.role);
 
         const isSuperAdmin =
-          profile?.role?.toLowerCase().trim() === "super admin";
+          profile?.role?.toLowerCase().trim() === "super admin" ||
+          profile?.role?.toLowerCase().trim() === "dev";
         setIsSuperAdmin(isSuperAdmin);
         // console.log("Is super admin (after lowercase and trim):", isSuperAdmin);
       }

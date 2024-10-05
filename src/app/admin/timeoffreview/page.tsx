@@ -348,7 +348,7 @@ export default function ApproveRequestsPage() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
       <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-6">
           <TextGenerateEffect words={title} />

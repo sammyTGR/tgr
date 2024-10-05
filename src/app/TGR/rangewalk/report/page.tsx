@@ -137,7 +137,7 @@ export default function RangeWalkReport() {
   }, [fetchData]);
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin"]}>
+    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin", "dev"]}>
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">

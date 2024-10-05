@@ -38,7 +38,15 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./calendar.module.css"; // Create this CSS module file
 import classNames from "classnames";
 import { ShiftFilter } from "./ShiftFilter";
-import { startOfWeek, addDays, isSameWeek, isFriday, parseISO, subDays, isSameDay } from "date-fns";
+import {
+  startOfWeek,
+  addDays,
+  isSameWeek,
+  isFriday,
+  parseISO,
+  subDays,
+  isSameDay,
+} from "date-fns";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
 const title = "TGR Team Calendar";
@@ -116,15 +124,20 @@ const getBreakRoomDutyEmployee = async (
   }
 
   if (existingDuty && existingDuty.length > 0) {
-    const employee = employees.find(emp => emp.employee_id === existingDuty[0].employee_id);
-    return employee ? { 
-      employee, 
-      dutyDate: parseISO(existingDuty[0].duty_date)
-    } : null;
+    const employee = employees.find(
+      (emp) => emp.employee_id === existingDuty[0].employee_id
+    );
+    return employee
+      ? {
+          employee,
+          dutyDate: parseISO(existingDuty[0].duty_date),
+        }
+      : null;
   }
 
   // If no existing duty, create a new assignment
-  const salesEmployees = employees.filter(emp => emp.department === "Sales")
+  const salesEmployees = employees
+    .filter((emp) => emp.department === "Sales")
     .sort((a, b) => a.rank - b.rank);
 
   if (salesEmployees.length === 0) return null;
@@ -143,7 +156,9 @@ const getBreakRoomDutyEmployee = async (
 
   let nextEmployeeIndex = 0;
   if (lastAssignment && lastAssignment.length > 0) {
-    const lastIndex = salesEmployees.findIndex(emp => emp.employee_id === lastAssignment[0].employee_id);
+    const lastIndex = salesEmployees.findIndex(
+      (emp) => emp.employee_id === lastAssignment[0].employee_id
+    );
     nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
   }
 
@@ -177,27 +192,27 @@ const getBreakRoomDutyEmployee = async (
   }
 
   if (!dutyDate) {
-    console.error("No scheduled work day found for the selected employee on Friday this week");
+    console.error(
+      "No scheduled work day found for the selected employee on Friday this week"
+    );
     return null;
   }
 
   // Insert the new assignment into the break_room_duty table
-  const { error: insertError } = await supabase
-    .from("break_room_duty")
-    .insert({
-      week_start: formattedWeekStart,
-      employee_id: selectedEmployee.employee_id,
-      duty_date: format(dutyDate, "yyyy-MM-dd"),
-    });
+  const { error: insertError } = await supabase.from("break_room_duty").insert({
+    week_start: formattedWeekStart,
+    employee_id: selectedEmployee.employee_id,
+    duty_date: format(dutyDate, "yyyy-MM-dd"),
+  });
 
   if (insertError) {
     console.error("Error inserting break room duty:", insertError);
     return null;
   }
 
-  return { 
-    employee: selectedEmployee, 
-    dutyDate: dutyDate
+  return {
+    employee: selectedEmployee,
+    dutyDate: dutyDate,
   };
 };
 
@@ -221,8 +236,10 @@ export default function Component() {
   const handleDialogOpen = (open: boolean) => {
     queryClient.setQueryData(["timeOffDialogOpen"], open);
   };
-  
-  const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
+
+  const fetchCalendarData = useCallback(async (): Promise<
+    EmployeeCalendar[]
+  > => {
     const timeZone = "America/Los_Angeles";
     const startOfWeek = toZonedTime(getStartOfWeek(currentDate), timeZone);
     const endOfWeek = new Date(startOfWeek);
@@ -280,24 +297,27 @@ export default function Component() {
     }
   }, [currentDate]);
 
-  
-
-  const filterEventsByShiftAndDay = useCallback((events: CalendarEvent[]) => {
-    return events.filter((event) => {
-      if (selectedDay && event.day_of_week !== selectedDay) return false;
-      if (selectedShifts.length > 0) {
-        const startTime = event.start_time ? new Date(`1970-01-01T${event.start_time}`) : null;
-        if (!startTime) return false;
-        const time = startTime.getHours() + startTime.getMinutes() / 60;
-        return (
-          (selectedShifts.includes("morning") && time < 10) ||
-          (selectedShifts.includes("mid") && time >= 10 && time < 11.5) ||
-          (selectedShifts.includes("closing") && time >= 11.5)
-        );
-      }
-      return true;
-    });
-  }, [selectedDay, selectedShifts]);
+  const filterEventsByShiftAndDay = useCallback(
+    (events: CalendarEvent[]) => {
+      return events.filter((event) => {
+        if (selectedDay && event.day_of_week !== selectedDay) return false;
+        if (selectedShifts.length > 0) {
+          const startTime = event.start_time
+            ? new Date(`1970-01-01T${event.start_time}`)
+            : null;
+          if (!startTime) return false;
+          const time = startTime.getHours() + startTime.getMinutes() / 60;
+          return (
+            (selectedShifts.includes("morning") && time < 10) ||
+            (selectedShifts.includes("mid") && time >= 10 && time < 11.5) ||
+            (selectedShifts.includes("closing") && time >= 11.5)
+          );
+        }
+        return true;
+      });
+    },
+    [selectedDay, selectedShifts]
+  );
 
   const {
     data: calendarData,
@@ -308,9 +328,10 @@ export default function Component() {
     queryFn: fetchCalendarData,
   });
 
-  const employeeNames = useMemo(() => 
-    calendarData ? calendarData.map((emp) => emp.name) : []
-  , [calendarData]);
+  const employeeNames = useMemo(
+    () => (calendarData ? calendarData.map((emp) => emp.name) : []),
+    [calendarData]
+  );
 
   const filteredCalendarData = useMemo(() => {
     if (!calendarData) return [];
@@ -327,7 +348,12 @@ export default function Component() {
   }, [filteredCalendarData]);
 
   const handleDayClick = (day: string) => {
-    if (role === "admin" || role === "super admin" || role === "user") {
+    if (
+      role === "admin" ||
+      role === "super admin" ||
+      role === "user" ||
+      role === "dev"
+    ) {
       setSelectedDay((prevDay) => (prevDay === day ? null : day));
     }
   };
@@ -364,8 +390,6 @@ export default function Component() {
     });
     return weekDatesTemp;
   }, [currentDate]);
-
-
 
   const handlePreviousWeek = () => {
     setCurrentDate((prev) => {
@@ -429,9 +453,14 @@ export default function Component() {
       return response.json();
     },
     onMutate: async (newStatus) => {
-      await queryClient.cancelQueries({ queryKey: ["calendarData", currentDate] });
+      await queryClient.cancelQueries({
+        queryKey: ["calendarData", currentDate],
+      });
 
-      const previousData = queryClient.getQueryData<EmployeeCalendar[]>(["calendarData", currentDate]);
+      const previousData = queryClient.getQueryData<EmployeeCalendar[]>([
+        "calendarData",
+        currentDate,
+      ]);
 
       queryClient.setQueryData<EmployeeCalendar[] | undefined>(
         ["calendarData", currentDate],
@@ -462,7 +491,10 @@ export default function Component() {
       return { previousData };
     },
     onError: (err, newStatus, context) => {
-      queryClient.setQueryData(["calendarData", currentDate], context?.previousData);
+      queryClient.setQueryData(
+        ["calendarData", currentDate],
+        context?.previousData
+      );
     },
     onSettled: (data, error, variables) => {
       if (!error) {
@@ -502,7 +534,13 @@ export default function Component() {
     start_time?: string,
     end_time?: string
   ) => {
-    updateStatusMutation.mutate({ employee_id, schedule_date, status, start_time, end_time });
+    updateStatusMutation.mutate({
+      employee_id,
+      schedule_date,
+      status,
+      start_time,
+      end_time,
+    });
   };
 
   const handleCustomStatusSubmit = () => {
@@ -517,198 +555,238 @@ export default function Component() {
     }
   };
 
-  const { data: breakRoomDuty, isLoading: breakRoomDutyLoading, error: breakRoomDutyError } = useQuery<BreakRoomDuty, Error>({
+  const {
+    data: breakRoomDuty,
+    isLoading: breakRoomDutyLoading,
+    error: breakRoomDutyError,
+  } = useQuery<BreakRoomDuty, Error>({
     queryKey: ["breakRoomDuty", format(startOfWeek(currentDate), "yyyy-MM-dd")],
-    queryFn: () => getBreakRoomDutyEmployee(calendarData || [], startOfWeek(currentDate)),
+    queryFn: () =>
+      getBreakRoomDutyEmployee(calendarData || [], startOfWeek(currentDate)),
     enabled: !!calendarData,
   });
-  
+
   // In your component, add error handling:
   if (breakRoomDutyError) {
     console.error("Error fetching break room duty:", breakRoomDutyError);
     // You can also display an error message to the user here
   }
 
-  const renderEmployeeRow = useCallback((employee: EmployeeCalendar) => {
-    const eventsByDay: { [key: string]: CalendarEvent[] } = {};
-    daysOfWeek.forEach((day) => {
-      eventsByDay[day] = employee.events.filter(
-        (calendarEvent) => calendarEvent.day_of_week === day
-      );
-    });
+  const renderEmployeeRow = useCallback(
+    (employee: EmployeeCalendar) => {
+      const eventsByDay: { [key: string]: CalendarEvent[] } = {};
+      daysOfWeek.forEach((day) => {
+        eventsByDay[day] = employee.events.filter(
+          (calendarEvent) => calendarEvent.day_of_week === day
+        );
+      });
 
-    return (
-      <TableRow key={employee.employee_id}>
-        <TableCell className="font-medium w-20 sticky max-w-sm left-0 z-5 bg-background">
-          {employee.name}
-        </TableCell>
-        {daysOfWeek.map((day) => (
-          <TableCell
-            key={day}
-            className={`text-left relative group w-20 max-w-sm ${
-              selectedDay && day !== selectedDay ? "hidden" : ""
-            }`}
-          >
-            {eventsByDay[day].map((calendarEvent, index) => (
-              <div key={index} className="relative">
-                {calendarEvent.birthday &&
-                isSameDayOfYear(
-                  parseISO(calendarEvent.schedule_date),
-                  parseISO(calendarEvent.birthday)
-                ) ? (
-                  <div className="text-teal-500 dark:text-teal-400 font-bold">
-                    Happy Birthday! 🎉
-                  </div>
-                ) : null}
-                {breakRoomDuty &&
-                breakRoomDuty.employee.employee_id === employee.employee_id &&
-                isSameDay(parseISO(calendarEvent.schedule_date), breakRoomDuty.dutyDate) &&
-                (calendarEvent.status === "scheduled" || calendarEvent.status === "added_day") ? (
-                  <div className="text-pink-600 font-bold">
-                    Break Room Duty 🧹
-                    {!isFriday(breakRoomDuty.dutyDate) && " (Rescheduled)"}
-                  </div>
-                ) : null}
-                {calendarEvent.status === "added_day" ? (
-                  <div className="text-pink-500 dark:text-pink-300">
-                    {formatTime(calendarEvent.start_time)}-{formatTime(calendarEvent.end_time)}
-                  </div>
-                ) : calendarEvent.start_time && calendarEvent.end_time ? (
-                  calendarEvent.status === "time_off" ? (
-                    <div className="text-purple-600 dark:text-purple-500">
-                      Approved Time Off
-                    </div>
-                  ) : calendarEvent.status === "called_out" ? (
-                    <div className="text-red-600 dark:text-red-600">
-                      Called Out
-                    </div>
-                  ) : calendarEvent.status === "left_early" ? (
-                    <div className="text-orange-500 dark:text-orange-400">
-                      Left Early
-                    </div>
-                  ) : calendarEvent.status === "updated_shift" ? (
-                    <div className="text-orange-500 dark:text-orange-400">
-                      {formatTime(calendarEvent.start_time)}-{formatTime(calendarEvent.end_time)}
-                    </div>
-                  ) : calendarEvent.status &&
-                    calendarEvent.status.startsWith("Custom:") ? (
-                    <div className="text-green-500 dark:text-green-400">
-                      {calendarEvent.status.replace("Custom:", "").trim()}
-                    </div>
-                  ) : calendarEvent.status && calendarEvent.status.startsWith("Late Start") ? (
-                    <div className="text-red-500 dark:text-red-400">
-                      {calendarEvent.status}
-                    </div>
-                  ) : (
-                    <div
-                      className={
-                        new Date(`1970-01-01T${calendarEvent.start_time}`).getHours() < 12
-                          ? "text-amber-500 dark:text-amber-400"
-                          : "text-blue-500 dark:text-blue-400"
-                      }
-                    >
-                      {formatTime(calendarEvent.start_time)}-{formatTime(calendarEvent.end_time)}
-                    </div>
-                  )
-                ) : null}
-
-                {(role === "admin" || role === "super admin") && (
-                  <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="linkHover1">
-                          <CaretUpIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Button
-                          variant="linkHover2"
-                          onClick={() =>
-                            updateScheduleStatus(
-                              calendarEvent.employee_id,
-                              calendarEvent.schedule_date,
-                              "called_out"
-                            )
-                          }
-                        >
-                          Called Out
-                        </Button>
-                        <Button
-                          variant="linkHover2"
-                          onClick={() =>
-                            updateScheduleStatus(
-                              calendarEvent.employee_id,
-                              calendarEvent.schedule_date,
-                              "left_early"
-                            )
-                          }
-                        >
-                          Left Early
-                        </Button>
-                        <Button
-                          variant="linkHover2"
-                          onClick={() =>
-                            updateScheduleStatus(
-                              calendarEvent.employee_id,
-                              calendarEvent.schedule_date,
-                              "Custom:Off"
-                            )
-                          }
-                        >
-                          Off
-                        </Button>
-                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              className="p-4"
-                              variant="linkHover2"
-                              onClick={() => {
-                                setCurrentEvent(calendarEvent);
-                                setDialogOpen(true);
-                              }}
-                            >
-                              Late Start
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogTitle className="p-4">Enter Late Start Time</DialogTitle>
-                            <input
-                              type="time"
-                              value={lateStartTime}
-                              onChange={(e) => setLateStartTime(e.target.value)}
-                              className="border rounded p-2"
-                            />
-                            <Button
-                              variant="linkHover1"
-                              onClick={() => {
-                                const formattedTime = new Date(`1970-01-01T${lateStartTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                                updateScheduleStatus(
-                                  calendarEvent.employee_id,
-                                  calendarEvent.schedule_date,
-                                  `Late Start ${formattedTime}`
-                                );
-                                setDialogOpen(false);
-                                setLateStartTime("");
-                              }}
-                            >
-                              Submit
-                            </Button>
-                            <DialogClose asChild>
-                              <Button variant="linkHover2">Cancel</Button>
-                            </DialogClose>
-                          </DialogContent>
-                        </Dialog>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
-              </div>
-            ))}
+      return (
+        <TableRow key={employee.employee_id}>
+          <TableCell className="font-medium w-20 sticky max-w-sm left-0 z-5 bg-background">
+            {employee.name}
           </TableCell>
-        ))}
-      </TableRow>
-    );
-  }, [breakRoomDuty, role, updateScheduleStatus, formatTime, dialogOpen, lateStartTime]);
+          {daysOfWeek.map((day) => (
+            <TableCell
+              key={day}
+              className={`text-left relative group w-20 max-w-sm ${
+                selectedDay && day !== selectedDay ? "hidden" : ""
+              }`}
+            >
+              {eventsByDay[day].map((calendarEvent, index) => (
+                <div key={index} className="relative">
+                  {calendarEvent.birthday &&
+                  isSameDayOfYear(
+                    parseISO(calendarEvent.schedule_date),
+                    parseISO(calendarEvent.birthday)
+                  ) ? (
+                    <div className="text-teal-500 dark:text-teal-400 font-bold">
+                      Happy Birthday! 🎉
+                    </div>
+                  ) : null}
+                  {breakRoomDuty &&
+                  breakRoomDuty.employee.employee_id === employee.employee_id &&
+                  isSameDay(
+                    parseISO(calendarEvent.schedule_date),
+                    breakRoomDuty.dutyDate
+                  ) &&
+                  (calendarEvent.status === "scheduled" ||
+                    calendarEvent.status === "added_day") ? (
+                    <div className="text-pink-600 font-bold">
+                      Break Room Duty 🧹
+                      {!isFriday(breakRoomDuty.dutyDate) && " (Rescheduled)"}
+                    </div>
+                  ) : null}
+                  {calendarEvent.status === "added_day" ? (
+                    <div className="text-pink-500 dark:text-pink-300">
+                      {formatTime(calendarEvent.start_time)}-
+                      {formatTime(calendarEvent.end_time)}
+                    </div>
+                  ) : calendarEvent.start_time && calendarEvent.end_time ? (
+                    calendarEvent.status === "time_off" ? (
+                      <div className="text-purple-600 dark:text-purple-500">
+                        Approved Time Off
+                      </div>
+                    ) : calendarEvent.status === "called_out" ? (
+                      <div className="text-red-600 dark:text-red-600">
+                        Called Out
+                      </div>
+                    ) : calendarEvent.status === "left_early" ? (
+                      <div className="text-orange-500 dark:text-orange-400">
+                        Left Early
+                      </div>
+                    ) : calendarEvent.status === "updated_shift" ? (
+                      <div className="text-orange-500 dark:text-orange-400">
+                        {formatTime(calendarEvent.start_time)}-
+                        {formatTime(calendarEvent.end_time)}
+                      </div>
+                    ) : calendarEvent.status &&
+                      calendarEvent.status.startsWith("Custom:") ? (
+                      <div className="text-green-500 dark:text-green-400">
+                        {calendarEvent.status.replace("Custom:", "").trim()}
+                      </div>
+                    ) : calendarEvent.status &&
+                      calendarEvent.status.startsWith("Late Start") ? (
+                      <div className="text-red-500 dark:text-red-400">
+                        {calendarEvent.status}
+                      </div>
+                    ) : (
+                      <div
+                        className={
+                          new Date(
+                            `1970-01-01T${calendarEvent.start_time}`
+                          ).getHours() < 12
+                            ? "text-amber-500 dark:text-amber-400"
+                            : "text-blue-500 dark:text-blue-400"
+                        }
+                      >
+                        {formatTime(calendarEvent.start_time)}-
+                        {formatTime(calendarEvent.end_time)}
+                      </div>
+                    )
+                  ) : null}
+
+                  {(role === "admin" ||
+                    role === "super admin" ||
+                    role === "dev") && (
+                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="linkHover1">
+                            <CaretUpIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <Button
+                            variant="linkHover2"
+                            onClick={() =>
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                "called_out"
+                              )
+                            }
+                          >
+                            Called Out
+                          </Button>
+                          <Button
+                            variant="linkHover2"
+                            onClick={() =>
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                "left_early"
+                              )
+                            }
+                          >
+                            Left Early
+                          </Button>
+                          <Button
+                            variant="linkHover2"
+                            onClick={() =>
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                "Custom:Off"
+                              )
+                            }
+                          >
+                            Off
+                          </Button>
+                          <Dialog
+                            open={dialogOpen}
+                            onOpenChange={setDialogOpen}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                className="p-4"
+                                variant="linkHover2"
+                                onClick={() => {
+                                  setCurrentEvent(calendarEvent);
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                Late Start
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogTitle className="p-4">
+                                Enter Late Start Time
+                              </DialogTitle>
+                              <input
+                                type="time"
+                                value={lateStartTime}
+                                onChange={(e) =>
+                                  setLateStartTime(e.target.value)
+                                }
+                                className="border rounded p-2"
+                              />
+                              <Button
+                                variant="linkHover1"
+                                onClick={() => {
+                                  const formattedTime = new Date(
+                                    `1970-01-01T${lateStartTime}`
+                                  ).toLocaleTimeString("en-US", {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  });
+                                  updateScheduleStatus(
+                                    calendarEvent.employee_id,
+                                    calendarEvent.schedule_date,
+                                    `Late Start ${formattedTime}`
+                                  );
+                                  setDialogOpen(false);
+                                  setLateStartTime("");
+                                }}
+                              >
+                                Submit
+                              </Button>
+                              <DialogClose asChild>
+                                <Button variant="linkHover2">Cancel</Button>
+                              </DialogClose>
+                            </DialogContent>
+                          </Dialog>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </TableCell>
+          ))}
+        </TableRow>
+      );
+    },
+    [
+      breakRoomDuty,
+      role,
+      updateScheduleStatus,
+      formatTime,
+      dialogOpen,
+      lateStartTime,
+    ]
+  );
 
   // Add this helper function at the end of your component or in a separate utils file
   const isSameDayOfYear = (date1: Date, date2: Date) => {
@@ -728,30 +806,35 @@ export default function Component() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+      allowedRoles={[
+        "gunsmith",
+        "user",
+        "auditor",
+        "admin",
+        "super admin",
+        "dev",
+      ]}
     >
       <div className="flex flex-col items-center space-y-4 p-4">
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={title} />
         </h1>
         <div className="w-full max-w-7xl">
-          
-            <div className="flex justify-between items-center mb-4">
-            
+          <div className="flex justify-between items-center mb-4">
             <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="gooeyLeft">Request Time Off</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogTitle>Request Time Off</DialogTitle>
-            <TimeoffForm onSubmitSuccess={() => handleDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-        {(role === "admin" || role === "super admin") && (
-        <ShiftFilter onSelect={handleShiftFilter}/>
-      )}
+              <DialogTrigger asChild>
+                <Button variant="gooeyLeft">Request Time Off</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogTitle>Request Time Off</DialogTitle>
+                <TimeoffForm onSubmitSuccess={() => handleDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+            {(role === "admin" || role === "super admin" || role === "dev") && (
+              <ShiftFilter onSelect={handleShiftFilter} />
+            )}
           </div>
-          
+
           <Card className="flex-1 flex flex-col h-full w-full max-w-7xl">
             <CardContent className="h-full flex flex-col">
               <div className="flex justify-between w-full mb-4">
@@ -784,6 +867,7 @@ export default function Component() {
                             } ${
                               role === "admin" ||
                               role === "super admin" ||
+                              role === "dev" ||
                               role === "user"
                                 ? "hover:bg-muted cursor-pointer"
                                 : ""
@@ -819,10 +903,14 @@ export default function Component() {
                     >
                       <TableBody>
                         {sortedFilteredCalendarData.length > 0 ? (
-                          sortedFilteredCalendarData.map((employee) => renderEmployeeRow(employee))
+                          sortedFilteredCalendarData.map((employee) =>
+                            renderEmployeeRow(employee)
+                          )
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={8}>No schedules found</TableCell>
+                            <TableCell colSpan={8}>
+                              No schedules found
+                            </TableCell>
                           </TableRow>
                         )}
                       </TableBody>

@@ -338,7 +338,14 @@ export default function SupportNavMenu() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={[
+        "user",
+        "auditor",
+        "admin",
+        "super admin",
+        "dev",
+        "gunsmith",
+      ]}
     >
       <div
         style={{

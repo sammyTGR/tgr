@@ -86,7 +86,7 @@ export function DataTableRowActions({
   };
 
   const canEditNotes =
-    ["user", "admin", "super admin"].includes(userRole) ||
+    ["user", "admin", "super admin", "dev"].includes(userRole) ||
     userUuid === task.user_uuid;
 
   return (

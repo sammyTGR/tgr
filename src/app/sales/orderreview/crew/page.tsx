@@ -91,7 +91,14 @@ export default function OrdersReviewPage() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+      allowedRoles={[
+        "gunsmith",
+        "user",
+        "auditor",
+        "admin",
+        "super admin",
+        "dev",
+      ]}
     >
       <div className="h-screen flex flex-col">
         <section className="flex-1 flex flex-col space-y-4 p-4">

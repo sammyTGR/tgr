@@ -101,8 +101,10 @@ export function DataTableRowActions({
     }
   };
 
-  const canEditNotes = ["gunsmith", "admin", "super admin"].includes(userRole);
-  const canDeleteFirearm = ["admin", "super admin"].includes(userRole);
+  const canEditNotes = ["gunsmith", "admin", "super admin", "dev"].includes(
+    userRole
+  );
+  const canDeleteFirearm = ["admin", "super admin", "dev"].includes(userRole);
 
   return (
     <>

@@ -47,7 +47,7 @@ import {
 import { useTheme } from "next-themes";
 import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
-interface HeaderSuperAdminProps {
+interface HeaderDev {
   totalUnreadCount: number;
 }
 
@@ -289,16 +289,12 @@ const comboComps = [
   //   href: "/TGR/rangewalk/report",
   //   description: "View All Range Walks & Repairs",
   // },
-  {
-    title: "Submit Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Daily Deposits",
-  },
-  {
-    title: "Submit Claimed Points",
-    href: "/TGR/crew/points",
-    description: "Report All Submitted Points",
-  },
+
+  // {
+  //   title: "Submit Claimed Points",
+  //   href: "/TGR/crew/points",
+  //   description: "Report All Submitted Points",
+  // },
   {
     title: "Submit Special Orders",
     href: "/sales/orders",
@@ -319,9 +315,14 @@ const comboComps = [
     href: "/TGR/rentals/checklist",
     description: "Rental Inventory Check",
   },
+  {
+    title: "Submit Daily Deposits",
+    href: "/TGR/deposits",
+    description: "Daily Deposits",
+  },
 ];
 
-const HeaderSuperAdmin = React.memo(() => {
+const HeaderDev = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const router = useRouter();
@@ -471,7 +472,7 @@ const HeaderSuperAdmin = React.memo(() => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={["dev"]}>
       <header className="flex justify-between items-center p-2">
         <NavigationMenu>
           <NavigationMenuList className="flex space-x-4 mr-3">
@@ -690,7 +691,7 @@ const HeaderSuperAdmin = React.memo(() => {
   );
 });
 
-HeaderSuperAdmin.displayName = "HeaderSuperAdmin";
+HeaderDev.displayName = "HeaderDev";
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -719,4 +720,4 @@ const ListItem = React.forwardRef<
 
 ListItem.displayName = "ListItem";
 
-export default HeaderSuperAdmin;
+export default HeaderDev;

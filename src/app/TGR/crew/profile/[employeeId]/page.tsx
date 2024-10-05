@@ -1163,7 +1163,7 @@ const EmployeeProfilePage = () => {
         throw new Error("Failed to send email");
       }
 
-      console.log("Notification email sent to super admins");
+      // console.log("Notification email sent to super admins");
     } catch (error) {
       console.error("Failed to send notification email:", error);
     }
@@ -1189,7 +1189,14 @@ const EmployeeProfilePage = () => {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+      allowedRoles={[
+        "gunsmith",
+        "user",
+        "auditor",
+        "admin",
+        "super admin",
+        "dev",
+      ]}
     >
       <div className="section w-full">
         <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
@@ -1220,9 +1227,10 @@ const EmployeeProfilePage = () => {
               <TabsTrigger value="performance">Sales & Audits</TabsTrigger>
               <TabsTrigger value="forms">Forms</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              {employee?.role === "super admin" && (
-                <TabsTrigger value="profile">Manage Profile</TabsTrigger>
-              )}
+              {employee?.role === "super admin" ||
+                (employee?.role === "dev" && (
+                  <TabsTrigger value="profile">Manage Profile</TabsTrigger>
+                ))}
             </TabsList>
             <ScrollArea className="h-[calc(100vh-300px)]">
               <main

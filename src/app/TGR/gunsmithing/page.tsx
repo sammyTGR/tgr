@@ -561,7 +561,9 @@ export default function GunsmithingMaintenance() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["gunsmith", "admin", "super admin"]}>
+    <RoleBasedWrapper
+      allowedRoles={["gunsmith", "admin", "super admin", "dev"]}
+    >
       <Toaster position="top-right" />
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
@@ -633,7 +635,7 @@ export default function GunsmithingMaintenance() {
                       </CardHeader>
                       <CardContent className="p-0">
                         <div className="flex items-center justify-between p-4">
-                          {["admin", "super admin"].includes(
+                          {["admin", "super admin", "dev"].includes(
                             userRole || ""
                           ) && (
                             <Button

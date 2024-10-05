@@ -71,7 +71,8 @@ export default function DailyDepositsPage() {
       role !== "user" &&
       role !== "auditor" &&
       role !== "admin" &&
-      role !== "super admin"
+      role !== "super admin" &&
+      role !== "dev"
     ) {
       router.push("/unauthorized");
     }
@@ -324,14 +325,15 @@ export default function DailyDepositsPage() {
     (role !== "user" &&
       role !== "auditor" &&
       role !== "admin" &&
-      role !== "super admin")
+      role !== "super admin" &&
+      role !== "dev")
   ) {
     return <div></div>;
   }
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-4xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>

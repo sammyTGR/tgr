@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
+import HeaderDev from "./HeaderDev";
 
 const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
 const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
@@ -85,6 +86,8 @@ export default function Header() {
   switch (role) {
     case "super admin":
       return <HeaderSuperAdmin />;
+    case "dev":
+      return <HeaderDev />;
     case "admin":
       return <HeaderAdmin />;
     case "customer":

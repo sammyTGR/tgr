@@ -108,7 +108,7 @@ export function CertificationDataTable<TData, TValue>({
     <div className="flex flex-col h-full max-w-7xl">
       <div className="flex flex-row items-center justify-between mx-2">
         {/* Add A Certificate Button - Only for Admins and Super Admins */}
-        {(role === "admin" || role === "super admin") && (
+        {(role === "admin" || role === "super admin" || role === "dev") && (
           <Button variant="linkHover1">
             <PopoverForm
               onSubmit={handleAddCertificate} // Now matches the expected signature

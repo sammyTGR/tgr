@@ -59,24 +59,28 @@ export default function RangeWalkPage() {
     staleTime: Infinity,
   });
 
-  const { data: selectedRangeWalk, isLoading: selectedRangeWalkLoading } = useQuery({
-    queryKey: ["selectedRangeWalk", selectedRangeWalkId],
-    queryFn: async () => {
-      if (!selectedRangeWalkId) return null;
-      const { data, error } = await supabase
-        .from("range_walk_reports")
-        .select("*")
-        .eq("id", selectedRangeWalkId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedRangeWalkId,
-  });
+  const { data: selectedRangeWalk, isLoading: selectedRangeWalkLoading } =
+    useQuery({
+      queryKey: ["selectedRangeWalk", selectedRangeWalkId],
+      queryFn: async () => {
+        if (!selectedRangeWalkId) return null;
+        const { data, error } = await supabase
+          .from("range_walk_reports")
+          .select("*")
+          .eq("id", selectedRangeWalkId)
+          .single();
+        if (error) throw error;
+        return data;
+      },
+      enabled: !!selectedRangeWalkId,
+    });
 
   useEffect(() => {
     if (selectedRangeWalk) {
-      queryClient.setQueryData(["repairNotes"], selectedRangeWalk.repair_notes || "");
+      queryClient.setQueryData(
+        ["repairNotes"],
+        selectedRangeWalk.repair_notes || ""
+      );
     }
   }, [selectedRangeWalk, queryClient]);
 
@@ -204,7 +208,6 @@ export default function RangeWalkPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
       queryClient.setQueryData(["popoverState"], false);
-      
     },
   });
 
@@ -327,7 +330,7 @@ export default function RangeWalkPage() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div className="section w-full overflow-hidden max-w-[calc(100vw-90px)] mx-auto">
         <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">
@@ -384,48 +387,59 @@ export default function RangeWalkPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-xl p-2" align="start">
-                  <div className="space-y-4">
-                    <Select onValueChange={handleSelectedRangeWalkChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a range walk" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rangeWalkData?.map((walk) => (
-                          <SelectItem key={walk.id} value={walk.id.toString()}>
-                            {formatDate(walk.date_of_walk)} - {walk.lanes_with_problems || "No problems"}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedRangeWalkId && (
-                      <div className="text-sm">
-                        <strong>Details:</strong>{" "}
-                        {selectedRangeWalk?.description || "No description provided"}
+                    <div className="space-y-4">
+                      <Select onValueChange={handleSelectedRangeWalkChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a range walk" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rangeWalkData?.map((walk) => (
+                            <SelectItem
+                              key={walk.id}
+                              value={walk.id.toString()}
+                            >
+                              {formatDate(walk.date_of_walk)} -{" "}
+                              {walk.lanes_with_problems || "No problems"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedRangeWalkId && (
+                        <div className="text-sm">
+                          <strong>Details:</strong>{" "}
+                          {selectedRangeWalk?.description ||
+                            "No description provided"}
+                        </div>
+                      )}
+                      <Textarea
+                        placeholder="Enter repair notes..."
+                        value={repairNotes || ""}
+                        onChange={(e) =>
+                          handleRepairNotesChange(e.target.value)
+                        }
+                      />
+                      {selectedRangeWalkLoading && (
+                        <p>Loading existing notes...</p>
+                      )}
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleRepairNotesPopoverOpenChange(false)
+                          }
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleSubmitRepairNotes}
+                          disabled={!selectedRangeWalkId}
+                        >
+                          Submit
+                        </Button>
                       </div>
-                    )}
-                    <Textarea
-                      placeholder="Enter repair notes..."
-                      value={repairNotes || ""}
-                      onChange={(e) => handleRepairNotesChange(e.target.value)}
-                    />
-                    {selectedRangeWalkLoading && <p>Loading existing notes...</p>}
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleRepairNotesPopoverOpenChange(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleSubmitRepairNotes}
-                        disabled={!selectedRangeWalkId}
-                      >
-                        Submit
-                      </Button>
                     </div>
-                  </div>
-                </PopoverContent>
+                  </PopoverContent>
                 </Popover>
               </CardContent>
             </Card>

@@ -30,12 +30,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { supabase } from "@/utils/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -63,8 +58,8 @@ interface TimeOffReason {
 }
 
 interface TimeoffFormProps {
-    onSubmitSuccess?: () => void;
-  }
+  onSubmitSuccess?: () => void;
+}
 
 type EmployeeName = string | null;
 type Reason = string | null;
@@ -159,31 +154,31 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
   });
 
   const { data: employeeName = null } = useQuery<string | null>({
-    queryKey: ['employee_name'],
+    queryKey: ["employee_name"],
     queryFn: () => null,
     enabled: false,
   });
 
   const { data: formData } = useQuery<TimeOffFormData | null>({
-    queryKey: ['formData'],
+    queryKey: ["formData"],
     queryFn: () => null,
     enabled: false,
   });
 
   const { data: showAlertDialog = false } = useQuery<boolean>({
-    queryKey: ['showAlertDialog'],
+    queryKey: ["showAlertDialog"],
     queryFn: () => false,
     enabled: false,
   });
 
   const { data: popoverOpen = false } = useQuery<boolean>({
-    queryKey: ['popoverOpen'],
+    queryKey: ["popoverOpen"],
     queryFn: () => false,
     enabled: false,
   });
 
   const { data: date = undefined } = useQuery<Date | undefined>({
-    queryKey: ['date'],
+    queryKey: ["date"],
     queryFn: () => undefined,
     enabled: false,
   });
@@ -307,13 +302,16 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
       if (dates.length > 0) {
         const start_date = format(dates[0], "yyyy-MM-dd");
         const end_date = format(dates[dates.length - 1], "yyyy-MM-dd");
-        queryClient.setQueryData(["calendarData", start_date, end_date], undefined);
+        queryClient.setQueryData(
+          ["calendarData", start_date, end_date],
+          undefined
+        );
         refetchCalendarData();
       }
     } else {
       queryClient.setQueryData(["selectedDates"], []);
     }
-    queryClient.setQueryData(['date'], dates?.[0]);
+    queryClient.setQueryData(["date"], dates?.[0]);
   };
 
   const sendNotificationToAdmins = async (
@@ -362,9 +360,11 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
-    const formDataObject: TimeOffFormData = Object.fromEntries(data.entries()) as TimeOffFormData;
-    queryClient.setQueryData(['formData'], formDataObject);
-    queryClient.setQueryData(['showAlertDialog'], true);
+    const formDataObject: TimeOffFormData = Object.fromEntries(
+      data.entries()
+    ) as TimeOffFormData;
+    queryClient.setQueryData(["formData"], formDataObject);
+    queryClient.setQueryData(["showAlertDialog"], true);
   };
 
   const submitForm = async () => {
@@ -411,8 +411,8 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
       queryClient.setQueryData(["showOtherTextarea"], false);
       queryClient.setQueryData(["reason"], null);
       queryClient.setQueryData(["employee_name"], null);
-      queryClient.setQueryData(['formData'], null);
-      queryClient.setQueryData(['showAlertDialog'], false);
+      queryClient.setQueryData(["formData"], null);
+      queryClient.setQueryData(["showAlertDialog"], false);
 
       // Force a re-render of the Calendar component
       queryClient.invalidateQueries({ queryKey: ["selectedDates"] });
@@ -422,8 +422,12 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
         ".react-calendar"
       ) as HTMLElement;
       if (calendarElement) {
-        const selectedElements = calendarElement.querySelectorAll('[aria-pressed="true"]');
-        selectedElements.forEach((el) => el.setAttribute('aria-pressed', 'false'));
+        const selectedElements = calendarElement.querySelectorAll(
+          '[aria-pressed="true"]'
+        );
+        selectedElements.forEach((el) =>
+          el.setAttribute("aria-pressed", "false")
+        );
       }
 
       // Show success toast after everything is reset
@@ -442,27 +446,34 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
       return Promise.resolve(newValue);
     },
     onSuccess: (newValue) => {
-      queryClient.setQueryData(['showAlertDialog'], newValue);
+      queryClient.setQueryData(["showAlertDialog"], newValue);
     },
   });
 
   const updateEmployeeName = useMutation({
     mutationFn: (newValue: string) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
-      queryClient.setQueryData(['employee_name'], newValue);
+      queryClient.setQueryData(["employee_name"], newValue);
     },
   });
 
   const updatePopoverOpen = useMutation({
     mutationFn: (newValue: boolean) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
-      queryClient.setQueryData(['popoverOpen'], newValue);
+      queryClient.setQueryData(["popoverOpen"], newValue);
     },
   });
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["gunsmith", "user", "auditor", "admin", "super admin"]}
+      allowedRoles={[
+        "gunsmith",
+        "user",
+        "auditor",
+        "admin",
+        "super admin",
+        "dev",
+      ]}
     >
       <div className="w-full max-w-lg mx-auto px-4 py-8 md:py-12">
         <Card>
@@ -475,12 +486,12 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
           </CardHeader>
           <CardContent>
             <div className="w-full space-y-4">
-              <form onSubmit={handleSubmit} >
+              <form onSubmit={handleSubmit}>
                 <div className="flex flex-col space-y-4 max-w-2xl">
                   <div className="grid gap-2">
                     <Label htmlFor="date">Select Dates</Label>
-                    <Popover 
-                      open={popoverOpen} 
+                    <Popover
+                      open={popoverOpen}
                       onOpenChange={(open) => updatePopoverOpen.mutate(open)}
                     >
                       <PopoverTrigger asChild>
@@ -520,7 +531,9 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
                       {isLoading ? (
                         <SelectItem value="loading">Loading...</SelectItem>
                       ) : error ? (
-                        <SelectItem value="error">Error loading employees</SelectItem>
+                        <SelectItem value="error">
+                          Error loading employees
+                        </SelectItem>
                       ) : (
                         activeEmployees.map((name) => (
                           <SelectItem key={name} value={name}>
@@ -561,21 +574,32 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
                 </div>
               </form>
 
-              <AlertDialog 
-                open={showAlertDialog} 
+              <AlertDialog
+                open={showAlertDialog}
                 onOpenChange={(open) => updateShowAlertDialog.mutate(open)}
               >
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Important Notice</AlertDialogTitle>
                     <AlertDialogDescription>
-                      <p className="text-red-500">Submitting A Request Does NOT Mean It Will Be Approved!</p>
-                      <p className="mt-4">You Are REQUIRED To Find Someone Trained In Your Duties To Cover For You Before A Request Can Be Approved</p>
+                      <p className="text-red-500">
+                        Submitting A Request Does NOT Mean It Will Be Approved!
+                      </p>
+                      <p className="mt-4">
+                        You Are REQUIRED To Find Someone Trained In Your Duties
+                        To Cover For You Before A Request Can Be Approved
+                      </p>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => updateShowAlertDialog.mutate(false)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={submitForm}>Understood</AlertDialogAction>
+                    <AlertDialogCancel
+                      onClick={() => updateShowAlertDialog.mutate(false)}
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction onClick={submitForm}>
+                      Understood
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
