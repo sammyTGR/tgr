@@ -126,7 +126,7 @@ const RangewalkForm: React.FC<RangewalkFormProps> = ({
       return response.json();
     },
     onSuccess: () => {
-      toast.success("Report submitted successfully.");
+      toast.success("Range Walk Report Submitted!");
       onSubmitSuccess();
       onClose();
       setOpen(false);

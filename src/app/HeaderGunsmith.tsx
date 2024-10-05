@@ -41,15 +41,15 @@ import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const schedComponents = [
   {
-    title: "Calendar",
+    title: "Team Calendar",
     href: "/TGR/crew/calendar",
-    description: "Check Out The Work Schedule",
+    description: "Calendar & Time Off Requests",
   },
-  {
-    title: "Time Off Request",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
+  // {
+  //   title: "Time Off Request",
+  //   href: "/TGR/crew/timeoffrequest",
+  //   description: "Submit A Request",
+  // },
 ];
 
 const serviceComponents = [

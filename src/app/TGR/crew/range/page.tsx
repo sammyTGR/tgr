@@ -29,6 +29,7 @@ import RangewalkForm from "@/components/RangewalkForm";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 
 export default function RangeWalkPage() {
   const { role } = useRole();
@@ -58,10 +59,31 @@ export default function RangeWalkPage() {
     staleTime: Infinity,
   });
 
+  const { data: selectedRangeWalk, isLoading: selectedRangeWalkLoading } = useQuery({
+    queryKey: ["selectedRangeWalk", selectedRangeWalkId],
+    queryFn: async () => {
+      if (!selectedRangeWalkId) return null;
+      const { data, error } = await supabase
+        .from("range_walk_reports")
+        .select("*")
+        .eq("id", selectedRangeWalkId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedRangeWalkId,
+  });
+
+  useEffect(() => {
+    if (selectedRangeWalk) {
+      queryClient.setQueryData(["repairNotes"], selectedRangeWalk.repair_notes || "");
+    }
+  }, [selectedRangeWalk, queryClient]);
+
   const fetchUserRoleAndUuid = useCallback(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) {
-      console.error("Error fetching user:", userError.message);
+      //console.error("Error fetching user:", userError.message);
       return { userRole: null, userUuid: null };
     }
 
@@ -82,10 +104,10 @@ export default function RangeWalkPage() {
         .single();
 
       if (customerError || !customerData) {
-        console.error(
-          "Error fetching role:",
-          roleError?.message || customerError?.message
-        );
+        // console.error(
+        //   "Error fetching role:",
+        //   roleError?.message || customerError?.message
+        // );
         return { userRole: null, userUuid };
       }
 
@@ -107,7 +129,7 @@ export default function RangeWalkPage() {
       .order("date_of_walk", { ascending: false });
 
     if (error) {
-      console.error("Error fetching range walk data:", error.message);
+      //console.error("Error fetching range walk data:", error.message);
       throw error;
     }
     return data as RangeWalkData[];
@@ -121,7 +143,7 @@ export default function RangeWalkPage() {
   // Add this useEffect to log the data when it changes
   useEffect(() => {
     if (rangeWalkData) {
-      console.log("Fetched rangeWalkData:", rangeWalkData);
+      //console.log("Fetched rangeWalkData:", rangeWalkData);
     }
   }, [rangeWalkData]);
 
@@ -131,7 +153,7 @@ export default function RangeWalkPage() {
       const date = parseISO(dateString);
       return format(date, "MM/dd/yyyy");
     } catch (error) {
-      console.error("Error parsing date:", dateString, error);
+      //console.error("Error parsing date:", dateString, error);
       return dateString; // Return original string if parsing fails
     }
   };
@@ -182,6 +204,7 @@ export default function RangeWalkPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rangeWalkData"] });
       queryClient.setQueryData(["popoverState"], false);
+      
     },
   });
 
@@ -212,6 +235,7 @@ export default function RangeWalkPage() {
       queryClient.setQueryData(["repairNotesPopoverState"], false);
       queryClient.setQueryData(["repairNotes"], "");
       queryClient.setQueryData(["selectedRangeWalkId"], null);
+      toast.success("Repair Repair Notes Submitted!");
     },
   });
 
@@ -296,7 +320,9 @@ export default function RangeWalkPage() {
   };
 
   const handleSelectedRangeWalkChange = (id: string) => {
-    queryClient.setQueryData(["selectedRangeWalkId"], Number(id));
+    const numId = Number(id);
+    queryClient.setQueryData(["selectedRangeWalkId"], numId);
+    queryClient.setQueryData(["repairNotes"], ""); // Clear existing notes
   };
 
   return (
@@ -357,57 +383,49 @@ export default function RangeWalkPage() {
                       Enter Repair Notes
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-2" align="start">
-                    <div className="space-y-4">
-                      <Select onValueChange={handleSelectedRangeWalkChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a range walk" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {rangeWalkData?.map((walk) => (
-                            <SelectItem
-                              key={walk.id}
-                              value={walk.id.toString()}
-                            >
-                              {formatDate(walk.date_of_walk)} -{" "}
-                              {walk.lanes_with_problems || "No problems"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {selectedRangeWalkId && (
-                        <div className="text-sm">
-                          <strong>Description:</strong>{" "}
-                          {rangeWalkData?.find(
-                            (walk) => walk.id === selectedRangeWalkId
-                          )?.description || "No description provided"}
-                        </div>
-                      )}
-                      <Textarea
-                        placeholder="Enter repair notes..."
-                        value={repairNotes || ""}
-                        onChange={(e) =>
-                          handleRepairNotesChange(e.target.value)
-                        }
-                      />
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          onClick={handleSubmitRepairNotes}
-                          disabled={!selectedRangeWalkId}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() =>
-                            handleRepairNotesPopoverOpenChange(false)
-                          }
-                        >
-                          Cancel
-                        </Button>
+                  <PopoverContent className="w-xl p-2" align="start">
+                  <div className="space-y-4">
+                    <Select onValueChange={handleSelectedRangeWalkChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a range walk" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rangeWalkData?.map((walk) => (
+                          <SelectItem key={walk.id} value={walk.id.toString()}>
+                            {formatDate(walk.date_of_walk)} - {walk.lanes_with_problems || "No problems"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedRangeWalkId && (
+                      <div className="text-sm">
+                        <strong>Details:</strong>{" "}
+                        {selectedRangeWalk?.description || "No description provided"}
                       </div>
+                    )}
+                    <Textarea
+                      placeholder="Enter repair notes..."
+                      value={repairNotes || ""}
+                      onChange={(e) => handleRepairNotesChange(e.target.value)}
+                    />
+                    {selectedRangeWalkLoading && <p>Loading existing notes...</p>}
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleRepairNotesPopoverOpenChange(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleSubmitRepairNotes}
+                        disabled={!selectedRangeWalkId}
+                      >
+                        Submit
+                      </Button>
                     </div>
-                  </PopoverContent>
+                  </div>
+                </PopoverContent>
                 </Popover>
               </CardContent>
             </Card>

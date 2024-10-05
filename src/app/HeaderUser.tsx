@@ -38,15 +38,15 @@ import { useTheme } from "next-themes";
 
 const schedComponents = [
   {
-    title: "Calendar",
+    title: "Team Calendar",
     href: "/TGR/crew/calendar",
-    description: "Check Out The Work Schedule",
+    description: "Schedules & Time Off Requests",
   },
-  {
-    title: "Time Off Request",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
+  // {
+  //   title: "Time Off Request",
+  //   href: "/TGR/crew/timeoffrequest",
+  //   description: "Submit A Request",
+  // },
 ];
 
 const serviceComponents = [
@@ -60,29 +60,29 @@ const serviceComponents = [
     href: "/sales/orderreview/crew",
     description: "Check On Submitted Order Status",
   },
-  {
-    title: "Safety Waiver",
-    href: "/public/waiver",
-    description: "Submit A Safety Waiver",
-  },
-  {
-    title: "Check Customers In",
-    href: "/sales/waiver/checkin",
-    description: "Check Customers In & Review Waivers",
-  },
+  // {
+  //   title: "Safety Waiver",
+  //   href: "/public/waiver",
+  //   description: "Submit A Safety Waiver",
+  // },
+  // {
+  //   title: "Check Customers In",
+  //   href: "/sales/waiver/checkin",
+  //   description: "Check Customers In & Review Waivers",
+  // },
 ];
 
 const formComps = [
   {
-    title: "Submit Range Walks",
-    href: "/TGR/rangewalk",
-    description: "Submit Daily Range Walks",
+    title: "Range Walks & Repairs",
+    href: "/TGR/crew/range",
+    description: "Daily Range Walks & Repairs",
   },
-  {
-    title: "View Range Walks & Repairs",
-    href: "/TGR/rangewalk/report",
-    description: "View All Range Walks & Repairs",
-  },
+  // {
+  //   title: "View Range Walks & Repairs",
+  //   href: "/TGR/rangewalk/report",
+  //   description: "View All Range Walks & Repairs",
+  // },
   {
     title: "Points Submissions",
     href: "/TGR/crew/points",

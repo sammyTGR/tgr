@@ -63,15 +63,15 @@ const auditComponents = [
 
 const schedComponents = [
   {
-    title: "Calendar",
+    title: "Team Calendar",
     href: "/TGR/crew/calendar",
-    description: "Where Dey At",
+    description: "Calendar & Time Off Requests",
   },
-  {
-    title: "Submit Time Off",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit A Request",
-  },
+  // {
+  //   title: "Submit Time Off",
+  //   href: "/TGR/crew/timeoffrequest",
+  //   description: "Submit A Request",
+  // },
 ];
 
 const serviceComponents = [
@@ -99,9 +99,9 @@ const serviceComponents = [
 
 const formComps = [
   {
-    title: "Submit Range Walks",
-    href: "/TGR/rangewalk",
-    description: "Submit Daily Range Walks",
+    title: "Range Walks & Repairs",
+    href: "/TGR/crew/range",
+    description: "Daily Range Walks & Repairs",
   },
   {
     title: "Daily Deposits",

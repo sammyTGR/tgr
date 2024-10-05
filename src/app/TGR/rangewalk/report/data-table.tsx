@@ -187,7 +187,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                         </TableCell>
                       );
                     })}
-                    <TableCell>
+                    {/* <TableCell>
                       <DataTableRowActions
                         row={row}
                         userRole={userRole}
@@ -195,7 +195,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                         onStatusChange={onStatusChange}
                         onNotesChange={onNotesChange}
                       />
-                    </TableCell>
+                    </TableCell> */}
                   </TableRow>
                 ))
               ) : (

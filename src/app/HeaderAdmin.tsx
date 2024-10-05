@@ -73,22 +73,22 @@ const auditComponents = [
 
 const schedComponents = [
   {
-    title: "Calendar",
+    title: "Team Calendar",
     href: "/TGR/crew/calendar",
-    description: "Team Calendar",
+    description: "Calendar & Time Off Requests",
   },
-  {
-    title: "Time Off Requests",
-    href: "/TGR/crew/timeoffrequest",
-    description: "Submit Time Off",
-  },
+  // {
+  //   title: "Time Off Requests",
+  //   href: "/TGR/crew/timeoffrequest",
+  //   description: "Submit Time Off",
+  // },
   {
     title: "Review Time Off Requests",
     href: "/admin/timeoffreview",
     description: "Respond To Time Off Requests",
   },
   {
-    title: "Schedules & Timesheets",
+    title: "Manage Schedules & Timesheets",
     href: "/admin/schedules",
     description: "Schedules & Timesheets",
   },
@@ -217,15 +217,15 @@ const manageComps = [
     description: "Monthly Sales Contest",
   },
   {
-    title: "Download Reports",
+    title: "Payroll & Timesheets",
     href: "/admin/reports/download",
-    description: "Download Various Reports",
+    description: "Download Payroll & Timesheets",
   },
-  {
-    title: "Sales Report",
-    href: "/admin/reports/sales",
-    description: "View Daily Sales",
-  },
+  // {
+  //   title: "Sales Report",
+  //   href: "/admin/reports/sales",
+  //   description: "View Daily Sales",
+  // },
 ];
 
 const comboComps = [

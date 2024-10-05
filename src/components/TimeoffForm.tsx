@@ -62,6 +62,10 @@ interface TimeOffReason {
   reason: string;
 }
 
+interface TimeoffFormProps {
+    onSubmitSuccess?: () => void;
+  }
+
 type EmployeeName = string | null;
 type Reason = string | null;
 
@@ -82,7 +86,7 @@ interface TimeOffFormData {
   [key: string]: any; // This allows for additional properties
 }
 
-export default function TimeOffRequestPage() {
+export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -426,6 +430,7 @@ export default function TimeOffRequestPage() {
       toast.success("Your Request Has Been Submitted", {
         position: "bottom-right",
       });
+      onSubmitSuccess?.();
     } catch (error) {
       console.error("Failed to submit time off request:", error);
       toast.error("Failed to submit time off request. Please try again.");
@@ -513,9 +518,9 @@ export default function TimeOffRequestPage() {
                         className="w-full px-3 py-2"
                       />
                       {isLoading ? (
-                        <SelectItem value="">Loading...</SelectItem>
+                        <SelectItem value="loading">Loading...</SelectItem>
                       ) : error ? (
-                        <SelectItem value="">Error loading employees</SelectItem>
+                        <SelectItem value="error">Error loading employees</SelectItem>
                       ) : (
                         activeEmployees.map((name) => (
                           <SelectItem key={name} value={name}>

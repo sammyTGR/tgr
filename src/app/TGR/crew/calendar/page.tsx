@@ -25,7 +25,8 @@ import {
   DialogContent,
   DialogTitle,
   DialogClose,
-} from "@radix-ui/react-dialog";
+} from "@/components/ui/dialog";
+import TimeoffForm from "@/components/TimeoffForm";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
@@ -210,6 +211,16 @@ export default function Component() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [lateStartTime, setLateStartTime] = useState("");
+
+  const { data: isDialogOpen = false } = useQuery({
+    queryKey: ["timeOffDialogOpen"],
+    queryFn: () => false,
+    enabled: false,
+  });
+
+  const handleDialogOpen = (open: boolean) => {
+    queryClient.setQueryData(["timeOffDialogOpen"], open);
+  };
   
   const fetchCalendarData = useCallback(async (): Promise<EmployeeCalendar[]> => {
     const timeZone = "America/Los_Angeles";
@@ -724,11 +735,23 @@ export default function Component() {
           <TextGenerateEffect words={title} />
         </h1>
         <div className="w-full max-w-7xl">
-          {(role === "admin" || role === "super admin") && (
-            <div className="self-start mb-2">
-              <ShiftFilter onSelect={handleShiftFilter} />
-            </div>
-          )}
+          
+            <div className="flex justify-between items-center mb-4">
+            
+            <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="gooeyLeft">Request Time Off</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogTitle>Request Time Off</DialogTitle>
+            <TimeoffForm onSubmitSuccess={() => handleDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+        {(role === "admin" || role === "super admin") && (
+        <ShiftFilter onSelect={handleShiftFilter}/>
+      )}
+          </div>
+          
           <Card className="flex-1 flex flex-col h-full w-full max-w-7xl">
             <CardContent className="h-full flex flex-col">
               <div className="flex justify-between w-full mb-4">
@@ -781,7 +804,7 @@ export default function Component() {
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
-                    "h-[calc(100vh-200px)] overflow-hidden"
+                    "h-[calc(100vh-350px)] overflow-hidden"
                   )}
                 >
                   <div
