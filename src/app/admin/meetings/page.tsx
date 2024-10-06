@@ -462,7 +462,7 @@ export default function TeamWeeklyNotes() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the employee's notes and remove them from the team.
+                                    This action cannot be undone. This will permanently delete the employee&apos;s notes and remove them from the team.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
