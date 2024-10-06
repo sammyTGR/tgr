@@ -334,8 +334,8 @@ export default function TeamWeeklyNotes() {
         <Tabs defaultValue="weekly-notes" className="w-full">
           <div className="flex items-center space-x-2 mb-4">
             <TabsList>
-              <TabsTrigger value="weekly-notes">Weekly Agenda Notes</TabsTrigger>
-              <TabsTrigger value="edit-notes">Edit Agenda Notes</TabsTrigger>
+              <TabsTrigger value="weekly-notes">Team Updates</TabsTrigger>
+              <TabsTrigger value="edit-notes">Edit Your Notes</TabsTrigger>
             </TabsList>
           </div>
 
@@ -357,7 +357,7 @@ export default function TeamWeeklyNotes() {
                               </h1>
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="ml-4">
+                        <CardContent className="ml-6">
                           {topics.map((topic) => (
                             <div key={topic} className="mb-2">
                               <h3 className="font-semibold">

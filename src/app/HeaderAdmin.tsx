@@ -207,9 +207,9 @@ const manageComps = [
     description: "All Profiles",
   },
   {
-    title: "Weekly Agenda Topics",
+    title: "Weekly Updates",
     href: "/admin/meetings",
-    description: "Update This Weekly",
+    description: "Update These Notes Weekly",
   },
   {
     title: "Monthly Contest",
