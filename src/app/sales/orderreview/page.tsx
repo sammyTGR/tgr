@@ -284,7 +284,7 @@ export default function OrdersReviewPage() {
             />
             <div className="rounded-md border flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto flex-1">
-                {loading ? <p>Loading...</p> : <DataTable table={table} />}
+                {loading ? <p></p> : <DataTable table={table} />}
               </div>
             </div>
           </div>

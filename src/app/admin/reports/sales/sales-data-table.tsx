@@ -309,7 +309,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                       colSpan={columns.length}
                       className="h-24 text-center"
                     >
-                      Loading...
+                      
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows?.length ? (

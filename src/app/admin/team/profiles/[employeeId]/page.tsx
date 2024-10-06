@@ -1242,7 +1242,7 @@ const EmployeeProfile = () => {
     setSummaryData(summary);
   };
 
-  if (!employee) return <div>Loading...</div>;
+  if (!employee) return <div></div>;
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
@@ -1293,7 +1293,7 @@ const EmployeeProfile = () => {
                     styles.noScroll
                   )}
                 >
-                  <Suspense fallback="Loading...">
+                  <Suspense fallback="">
                     <TabsContent value="daily_briefing">
                       <div className="p-6 space-y-4">
                         <div className="grid gap-1.5">
@@ -1669,7 +1669,7 @@ const EmployeeProfile = () => {
                             <p className="text-2xl font-medium">
                               {availableSickTime !== null
                                 ? `${availableSickTime} hours`
-                                : "Loading..."}
+                                : ""}
                             </p>
                           </CardContent>
                         </Card>

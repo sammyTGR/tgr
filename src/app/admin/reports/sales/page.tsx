@@ -393,7 +393,7 @@ const SalesPage = () => {
                   </CardContent>
                 </Card>
               </div>
-              <Suspense fallback={<div>Loading...</div>}>
+              <Suspense fallback={<div></div>}>
                 <CardContent className="flex flex-col border p-4">
                   <SalesRangeStackedBarChart selectedRange={selectedRange} />
                 </CardContent>
@@ -406,7 +406,7 @@ const SalesPage = () => {
               <CardHeader>
                 <CardTitle>Sales Details</CardTitle>
               </CardHeader>
-              <Suspense fallback={<div>Loading...</div>}>
+              <Suspense fallback={<div></div>}>
                 <CardContent className="flex flex-col border p-2">
                   <div className="flex max-w-8xl w-full justify-start mb-4  md:px-6">
                     <SalesDataTable

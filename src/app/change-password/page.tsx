@@ -79,7 +79,7 @@ function ChangePasswordContent() {
 
 export default function ChangePassword() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div></div>}>
       <ChangePasswordContent />
     </Suspense>
   );

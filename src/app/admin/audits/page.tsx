@@ -325,7 +325,7 @@ export default function AuditsPage() {
             <Card>
               <CardContent className="pt-6">
                 {loading ? (
-                  <p>Loading...</p>
+                  <p></p>
                 ) : (
                   <DataTable columns={columns} data={data} />
                 )}

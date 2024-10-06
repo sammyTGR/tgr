@@ -76,7 +76,7 @@ export default function Header() {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (!role) {

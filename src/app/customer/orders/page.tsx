@@ -133,7 +133,7 @@ export default function OrderHistory() {
 
   //console.log('Rendered Orders:', orders);
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div></div>;
   if (error) return <div>An error occurred: {(error as Error).message}</div>;
 
   const productPurchases =

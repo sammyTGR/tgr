@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CustomCalendar } from "@/components/ui/calendar";
-import { ResponsiveContainer } from "recharts";
 import { parseISO } from "date-fns";
 import { format as formatTZ, toZonedTime } from "date-fns-tz";
 import ChatClient from "../../../TGR/crew/chat/page";
@@ -1277,7 +1276,7 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense fallback={<div></div>}>
                   <div className=" overflow-hidden ">
                     <SalesDataTable
                       startDate={format(selectedRange.start, "yyyy-MM-dd")}

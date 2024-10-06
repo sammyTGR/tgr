@@ -623,7 +623,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
   );
 
   if (calendarLoading || breakRoomDutyLoading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (calendarError || breakRoomDutyError) {

@@ -88,7 +88,7 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full w-full">
-        <ProgressBar value={progress} showAnimation={true} />
+        {/* <ProgressBar value={progress} showAnimation={true} /> */}
       </div>
     ); // Show progress bar while loading
   }

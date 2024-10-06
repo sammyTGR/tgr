@@ -116,7 +116,7 @@ export default function WaiversCheckinPage() {
             <div className="rounded-md border flex-1 flex flex-col">
               <div className="relative w-full h-full overflow-auto flex-1">
                 {loading ? (
-                  <p>Loading...</p>
+                  <p></p>
                 ) : (
                   <DataTable table={table} /> // Pass the table object to DataTable
                 )}

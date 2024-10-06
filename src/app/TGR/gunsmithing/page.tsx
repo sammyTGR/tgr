@@ -654,7 +654,7 @@ export default function GunsmithingMaintenance() {
                         </div>
                         <div className="border rounded-md">
                           {loading ? (
-                            <p>Loading...</p>
+                            <p></p>
                           ) : (
                             userRole &&
                             userUuid && (

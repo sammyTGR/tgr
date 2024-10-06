@@ -529,7 +529,7 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
                         className="w-full px-3 py-2"
                       />
                       {isLoading ? (
-                        <SelectItem value="loading">Loading...</SelectItem>
+                        <SelectItem value="loading"></SelectItem>
                       ) : error ? (
                         <SelectItem value="error">
                           Error loading employees

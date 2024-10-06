@@ -1239,7 +1239,7 @@ const EmployeeProfilePage = () => {
                   styles.noScroll
                 )}
               >
-                <Suspense fallback="Loading...">
+                <Suspense fallback="">
                   {/* Schedules tab content */}
                   <TabsContent value="schedules">
                     {/* <h1 className="text-xl font-bold mb-2 ml-2">
@@ -1353,7 +1353,7 @@ const EmployeeProfilePage = () => {
                           <div className="text-2xl font-medium mt-6">
                             {availableSickTime !== null
                               ? `${availableSickTime} hours`
-                              : "Loading..."}
+                              : ""}
                           </div>
                         </CardContent>
                       </Card>

@@ -524,7 +524,7 @@ export default function TimeOffRequestPage() {
                         className="w-full px-3 py-2"
                       />
                       {isLoading ? (
-                        <SelectItem value="">Loading...</SelectItem>
+                        <SelectItem value=""></SelectItem>
                       ) : error ? (
                         <SelectItem value="">
                           Error loading employees

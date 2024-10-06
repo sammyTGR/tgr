@@ -194,9 +194,9 @@ const profileComps = [
     description: "All Profiles",
   },
   {
-    title: "Weekly Agenda",
-    href: "/admin/weeklyagenda",
-    description: "Weekly Agenda Topics",
+    title: "Weekly Agenda Topics",
+    href: "/admin/meetings",
+    description: "Update This Weekly",
   },
 ];
 
@@ -207,9 +207,9 @@ const manageComps = [
     description: "All Profiles",
   },
   {
-    title: "Weekly Agenda",
-    href: "/admin/weeklyagenda",
-    description: "Weekly Agenda Topics",
+    title: "Weekly Agenda Topics",
+    href: "/admin/meetings",
+    description: "Update This Weekly",
   },
   {
     title: "Monthly Contest",

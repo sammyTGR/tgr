@@ -24,6 +24,7 @@ import { useMemo, useRef } from "react";
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 type NoteItem = {
   id: string;
@@ -164,24 +165,44 @@ export default function TeamWeeklyNotes() {
     },
   });
 
-  const addYourself = async (name: string) => {
-    if (name.trim() && user) {
-      console.log("User UUID:", user.id);
+  const removeEmployeeMutation = useMutation({
+    mutationFn: async (employeeId: number) => {
+      const { error } = await supabase
+        .from("team_weekly_notes")
+        .delete()
+        .eq("employee_id", employeeId);
 
-      // Fetch the employee_id based on the user's UUID
-      const { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .select("employee_id")
-        .eq("user_uuid", user.id)
-        .single();
+      if (error) throw error;
 
-      if (employeeError) {
-        console.error("Error fetching employee:", employeeError);
-        return;
-      }
+      // Optionally, also remove the employee from the employees table
+      // Uncomment the following lines if you want to remove the employee completely
+      // const { error: employeeError } = await supabase
+      //   .from("employees")
+      //   .delete()
+      //   .eq("employee_id", employeeId);
+      // if (employeeError) throw employeeError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+      toast.success("Employee and notes removed successfully");
+    },
+    onError: (error) => {
+      console.error("Error removing employee:", error);
+      toast.error("Failed to remove employee");
+    },
+  });
 
-      if (!employeeData) {
-        console.error("No employee found for this user");
+  const handleRemoveEmployee = (employeeId: number) => {
+    removeEmployeeMutation.mutate(employeeId);
+  };
+
+  const addYourself = async () => {
+    if (user && currentEmployee) {
+      // Check if the user has already added themselves
+      const existingEntry = teamMembers.find(member => member.employee_id === currentEmployee.employee_id);
+
+      if (existingEntry && currentEmployee.role !== 'super admin' && currentEmployee.role !== 'dev') {
+        toast.error("You have already added yourself to this meeting.");
         return;
       }
 
@@ -190,7 +211,7 @@ export default function TeamWeeklyNotes() {
         TeamMember,
         "note_id" | "created_at" | "updated_at"
       > = {
-        employee_id: employeeData.employee_id,
+        employee_id: currentEmployee.employee_id,
         range_notes: [{ id: Date.now().toString(), content: "" }],
         store_notes: [{ id: Date.now().toString(), content: "" }],
         employees_notes: [{ id: Date.now().toString(), content: "" }],
@@ -201,7 +222,8 @@ export default function TeamWeeklyNotes() {
       console.log("New notes data:", newNotes);
       addTeamMemberMutation.mutate(newNotes);
     } else {
-      console.error("Cannot add notes: name is empty or user is not logged in");
+      console.error("Cannot add notes: user is not logged in or employee data is not available");
+      toast.error("Unable to add you to the meeting. Please try again later.");
     }
   };
 
@@ -283,181 +305,192 @@ export default function TeamWeeklyNotes() {
     );
   }, [teamMembers, currentEmployee]);
 
+  const hasAddedSelf = useMemo(() => {
+    return teamMembers.some(member => member.employee_id === currentEmployee?.employee_id);
+  }, [teamMembers, currentEmployee]);
+
   return (
     <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin", "dev"]}>
       <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <div className="container mx-auto p-4">
-          <h1 className="text-2xl font-bold mb-4">Team Weekly Notes</h1>
+        <h1 className="text-2xl font-bold mb-4">Weekly Agenda Notes</h1>
 
-          <div className="mb-6">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button ref={popoverRef}>Add Yourself</Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                  <h2 className="font-semibold">Add Yourself to the Team</h2>
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Enter your name"
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          addYourself((e.target as HTMLInputElement).value);
-                          (e.target as HTMLInputElement).value = "";
-                        }
-                      }}
-                    />
-                  </div>
-                  <Button
-                    onClick={() => {
-                      const input = document.getElementById(
-                        "name"
-                      ) as HTMLInputElement;
-                      addYourself(input.value);
-                      input.value = "";
-                    }}
-                  >
-                    Add
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+        {!hasAddedSelf && (
+          <div className="flex flex-col items-start gap-2">
+            <Button 
+              variant="gooeyRight"
+              onClick={addYourself}
+              disabled={hasAddedSelf && 
+                        currentEmployee?.role !== 'super admin' && 
+                        currentEmployee?.role !== 'dev'}
+            >
+              Add Yourself
+            </Button>
+            <label>
+              <span>If this is your first time, add yourself to the meeting by clicking the button above.</span>
+            </label>
+          </div>
+        )}
+
+        <Tabs defaultValue="weekly-notes" className="w-full">
+          <div className="flex items-center space-x-2 mb-4">
+            <TabsList>
+              <TabsTrigger value="weekly-notes">Weekly Agenda Notes</TabsTrigger>
+              <TabsTrigger value="edit-notes">Edit Agenda Notes</TabsTrigger>
+            </TabsList>
           </div>
 
-          <Tabs defaultValue="weekly-notes" className="w-full">
-            <div className="flex items-center space-x-2">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="weekly-notes">
-                  Weekly Agenda Notes
-                </TabsTrigger>
-                <TabsTrigger value="edit-notes">Edit Agenda Notes</TabsTrigger>
-              </TabsList>
-            </div>
+          <Card className="mt-4">
+            <CardContent className="pt-6">
+              <TabsContent value="weekly-notes">
+                <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  {teamMembers.map((member) => {
+                    const employee = employees.find(
+                      (e) => e.employee_id === member.employee_id
+                    );
+                    return (
+                      <Card key={member.note_id}>
+                        <CardHeader>
+                          <CardTitle>
+                          <h1 className="text-xl font-semibold">
+                            {employee?.name ||
+                              `Employee ID: ${member.employee_id}`}
+                              </h1>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="ml-4">
+                          {topics.map((topic) => (
+                            <div key={topic} className="mb-2">
+                              <h3 className="font-semibold">
+                                {topicDisplayNames[topic]}
+                              </h3>
+                              <ul className="list-none ml-2">
+                                {member[topic]?.map((item) => (
+                                  <li
+                                    key={item.id}
+                                    className="flex items-start text-sm"
+                                  >
+                                    <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
+                                    <span>
+                                      {item.content || ""}
+                                    </span>
+                                  </li>
+                                )) || <li>No notes available.</li>}
+                              </ul>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
 
-            <TabsContent value="weekly-notes">
-              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {teamMembers.map((member) => {
-                  const employee = employees.find(
-                    (e) => e.employee_id === member.employee_id
-                  );
-                  return (
-                    <Card key={member.note_id}>
-                      <CardHeader>
-                        <CardTitle>
-                          {employee?.name ||
-                            `Employee ID: ${member.employee_id}`}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {topics.map((topic) => (
-                          <div key={topic} className="mb-2">
-                            <h3 className="font-semibold">
-                              {topicDisplayNames[topic]}
-                            </h3>
-                            <ul className="list-none ml-2">
+              <TabsContent value="edit-notes">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredTeamMembers.map((member) => {
+                    const employee = employees.find(
+                      (e) => e.employee_id === member.employee_id
+                    );
+                    return (
+                      <Card key={member.note_id} className="relative">
+                        <CardHeader>
+                          <CardTitle>
+                          <h1 className="text-xl font-semibold">
+                            {employee?.name ||
+                              `Employee ID: ${member.employee_id}`}
+                              </h1>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {topics.map((topic) => (
+                            <div key={topic} className="mb-4">
+                              <Label>{topicDisplayNames[topic]}</Label>
                               {member[topic]?.map((item) => (
-                                <li
+                                <div
                                   key={item.id}
-                                  className="flex items-start text-sm"
+                                  className="mt-1 flex items-center gap-2"
                                 >
-                                  <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                  <span>
-                                    {item.content || "No notes entered."}
-                                  </span>
-                                </li>
-                              )) || <li>No notes available.</li>}
-                            </ul>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </TabsContent>
-            <TabsContent value="edit-notes">
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTeamMembers.map((member) => {
-                  const employee = employees.find(
-                    (e) => e.employee_id === member.employee_id
-                  );
-                  return (
-                    <Card key={member.note_id} className="relative">
-                      <CardHeader>
-                        <CardTitle>
-                          {employee?.name ||
-                            `Employee ID: ${member.employee_id}`}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {topics.map((topic) => (
-                          <div key={topic} className="mb-4">
-                            <Label>{topicDisplayNames[topic]}</Label>
-                            {member[topic]?.map((item) => (
-                              <div
-                                key={item.id}
-                                className="mt-1 flex items-center gap-2"
+                                  <Textarea
+                                    value={item.content}
+                                    onChange={(e) =>
+                                      updateLocalNote(
+                                        member.note_id,
+                                        topic,
+                                        item.id,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
+                                    className="flex-grow"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      removeLocalItem(
+                                        member.note_id,
+                                        topic,
+                                        item.id
+                                      )
+                                    }
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )) || <div>No notes available.</div>}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  addLocalItem(member.note_id, topic)
+                                }
+                                className="mt-1"
                               >
-                                <Textarea
-                                  value={item.content}
-                                  onChange={(e) =>
-                                    updateLocalNote(
-                                      member.note_id,
-                                      topic,
-                                      item.id,
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
-                                  className="flex-grow"
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() =>
-                                    removeLocalItem(
-                                      member.note_id,
-                                      topic,
-                                      item.id
-                                    )
-                                  }
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )) || <div>No notes available.</div>}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                addLocalItem(member.note_id, topic)
-                              }
-                              className="mt-1"
-                            >
-                              <Plus className="h-4 w-4 mr-1" /> Add Item
-                            </Button>
-                          </div>
-                        ))}
-                      </CardContent>
-                      <CardFooter>
-                        <div className="flex ml-auto">
+                                <Plus className="h-4 w-4 mr-1" /> Add Item
+                              </Button>
+                            </div>
+                          ))}
+                        </CardContent>
+                        <CardFooter className="flex justify-between">
+                          
+                          {(currentEmployee?.role === "super admin" || currentEmployee?.role === "dev") && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive">Remove Employee</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the employee's notes and remove them from the team.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleRemoveEmployee(member.employee_id)}>
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                           <Button
                             variant="outline"
                             onClick={() => saveChanges(member.note_id)}
                           >
                             Save Changes
                           </Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  );
-                })}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            </CardContent>
+          </Card>
+        </Tabs>
+
+       
       </main>
     </RoleBasedWrapper>
   );

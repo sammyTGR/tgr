@@ -797,7 +797,7 @@ export default function Component() {
   };
 
   if (calendarLoading || breakRoomDutyLoading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (calendarError) {

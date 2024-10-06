@@ -340,7 +340,7 @@ export default function DailyChecklist({
     ? firearms.filter((f) => f.has_new_request)
     : firearms;
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div></div>;
 
   return (
     <div className="flex flex-col min-h-screen">

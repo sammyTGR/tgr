@@ -461,7 +461,7 @@ export default function RangeWalkPage() {
               >
                 <CardContent className="flex flex-col overflow-auto">
                   {userLoading || dataLoading ? (
-                    <p>Loading...</p>
+                    <p></p>
                   ) : (
                     userData?.userRole &&
                     userData?.userUuid &&

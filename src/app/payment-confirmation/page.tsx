@@ -65,7 +65,7 @@ function PaymentConfirmationContent() {
 
 export default function PaymentConfirmation() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div></div>}>
       <PaymentConfirmationContent />
     </Suspense>
   );
