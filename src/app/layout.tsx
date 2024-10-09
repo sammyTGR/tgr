@@ -12,6 +12,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { UnreadCountsProvider } from "../components/UnreadCountsContext";
 import QueryProvider from "@/providers/QueryProvider";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,7 +49,10 @@ export default function RootLayout({
                 <UnreadCountsProvider>
                   <NotificationsProvider>
                     <Header />
-                    <main>{children}</main>
+                    <main>
+                      {children}
+                      <Analytics />
+                    </main>
                     <Toaster />
                   </NotificationsProvider>
                 </UnreadCountsProvider>
