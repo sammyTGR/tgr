@@ -55,6 +55,10 @@ import { useRole } from "@/context/RoleContext";
 import { Textarea } from "@/components/ui/textarea";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import DailyChecklist from "@/app/TGR/gunsmithing/DailyChecklist";
+import Todos from "../../todo/todos";
+import ClearActions from "../../todo/clear-actions";
+import Todo from "../../todo/todo";
+import TodoWrapper from "../../todo/todo-wrapper";
 
 interface Certificate {
   id: number;
@@ -794,13 +798,17 @@ export default function AdminDashboard() {
       <div className="section w-full overflow-hidden">
         <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
-          {/*chat card*/}
+          {/*todo card*/}
           <div className="w-full overflow-hidden">
             <div className="w-full overflow-hidden">
               {/* <Card className="flex flex-col mt-2 overflow-hidden">
               <CardContent className="flex-grow overflow-hidden"> */}
               <div className="h-full overflow-hidden">
-                <ChatClient />
+                <div className="flex items-center gap-4 pb-4">
+                  <CheckCircledIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                  <h1 className="font-semibold text-2xl">Todos</h1>
+                </div>
+                <TodoWrapper />
               </div>
               {/* </CardContent>
             </Card> */}
