@@ -206,7 +206,7 @@ function ChatContent() {
   const localResetUnreadCounts = useCallback(async () => {
     await resetUnreadCounts();
     setTotalUnreadCount(0);
-  }, [resetUnreadCounts]);
+  }, [resetUnreadCounts, setTotalUnreadCount]);
 
   useEffect(() => {
     localResetUnreadCounts();
@@ -239,20 +239,17 @@ function ChatContent() {
     }
   }, [messages]);
 
-  const fetchUserData = useCallback(
-    async (userIds: string[]) => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("user_uuid, name, is_online")
-        .in("user_uuid", userIds);
+  const fetchUserData = useCallback(async (userIds: string[]) => {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("user_uuid, name, is_online")
+      .in("user_uuid", userIds);
 
-      if (error) {
-        console.error("Error fetching user data:", error.message);
-        return {};
-      }
-    },
-    [supabase]
-  );
+    if (error) {
+      console.error("Error fetching user data:", error.message);
+      return {};
+    }
+  }, []);
 
   const setMessagesWithoutDuplicates = useCallback(
     (newMessages: ChatMessage[]) => {
@@ -547,7 +544,7 @@ function ChatContent() {
         clearInterval(intervalId);
       };
     }
-  }, [user]);
+  }, [user, fetchGroupChats]);
 
   const markMessagesAsRead = useCallback(async () => {
     if (!user || !user.id) {
@@ -1079,7 +1076,7 @@ function ChatContent() {
       setMessages((prev) => [...prev, ...data.reverse()]);
       setPage((prevPage) => prevPage + 1);
     }
-  }, [selectedChat, page, supabase]);
+  }, [selectedChat, page]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -1826,7 +1823,7 @@ function ChatContent() {
 
     const totalUnreadCount = Object.values(counts).reduce((a, b) => a + b, 0);
     setTotalUnreadCount(totalUnreadCount);
-  }, [user, supabase]);
+  }, [user]);
 
   const handleMessageChange = useCallback(
     (payload: any, chatType: string) => {
