@@ -801,8 +801,6 @@ export default function AdminDashboard() {
           {/*todo card*/}
           <div className="w-full overflow-hidden">
             <div className="w-full overflow-hidden">
-              {/* <Card className="flex flex-col mt-2 overflow-hidden">
-              <CardContent className="flex-grow overflow-hidden"> */}
               <div className="h-full overflow-hidden">
                 <div className="flex items-center gap-4 pb-4">
                   <CheckCircledIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
@@ -810,8 +808,6 @@ export default function AdminDashboard() {
                 </div>
                 <TodoWrapper />
               </div>
-              {/* </CardContent>
-            </Card> */}
             </div>
           </div>
 
