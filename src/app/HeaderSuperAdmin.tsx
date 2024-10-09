@@ -207,9 +207,9 @@ const manageComps = [
     description: "All Profiles",
   },
   {
-    title: "Weekly Agenda",
-    href: "/admin/weeklyagenda",
-    description: "Weekly Agenda Topics",
+    title: "Weekly Notes",
+    href: "/admin/meetings",
+    description: "Update This Weekly",
   },
   {
     title: "Monthly Contest",
@@ -436,9 +436,9 @@ const HeaderSuperAdmin = React.memo(() => {
       description: "All Kinda Notes",
     },
     {
-      title: "Weekly Agenda",
-      href: "/admin/weeklyagenda",
-      description: "Weekly Agenda Topics",
+      title: "Weekly Notes",
+      href: "/admin/meetings",
+      description: "Update This Weekly",
     },
     {
       title: "Staff Profiles",
