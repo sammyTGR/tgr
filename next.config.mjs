@@ -1,16 +1,29 @@
 /** @type {import('next').NextConfig} */
 import dotenv from 'dotenv';
-import { VercelToolbar } from '@vercel/toolbar/next';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 
 dotenv.config();
 
 const nextConfig = {
-    // config options here
+    // async rewrites() {
+    //     return [
+    //         {
+    //             source: '/api/:path*',
+    //             destination: 'https://10846.active-e.net:7890/:path*',
+    //         },
+    //     ]
+    // },
+    // env: {
+    //     API_KEY: process.env.ApiKey,
+    //     API_USERNAME: process.env.Username,
+    //     API_PASSWORD: process.env.Password,
+    //     APP_ID: process.env.AppId,
+    //   },
+    //   serverRuntimeConfig: {
+    //     API_KEY: process.env.ApiKey,
+    //   },
+    //   publicRuntimeConfig: {
+    //     // Add any public env variables here if needed
+    //   },
 };
 
-const withVercelToolbar = require('@vercel/toolbar/plugins/next')();
-// Instead of module.exports = nextConfig, do this:
-export default withVercelToolbar(nextConfig);
-
+export default nextConfig;
