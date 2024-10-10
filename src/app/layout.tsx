@@ -58,8 +58,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.log("Initializing Flagsmith...");
   const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
+  console.log("Flagsmith state:", flagsmithState);
 
   return (
     <RoleProvider>
