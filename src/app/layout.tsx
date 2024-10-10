@@ -16,6 +16,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { VercelToolbar } from "@vercel/toolbar/next";
 import Provider from "./provider";
 import flagsmith from "flagsmith/isomorphic";
+import { IState } from "flagsmith/types";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,15 +35,26 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const flagsmithState = await flagsmith
-    .init({
-      // fetches flags on the server
-      environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!, // substitute your env ID
-      identity: "my_user_id", // specify the identity of the user to get their specific flags
-    })
-    .then(() => {
-      return flagsmith.getState();
-    });
+  let flagsmithState: IState<string> | undefined = undefined;
+
+  const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID;
+
+  if (environmentID) {
+    try {
+      flagsmithState = await flagsmith
+        .init({
+          environmentID,
+          identity: "my_user_id",
+        })
+        .then(() => {
+          return flagsmith.getState();
+        });
+    } catch (error) {
+      console.error("Failed to initialize Flagsmith:", error);
+    }
+  } else {
+    console.warn("Flagsmith environment ID is not set");
+  }
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
   return (
     <RoleProvider>
