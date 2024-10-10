@@ -16,11 +16,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { VercelToolbar } from "@vercel/toolbar/next";
 import Provider from "./provider";
 import flagsmith from "flagsmith/isomorphic";
-import { FlagValues } from "@vercel/flags/react";
-import { ReactElement } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
-const flagValues = { is_chat_enabled: false, is_todo_enabled: false }; // Define your feature flags here
 
 export const metadata: Metadata = {
   title: "TGR",
@@ -67,9 +64,9 @@ export default async function RootLayout({
                     <Header />
                     <main>
                       <Provider flagsmithState={flagsmithState}>
-                        {children as ReactElement}
+                        {children}
                       </Provider>
-                      <FlagValues values={{ flagValues }} />
+
                       {shouldInjectToolbar && <VercelToolbar />}
                       <Analytics />
                     </main>
