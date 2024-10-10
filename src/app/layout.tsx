@@ -30,32 +30,34 @@ if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
 
+async function initializeFlagsmith(): Promise<IState<string> | undefined> {
+  const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
+  if (!environmentID) {
+    console.warn("Flagsmith environment ID is not set");
+    return undefined;
+  }
+
+  try {
+    await flagsmith.init({
+      environmentID,
+      // Use a default identity or consider using a dynamic one based on the user
+      identity: "default_user",
+    });
+    return flagsmith.getState();
+  } catch (error) {
+    console.error("Failed to initialize Flagsmith:", error);
+    return undefined;
+  }
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let flagsmithState: IState<string> | undefined = undefined;
-
-  const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
-
-  if (environmentID) {
-    try {
-      flagsmithState = await flagsmith
-        .init({
-          environmentID,
-          identity: "my_user_id",
-        })
-        .then(() => {
-          return flagsmith.getState();
-        });
-    } catch (error) {
-      console.error("Failed to initialize Flagsmith:", error);
-    }
-  } else {
-    console.warn("Flagsmith environment ID is not set");
-  }
+  const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
+
   return (
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
@@ -78,7 +80,6 @@ export default async function RootLayout({
                       <Provider flagsmithState={flagsmithState}>
                         {children}
                       </Provider>
-
                       {shouldInjectToolbar && <VercelToolbar />}
                       <Analytics />
                     </main>
