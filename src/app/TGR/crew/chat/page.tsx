@@ -50,6 +50,7 @@ import { useUnreadCounts } from "@/components/UnreadCountsContext";
 import useRealtimeNotifications from "@/utils/useRealtimeNotifications";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { useFlags } from "flagsmith/react";
 
 const title = "Ops Chat";
 
@@ -101,6 +102,7 @@ interface GroupChatPayload {
 type DmUser = User | GroupChat;
 
 function ChatContent() {
+  const flags = useFlags(["is_chat_enabled"]);
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -301,27 +303,38 @@ function ChatContent() {
 
   const markDirectMessagesAsRead = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .update({
-          is_read: true,
-          read_by: supabase.rpc("array_append_unique", {
-            arr: "read_by",
-            elem: userId,
-          }),
-        })
-        .or(`receiver_id.eq.${userId},sender_id.eq.${userId}`)
-        .is("is_read", false)
-        .not("read_by", "contains", `{${userId}}`);
+      const { data, error } = await supabase.rpc("mark_messages_as_read", {
+        user_id: userId,
+      });
 
       if (error) {
-        console.error("Error updating direct messages:", error);
+        console.error("Error marking messages as read:", error);
+
+        // If we still get an error, let's try to diagnose it
+        const { data: errorData, error: errorFetchError } = await supabase
+          .from("direct_messages")
+          .select("id, read_by, is_read")
+          .eq("receiver_id", userId)
+          .eq("is_read", false)
+          .limit(5);
+
+        if (errorFetchError) {
+          console.error(
+            "Error fetching problematic messages:",
+            errorFetchError
+          );
+        } else if (errorData && errorData.length > 0) {
+          console.error("Problematic messages data:", errorData);
+        } else {
+          console.log("No unread messages found for this user.");
+        }
+
         return;
       }
 
-      // console.log(
-      //   `Successfully marked direct messages as read for user ${userId}`
-      // );
+      console.log(
+        `Successfully marked direct messages as read for user ${userId}`
+      );
     } catch (err) {
       console.error(
         `Error marking direct messages as read for user ${userId}:`,
@@ -492,7 +505,7 @@ function ChatContent() {
       .from("group_chats")
       .select("*")
       .contains("users", `{${user.id}}`)
-      .order("last_message_at", { ascending: false })
+
       .limit(20); // Limit the number of group chats fetched
 
     if (error) {
@@ -692,6 +705,45 @@ function ChatContent() {
     }, {});
   };
 
+  const fetchMessages = async (chatId: string, userId: string) => {
+    const MESSAGES_PER_PAGE = 20;
+    let messagesData: ChatMessage[] = [];
+    let messagesError;
+
+    try {
+      if (chatId.startsWith("group_")) {
+        const groupChatId = parseInt(chatId.split("_")[1], 10);
+        const { data, error } = await supabase
+          .from("group_chat_messages")
+          .select("*")
+          .eq("group_chat_id", groupChatId)
+          .order("created_at", { ascending: false })
+          .range(0, MESSAGES_PER_PAGE - 1);
+        messagesData = data || [];
+        messagesError = error;
+      } else {
+        const { data, error } = await supabase
+          .from("direct_messages")
+          .select("*")
+          .or(`receiver_id.eq.${chatId},sender_id.eq.${chatId}`)
+          .order("created_at", { ascending: false })
+          .range(0, MESSAGES_PER_PAGE - 1);
+        messagesData = data || [];
+        messagesError = error;
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error("Error fetching messages:", err.message);
+        messagesError = err;
+      } else {
+        console.error("Unexpected error:", err);
+        messagesError = new Error("Unexpected error occurred");
+      }
+    }
+
+    return { messagesData, messagesError };
+  };
+
   const handleChatClick = useCallback(
     async (chatId: string) => {
       if (!user || !user.id) {
@@ -709,10 +761,6 @@ function ChatContent() {
 
       setViewedChat(chatId);
       setSelectedChat(chatId);
-
-      const MESSAGES_PER_PAGE = 20;
-      let messagesData: ChatMessage[] = [];
-      let messagesError;
 
       // Ensure the receiver's nav list updates to show the new DM or group chat
       if (!dmUsers.some((u) => u.id === chatId)) {
@@ -741,38 +789,10 @@ function ChatContent() {
         }
       }
 
-      try {
-        if (chatId.startsWith("group_")) {
-          const groupChatId = parseInt(chatId.split("_")[1], 10);
-          const { data, error } = await supabase
-            .from("group_chat_messages")
-            .select("*")
-            .eq("group_chat_id", groupChatId)
-            .order("created_at", { ascending: false })
-            .range(0, MESSAGES_PER_PAGE - 1);
-          messagesData = data || [];
-          messagesError = error;
-        } else {
-          const { data, error } = await supabase
-            .from("direct_messages")
-            .select("*")
-            .or(
-              `receiver_id.eq.${chatId},sender_id.eq.${chatId},receiver_id.eq.${user.id},sender_id.eq.${user.id}`
-            )
-            .order("created_at", { ascending: false })
-            .range(0, MESSAGES_PER_PAGE - 1);
-          messagesData = data || [];
-          messagesError = error;
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          console.error("Error fetching messages:", err.message);
-          messagesError = err;
-        } else {
-          console.error("Unexpected error:", err);
-          messagesError = new Error("Unexpected error occurred");
-        }
-      }
+      const { messagesData, messagesError } = await fetchMessages(
+        chatId,
+        user.id
+      );
 
       if (messagesError) {
         console.error("Error fetching messages:", messagesError.message);
@@ -780,22 +800,11 @@ function ChatContent() {
       }
 
       // Reverse the order of messages to display newest at the bottom
-      messagesData = messagesData.reverse();
+      const reversedMessages = messagesData.reverse();
 
-      // Mark all messages in this chat as read
-      const updatedMessages = messagesData.map((msg) => ({
-        ...msg,
-        read_by: msg.read_by
-          ? Array.from(new Set([...msg.read_by, user.id]))
-          : [user.id],
-      }));
-
-      setMessages(updatedMessages);
+      setMessages(reversedMessages);
       scrollToBottom();
       localStorage.setItem("currentChat", chatId);
-
-      // Update the database to mark messages as read
-      await markMessagesAsRead();
 
       // Reset unread status and counts for this chat
       setUnreadStatus((prev) => ({ ...prev, [chatId]: false }));
@@ -807,6 +816,9 @@ function ChatContent() {
       setTotalUnreadCount((prev) =>
         Math.max(0, prev - (unreadCounts[chatId] || 0))
       );
+
+      // Mark messages as read
+      await markMessagesAsRead();
     },
     [
       user,
@@ -1056,18 +1068,23 @@ function ChatContent() {
   }, [user, fetchAllChats, scrollToBottom]);
 
   const fetchMoreMessages = useCallback(async () => {
-    if (!selectedChat) return;
+    if (!selectedChat || !user) return;
 
     const isGroupChat = selectedChat.startsWith("group_");
     const tableName = isGroupChat ? "group_chat_messages" : "direct_messages";
-    const condition = isGroupChat
-      ? { group_chat_id: parseInt(selectedChat.split("_")[1], 10) }
-      : { or: `receiver_id.eq.${selectedChat},sender_id.eq.${selectedChat}` };
+    let query = supabase.from(tableName).select("*");
 
-    const { data, error } = await supabase
-      .from(tableName)
-      .select("*")
-      .match(condition)
+    if (isGroupChat) {
+      const groupChatId = parseInt(selectedChat.split("_")[1], 10);
+      query = query.eq("group_chat_id", groupChatId);
+    } else {
+      query = query.or(
+        `receiver_id.eq.${selectedChat},sender_id.eq.${selectedChat}`
+      );
+    }
+
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
       .range(page * MESSAGES_PER_PAGE, (page + 1) * MESSAGES_PER_PAGE - 1);
 
     if (error) {
@@ -1076,7 +1093,7 @@ function ChatContent() {
       setMessages((prev) => [...prev, ...data.reverse()]);
       setPage((prevPage) => prevPage + 1);
     }
-  }, [selectedChat, page]);
+  }, [selectedChat, user, page]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -1501,7 +1518,7 @@ function ChatContent() {
       const groupId = parseInt(selectedChat.split("_")[1], 10);
       const { error: groupError } = await client
         .from("group_chats")
-        .update({ last_message_at: new Date().toISOString() })
+        .select()
         .eq("id", groupId);
 
       if (groupError) {
@@ -1827,8 +1844,6 @@ function ChatContent() {
 
   const handleMessageChange = useCallback(
     (payload: any, chatType: string) => {
-      // console.log(`${chatType} message change:`, payload);
-
       if (payload.eventType === "INSERT") {
         const newMessage = payload.new;
         const isCurrentChat =
@@ -1842,19 +1857,22 @@ function ChatContent() {
           if (prevMessages.some((msg) => msg.id === newMessage.id)) {
             return prevMessages;
           }
-          const updatedMessages = [...prevMessages, newMessage];
-          if (isCurrentChat) {
-            scrollToBottom();
-          }
-          {
-            /* replacing this line for persisting unread messages */
-          }
-          // return updatedMessages;
-          return [
+          const updatedMessages = [
             ...prevMessages,
             { ...newMessage, read_by: newMessage.read_by || [] },
           ];
+          // Sort messages by creation time
+          updatedMessages.sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()
+          );
+          return updatedMessages;
         });
+
+        if (isCurrentChat) {
+          setTimeout(scrollToBottom, 0);
+        }
 
         if (newMessage.sender_id !== user.id) {
           const isChatActiveNow =
@@ -1892,7 +1910,6 @@ function ChatContent() {
               setTotalUnreadCount((prev) => prev + 1);
             }
             fetchUnreadCounts();
-            setTotalUnreadCount((prev) => prev + 1);
           }
         }
       } else if (payload.eventType === "DELETE") {
@@ -2180,482 +2197,495 @@ function ChatContent() {
 
   return (
     <>
-      <RoleBasedWrapper
-        allowedRoles={["gunsmith", "admin", "super admin", "auditor", "dev"]}
-      >
-        <Card className="flex flex-col h-[60vh] max-w-[90vw] mx-auto overflow-hidden">
-          <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
-            <TextGenerateEffect words={title} />
-          </CardTitle>
-          <CardContent className="flex flex-1 p-0 max-w-full overflow-hidden">
-            <div className="flex h-full w-full overflow-hidden">
-              <div className="flex-1 flex flex-col max-w-md w-64 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                  <h2 className="text-lg font-semibold">Messages</h2>
-                  <Button variant="ghost" onClick={() => setShowUserList(true)}>
-                    <PlusIcon className="w-5 h-5" />
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-auto">
-                  <nav className="space-y-1 p-4">
-                    {dmUsers.length === 0 && (
-                      <div className="text-center py-4 text-gray-500">
-                        No messages yet. Start a new chat!
-                      </div>
-                    )}
-
-                    {dmUsers
-                      .filter((u) => !u.id.startsWith("group_"))
-                      .map((u) => (
-                        <div
-                          key={u.id}
-                          className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                            viewedChat === u.id
-                              ? "bg-blue-100 dark:bg-blue-900"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex-1 flex items-center gap-3">
-                            <Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleChatClick(u.id);
-                              }}
-                              prefetch={false}
-                              className="flex-1 flex items-center gap-3"
-                            >
-                              {"is_online" in u && u.is_online && (
-                                <DotFilledIcon className="text-green-600" />
-                              )}
-                              <span className="flex-1 truncate">{u.name}</span>
-                              {unreadStatus[u.id] && (
-                                <span className="ml-2">
-                                  <DotFilledIcon className="w-4 h-4 text-red-600" />
-                                </span>
-                              )}
-                              {"is_online" in u && u.is_online && (
-                                <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
-                                  Online
-                                </span>
-                              )}
-                            </Link>
-                            {(("created_by" in u && u.created_by === user.id) ||
-                              role === "admin" ||
-                              role === "super admin" ||
-                              role === "dev" ||
-                              (!("created_by" in u) && u.id === user.id)) && (
-                              <div className="relative ml-2" ref={optionsRef}>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setShowDMOptions(
-                                      showDMOptions === u.id ? null : u.id
-                                    );
-                                  }}
-                                >
-                                  <DotsVerticalIcon className="w-4 h-4" />
-                                </Button>
-                                {showDMOptions === u.id && (
-                                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-muted ring-1 ring-black ring-opacity-5">
-                                    <div
-                                      className="py-1"
-                                      role="menu"
-                                      aria-orientation="vertical"
-                                      aria-labelledby="options-menu"
-                                    >
-                                      <Button
-                                        variant="ghost"
-                                        className="flex w-full items-center px-4 py-2 text-sm"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setChatToDelete(u.id);
-                                          setShowDeleteAlert(true);
-                                          setShowDMOptions(null);
-                                        }}
-                                      >
-                                        <TrashIcon className="mr-3 h-4 w-4" />
-                                        Delete Chat
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-
-                    {dmUsers
-                      .filter((u) => u.id.startsWith("group_"))
-                      .map((groupChat) => (
-                        <div
-                          key={groupChat.id}
-                          className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
-                            viewedChat === groupChat.id
-                              ? "bg-blue-100 dark:bg-blue-900"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex-1 flex items-center gap-3">
-                            <Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleChatClick(groupChat.id);
-                              }}
-                              prefetch={false}
-                              className="flex-1 flex items-center gap-3"
-                            >
-                              <DotFilledIcon className="w-4 h-4" />
-                              <span className="flex-1 truncate">
-                                {groupChat.name}
-                              </span>
-                            </Link>
-                            {((groupChat as GroupChat).created_by === user.id ||
-                              role === "admin" ||
-                              role === "super admin" ||
-                              role === "dev") && (
-                              <div className="relative ml-2" ref={optionsRef}>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setShowGroupOptions(
-                                      showGroupOptions === groupChat.id
-                                        ? null
-                                        : groupChat.id
-                                    );
-                                  }}
-                                >
-                                  <DotsVerticalIcon className="w-4 h-4" />
-                                </Button>
-                                {showGroupOptions === groupChat.id && (
-                                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-muted ring-1 ring-black ring-opacity-5">
-                                    <div
-                                      className="py-1"
-                                      role="menu"
-                                      aria-orientation="vertical"
-                                      aria-labelledby="options-menu"
-                                    >
-                                      <Button
-                                        variant="ghost"
-                                        className="flex w-full items-center px-4 py-2 text-sm"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setChatToDelete(groupChat.id);
-                                          setShowDeleteAlert(true);
-                                          setShowGroupOptions(null);
-                                        }}
-                                      >
-                                        <TrashIcon className="mr-3 h-4 w-4" />
-                                        Delete Chat
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        className="flex w-full items-center px-4 py-2 text-sm"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          const newName = prompt(
-                                            "Enter new group name:",
-                                            groupChat.name
-                                          );
-                                          if (newName) {
-                                            handleEditGroupName(
-                                              groupChat.id,
-                                              newName
-                                            );
-                                          }
-                                          setShowGroupOptions(null);
-                                        }}
-                                      >
-                                        <Pencil1Icon className="mr-3 h-4 w-4" />
-                                        Edit Group Name
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                  </nav>
-                </div>
-              </div>
-
-              <AlertDialog
-                open={showDeleteAlert}
-                onOpenChange={setShowDeleteAlert}
-              >
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      the chat and remove it from all involved users&apos;
-                      message lists.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel
-                      onClick={() => {
-                        setShowDeleteAlert(false);
-                        setChatToDelete(null);
-                      }}
+      {flags.is_chat_enabled.enabled ? (
+        <RoleBasedWrapper
+          allowedRoles={["gunsmith", "admin", "super admin", "auditor", "dev"]}
+        >
+          <Card className="flex flex-col h-[60vh] max-w-[90vw] mx-auto overflow-hidden">
+            <CardTitle className="p-4 border-b border-gray-200 dark:border-gray-800">
+              <TextGenerateEffect words={title} />
+            </CardTitle>
+            <CardContent className="flex flex-1 p-0 max-w-full overflow-hidden">
+              <div className="flex h-full w-full overflow-hidden">
+                <div className="flex-1 flex flex-col max-w-md w-64 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+                    <h2 className="text-lg font-semibold">Messages</h2>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowUserList(true)}
                     >
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction onClick={confirmDeleteChat}>
-                      Continue
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      <PlusIcon className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <div className="flex-1 overflow-auto">
+                    <nav className="space-y-1 p-4">
+                      {dmUsers.length === 0 && (
+                        <div className="text-center py-4 text-gray-500">
+                          No messages yet. Start a new chat!
+                        </div>
+                      )}
 
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div
-                  className="flex-1 overflow-y-auto p-6"
-                  ref={messagesContainerRef}
-                >
-                  {viewedChat ? (
-                    <div className="space-y-6">
-                      <div ref={loadMoreTriggerRef} className="h-1" />
-                      {filteredMessages.map((msg, i) => (
-                        <div key={i} className="flex items-start gap-4">
-                          <Avatar className="border items-center justify-center">
-                            <AvatarImage
-                              src="/Circular.png"
-                              className="w-full h-full"
-                            />
-                            <AvatarFallback>
-                              {msg.user_name?.charAt(0) ||
-                                msg.sender_id?.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="grid gap-1 flex-1">
-                            <div className="font-bold relative group">
-                              {msg.user_name || getUserName(msg.sender_id)}
-
-                              {/* add this part for unread count to persist*/}
-                              {!msg.read_by?.includes(user.id) && (
-                                <span className="ml-2 text-red-500 font-bold">
-                                  •
+                      {dmUsers
+                        .filter((u) => !u.id.startsWith("group_"))
+                        .map((u) => (
+                          <div
+                            key={u.id}
+                            className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                              viewedChat === u.id
+                                ? "bg-blue-100 dark:bg-blue-900"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex-1 flex items-center gap-3">
+                              <Link
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleChatClick(u.id);
+                                }}
+                                prefetch={false}
+                                className="flex-1 flex items-center gap-3"
+                              >
+                                {"is_online" in u && u.is_online && (
+                                  <DotFilledIcon className="text-green-600" />
+                                )}
+                                <span className="flex-1 truncate">
+                                  {u.name}
                                 </span>
-                              )}
-                              {/* add this part for unread count to persist*/}
-
-                              {msg.sender_id !== user.id &&
-                                !msg.receiver_id &&
-                                !msg.group_chat_id && (
+                                {unreadStatus[u.id] && (
+                                  <span className="ml-2">
+                                    <DotFilledIcon className="w-4 h-4 text-red-600" />
+                                  </span>
+                                )}
+                                {"is_online" in u && u.is_online && (
+                                  <span className="rounded-full bg-green-400 px-2 py-0.5 text-xs ml-2">
+                                    Online
+                                  </span>
+                                )}
+                              </Link>
+                              {(("created_by" in u &&
+                                u.created_by === user.id) ||
+                                role === "admin" ||
+                                role === "super admin" ||
+                                role === "dev" ||
+                                (!("created_by" in u) && u.id === user.id)) && (
+                                <div className="relative ml-2" ref={optionsRef}>
                                   <Button
-                                    className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() =>
-                                      startDirectMessage({
-                                        id: msg.sender_id!,
-                                        name:
-                                          msg.user_name ||
-                                          getUserName(msg.sender_id),
-                                        is_online: false,
-                                      })
-                                    }
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setShowDMOptions(
+                                        showDMOptions === u.id ? null : u.id
+                                      );
+                                    }}
                                   >
-                                    <ChatBubbleIcon />
+                                    <DotsVerticalIcon className="w-4 h-4" />
                                   </Button>
-                                )}
-                            </div>
-                            <div className="prose prose-stone">
-                              {editingMessageId === msg.id ? (
-                                <>
-                                  <Textarea
-                                    value={editingMessage}
-                                    onChange={(e) =>
-                                      setEditingMessage(e.target.value)
-                                    }
-                                    className="mb-2"
-                                  />
-                                  <Button onClick={onUpdate} className="mb-2">
-                                    Update
-                                  </Button>
-                                </>
-                              ) : (
-                                <p>{msg.message}</p>
+                                  {showDMOptions === u.id && (
+                                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-muted ring-1 ring-black ring-opacity-5">
+                                      <div
+                                        className="py-1"
+                                        role="menu"
+                                        aria-orientation="vertical"
+                                        aria-labelledby="options-menu"
+                                      >
+                                        <Button
+                                          variant="ghost"
+                                          className="flex w-full items-center px-4 py-2 text-sm"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setChatToDelete(u.id);
+                                            setShowDeleteAlert(true);
+                                            setShowDMOptions(null);
+                                          }}
+                                        >
+                                          <TrashIcon className="mr-3 h-4 w-4" />
+                                          Delete Chat
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
-                          {role === "super admin" ||
-                          role === "dev" ||
-                          msg.sender_id === user.id ? (
-                            <div className="flex space-x-2">
-                              <Button
-                                onClick={() => onEdit(msg.id, msg.message)}
-                                variant="ghost"
-                                size="icon"
+                        ))}
+
+                      {dmUsers
+                        .filter((u) => u.id.startsWith("group_"))
+                        .map((groupChat) => (
+                          <div
+                            key={groupChat.id}
+                            className={`flex items-center min-h-[3.5rem] gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-200 dark:hover:bg-neutral-800 ${
+                              viewedChat === groupChat.id
+                                ? "bg-blue-100 dark:bg-blue-900"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex-1 flex items-center gap-3">
+                              <Link
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleChatClick(groupChat.id);
+                                }}
+                                prefetch={false}
+                                className="flex-1 flex items-center gap-3"
                               >
-                                <Pencil1Icon />
-                              </Button>
-                              <Button
-                                onClick={() => onDelete(msg.id)}
-                                variant="ghost"
-                                size="icon"
-                              >
-                                <TrashIcon />
-                              </Button>
+                                <DotFilledIcon className="w-4 h-4" />
+                                <span className="flex-1 truncate">
+                                  {groupChat.name}
+                                </span>
+                              </Link>
+                              {((groupChat as GroupChat).created_by ===
+                                user.id ||
+                                role === "admin" ||
+                                role === "super admin" ||
+                                role === "dev") && (
+                                <div className="relative ml-2" ref={optionsRef}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setShowGroupOptions(
+                                        showGroupOptions === groupChat.id
+                                          ? null
+                                          : groupChat.id
+                                      );
+                                    }}
+                                  >
+                                    <DotsVerticalIcon className="w-4 h-4" />
+                                  </Button>
+                                  {showGroupOptions === groupChat.id && (
+                                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-muted ring-1 ring-black ring-opacity-5">
+                                      <div
+                                        className="py-1"
+                                        role="menu"
+                                        aria-orientation="vertical"
+                                        aria-labelledby="options-menu"
+                                      >
+                                        <Button
+                                          variant="ghost"
+                                          className="flex w-full items-center px-4 py-2 text-sm"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setChatToDelete(groupChat.id);
+                                            setShowDeleteAlert(true);
+                                            setShowGroupOptions(null);
+                                          }}
+                                        >
+                                          <TrashIcon className="mr-3 h-4 w-4" />
+                                          Delete Chat
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          className="flex w-full items-center px-4 py-2 text-sm"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            const newName = prompt(
+                                              "Enter new group name:",
+                                              groupChat.name
+                                            );
+                                            if (newName) {
+                                              handleEditGroupName(
+                                                groupChat.id,
+                                                newName
+                                              );
+                                            }
+                                            setShowGroupOptions(null);
+                                          }}
+                                        >
+                                          <Pencil1Icon className="mr-3 h-4 w-4" />
+                                          Edit Group Name
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          ) : null}
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">
-                        Select a chat to view messages
-                      </p>
+                          </div>
+                        ))}
+                    </nav>
+                  </div>
+                </div>
+
+                <AlertDialog
+                  open={showDeleteAlert}
+                  onOpenChange={setShowDeleteAlert}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently
+                        delete the chat and remove it from all involved
+                        users&apos; message lists.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel
+                        onClick={() => {
+                          setShowDeleteAlert(false);
+                          setChatToDelete(null);
+                        }}
+                      >
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={confirmDeleteChat}>
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div
+                    className="flex-1 overflow-y-auto p-6"
+                    ref={messagesContainerRef}
+                  >
+                    {viewedChat ? (
+                      <div className="space-y-6">
+                        <div ref={loadMoreTriggerRef} className="h-1" />
+                        {filteredMessages.map((msg, i) => (
+                          <div key={i} className="flex items-start gap-4">
+                            <Avatar className="border items-center justify-center">
+                              <AvatarImage
+                                src="/Circular.png"
+                                className="w-full h-full"
+                              />
+                              <AvatarFallback>
+                                {msg.user_name?.charAt(0) ||
+                                  msg.sender_id?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="grid gap-1 flex-1">
+                              <div className="font-bold relative group">
+                                {msg.user_name || getUserName(msg.sender_id)}
+
+                                {/* add this part for unread count to persist*/}
+                                {!msg.read_by?.includes(user.id) && (
+                                  <span className="ml-2 text-red-500 font-bold">
+                                    •
+                                  </span>
+                                )}
+                                {/* add this part for unread count to persist*/}
+
+                                {msg.sender_id !== user.id &&
+                                  !msg.receiver_id &&
+                                  !msg.group_chat_id && (
+                                    <Button
+                                      className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        startDirectMessage({
+                                          id: msg.sender_id!,
+                                          name:
+                                            msg.user_name ||
+                                            getUserName(msg.sender_id),
+                                          is_online: false,
+                                        })
+                                      }
+                                    >
+                                      <ChatBubbleIcon />
+                                    </Button>
+                                  )}
+                              </div>
+                              <div className="prose prose-stone">
+                                {editingMessageId === msg.id ? (
+                                  <>
+                                    <Textarea
+                                      value={editingMessage}
+                                      onChange={(e) =>
+                                        setEditingMessage(e.target.value)
+                                      }
+                                      className="mb-2"
+                                    />
+                                    <Button onClick={onUpdate} className="mb-2">
+                                      Update
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <p>{msg.message}</p>
+                                )}
+                              </div>
+                            </div>
+                            {role === "super admin" ||
+                            role === "dev" ||
+                            msg.sender_id === user.id ? (
+                              <div className="flex space-x-2">
+                                <Button
+                                  onClick={() => onEdit(msg.id, msg.message)}
+                                  variant="ghost"
+                                  size="icon"
+                                >
+                                  <Pencil1Icon />
+                                </Button>
+                                <Button
+                                  onClick={() => onDelete(msg.id)}
+                                  variant="ghost"
+                                  size="icon"
+                                >
+                                  <TrashIcon />
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-gray-500">
+                          Select a chat to view messages
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {viewedChat && (
+                    <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+                      <div className="relative">
+                        <Textarea
+                          placeholder="Type your message..."
+                          name="message"
+                          id="message"
+                          rows={1}
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              onSend();
+                            }
+                          }}
+                          className="min-h-[48px] rounded-2xl resize-none p-4 border border-gray-200 dark:border-gray-800 pr-16"
+                        />
+                        <Button
+                          key={`send-message-${selectedChat}-${message}`}
+                          type="submit"
+                          size="icon"
+                          className="absolute top-3 right-3 w-8 h-8"
+                          variant="ghost"
+                          onClick={onSend}
+                        >
+                          <CaretUpIcon className="w-4 h-4" />
+                          <span className="sr-only">Send</span>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
-                {viewedChat && (
-                  <div className="border-t border-gray-200 dark:border-gray-800 p-4">
-                    <div className="relative">
-                      <Textarea
-                        placeholder="Type your message..."
-                        name="message"
-                        id="message"
-                        rows={1}
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            onSend();
-                          }
-                        }}
-                        className="min-h-[48px] rounded-2xl resize-none p-4 border border-gray-200 dark:border-gray-800 pr-16"
-                      />
-                      <Button
-                        key={`send-message-${selectedChat}-${message}`}
-                        type="submit"
-                        size="icon"
-                        className="absolute top-3 right-3 w-8 h-8"
-                        variant="ghost"
-                        onClick={onSend}
-                      >
-                        <CaretUpIcon className="w-4 h-4" />
-                        <span className="sr-only">Send</span>
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Dialog open={showUserList} onOpenChange={setShowUserList}>
-          <DialogContent className="max-w-md p-2">
-            <DialogHeader>
-              <DialogTitle>Start a Chat</DialogTitle>
-              <DialogDescription>
-                Select chat type and users to start a conversation with.
-              </DialogDescription>
-            </DialogHeader>
-            <Tabs
-              defaultValue="dm"
-              onValueChange={(value) =>
-                handleChatTypeSelection(value as "dm" | "group")
-              }
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="dm">Direct Message</TabsTrigger>
-                <TabsTrigger value="group">Group Chat</TabsTrigger>
-              </TabsList>
-              <TabsContent value="dm">
-                <div className="space-y-2">
-                  {users.map((u) => (
-                    <div key={u.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`user-dm-${u.id}`}
-                        checked={selectedUsers.some((user) => user.id === u.id)}
-                        onChange={() => handleUserSelection(u)}
-                        disabled={
-                          selectedUsers.length > 0 &&
-                          !selectedUsers.some((user) => user.id === u.id)
-                        }
-                      />
-                      <label
-                        htmlFor={`user-dm-${u.id}`}
-                        className="flex items-center gap-2"
-                      >
-                        {u.is_online && (
-                          <DotFilledIcon className="text-green-600" />
-                        )}
-                        {u.name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="group">
-                <div className="space-y-2">
-                  {users.map((u) => (
-                    <div key={u.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`user-group-${u.id}`}
-                        checked={selectedUsers.some((user) => user.id === u.id)}
-                        onChange={() => handleUserSelection(u)}
-                      />
-                      <label
-                        htmlFor={`user-group-${u.id}`}
-                        className="flex items-center gap-2"
-                      >
-                        {u.is_online && (
-                          <DotFilledIcon className="text-green-600" />
-                        )}
-                        {u.name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-            <DialogFooter>
-              <Button
-                variant="linkHover2"
-                onClick={() => {
-                  setShowUserList(false);
-                  setSelectedUsers([]);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="linkHover1"
-                onClick={() =>
-                  chatType === "dm"
-                    ? startDirectMessage(selectedUsers[0])
-                    : startGroupChat(selectedUsers)
+            </CardContent>
+          </Card>
+          <Dialog open={showUserList} onOpenChange={setShowUserList}>
+            <DialogContent className="max-w-md p-2">
+              <DialogHeader>
+                <DialogTitle>Start a Chat</DialogTitle>
+                <DialogDescription>
+                  Select chat type and users to start a conversation with.
+                </DialogDescription>
+              </DialogHeader>
+              <Tabs
+                defaultValue="dm"
+                onValueChange={(value) =>
+                  handleChatTypeSelection(value as "dm" | "group")
                 }
               >
-                Start Chat
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </RoleBasedWrapper>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="dm">Direct Message</TabsTrigger>
+                  <TabsTrigger value="group">Group Chat</TabsTrigger>
+                </TabsList>
+                <TabsContent value="dm">
+                  <div className="space-y-2">
+                    {users.map((u) => (
+                      <div key={u.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`user-dm-${u.id}`}
+                          checked={selectedUsers.some(
+                            (user) => user.id === u.id
+                          )}
+                          onChange={() => handleUserSelection(u)}
+                          disabled={
+                            selectedUsers.length > 0 &&
+                            !selectedUsers.some((user) => user.id === u.id)
+                          }
+                        />
+                        <label
+                          htmlFor={`user-dm-${u.id}`}
+                          className="flex items-center gap-2"
+                        >
+                          {u.is_online && (
+                            <DotFilledIcon className="text-green-600" />
+                          )}
+                          {u.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="group">
+                  <div className="space-y-2">
+                    {users.map((u) => (
+                      <div key={u.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`user-group-${u.id}`}
+                          checked={selectedUsers.some(
+                            (user) => user.id === u.id
+                          )}
+                          onChange={() => handleUserSelection(u)}
+                        />
+                        <label
+                          htmlFor={`user-group-${u.id}`}
+                          className="flex items-center gap-2"
+                        >
+                          {u.is_online && (
+                            <DotFilledIcon className="text-green-600" />
+                          )}
+                          {u.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
+              <DialogFooter>
+                <Button
+                  variant="linkHover2"
+                  onClick={() => {
+                    setShowUserList(false);
+                    setSelectedUsers([]);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="linkHover1"
+                  onClick={() =>
+                    chatType === "dm"
+                      ? startDirectMessage(selectedUsers[0])
+                      : startGroupChat(selectedUsers)
+                  }
+                >
+                  Start Chat
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </RoleBasedWrapper>
+      ) : null}
     </>
   );
 }

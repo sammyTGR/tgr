@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Todos from "./todos";
 import ClearActions from "./clear-actions";
 import { CheckCircledIcon } from "@radix-ui/react-icons";
+import { useFlags } from "flagsmith/react";
 
 const queryClient = new QueryClient();
 

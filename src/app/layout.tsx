@@ -13,8 +13,14 @@ import { ourFileRouter } from "@/app/api/uploadthing/core";
 import { UnreadCountsProvider } from "../components/UnreadCountsContext";
 import QueryProvider from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
+import { VercelToolbar } from "@vercel/toolbar/next";
+import Provider from "./provider";
+import flagsmith from "flagsmith/isomorphic";
+import { FlagValues } from "@vercel/flags/react";
+import { ReactElement } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
+const flagValues = { is_chat_enabled: false, is_todo_enabled: false }; // Define your feature flags here
 
 export const metadata: Metadata = {
   title: "TGR",
@@ -26,11 +32,21 @@ if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const flagsmithState = await flagsmith
+    .init({
+      // fetches flags on the server
+      environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!, // substitute your env ID
+      identity: "my_user_id", // specify the identity of the user to get their specific flags
+    })
+    .then(() => {
+      return flagsmith.getState();
+    });
+  const shouldInjectToolbar = process.env.NODE_ENV === "development";
   return (
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
@@ -50,7 +66,11 @@ export default function RootLayout({
                   <NotificationsProvider>
                     <Header />
                     <main>
-                      {children}
+                      <Provider flagsmithState={flagsmithState}>
+                        {children as ReactElement}
+                      </Provider>
+                      <FlagValues values={{ flagValues }} />
+                      {shouldInjectToolbar && <VercelToolbar />}
                       <Analytics />
                     </main>
                     <Toaster />

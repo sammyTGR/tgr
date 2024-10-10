@@ -50,6 +50,7 @@ export default function GunsmithingMaintenance() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [persistedListId, setPersistedListId] = useState<number | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
 
   const [newFirearm, setNewFirearm] = useState({
     firearm_type: "handgun",
@@ -476,7 +477,7 @@ export default function GunsmithingMaintenance() {
     };
   }, [persistData, userUuid]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // Check if all firearms have notes and status
     const incompleteFirearms = data.filter(
       (firearm) => !firearm.maintenance_notes || !firearm.status
@@ -488,7 +489,10 @@ export default function GunsmithingMaintenance() {
       );
       return;
     }
+    setIsSubmitDialogOpen(true);
+  };
 
+  const confirmSubmit = async () => {
     try {
       for (const firearm of data) {
         await supabase
@@ -522,6 +526,7 @@ export default function GunsmithingMaintenance() {
       setData(resetFirearmsList);
       await persistData(resetFirearmsList);
 
+      setIsSubmitDialogOpen(false);
       toast.success("Maintenance list submitted successfully!");
     } catch (error) {
       console.error("Failed to submit maintenance list:", error);
@@ -683,6 +688,26 @@ export default function GunsmithingMaintenance() {
                       </CardContent>
                     </Card>
                   </TabsContent>
+
+                  <AlertDialog
+                    open={isSubmitDialogOpen}
+                    onOpenChange={setIsSubmitDialogOpen}
+                  >
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to submit the maintenance list?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmSubmit}>
+                          Submit
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
                   <TabsContent value="repairs" className="mt-0">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
