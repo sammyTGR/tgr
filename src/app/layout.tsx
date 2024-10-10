@@ -37,7 +37,7 @@ export default async function RootLayout({
 }>) {
   let flagsmithState: IState<string> | undefined = undefined;
 
-  const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID;
+  const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
 
   if (environmentID) {
     try {
