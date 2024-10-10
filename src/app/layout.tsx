@@ -17,6 +17,7 @@ import { VercelToolbar } from "@vercel/toolbar/next";
 import Provider from "./provider";
 import flagsmith from "flagsmith/isomorphic";
 import { IState } from "flagsmith/types";
+import dynamic from "next/dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,6 +30,8 @@ const clientId = process.env.GOOGLE_CLIENT_ID!;
 if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
+
+const DynamicProvider = dynamic(() => import('./provider'), { ssr: false });
 
 async function initializeFlagsmith(): Promise<IState<string> | undefined> {
   const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
@@ -77,9 +80,9 @@ export default async function RootLayout({
                   <NotificationsProvider>
                     <Header />
                     <main>
-                      <Provider flagsmithState={flagsmithState}>
+                      <DynamicProvider flagsmithState={flagsmithState}>
                         {children}
-                      </Provider>
+                      </DynamicProvider>
                       {shouldInjectToolbar && <VercelToolbar />}
                       <Analytics />
                     </main>
