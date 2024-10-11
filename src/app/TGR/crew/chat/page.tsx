@@ -48,8 +48,6 @@ import { debounce } from "lodash";
 import { toast } from "sonner";
 import { useUnreadCounts } from "@/components/UnreadCountsContext";
 import useRealtimeNotifications from "@/utils/useRealtimeNotifications";
-import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
 import { useFlags } from "flagsmith/react";
 import TemporaryChatDisabled from '@/components/TemporaryChatDisabled';
 
@@ -104,6 +102,11 @@ type DmUser = User | GroupChat;
 
 function ChatContent() {
   const flags = useFlags(["is_chat_enabled"]);
+  const CHAT_ENABLED = false;
+  // Combine the feature flag and the CHAT_ENABLED constant
+  const isChatEnabled = CHAT_ENABLED && flags.is_chat_enabled.enabled;
+
+  
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -140,12 +143,10 @@ function ChatContent() {
   const { totalUnreadCount, setTotalUnreadCount, resetUnreadCounts } =
     useUnreadCounts();
   useRealtimeNotifications();
-  const queryClient = useQueryClient();
+
   const [page, setPage] = useState(0);
   const MESSAGES_PER_PAGE = 20;
-  const CHAT_ENABLED = false;
-  // Combine the feature flag and the CHAT_ENABLED constant
-  const isChatEnabled = CHAT_ENABLED && flags.is_chat_enabled.enabled;
+  
 
   const userDataRef = useRef<{ user: User | null }>({ user: null });
   const directMessageChannelRef = useRef<RealtimeChannel | null>(null);
@@ -155,22 +156,6 @@ function ChatContent() {
     return <TemporaryChatDisabled />;
   }
 
-  // const { data: userData } = useQuery({
-  //   queryKey: ["userData", user?.id],
-  //   queryFn: async () => {
-  //     if (!user) return null;
-  //     const { data, error } = await supabase
-  //       .from("employees")
-  //       .select("user_uuid, name, is_online")
-  //       .eq("user_uuid", user.id)
-  //       .single();
-
-  //     if (error) throw error;
-  //     return data;
-  //   },
-  //   enabled: !!user,
-  //   staleTime: 5 * 60 * 1000, // 5 minutes
-  // });
 
   useEffect(() => {
     if (!isChatEnabled) return;
