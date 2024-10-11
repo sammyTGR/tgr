@@ -20,6 +20,8 @@ import { IState } from "flagsmith/types";
 import dynamic from "next/dynamic";
 import MyStatsig from "./my-statsig";
 import { generateBootstrapValues } from "./statsig-backend";
+import FlagsmithWrapper from "@/FlagsmithWrapper";
+import { ReactElement } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -61,7 +63,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const bootstrapValues = await generateBootstrapValues();
-
   const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
@@ -69,36 +70,36 @@ export default async function RootLayout({
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
-          <MyStatsig bootstrapValues={bootstrapValues}>
-            <Provider flagsmithState={flagsmithState}>
-              <body className={inter.className}>
-                <QueryProvider>
-                  <NextSSRPlugin
-                    routerConfig={extractRouterConfig(ourFileRouter)}
-                  />
-                  <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                    disableTransitionOnChange
-                  >
-                    <UnreadCountsProvider>
-                      <NotificationsProvider>
-                        <Header />
-                        <main>
-                          {children}
+          {/* <MyStatsig bootstrapValues={bootstrapValues}> */}
+          <FlagsmithWrapper flagsmithState={flagsmithState}>
+            <body className={inter.className}>
+              <QueryProvider>
+                <NextSSRPlugin
+                  routerConfig={extractRouterConfig(ourFileRouter)}
+                />
+                <ThemeProvider
+                  attribute="class"
+                  defaultTheme="system"
+                  enableSystem
+                  disableTransitionOnChange
+                >
+                  <UnreadCountsProvider>
+                    <NotificationsProvider>
+                      <Header />
+                      <main>
+                        {children as ReactElement}
 
-                          {shouldInjectToolbar && <VercelToolbar />}
-                          <Analytics />
-                        </main>
-                        <Toaster />
-                      </NotificationsProvider>
-                    </UnreadCountsProvider>
-                  </ThemeProvider>
-                </QueryProvider>
-              </body>
-            </Provider>
-          </MyStatsig>
+                        {shouldInjectToolbar && <VercelToolbar />}
+                        <Analytics />
+                      </main>
+                      <Toaster />
+                    </NotificationsProvider>
+                  </UnreadCountsProvider>
+                </ThemeProvider>
+              </QueryProvider>
+            </body>
+          </FlagsmithWrapper>
+          {/* </MyStatsig> */}
         </html>
       </GoogleOAuthProvider>
     </RoleProvider>
