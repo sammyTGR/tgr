@@ -144,14 +144,16 @@ function ChatContent() {
   const [page, setPage] = useState(0);
   const MESSAGES_PER_PAGE = 20;
   const CHAT_ENABLED = false;
+  // Combine the feature flag and the CHAT_ENABLED constant
+  const isChatEnabled = CHAT_ENABLED && flags.is_chat_enabled.enabled;
 
   const userDataRef = useRef<{ user: User | null }>({ user: null });
   const directMessageChannelRef = useRef<RealtimeChannel | null>(null);
 
-    // If chat is disabled, return the TemporaryChatDisabled component
-    if (!CHAT_ENABLED || !flags.is_chat_enabled.enabled) {
-      return <TemporaryChatDisabled />;
-    }
+  // Wrap the chat logic in a condition, but keep hooks outside
+  if (!isChatEnabled) {
+    return <TemporaryChatDisabled />;
+  }
 
   // const { data: userData } = useQuery({
   //   queryKey: ["userData", user?.id],
@@ -171,7 +173,7 @@ function ChatContent() {
   // });
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsChatActive(isVisible);
@@ -198,10 +200,10 @@ function ChatContent() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       localStorage.removeItem("isChatActive");
     };
-  }, [resetUnreadCounts]);
+  }, [resetUnreadCounts, isChatEnabled]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     // This effect runs when the component mounts or when selectedChat changes
     localStorage.setItem("currentChat", selectedChat || "");
 
@@ -212,7 +214,7 @@ function ChatContent() {
       // This cleanup function runs when the component unmounts or before re-running the effect
       localStorage.removeItem("currentChat");
     };
-  }, [selectedChat, resetUnreadCounts]);
+  }, [selectedChat, resetUnreadCounts, isChatEnabled]);
 
   const localResetUnreadCounts = useCallback(async () => {
     await resetUnreadCounts();
@@ -220,19 +222,19 @@ function ChatContent() {
   }, [resetUnreadCounts, setTotalUnreadCount]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     localResetUnreadCounts();
-  }, [localResetUnreadCounts]);
+  }, [localResetUnreadCounts, isChatEnabled]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     resetUnreadCounts();
-  }, [resetUnreadCounts]);
+  }, [resetUnreadCounts, isChatEnabled]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     // console.log("Total unread count updated:", totalUnreadCount);
-  }, [totalUnreadCount]);
+  }, [totalUnreadCount, isChatEnabled ]);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -244,7 +246,7 @@ function ChatContent() {
   }, [messagesEndRef]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (messagesContainerRef.current) {
       const { scrollHeight, clientHeight } = messagesContainerRef.current;
       messagesContainerRef.current.scrollTo({
@@ -252,7 +254,7 @@ function ChatContent() {
         behavior: "smooth",
       });
     }
-  }, [messages]);
+  }, [messages, isChatEnabled]);
 
   const fetchUserData = useCallback(async (userIds: string[]) => {
     const { data, error } = await supabase
@@ -357,11 +359,11 @@ function ChatContent() {
   };
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (user && selectedChat && !selectedChat.startsWith("group_")) {
       markDirectMessagesAsRead(user.id);
     }
-  }, [user, selectedChat]);
+  }, [user, selectedChat, isChatEnabled ]);
 
   const handleChatTypeSelection = (type: "dm" | "group") => {
     setChatType(type);
@@ -510,7 +512,7 @@ function ChatContent() {
 
   // Update the fetchGroupChats function
   const fetchGroupChats = useCallback(async () => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (!user || !user.id) {
       console.error("User or user.id is not available");
       return;
@@ -567,7 +569,7 @@ function ChatContent() {
     } catch (error) {
       console.error("Error fetching group chats:", error);
     }
-  }, [user, supabase, setDmUsers]);
+  }, [user, setDmUsers, isChatEnabled]);
 
   const debouncedFetchGroupChats = useCallback(
     debounce(fetchGroupChats, 1000),
@@ -575,7 +577,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (!flags.is_chat_enabled.enabled) return;
     if (user && user.id) {
       debouncedFetchGroupChats();
@@ -588,7 +590,7 @@ function ChatContent() {
         debouncedFetchGroupChats.cancel();
       };
     }
-  }, [user, debouncedFetchGroupChats, flags.is_chat_enabled.enabled]);
+  }, [user, debouncedFetchGroupChats, isChatEnabled]);
 
   const markMessagesAsRead = useCallback(async () => {
     if (!user || !user.id) {
@@ -690,11 +692,11 @@ function ChatContent() {
   }, [user, markMessagesAsRead]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (user && user.id) {
       initialMarkMessagesAsRead();
     }
-  }, [user, initialMarkMessagesAsRead]);
+  }, [user, initialMarkMessagesAsRead, isChatEnabled]);
 
   const fetchGroupChatDetails = async (groupChatId: number) => {
     const { data: groupChat, error } = await supabase
@@ -869,14 +871,14 @@ function ChatContent() {
   );
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (dmUsers.length > 0 && selectedChat) {
       const selectedUser = dmUsers.find((u) => u.id === selectedChat);
       if (selectedUser && !viewedChat) {
         handleChatClick(selectedChat);
       }
     }
-  }, [dmUsers, selectedChat, handleChatClick, viewedChat]);
+  }, [dmUsers, selectedChat, handleChatClick, viewedChat, isChatEnabled]);
 
   const fetchAllChats = useCallback(async () => {
     if (!user || !user.id || initialFetchDoneRef.current) return;
@@ -1080,7 +1082,7 @@ function ChatContent() {
   ]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (!user || !user.id) return;
 
     fetchAllChats();
@@ -1099,7 +1101,7 @@ function ChatContent() {
         new CustomEvent("chatActiveChange", { detail: { isActive: false } })
       );
     };
-  }, [user, fetchAllChats, scrollToBottom]);
+  }, [user, fetchAllChats, scrollToBottom, isChatEnabled]);
 
   const fetchMoreMessages = useCallback(async () => {
     if (!selectedChat || !user) return;
@@ -1130,7 +1132,7 @@ function ChatContent() {
   }, [selectedChat, user, page]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -1149,7 +1151,7 @@ function ChatContent() {
         observer.unobserve(loadMoreTriggerRef.current);
       }
     };
-  }, [fetchMoreMessages]);
+  }, [fetchMoreMessages, isChatEnabled]);
 
   // Add a "Load More" button or implement infinite scrolling
 
@@ -1208,7 +1210,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     const client = supabase;
 
     const setupSubscriptions = () => {
@@ -1409,7 +1411,7 @@ function ChatContent() {
       groupChatChannelRef.current?.unsubscribe();
       groupChatChannelRef.current = null;
     };
-  }, [dmUsers, unreadStatus, user]);
+  }, [dmUsers, unreadStatus, user, isChatEnabled]);
 
   const handleEditGroupName = async (groupId: string, newName: string) => {
     const groupChatId = parseInt(groupId.split("_")[1], 10);
@@ -1428,7 +1430,7 @@ function ChatContent() {
   };
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     function handleClickOutside(event: MouseEvent) {
       if (
         optionsRef.current &&
@@ -1442,10 +1444,10 @@ function ChatContent() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [isChatEnabled]);
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     setIsChatActive(true);
     window.dispatchEvent(
       new CustomEvent("chatActiveChange", { detail: { isActive: true } })
@@ -1457,7 +1459,7 @@ function ChatContent() {
         new CustomEvent("chatActiveChange", { detail: { isActive: false } })
       );
     };
-  }, []);
+  }, [isChatEnabled]);
 
   const onSend = async () => {
     if (!message.trim() || !selectedChat) {
@@ -2169,7 +2171,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
-    if (!CHAT_ENABLED) return;
+    if (!isChatEnabled) return;
     if (!user) return;
 
     const handleGroupChatChange = (payload: any) => {
@@ -2232,11 +2234,9 @@ function ChatContent() {
       groupChatMessageSubscription.unsubscribe();
       directMessageSubscription.unsubscribe();
     };
-  }, [user, selectedChat, debouncedHandleMessageChange]);
+  }, [user, selectedChat, debouncedHandleMessageChange, isChatEnabled]);
 
-  if (!flags.is_chat_enabled.enabled) {
-    return null; // Or return a placeholder component
-  }
+
 
   return (
     <>
