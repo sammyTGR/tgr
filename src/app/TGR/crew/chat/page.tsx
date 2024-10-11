@@ -560,6 +560,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
+    if (!flags.is_chat_enabled.enabled) return;
     if (user && user.id) {
       debouncedFetchGroupChats();
 
@@ -571,7 +572,7 @@ function ChatContent() {
         debouncedFetchGroupChats.cancel();
       };
     }
-  }, [user, debouncedFetchGroupChats]);
+  }, [user, debouncedFetchGroupChats, flags.is_chat_enabled.enabled]);
 
   const markMessagesAsRead = useCallback(async () => {
     if (!user || !user.id) {
@@ -2208,6 +2209,10 @@ function ChatContent() {
       directMessageSubscription.unsubscribe();
     };
   }, [user, selectedChat, debouncedHandleMessageChange]);
+
+  if (!flags.is_chat_enabled.enabled) {
+    return null; // Or return a placeholder component
+  }
 
   return (
     <>
