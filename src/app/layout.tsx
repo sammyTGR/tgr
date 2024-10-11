@@ -21,7 +21,6 @@ import dynamic from "next/dynamic";
 import MyStatsig from "./my-statsig";
 import { generateBootstrapValues } from "./statsig-backend";
 
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -34,7 +33,7 @@ if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
 
-const DynamicProvider = dynamic(() => import('./provider'), { ssr: false });
+const DynamicProvider = dynamic(() => import("./provider"), { ssr: false });
 
 async function initializeFlagsmith(): Promise<IState<string> | undefined> {
   const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
@@ -62,43 +61,43 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const bootstrapValues = await generateBootstrapValues();
-  
+
   const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
-  
 
   return (
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
-        <MyStatsig bootstrapValues={bootstrapValues}>
-          <body className={inter.className}>
-            <QueryProvider>
-              <NextSSRPlugin
-                routerConfig={extractRouterConfig(ourFileRouter)}
-              />
-              <ThemeProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-              >
-                <UnreadCountsProvider>
-                  <NotificationsProvider>
-                    <Header />
-                    <main>
-                      <DynamicProvider flagsmithState={flagsmithState}>
-                        {children}
-                      </DynamicProvider>
-                      {shouldInjectToolbar && <VercelToolbar />}
-                      <Analytics />
-                    </main>
-                    <Toaster />
-                  </NotificationsProvider>
-                </UnreadCountsProvider>
-              </ThemeProvider>
-            </QueryProvider>
-          </body>
+          <MyStatsig bootstrapValues={bootstrapValues}>
+            <Provider flagsmithState={flagsmithState}>
+              <body className={inter.className}>
+                <QueryProvider>
+                  <NextSSRPlugin
+                    routerConfig={extractRouterConfig(ourFileRouter)}
+                  />
+                  <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                  >
+                    <UnreadCountsProvider>
+                      <NotificationsProvider>
+                        <Header />
+                        <main>
+                          {children}
+
+                          {shouldInjectToolbar && <VercelToolbar />}
+                          <Analytics />
+                        </main>
+                        <Toaster />
+                      </NotificationsProvider>
+                    </UnreadCountsProvider>
+                  </ThemeProvider>
+                </QueryProvider>
+              </body>
+            </Provider>
           </MyStatsig>
         </html>
       </GoogleOAuthProvider>

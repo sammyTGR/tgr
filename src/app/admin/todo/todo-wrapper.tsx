@@ -13,10 +13,9 @@ export default function TodoWrapper() {
   const flags = useFlags(["is_todo_enabled"]);
   const gate = useGateValue("enable_todo");
 
-
   return (
     <>
-      {gate === false ? (
+      {flags.is_todo_enabled.enabled ? (
         <QueryClientProvider client={queryClient}>
           <div className="flex flex-col max-w-2xl border rounded-lg shadow-lg p-4">
             <div className="flex items-center gap-4 pb-4">
