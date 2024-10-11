@@ -48,7 +48,7 @@ async function initializeFlagsmith(): Promise<IState<string> | undefined> {
     await flagsmith.init({
       environmentID,
       // Use a default identity or consider using a dynamic one based on the user
-      identity: "default_user",
+      identity: "my_user_id",
     });
     return flagsmith.getState();
   } catch (error) {
@@ -70,10 +70,10 @@ export default async function RootLayout({
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
-          {/* <MyStatsig bootstrapValues={bootstrapValues}> */}
-          <FlagsmithWrapper flagsmithState={flagsmithState}>
-            <body className={inter.className}>
-              <QueryProvider>
+          <body className={inter.className}>
+            {/* <MyStatsig bootstrapValues={bootstrapValues}> */}
+            <QueryProvider>
+              <FlagsmithWrapper flagsmithState={flagsmithState}>
                 <NextSSRPlugin
                   routerConfig={extractRouterConfig(ourFileRouter)}
                 />
@@ -96,10 +96,11 @@ export default async function RootLayout({
                     </NotificationsProvider>
                   </UnreadCountsProvider>
                 </ThemeProvider>
-              </QueryProvider>
-            </body>
-          </FlagsmithWrapper>
-          {/* </MyStatsig> */}
+              </FlagsmithWrapper>
+            </QueryProvider>
+
+            {/* </MyStatsig> */}
+          </body>
         </html>
       </GoogleOAuthProvider>
     </RoleProvider>

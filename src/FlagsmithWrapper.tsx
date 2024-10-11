@@ -1,100 +1,113 @@
 "use client";
 
-import { ReactElement, useEffect, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import {
+  useQuery,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { FlagsmithProvider } from "flagsmith/react";
 import flagsmith from "flagsmith/isomorphic";
 import { IState } from "flagsmith/types";
-import { supabase } from "@/utils/supabase/client";
+import { ReactElement, useEffect, useState } from "react";
 
 interface FlagsmithWrapperProps {
   flagsmithState: IState<string> | undefined;
   children: React.ReactNode;
 }
 
-export default function FlagsmithWrapper({
+function FlagsmithWrapperInner({
   flagsmithState,
   children,
 }: FlagsmithWrapperProps) {
-  const [role, setRole] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const supabase = createClientComponentClient();
+
+  const { data: user, isLoading: isUserLoading } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    },
+  });
+
+  const { data: role, isLoading: isRoleLoading } = useQuery({
+    queryKey: ["userRole", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      // Check the employees table
+      const { data: roleData, error: roleError } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("user_uuid", user.id)
+        .single();
+
+      if (roleData) return roleData.role;
+
+      // Check the customer table if not found in employees table
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .select("role")
+        .eq("email", user.email)
+        .single();
+
+      if (customerData) return customerData.role;
+
+      if (roleError && customerError) {
+        console.error(
+          "Error fetching role:",
+          roleError.message,
+          customerError.message
+        );
+      }
+
+      return null;
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
-    const fetchRoleAndInitFlagsmith = async () => {
+    const initFlagsmith = async () => {
       const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
       if (!environmentID) {
         console.warn("Flagsmith environment ID is not set");
+        setIsInitialized(true);
         return;
       }
 
       try {
-        // Fetch user and role
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) {
-          console.error("Error fetching user:", userError.message);
-          return;
-        }
-
-        const user = userData.user;
-        setUser(user);
-
-        let userRole = null;
-
-        // Check the employees table
-        const { data: roleData, error: roleError } = await supabase
-          .from("employees")
-          .select("role")
-          .eq("user_uuid", user?.id)
-          .single();
-
-        if (roleError || !roleData) {
-          // Check the customer table if not found in employees table
-          const { data: customerData, error: customerError } = await supabase
-            .from("customers")
-            .select("role")
-            .eq("email", user?.email)
-            .single();
-
-          if (customerError || !customerData) {
-            console.error(
-              "Error fetching role:",
-              roleError?.message || customerError?.message
-            );
-          } else {
-            userRole = customerData.role;
-          }
-        } else {
-          userRole = roleData.role;
-        }
-
-        setRole(userRole);
-
-        // Initialize Flagsmith
         await flagsmith.init({
           environmentID,
           state: flagsmithState,
-          identity: userRole || "my_user_id",
+          identity: role || "my_user_id",
         });
 
-        if (user && userRole) {
+        if (user && role) {
           flagsmith.setTraits({
             email: user.email || "",
-            role: userRole, // Add role as a trait
+            role: role,
           });
         }
 
-        console.log("Flagsmith initialized with role:", userRole); // Add this log
+        console.log("Flagsmith initialized with role:", role);
         setIsInitialized(true);
       } catch (error) {
         console.error("Failed to initialize Flagsmith:", error);
+        setIsInitialized(true);
       }
     };
 
-    fetchRoleAndInitFlagsmith();
-  }, [flagsmithState]);
+    if (!isUserLoading && !isRoleLoading) {
+      initFlagsmith();
+    }
+  }, [flagsmithState, user, role, isUserLoading, isRoleLoading]);
 
-  if (!isInitialized) {
+  if (!isInitialized || isUserLoading || isRoleLoading) {
     return null; // or a loading indicator
   }
 
@@ -102,5 +115,15 @@ export default function FlagsmithWrapper({
     <FlagsmithProvider flagsmith={flagsmith}>
       {children as ReactElement}
     </FlagsmithProvider>
+  );
+}
+
+export default function FlagsmithWrapper(props: FlagsmithWrapperProps) {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <FlagsmithWrapperInner {...props} />
+    </QueryClientProvider>
   );
 }
