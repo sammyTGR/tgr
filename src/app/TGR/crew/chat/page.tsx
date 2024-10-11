@@ -153,22 +153,22 @@ function ChatContent() {
       return <TemporaryChatDisabled />;
     }
 
-  const { data: userData } = useQuery({
-    queryKey: ["userData", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from("employees")
-        .select("user_uuid, name, is_online")
-        .eq("user_uuid", user.id)
-        .single();
+  // const { data: userData } = useQuery({
+  //   queryKey: ["userData", user?.id],
+  //   queryFn: async () => {
+  //     if (!user) return null;
+  //     const { data, error } = await supabase
+  //       .from("employees")
+  //       .select("user_uuid, name, is_online")
+  //       .eq("user_uuid", user.id)
+  //       .single();
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  //     if (error) throw error;
+  //     return data;
+  //   },
+  //   enabled: !!user,
+  //   staleTime: 5 * 60 * 1000, // 5 minutes
+  // });
 
   useEffect(() => {
     if (!CHAT_ENABLED) return;
