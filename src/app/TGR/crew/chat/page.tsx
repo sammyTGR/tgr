@@ -495,69 +495,83 @@ function ChatContent() {
   };
 
   // Update the fetchGroupChats function
-  const fetchGroupChats = async () => {
+  const fetchGroupChats = useCallback(async () => {
     if (!user || !user.id) {
       console.error("User or user.id is not available");
       return;
     }
-
-    const { data: groupChats, error } = await supabase
-      .from("group_chats")
-      .select("*")
-      .contains("users", `{${user.id}}`)
-
-      .limit(20); // Limit the number of group chats fetched
-
-    if (error) {
-      console.error("Error fetching group chats:", error.message);
-    } else if (groupChats) {
-      setDmUsers((prev) => {
-        // Create a set of existing group chat IDs
-        const existingGroupChatIds = new Set(
-          prev.filter((u) => u.id.startsWith("group_")).map((u) => u.id)
-        );
-
-        // Filter out any duplicate group chats and add only new ones
-        const newGroupChats = groupChats
-          .filter((chat) => !existingGroupChatIds.has(`group_${chat.id}`))
-          .map((chat) => ({
-            id: `group_${chat.id}`,
-            name: chat.name,
-            is_online: true,
-            users: chat.users,
-            created_by: chat.created_by,
-          }));
-
-        // Combine existing users (both direct and group) with new unique group chats
-        return [
-          ...prev.filter(
-            (u) => !newGroupChats.some((newChat) => newChat.id === u.id)
-          ),
-          ...newGroupChats,
-        ];
-      });
+  
+    try {
+      const { data: groupChats, error } = await supabase
+        .from("group_chats")
+        .select("*")
+        .contains("users", `{${user.id}}`)
+        .limit(20);
+  
+      if (error) throw error;
+  
+      if (groupChats) {
+        setDmUsers((prev) => {
+          // Create a new array to hold the updated dmUsers
+          const updatedDmUsers = [...prev];
+  
+          // Iterate through the fetched group chats
+          groupChats.forEach((groupChat) => {
+            // Check if the group chat already exists in dmUsers
+            const existingIndex = updatedDmUsers.findIndex(
+              (dmUser) => dmUser.id === `group_${groupChat.id}`
+            );
+  
+            if (existingIndex !== -1) {
+              // If it exists, update the existing entry
+              updatedDmUsers[existingIndex] = {
+                ...updatedDmUsers[existingIndex],
+                name: groupChat.name,
+                users: groupChat.users,
+                created_by: groupChat.created_by,
+                is_online: true, // Assuming group chats are always considered "online"
+              };
+            } else {
+              // If it doesn't exist, add a new entry
+              updatedDmUsers.push({
+                id: `group_${groupChat.id}`,
+                name: groupChat.name,
+                is_online: true,
+                users: groupChat.users,
+                created_by: groupChat.created_by,
+              });
+            }
+          });
+  
+          // Sort the updated dmUsers array (optional)
+          updatedDmUsers.sort((a, b) => a.name.localeCompare(b.name));
+  
+          return updatedDmUsers;
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching group chats:", error);
     }
-  };
+  }, [user, supabase, setDmUsers]);
+
+  const debouncedFetchGroupChats = useCallback(
+    debounce(fetchGroupChats, 1000),
+    [fetchGroupChats]
+  );
 
   useEffect(() => {
     if (user && user.id) {
-      fetchGroupChats();
+      debouncedFetchGroupChats();
 
-      // Set up a polling interval to fetch group chats periodically
-      const intervalId = setInterval(fetchGroupChats, 60000); // Fetch every minute
-
-      const handleFocus = () => {
-        fetchGroupChats();
-      };
-
-      window.addEventListener("focus", handleFocus);
+      // Optional: Set up polling if needed
+      const intervalId = setInterval(debouncedFetchGroupChats, 60000);
 
       return () => {
-        window.removeEventListener("focus", handleFocus);
         clearInterval(intervalId);
+        debouncedFetchGroupChats.cancel();
       };
     }
-  }, [user, fetchGroupChats]);
+  }, [user, debouncedFetchGroupChats]);
 
   const markMessagesAsRead = useCallback(async () => {
     if (!user || !user.id) {
