@@ -498,7 +498,7 @@ function ChatContent() {
   // Update the fetchGroupChats function
   const fetchGroupChats = useCallback(async () => {
     if (!isChatEnabled) return;
-    if (!user || !user.id) {
+    if (!isChatEnabled || !user || !user.id) {
       console.error("User or user.id is not available");
       return;
     }
@@ -578,7 +578,7 @@ function ChatContent() {
   }, [user, debouncedFetchGroupChats, isChatEnabled]);
 
   const markMessagesAsRead = useCallback(async () => {
-    if (!user || !user.id) {
+    if (!isChatEnabled || !user || !user.id) {
       console.error("User is not defined");
       return;
     }
@@ -670,7 +670,7 @@ function ChatContent() {
   }, [user, setUnreadCounts, setUnreadStatus, setTotalUnreadCount]);
 
   const initialMarkMessagesAsRead = useCallback(async () => {
-    if (!user || !user.id || initialFetchDoneRef.current) return;
+    if (!isChatEnabled || !user || !user.id || initialFetchDoneRef.current) return;
 
     await markMessagesAsRead();
     initialFetchDoneRef.current = true;
@@ -765,7 +765,7 @@ function ChatContent() {
 
   const handleChatClick = useCallback(
     async (chatId: string) => {
-      if (!user || !user.id) {
+      if (!isChatEnabled || !user || !user.id) {
         console.error("User is not defined");
         return;
       }
@@ -866,7 +866,7 @@ function ChatContent() {
   }, [dmUsers, selectedChat, handleChatClick, viewedChat, isChatEnabled]);
 
   const fetchAllChats = useCallback(async () => {
-    if (!user || !user.id || initialFetchDoneRef.current) return;
+    if (!isChatEnabled || !user || !user.id || initialFetchDoneRef.current) return;
 
     try {
       const { data: userData, error: userError } =
@@ -1068,7 +1068,7 @@ function ChatContent() {
 
   useEffect(() => {
     if (!isChatEnabled) return;
-    if (!user || !user.id) return;
+    if (!isChatEnabled || !user || !user.id) return;
 
     fetchAllChats();
     scrollToBottom();
@@ -1142,7 +1142,7 @@ function ChatContent() {
 
   const markMessageAsRead = useCallback(
     async (message: ChatMessage) => {
-      if (!user || !user.id || message.read_by?.includes(user.id)) return;
+      if (!isChatEnabled || !user || !user.id || message.read_by?.includes(user.id)) return;
 
       const tableName = message.group_chat_id
         ? "group_chat_messages"
@@ -1788,7 +1788,7 @@ function ChatContent() {
   };
 
   const getUserName = (userId: string | undefined) => {
-    if (!userId) return "Unknown User";
+    if (!isChatEnabled || !userId) return "Unknown User";
     const user = users.find((u) => u.id === userId);
     return user ? user.name : userId;
   };
@@ -1820,7 +1820,7 @@ function ChatContent() {
   };
 
   const fetchUnreadCounts = useCallback(async () => {
-    if (!user) return;
+    if (!isChatEnabled || !user) return;
 
     const { data: dmData, error: dmError } = await supabase
       .from("direct_messages")
@@ -1964,7 +1964,7 @@ function ChatContent() {
   }
   // const handleChatClick = useCallback(
   //   async (chatId: string) => {
-  //     if (!user || !user.id) {
+  //     if (!isChatEnabled || !user || !user.id) {
   //       console.error("User is not defined");
   //       return;
   //     }
@@ -2157,7 +2157,7 @@ function ChatContent() {
 
   useEffect(() => {
     if (!isChatEnabled) return;
-    if (!user) return;
+    if (!isChatEnabled || !user) return;
 
     const handleGroupChatChange = (payload: any) => {
       // console.log("Group chat change:", payload);
