@@ -67,7 +67,6 @@ export default async function RootLayout({
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
-        <DynamicProvider flagsmithState={flagsmithState}>
           <body className={inter.className}>
             <QueryProvider>
               <NextSSRPlugin
@@ -83,9 +82,9 @@ export default async function RootLayout({
                   <NotificationsProvider>
                     <Header />
                     <main>
-                      
+                      <DynamicProvider flagsmithState={flagsmithState}>
                         {children}
-                      
+                      </DynamicProvider>
                       {shouldInjectToolbar && <VercelToolbar />}
                       <Analytics />
                     </main>
@@ -95,7 +94,6 @@ export default async function RootLayout({
               </ThemeProvider>
             </QueryProvider>
           </body>
-          </DynamicProvider>
         </html>
       </GoogleOAuthProvider>
     </RoleProvider>

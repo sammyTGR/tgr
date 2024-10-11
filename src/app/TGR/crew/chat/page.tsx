@@ -51,6 +51,7 @@ import useRealtimeNotifications from "@/utils/useRealtimeNotifications";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useFlags } from "flagsmith/react";
+import TemporaryChatDisabled from '@/components/TemporaryChatDisabled';
 
 const title = "Ops Chat";
 
@@ -142,9 +143,15 @@ function ChatContent() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const MESSAGES_PER_PAGE = 20;
+  const CHAT_ENABLED = false;
 
   const userDataRef = useRef<{ user: User | null }>({ user: null });
   const directMessageChannelRef = useRef<RealtimeChannel | null>(null);
+
+    // If chat is disabled, return the TemporaryChatDisabled component
+    if (!CHAT_ENABLED || !flags.is_chat_enabled.enabled) {
+      return <TemporaryChatDisabled />;
+    }
 
   const { data: userData } = useQuery({
     queryKey: ["userData", user?.id],
@@ -164,6 +171,7 @@ function ChatContent() {
   });
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsChatActive(isVisible);
@@ -193,6 +201,7 @@ function ChatContent() {
   }, [resetUnreadCounts]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     // This effect runs when the component mounts or when selectedChat changes
     localStorage.setItem("currentChat", selectedChat || "");
 
@@ -211,14 +220,17 @@ function ChatContent() {
   }, [resetUnreadCounts, setTotalUnreadCount]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     localResetUnreadCounts();
   }, [localResetUnreadCounts]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     resetUnreadCounts();
   }, [resetUnreadCounts]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     // console.log("Total unread count updated:", totalUnreadCount);
   }, [totalUnreadCount]);
 
@@ -232,6 +244,7 @@ function ChatContent() {
   }, [messagesEndRef]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (messagesContainerRef.current) {
       const { scrollHeight, clientHeight } = messagesContainerRef.current;
       messagesContainerRef.current.scrollTo({
@@ -344,6 +357,7 @@ function ChatContent() {
   };
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (user && selectedChat && !selectedChat.startsWith("group_")) {
       markDirectMessagesAsRead(user.id);
     }
@@ -496,6 +510,7 @@ function ChatContent() {
 
   // Update the fetchGroupChats function
   const fetchGroupChats = useCallback(async () => {
+    if (!CHAT_ENABLED) return;
     if (!user || !user.id) {
       console.error("User or user.id is not available");
       return;
@@ -560,6 +575,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (!flags.is_chat_enabled.enabled) return;
     if (user && user.id) {
       debouncedFetchGroupChats();
@@ -674,6 +690,7 @@ function ChatContent() {
   }, [user, markMessagesAsRead]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (user && user.id) {
       initialMarkMessagesAsRead();
     }
@@ -852,6 +869,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (dmUsers.length > 0 && selectedChat) {
       const selectedUser = dmUsers.find((u) => u.id === selectedChat);
       if (selectedUser && !viewedChat) {
@@ -1062,6 +1080,7 @@ function ChatContent() {
   ]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (!user || !user.id) return;
 
     fetchAllChats();
@@ -1111,6 +1130,7 @@ function ChatContent() {
   }, [selectedChat, user, page]);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -1188,6 +1208,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     const client = supabase;
 
     const setupSubscriptions = () => {
@@ -1407,6 +1428,7 @@ function ChatContent() {
   };
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     function handleClickOutside(event: MouseEvent) {
       if (
         optionsRef.current &&
@@ -1423,6 +1445,7 @@ function ChatContent() {
   }, []);
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     setIsChatActive(true);
     window.dispatchEvent(
       new CustomEvent("chatActiveChange", { detail: { isActive: true } })
@@ -2146,6 +2169,7 @@ function ChatContent() {
   );
 
   useEffect(() => {
+    if (!CHAT_ENABLED) return;
     if (!user) return;
 
     const handleGroupChatChange = (payload: any) => {
