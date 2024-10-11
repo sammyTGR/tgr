@@ -18,6 +18,9 @@ import Provider from "./provider";
 import flagsmith from "flagsmith/isomorphic";
 import { IState } from "flagsmith/types";
 import dynamic from "next/dynamic";
+import MyStatsig from "./my-statsig";
+import { generateBootstrapValues } from "./statsig-backend";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -58,15 +61,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  console.log("Initializing Flagsmith...");
+  const bootstrapValues = await generateBootstrapValues();
+  
   const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
-  console.log("Flagsmith state:", flagsmithState);
+  
 
   return (
     <RoleProvider>
       <GoogleOAuthProvider clientId={clientId}>
         <html lang="en" suppressHydrationWarning>
+        <MyStatsig bootstrapValues={bootstrapValues}>
           <body className={inter.className}>
             <QueryProvider>
               <NextSSRPlugin
@@ -94,6 +99,7 @@ export default async function RootLayout({
               </ThemeProvider>
             </QueryProvider>
           </body>
+          </MyStatsig>
         </html>
       </GoogleOAuthProvider>
     </RoleProvider>
