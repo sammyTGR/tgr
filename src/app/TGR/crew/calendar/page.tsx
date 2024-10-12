@@ -67,6 +67,7 @@ interface EmployeeCalendar {
   name: string;
   rank: number;
   department: string; // Add this line
+  hire_date: string;
   events: CalendarEvent[];
 }
 
@@ -256,7 +257,7 @@ export default function Component() {
           day_of_week,
           status,
           employee_id,
-          employees:employee_id (name, birthday, department, rank)
+          employees:employee_id (name, birthday, department, rank, hire_date)
         `
         )
         .gte("schedule_date", formatTZ(startOfWeek, "yyyy-MM-dd", { timeZone }))
@@ -275,6 +276,7 @@ export default function Component() {
             name: item.employees.name,
             department: item.employees.department,
             rank: item.employees.rank,
+            hire_date: item.employees.hire_date,
             events: [],
           };
         }
@@ -602,6 +604,15 @@ export default function Component() {
                   ) ? (
                     <div className="text-teal-500 dark:text-teal-400 font-bold">
                       Happy Birthday! 🎉
+                    </div>
+                  ) : null}
+                  {employee.hire_date &&
+                  isSameDayOfYear(
+                    parseISO(calendarEvent.schedule_date),
+                    parseISO(employee.hire_date)
+                  ) ? (
+                    <div className="text-indigo-500 dark:text-indigo-400 font-bold">
+                      Work Anniversary!
                     </div>
                   ) : null}
                   {breakRoomDuty &&

@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Employee } from "./types";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { format, toZonedTime } from "date-fns-tz";
+import { parseISO } from "date-fns";
 
 const timeZone = "America/Los_Angeles";
 
@@ -86,8 +87,9 @@ export const columns: ColumnDef<Employee>[] = [
       const date = row.getValue("hire_date");
       if (!date || typeof date !== "string") return null;
       try {
-        const zonedDate = toZonedTime(new Date(date), timeZone);
-        return format(zonedDate, "M-dd-yy", { timeZone });
+        const parsedDate = parseISO(date);
+        const zonedDate = toZonedTime(parsedDate, timeZone);
+        return format(zonedDate, "MM-dd-yy", { timeZone });
       } catch {
         return "Invalid Date";
       }
@@ -100,8 +102,9 @@ export const columns: ColumnDef<Employee>[] = [
       const date = row.getValue("birthday");
       if (!date || typeof date !== "string") return null;
       try {
-        const zonedDate = toZonedTime(new Date(date), timeZone);
-        return format(zonedDate, "M-dd-yy", { timeZone });
+        const parsedDate = parseISO(date);
+        const zonedDate = toZonedTime(parsedDate, timeZone);
+        return format(zonedDate, "MM-dd-yy", { timeZone });
       } catch {
         return "Invalid Date";
       }
@@ -114,8 +117,9 @@ export const columns: ColumnDef<Employee>[] = [
       const date = row.getValue("promotion_date");
       if (!date || typeof date !== "string") return null;
       try {
-        const zonedDate = toZonedTime(new Date(date), timeZone);
-        return format(zonedDate, "M-dd-yy", { timeZone });
+        const parsedDate = parseISO(date);
+        const zonedDate = toZonedTime(parsedDate, timeZone);
+        return format(zonedDate, "MM-dd-yy", { timeZone });
       } catch {
         return "Invalid Date";
       }
@@ -136,8 +140,9 @@ export const columns: ColumnDef<Employee>[] = [
       const date = row.getValue("term_date");
       if (!date || typeof date !== "string") return null;
       try {
-        const zonedDate = toZonedTime(new Date(date), timeZone);
-        return format(zonedDate, "M-dd-yy", { timeZone });
+        const parsedDate = parseISO(date);
+        const zonedDate = toZonedTime(parsedDate, timeZone);
+        return format(zonedDate, "MM-dd-yy", { timeZone });
       } catch {
         return "Invalid Date";
       }

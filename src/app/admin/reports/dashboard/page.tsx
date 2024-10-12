@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  HydrationBoundary,
+} from "@tanstack/react-query";
+import { dehydrate, hydrate, QueryClient } from "@tanstack/react-query";
+import { GetServerSideProps } from "next";
+import DOMPurify from "isomorphic-dompurify";
 import { Suspense, useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 import {
@@ -111,46 +120,608 @@ interface Suggestion {
 
 const timeZone = "America/Los_Angeles";
 
-export default function AdminDashboard() {
-  const { role, loading: roleLoading } = useRole();
-  const [domains, setDomains] = useState<Domain[]>([]);
-  const [newDomain, setNewDomain] = useState("");
-  const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
-  const [rangeWalk, setRangeWalk] = useState<RangeWalk | null>(null);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [gunsmiths, setGunsmiths] = useState<Gunsmith | null>(null);
-  const [checklist, setChecklist] = useState<Checklist | null>(null);
-  const [salesData, setSalesData] = useState(null);
-  const [dailyDeposit, setDailyDeposit] = useState<DailyDeposit | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileInputKey, setFileInputKey] = useState<number>(0);
-  const [replyText, setReplyText] = useState<string>("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [totalGross, setTotalGross] = useState<number>(0);
-  const [totalNet, setTotalNet] = useState<number>(0);
-  const [totalNetMinusExclusions, setTotalNetMinusExclusions] =
-    useState<number>(0);
-  const [selectedRange, setSelectedRange] = useState(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0); // Set to start of the day
+function AdminDashboardContent() {
+  const queryClient = useQueryClient();
+  const { role } = useRole();
 
-    const endOfYesterday = new Date(yesterday);
-    endOfYesterday.setHours(23, 59, 59, 999); // Set to end of the day
+  const { data: domains } = useQuery({
+    queryKey: ["domains"],
+    queryFn: fetchDomains,
+  });
+
+  const { data: newDomain = "", refetch: refetchNewDomain } = useQuery({
+    queryKey: ["newDomain"],
+    queryFn: () => "",
+    staleTime: Infinity,
+  });
+
+  const { data: editingDomain, refetch: refetchEditingDomain } = useQuery({
+    queryKey: ["editingDomain"],
+    queryFn: () => null as Domain | null,
+    staleTime: Infinity,
+  });
+
+  const setNewDomainMutation = useMutation({
+    mutationFn: (value: string) => Promise.resolve(value),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["newDomain"], newValue);
+    },
+  });
+
+  const setEditingDomainMutation = useMutation({
+    mutationFn: (value: Domain | null) => Promise.resolve(value),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["editingDomain"], newValue);
+    },
+  });
+
+  const { data: suggestions } = useQuery({
+    queryKey: ["suggestions"],
+    queryFn: fetchSuggestions,
+  });
+  const { data: certificates } = useQuery({
+    queryKey: ["certificates"],
+    queryFn: fetchCertificates,
+  });
+  const { data: rangeWalk } = useQuery({
+    queryKey: ["rangeWalk"],
+    queryFn: fetchLatestRangeWalkReport,
+  });
+  const { data: checklist } = useQuery({
+    queryKey: ["checklist"],
+    queryFn: fetchLatestChecklistSubmission,
+  });
+  const { data: gunsmiths } = useQuery({
+    queryKey: ["gunsmiths"],
+    queryFn: fetchLatestGunsmithMaintenance,
+  });
+  const { data: dailyDeposit } = useQuery({
+    queryKey: ["dailyDeposit"],
+    queryFn: fetchLatestDailyDeposit,
+  });
+  const { data: dailyChecklistStatus } = useQuery({
+    queryKey: ["dailyChecklistStatus"],
+    queryFn: fetchDailyChecklistStatus,
+  });
+
+  const { data: replyText, refetch: refetchReplyText } = useQuery({
+    queryKey: ["replyText"],
+    queryFn: () => "",
+    staleTime: Infinity,
+  });
+
+  const updateReplyTextMutation = useMutation({
+    mutationFn: (newReplyText: string) => {
+      return Promise.resolve(newReplyText);
+    },
+    onSuccess: (newReplyText) => {
+      queryClient.setQueryData(["replyText"], newReplyText);
+    },
+  });
+
+  const handleReplyTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    updateReplyTextMutation.mutate(e.target.value);
+  };
+
+  const { data: selectedRange, refetch: refetchSelectedRange } = useQuery({
+    queryKey: ["selectedRange"],
+    queryFn: () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+      const endOfYesterday = new Date(yesterday);
+      endOfYesterday.setHours(23, 59, 59, 999);
+      return { start: yesterday, end: endOfYesterday };
+    },
+    staleTime: Infinity, // This data doesn't change unless we explicitly change it
+  });
+
+  // Convert salesData to a query
+  const { data: salesData, refetch: refetchSalesData } = useQuery({
+    queryKey: ["salesData", selectedRange],
+    queryFn: () =>
+      selectedRange
+        ? fetchLatestSalesData(selectedRange.start, selectedRange.end)
+        : null,
+    enabled: !!selectedRange, // Only run this query when selectedRange is available
+  });
+
+  const totalGross = salesData?.totalGross ?? 0;
+  const totalNet = salesData?.totalNet ?? 0;
+  const totalNetMinusExclusions = salesData?.totalNetMinusExclusions ?? 0;
+
+  // Keep your existing fileData query
+  const { data: fileData, refetch: refetchFileData } = useQuery({
+    queryKey: ["fileData"],
+    queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
+    staleTime: Infinity,
+  });
+
+  // Mutation to update fileData
+  const updateFileDataMutation = useMutation({
+    mutationFn: (newFileData: {
+      file: File | null;
+      fileName: string | null;
+      fileInputKey: number;
+    }) => {
+      return Promise.resolve(newFileData);
+    },
+    onSuccess: (newFileData) => {
+      queryClient.setQueryData(["fileData"], newFileData);
+    },
+  });
+
+  // Update the handlers to use these new mutations
+  const handleRangeChange = (date: Date | undefined) => {
+    if (date) {
+      const newStart = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+      const newEnd = new Date(newStart);
+      newEnd.setHours(23, 59, 59, 999);
+      queryClient.setQueryData(["selectedRange"], {
+        start: newStart,
+        end: newEnd,
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      updateFileDataMutation.mutate({
+        file: e.target.files[0],
+        fileName: e.target.files[0].name,
+        fileInputKey: Date.now(),
+      });
+    }
+  };
+
+  const addDomainMutation = useMutation({
+    mutationFn: addDomain,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["domains"] }),
+  });
+
+  const updateDomainMutation = useMutation({
+    mutationFn: updateDomain,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["domains"] }),
+  });
+
+  const deleteDomainMutation = useMutation({
+    mutationFn: deleteDomain,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["domains"] }),
+  });
+
+  const handleReplyMutation = useMutation({
+    mutationFn: handleReply,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["suggestions"] }),
+  });
+
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const upload = (progress: number) => {
+        queryClient.setQueryData(["uploadProgress"], progress);
+      };
+      return handleFileUpload(file, upload);
+    },
+    onMutate: () => {
+      queryClient.setQueryData(["uploadProgress"], 0);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["uploadProgress"], 100);
+      toast.success("File uploaded and processed successfully");
+      updateFileDataMutation.mutate({
+        file: null,
+        fileName: null,
+        fileInputKey: Date.now(),
+      });
+    },
+    onError: (error) => {
+      console.error("Error during upload and processing:", error);
+      toast.error("Failed to upload and process file");
+    },
+  });
+
+  const { data: uploadProgress = 0 } = useQuery({
+    queryKey: ["uploadProgress"],
+    queryFn: () => queryClient.getQueryData(["uploadProgress"]) ?? 0,
+    enabled: uploadFileMutation.isPending,
+  });
+
+  const handleSubmit = () => {
+    if (fileData?.file) {
+      uploadFileMutation.mutate(fileData.file);
+    } else {
+      toast.error("No file selected.");
+    }
+  };
+
+  async function fetchDomains() {
+    const { data, error } = await supabase
+      .from("employee_domains")
+      .select("*")
+      .order("domain");
+
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchSuggestions() {
+    const { data, error } = await supabase
+      .from("employee_suggestions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchCertificates() {
+    const { data, error } = await supabase
+      .from("certifications")
+      .select("*")
+      .lt(
+        "expiration",
+        new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+      )
+      .order("expiration", { ascending: true });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchLatestRangeWalkReport() {
+    const { data, error } = await supabase
+      .from("range_walk_reports")
+      .select("*")
+      .order("date_of_walk", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchLatestChecklistSubmission() {
+    const { data, error } = await supabase
+      .from("checklist_submissions")
+      .select("*")
+      .order("submission_date", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchLatestGunsmithMaintenance() {
+    const { data, error } = await supabase
+      .from("firearms_maintenance")
+      .select("id, firearm_name, last_maintenance_date")
+      .order("last_maintenance_date", { ascending: false })
+      .limit(5)
+      .not("last_maintenance_date", "is", null);
+
+    if (error) throw error;
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  async function fetchLatestDailyDeposit() {
+    const { data, error } = await supabase
+      .from("daily_deposits")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchDailyChecklistStatus() {
+    const { data, error } = await supabase
+      .from("firearms_maintenance")
+      .select("id, last_maintenance_date")
+      .eq("rental_notes", "With Gunsmith");
+
+    if (error) throw error;
+
+    const firearmsCount = data.length;
+    const lastSubmission = data.reduce((latest, current) => {
+      return latest && latest > current.last_maintenance_date
+        ? latest
+        : current.last_maintenance_date;
+    }, null);
+
+    const submitted = lastSubmission
+      ? new Date(lastSubmission) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      : false;
 
     return {
-      start: yesterday,
-      end: endOfYesterday,
+      submitted,
+      lastSubmissionDate: lastSubmission,
+      firearmsCount,
     };
-  });
-  const [dailyChecklistStatus, setDailyChecklistStatus] = useState({
-    submitted: false,
-    lastSubmissionDate: null,
-    firearmsCount: 0,
-  });
+  }
+
+  async function fetchLatestSalesData(startDate: Date, endDate: Date) {
+    const utcStartDate = new Date(startDate.toUTCString().slice(0, -4));
+    const utcEndDate = new Date(endDate.toUTCString().slice(0, -4));
+
+    const response = await fetch("/api/fetch-sales-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        startDate: utcStartDate.toISOString(),
+        endDate: utcEndDate.toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error fetching sales data");
+    }
+
+    const responseData = await response.json();
+    let salesData;
+
+    if (Array.isArray(responseData)) {
+      salesData = responseData;
+    } else if (responseData && Array.isArray(responseData.data)) {
+      salesData = responseData.data;
+    } else {
+      throw new Error("Unexpected data format");
+    }
+
+    const excludeCategoriesFromChart = [
+      "CA Tax Gun Transfer",
+      "CA Tax Adjust",
+      "CA Excise Tax",
+      "CA Excise Tax Adjustment",
+    ];
+    const excludeCategoriesFromTotalNet = [
+      "Pistol",
+      "Rifle",
+      "Revolver",
+      "Shotgun",
+      "Receiver",
+      ...excludeCategoriesFromChart,
+    ];
+
+    let totalGross = 0;
+    let totalNetMinusExclusions = 0;
+    let totalNet = 0;
+
+    salesData.forEach((item: any) => {
+      const category = item.category_label;
+      const grossValue = item.total_gross ?? 0;
+      const netValue = item.total_net ?? 0;
+
+      totalGross += grossValue;
+      totalNet += netValue;
+
+      if (!excludeCategoriesFromTotalNet.includes(category)) {
+        totalNetMinusExclusions += netValue;
+      }
+    });
+
+    return { totalGross, totalNet, totalNetMinusExclusions, salesData };
+  }
+
+  async function addDomain(newDomain: string) {
+    const { error } = await supabase
+      .from("employee_domains")
+      .insert({ domain: newDomain.toLowerCase() });
+
+    if (error) throw error;
+  }
+
+  async function updateDomain(domain: Domain) {
+    const { error } = await supabase
+      .from("employee_domains")
+      .update({ domain: domain.domain.toLowerCase() })
+      .eq("id", domain.id);
+
+    if (error) throw error;
+  }
+
+  async function deleteDomain(id: number) {
+    const { error } = await supabase
+      .from("employee_domains")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+  }
+
+  async function handleReply({
+    suggestion,
+    replyText,
+  }: {
+    suggestion: Suggestion;
+    replyText: string;
+  }) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) throw userError;
+
+    const fullName = user?.user_metadata?.name || "";
+    const firstName = fullName.split(" ")[0];
+    const replierName = firstName || "Admin";
+
+    const { error } = await supabase
+      .from("employee_suggestions")
+      .update({
+        is_read: true,
+        replied_by: replierName,
+        replied_at: new Date().toISOString(),
+        reply: replyText,
+      })
+      .eq("id", suggestion.id);
+
+    if (error) throw error;
+
+    await sendEmail(
+      suggestion.email,
+      "Reply to Your Suggestion",
+      "SuggestionReply",
+      {
+        employeeName: suggestion.created_by,
+        originalSuggestion: suggestion.suggestion,
+        replyText: replyText,
+        repliedBy: replierName,
+      }
+    );
+  }
+
+  async function handleFileUpload(
+    file: File,
+    onProgress: (progress: number) => void
+  ) {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          const keys = jsonData[0] as string[];
+          const formattedData = jsonData.slice(1).map((row: any) => {
+            const rowData: any = {};
+            keys.forEach((key, index) => {
+              rowData[key] = row[index];
+            });
+
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+
+            return {
+              ...rowData,
+              Date: convertDateFormat(rowData.Date),
+              category_label: categoryLabel,
+              subcategory_label: subcategoryLabel,
+            };
+          });
+
+          const batchSize = 100;
+          let processedCount = 0;
+          for (let i = 0; i < formattedData.length; i += batchSize) {
+            const batch = formattedData.slice(i, i + batchSize);
+            const { data: insertedData, error } = await supabase
+              .from("sales_data")
+              .upsert(batch);
+
+            if (error) {
+              console.error("Error upserting data batch:", error);
+            } else {
+              processedCount += batch.length;
+              onProgress(
+                Math.round((processedCount / formattedData.length) * 100)
+              );
+            }
+          }
+
+          resolve();
+        } catch (error) {
+          console.error("Error processing data:", error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        reject(error);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function getServerSideProps() {
+    const queryClient = new QueryClient();
+
+    await queryClient.prefetchQuery({
+      queryKey: ["domains"],
+      queryFn: fetchDomains,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["suggestions"],
+      queryFn: fetchSuggestions,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["certificates"],
+      queryFn: fetchCertificates,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["rangeWalk"],
+      queryFn: fetchLatestRangeWalkReport,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["checklist"],
+      queryFn: fetchLatestChecklistSubmission,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["gunsmiths"],
+      queryFn: fetchLatestGunsmithMaintenance,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["dailyDeposit"],
+      queryFn: fetchLatestDailyDeposit,
+    });
+    await queryClient.prefetchQuery({
+      queryKey: ["dailyChecklistStatus"],
+      queryFn: fetchDailyChecklistStatus,
+    });
+
+    return {
+      props: {
+        dehydratedState: dehydrate(queryClient),
+      },
+    };
+  }
+
+  function convertDateFormat(date: string) {
+    if (!date) return "";
+    const [month, day, year] = date.split("/");
+    if (!month || !day || !year) return "";
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+
+  async function sendEmail(
+    email: string,
+    subject: string,
+    templateName: string,
+    templateData: any
+  ) {
+    try {
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, subject, templateName, templateData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Email sent successfully:", result);
+    } catch (error: any) {
+      console.error("Failed to send email:", error.message);
+      throw error;
+    }
+  }
 
   const categoryMap = new Map<number, string>([
     [3, "Firearm Accessories"],
@@ -193,606 +764,6 @@ export default function AdminDashboard() {
     ["170-8", "Basic Ammunition Eligibility Check"],
   ]);
 
-  useEffect(() => {
-    const channel = supabase.channel("custom-all-channel");
-
-    channel
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "firearms_maintenance" },
-        (payload) => {
-          // console.log("Firearms maintenance change received!", payload);
-          fetchLatestGunsmithMaintenance();
-          fetchDailyChecklistStatus();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "sales_data" },
-        (payload) => {
-          // console.log("Sales data change received!", payload);
-          fetchLatestSalesData(selectedRange.start, selectedRange.end);
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "daily_deposits" },
-        (payload) => {
-          fetchLatestDailyDeposit();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "checklist_submissions" },
-        (payload) => {
-          // console.log("Checklist submission change received!", payload);
-          fetchLatestChecklistSubmission();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "range_walk_reports" },
-        (payload) => {
-          // console.log("Range walk report change received!", payload);
-          fetchLatestRangeWalkReport();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "certifications" },
-        (payload) => {
-          // console.log("Certifications change received!", payload);
-          fetchCertificates();
-        }
-      )
-      .subscribe();
-
-    // Initial data fetch
-    const fetchInitialData = async () => {
-      fetchLatestDailyDeposit();
-      fetchLatestGunsmithMaintenance();
-      fetchLatestChecklistSubmission();
-      fetchLatestRangeWalkReport();
-      fetchCertificates();
-      fetchDailyChecklistStatus();
-      const result = await fetchLatestSalesData(
-        selectedRange.start,
-        selectedRange.end
-      );
-      if (result) {
-        const { totalGross, totalNet, totalNetMinusExclusions, salesData } =
-          result;
-        setTotalGross(totalGross);
-        setTotalNet(totalNet);
-        setTotalNetMinusExclusions(totalNetMinusExclusions);
-        setSalesData(salesData);
-
-        // console.log("Initial data fetch:", {
-        //   totalGross,
-        //   totalNet,
-        //   totalNetMinusExclusions,
-        // });
-      }
-    };
-
-    fetchInitialData();
-
-    // Cleanup function
-    return () => {
-      channel.unsubscribe();
-    };
-  }, []);
-
-  const fetchDailyChecklistStatus = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("firearms_maintenance")
-        .select("id, last_maintenance_date")
-        .eq("rental_notes", "With Gunsmith");
-
-      if (error) throw error;
-
-      const firearmsCount = data.length;
-      const lastSubmission = data.reduce((latest, current) => {
-        return latest && latest > current.last_maintenance_date
-          ? latest
-          : current.last_maintenance_date;
-      }, null);
-
-      const submitted = lastSubmission
-        ? new Date(lastSubmission) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-        : false;
-
-      setDailyChecklistStatus({
-        submitted,
-        lastSubmissionDate: lastSubmission,
-        firearmsCount,
-      });
-    } catch (error) {
-      //console.("Error fetching daily checklist status:", error);
-    }
-  };
-
-  async function fetchLatestDailyDeposit() {
-    const { data, error } = await supabase
-      .from("daily_deposits")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) {
-      //console.("Error fetching latest daily deposit:", error);
-    } else {
-      setDailyDeposit(data);
-    }
-  }
-
-  const handleRangeChange = async (date: Date | undefined) => {
-    if (date) {
-      const newStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      );
-      const newEnd = new Date(newStart);
-      newEnd.setHours(23, 59, 59, 999);
-
-      setSelectedRange({ start: newStart, end: newEnd });
-
-      const result = await fetchLatestSalesData(newStart, newEnd);
-      if (result) {
-        const { totalGross, totalNet, totalNetMinusExclusions, salesData } =
-          result;
-        setTotalGross(totalGross);
-        setTotalNet(totalNet);
-        setTotalNetMinusExclusions(totalNetMinusExclusions);
-        setSalesData(salesData);
-
-        // console.log("Updated state:", {
-        //   totalGross,
-        //   totalNet,
-        //   totalNetMinusExclusions,
-        // });
-      }
-    }
-  };
-
-  async function fetchLatestSalesData(startDate: Date, endDate: Date) {
-    const utcStartDate = new Date(startDate.toUTCString().slice(0, -4));
-    const utcEndDate = new Date(endDate.toUTCString().slice(0, -4));
-
-    const response = await fetch("/api/fetch-sales-data", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        startDate: utcStartDate.toISOString(),
-        endDate: utcEndDate.toISOString(),
-      }),
-    });
-
-    if (response.ok) {
-      const responseData = await response.json();
-      let salesData;
-
-      if (Array.isArray(responseData)) {
-        salesData = responseData;
-      } else if (responseData && Array.isArray(responseData.data)) {
-        salesData = responseData.data;
-      } else {
-        //console.("Unexpected data format:", responseData);
-        return null;
-      }
-
-      const excludeCategoriesFromChart = [
-        "CA Tax Gun Transfer",
-        "CA Tax Adjust",
-        "CA Excise Tax",
-        "CA Excise Tax Adjustment",
-      ];
-      const excludeCategoriesFromTotalNet = [
-        "Pistol",
-        "Rifle",
-        "Revolver",
-        "Shotgun",
-        "Receiver",
-        ...excludeCategoriesFromChart,
-      ];
-
-      let totalGross = 0;
-      let totalNetMinusExclusions = 0;
-      let totalNet = 0;
-
-      salesData.forEach((item: any) => {
-        const category = item.category_label;
-        const grossValue = item.total_gross ?? 0;
-        const netValue = item.total_net ?? 0;
-
-        totalGross += grossValue;
-        totalNet += netValue;
-
-        if (!excludeCategoriesFromTotalNet.includes(category)) {
-          totalNetMinusExclusions += netValue;
-        }
-      });
-
-      // console.log("Calculated totals:", {
-      //   totalGross,
-      //   totalNet,
-      //   totalNetMinusExclusions,
-      // });
-
-      return { totalGross, totalNet, totalNetMinusExclusions, salesData };
-    } else {
-      //console.("Error fetching sales data:", response.statusText);
-      return null;
-    }
-  }
-
-  async function fetchLatestGunsmithMaintenance() {
-    // console.log("Fetching latest gunsmith maintenance...");
-    const { data, error } = await supabase
-      .from("firearms_maintenance")
-      .select("id, firearm_name, last_maintenance_date")
-      .order("last_maintenance_date", { ascending: false })
-      .limit(5) // Fetch the top 5 to see if there are any recent entries
-      .not("last_maintenance_date", "is", null); // Ensure we only get entries with a maintenance date
-
-    if (error) {
-      //console.("Error fetching latest gunsmith maintenance:", error);
-    } else {
-      // console.log("Fetched gunsmith maintenance data:", data);
-      if (data && data.length > 0) {
-        // Set the first (most recent) entry
-        setGunsmiths(data[0]);
-        // console.log("Most recent maintenance:", data[0]);
-      } else {
-        // console.log("No gunsmith maintenance data found");
-        setGunsmiths(null);
-      }
-    }
-  }
-
-  async function fetchLatestChecklistSubmission() {
-    const { data, error } = await supabase
-      .from("checklist_submissions")
-      .select("*")
-      .order("submission_date", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) {
-      //console.("Error fetching latest checklist submission:", error);
-    } else {
-      setChecklist(data);
-    }
-  }
-
-  async function fetchLatestRangeWalkReport() {
-    const { data, error } = await supabase
-      .from("range_walk_reports")
-      .select("*")
-      .order("date_of_walk", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) {
-      //console.("Error fetching latest range walk report:", error);
-    } else {
-      setRangeWalk(data);
-    }
-  }
-
-  async function fetchCertificates() {
-    const { data, error } = await supabase
-      .from("certifications")
-      .select("*")
-      .lt(
-        "expiration",
-        new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
-      ) // Expiring in the next 60 days
-      .order("expiration", { ascending: true });
-
-    if (error) {
-      //console.("Error fetching certificates:", error);
-    } else {
-      setCertificates(data);
-    }
-  }
-
-  function formatDate(dateString: string) {
-    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-  }
-
-  useEffect(() => {
-    fetchDomains();
-  }, []);
-
-  async function fetchDomains() {
-    const { data, error } = await supabase
-      .from("employee_domains")
-      .select("*")
-      .order("domain");
-
-    if (error) {
-      //console.("Error fetching domains:", error.message);
-    } else {
-      setDomains(data as Domain[]);
-    }
-  }
-
-  async function addDomain() {
-    const { error } = await supabase
-      .from("employee_domains")
-      .insert({ domain: newDomain.toLowerCase() });
-
-    if (error) {
-      //console.("Error adding domain:", error.message);
-    } else {
-      setNewDomain("");
-      fetchDomains();
-    }
-  }
-
-  async function updateDomain() {
-    if (!editingDomain) return;
-
-    const { error } = await supabase
-      .from("employee_domains")
-      .update({ domain: editingDomain.domain.toLowerCase() })
-      .eq("id", editingDomain.id);
-
-    if (error) {
-      //console.("Error updating domain:", error.message);
-    } else {
-      setEditingDomain(null);
-      fetchDomains();
-    }
-  }
-
-  async function deleteDomain(id: number) {
-    const { error } = await supabase
-      .from("employee_domains")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      //console.("Error deleting domain:", error.message);
-    } else {
-      fetchDomains();
-    }
-  }
-
-  const convertDateFormat = (date: string) => {
-    if (!date) return "";
-    const [month, day, year] = date.split("/");
-    if (!month || !day || !year) return "";
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  };
-
-  const handleFileUpload = async (file: File) => {
-    return new Promise<void>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-          const keys = jsonData[0] as string[];
-          const formattedData = jsonData.slice(1).map((row: any) => {
-            const rowData: any = {};
-            keys.forEach((key, index) => {
-              rowData[key] = row[index];
-            });
-
-            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
-            const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
-
-            return {
-              ...rowData,
-              Date: convertDateFormat(rowData.Date),
-              category_label: categoryLabel,
-              subcategory_label: subcategoryLabel,
-            };
-          });
-
-          // Process in smaller batches
-          const batchSize = 100;
-          let processedCount = 0;
-          for (let i = 0; i < formattedData.length; i += batchSize) {
-            const batch = formattedData.slice(i, i + batchSize);
-            const { data: insertedData, error } = await supabase
-              .from("sales_data")
-              .upsert(batch);
-
-            if (error) {
-              //console.("Error upserting data batch:", error);
-              // Continue with the next batch instead of rejecting
-            } else {
-              processedCount += batch.length;
-            }
-
-            // Update progress
-            setProgress((processedCount / formattedData.length) * 100);
-          }
-
-          // console.log(
-          //   `Successfully processed ${processedCount} records out of ${formattedData.length} total records`
-          // );
-          resolve();
-        } catch (error) {
-          //console.("Error processing data:", error);
-          reject(error);
-        }
-      };
-
-      reader.onerror = (error) => {
-        //console.("Error reading file:", error);
-        reject(error);
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (file) {
-      setLoading(true);
-      setProgress(0);
-
-      try {
-        await handleFileUpload(file);
-
-        // Check the current record count
-        const { count, error } = await supabase
-          .from("sales_data")
-          .select("*", { count: "exact", head: true });
-
-        if (error) {
-          //console.("Error checking record count:", error);
-          toast.error("Failed to verify data upload.");
-        } else {
-          toast.success(`Successfully uploaded ${count} records.`);
-        }
-
-        setFile(null);
-        setFileName(null);
-        setFileInputKey((prevKey) => prevKey + 1);
-      } catch (error) {
-        //console.("Error during upload and processing:", error);
-        toast.error("Failed to upload and process file.");
-      } finally {
-        setLoading(false);
-        setProgress(100);
-      }
-    } else {
-      toast.error("No file selected.");
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setFileName(e.target.files[0].name);
-    }
-  };
-
-  useEffect(() => {
-    fetchSuggestions();
-  }, []);
-
-  async function fetchSuggestions() {
-    const { data, error } = await supabase
-      .from("employee_suggestions")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      //console.("Error fetching suggestions:", error);
-    } else {
-      setSuggestions(data || []);
-    }
-  }
-
-  // Add this function at the top of your component or in a separate utility file
-  const sendEmail = async (
-    email: string,
-    subject: string,
-    templateName: string,
-    templateData: any
-  ) => {
-    try {
-      const response = await fetch("/api/send_email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, subject, templateName, templateData }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      // console.log("Email sent successfully:", result);
-    } catch (error: any) {
-      //console.("Failed to send email:", error.message);
-      throw error; // Re-throw the error so we can handle it in the calling function
-    }
-  };
-
-  // Now update the handleReply function
-  async function handleReply(suggestion: Suggestion) {
-    if (!replyText.trim()) {
-      toast.error("Please enter a reply");
-      return;
-    }
-
-    // Get the current user's information from Supabase
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError) {
-      //console.("Error getting current user:", userError);
-      toast.error("Failed to get current user information");
-      return;
-    }
-
-    console.log("Current user data:", user); // Log the entire user object
-
-    const fullName = user?.user_metadata?.name || "";
-    const firstName = fullName.split(" ")[0]; // This will get the first word of the name
-    const replierName = firstName || "Admin";
-    // console.log("Replier name:", replierName); // Log the replier name
-
-    const { error } = await supabase
-      .from("employee_suggestions")
-      .update({
-        is_read: true,
-        replied_by: replierName, // This is correct
-        replied_at: new Date().toISOString(),
-        reply: replyText,
-      })
-      .eq("id", suggestion.id);
-
-    if (error) {
-      //console.("Error replying to suggestion:", error);
-      toast.error("Failed to reply to suggestion");
-    } else {
-      // Send email
-      try {
-        await sendEmail(
-          suggestion.email,
-          "Reply to Your Suggestion",
-          "SuggestionReply",
-          {
-            employeeName: suggestion.created_by,
-            originalSuggestion: suggestion.suggestion,
-            replyText: replyText,
-            repliedBy: "Admin",
-          }
-        );
-
-        toast.success("Replied to suggestion and sent email");
-      } catch (error) {
-        //console.("Error sending email:", error);
-        toast.error("Failed to send email, but reply was saved");
-      }
-
-      setReplyText("");
-      await fetchSuggestions(); // Refresh the suggestions list
-    }
-  }
-
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
       <div className="section w-full overflow-hidden">
@@ -813,8 +784,6 @@ export default function AdminDashboard() {
 
           {/*All Report cards*/}
           <div className="w-full overflow-hidden">
-            {/* <Card className="flex flex-col max-h-[calc(100vh-250px)] max-w-full mx-auto my-12 overflow-hidden">
-            <CardContent> */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
               <ReportCard
                 title="Gunsmithing Weekly Maintenance"
@@ -825,9 +794,9 @@ export default function AdminDashboard() {
               />
               <ReportCard
                 title="Firearms With Gunsmith"
-                date={dailyChecklistStatus.lastSubmissionDate}
+                date={dailyChecklistStatus?.lastSubmissionDate || null}
                 icon={<ClipboardIcon className="h-6 w-6" />}
-                extraInfo={`${dailyChecklistStatus.firearmsCount} firearms with gunsmith`}
+                extraInfo={`${dailyChecklistStatus?.firearmsCount} firearms with gunsmith`}
                 type="dailyChecklist"
               />
               <ReportCard
@@ -836,14 +805,12 @@ export default function AdminDashboard() {
                 icon={<ClipboardIcon className="h-6 w-6" />}
                 extraInfo={checklist?.submitted_by_name}
               />
-
               <ReportCard
                 title="Daily Range Walk Reports"
                 date={rangeWalk?.date_of_walk || null}
                 icon={<MagnifyingGlassIcon className="h-6 w-6" />}
                 extraInfo={rangeWalk?.user_name}
               />
-
               <ReportCard
                 title="Daily Deposits"
                 date={dailyDeposit?.created_at || null}
@@ -860,62 +827,20 @@ export default function AdminDashboard() {
               <ReportCard
                 title="Certificates Needing Renewal"
                 date={
-                  certificates.length > 0
+                  certificates && certificates.length > 0
                     ? certificates[certificates.length - 1].expiration
                     : null
                 }
                 icon={<DrawingPinIcon className="h-6 w-6" />}
-                extraInfo={`${certificates.length} certificate${
-                  certificates.length !== 1 ? "s" : ""
-                } need${certificates.length === 1 ? "s" : ""} renewal`}
+                extraInfo={`${certificates?.length} certificate${
+                  certificates && certificates.length !== 1 ? "s" : ""
+                } need${
+                  certificates && certificates.length === 1 ? "s" : ""
+                } renewal`}
                 type="certificate"
                 details={certificates}
               />
-
-              {/* Certificate Renewals List*/}
-              {/* <Card className="flex flex-col overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DrawingPinIcon className="h-6 w-6" />
-                    Certificate Renewals List
-                  </CardTitle>
-                </CardHeader>
-                <div className="flex-grow overflow-hidden">
-
-                  <CardContent className="flex-grow ">
-                    {certificates.length > 0 ? (
-                      <ul className="space-y-1">
-                        {certificates.map((cert) => (
-                          <li
-                            key={cert.id}
-                            className="flex items-center justify-between"
-                          >
-                            <span className="flex-shrink-0 w-1/4 truncate">
-                              {cert.name}
-                            </span>
-                            <span className="flex-shrink-0 w-1/4 truncate">
-                              {cert.certificate}
-                            </span>
-                            <span className="flex-shrink-0 w-1/4 truncate">
-                              {cert.action_status}
-                            </span>
-                            <Badge variant="destructive" className="w-1/8">
-                              {new Date(cert.expiration).toLocaleDateString()}
-                            </Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-center">
-                        No certificates need renewal at this time.
-                      </p>
-                    )}
-                  </CardContent>
-                </div>
-              </Card> */}
             </div>
-            {/* </CardContent>
-          </Card> */}
           </div>
 
           {/* Suggestions Card*/}
@@ -929,7 +854,7 @@ export default function AdminDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {suggestions.length === 0 ? (
+                  {suggestions && suggestions.length === 0 ? (
                     <p>No suggestions submitted yet.</p>
                   ) : (
                     <div className="overflow-x-auto">
@@ -944,97 +869,99 @@ export default function AdminDashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {suggestions.map((suggestion) => (
-                            <TableRow key={suggestion.id}>
-                              <TableCell>{suggestion.created_by}</TableCell>
-                              <TableCell>{suggestion.suggestion}</TableCell>
-                              <TableCell>
-                                {new Date(
-                                  suggestion.created_at
-                                ).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                {suggestion.is_read ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-100 text-green-800"
-                                  >
-                                    Replied
-                                  </Badge>
-                                ) : (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-yellow-100 text-yellow-800"
-                                  >
-                                    Pending
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex space-x-2">
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        disabled={suggestion.is_read}
-                                      >
-                                        {suggestion.is_read
-                                          ? "Replied"
-                                          : "Reply"}
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80">
-                                      <div className="space-y-2">
-                                        <h4 className="font-medium">
-                                          Reply to Suggestion
-                                        </h4>
-                                        <Textarea
-                                          placeholder="Type your reply here..."
-                                          value={replyText}
-                                          onChange={(e) =>
-                                            setReplyText(e.target.value)
-                                          }
-                                        />
-                                        <Button
-                                          onClick={() =>
-                                            handleReply(suggestion)
-                                          }
-                                        >
-                                          Send Reply
-                                        </Button>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                  {suggestion.is_read && (
+                          {suggestions &&
+                            suggestions.map((suggestion) => (
+                              <TableRow key={suggestion.id}>
+                                <TableCell>{suggestion.created_by}</TableCell>
+                                <TableCell>{suggestion.suggestion}</TableCell>
+                                <TableCell>
+                                  {new Date(
+                                    suggestion.created_at
+                                  ).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  {suggestion.is_read ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-100 text-green-800"
+                                    >
+                                      Replied
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-yellow-100 text-yellow-800"
+                                    >
+                                      Pending
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
                                     <Popover>
                                       <PopoverTrigger asChild>
-                                        <Button variant="outline">View</Button>
+                                        <Button
+                                          variant="outline"
+                                          disabled={suggestion.is_read}
+                                        >
+                                          {suggestion.is_read
+                                            ? "Replied"
+                                            : "Reply"}
+                                        </Button>
                                       </PopoverTrigger>
                                       <PopoverContent className="w-80">
                                         <div className="space-y-2">
                                           <h4 className="font-medium">
-                                            Reply Sent
+                                            Reply to Suggestion
                                           </h4>
-                                          <p className="text-sm">
-                                            {suggestion.reply}
-                                          </p>
-                                          <p className="text-xs text-gray-500">
-                                            Replied by: {suggestion.replied_by}
-                                          </p>
-                                          <p className="text-xs text-gray-500">
-                                            Replied at:{" "}
-                                            {new Date(
-                                              suggestion.replied_at || ""
-                                            ).toLocaleString()}
-                                          </p>
+                                          <Textarea
+                                            placeholder="Type your reply here..."
+                                            value={replyText}
+                                            onChange={handleReplyTextChange}
+                                          />
+                                          <Button
+                                            onClick={() =>
+                                              handleReply(suggestion)
+                                            }
+                                          >
+                                            Send Reply
+                                          </Button>
                                         </div>
                                       </PopoverContent>
                                     </Popover>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                    {suggestion.is_read && (
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button variant="outline">
+                                            View
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                          <div className="space-y-2">
+                                            <h4 className="font-medium">
+                                              Reply Sent
+                                            </h4>
+                                            <p className="text-sm">
+                                              {suggestion.reply}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              Replied by:{" "}
+                                              {suggestion.replied_by}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              Replied at:{" "}
+                                              {new Date(
+                                                suggestion.replied_at || ""
+                                              ).toLocaleString()}
+                                            </p>
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>
@@ -1066,108 +993,140 @@ export default function AdminDashboard() {
                             onChange={handleFileChange}
                             className="hidden"
                           />
-                          <span>{fileName || "Select File"}</span>
+                          <span>{fileData?.fileName || "Select File"}</span>
                         </label>
                         <Button
                           variant="outline"
-                          onClick={handleSubmit}
+                          onClick={() =>
+                            fileData?.file &&
+                            uploadFileMutation.mutate(fileData.file)
+                          }
                           className="w-full"
-                          disabled={loading || !file}
+                          disabled={
+                            uploadFileMutation.isPending || !fileData?.file
+                          }
                         >
-                          {loading ? "Uploading..." : "Upload & Process"}
+                          {uploadFileMutation.isPending
+                            ? "Uploading..."
+                            : "Upload & Process"}
                         </Button>
                       </div>
                     </div>
 
-                    {loading && <Progress value={progress} className="mt-4" />}
+                    {uploadFileMutation.isPending && (
+                      <Progress
+                        value={
+                          typeof uploadProgress === "number"
+                            ? uploadProgress
+                            : 0
+                        }
+                        className="mt-4"
+                      />
+                    )}
                   </CardContent>
                 </Card>
               )}
 
-              {(role === "super admin" || role === "dev") && !loading && (
-                <Card className="flex flex-col overflow-hidden">
-                  <CardHeader>
-                    <CardTitle>Manage Approved Domains</CardTitle>
-                    <CardDescription>
-                      Add, edit, or remove domains for internal email addresses.
-                    </CardDescription>
-                  </CardHeader>
-                  <div className="flex-grow overflow-hidden">
-                    {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
-                    <CardContent>
-                      <div className="mb-4 flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={newDomain}
-                          onChange={(e) => setNewDomain(e.target.value)}
-                          placeholder="Enter new domain"
-                          className="flex-grow"
-                        />
-                        <Button variant="outline" onClick={addDomain}>
-                          Add Domain
-                        </Button>
-                      </div>
-
-                      <ul className="space-y-2 flex flex-col flex-shrink-0">
-                        {domains.map((domain) => (
-                          <li
-                            key={domain.id}
-                            className="flex items-center space-x-2"
+              {(role === "super admin" || role === "dev") &&
+                !uploadFileMutation.isPending && (
+                  <Card className="flex flex-col overflow-hidden">
+                    <CardHeader>
+                      <CardTitle>Manage Approved Domains</CardTitle>
+                      <CardDescription>
+                        Add, edit, or remove domains for internal email
+                        addresses.
+                      </CardDescription>
+                    </CardHeader>
+                    <div className="flex-grow overflow-hidden">
+                      {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
+                      <CardContent>
+                        <div className="mb-4 flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            value={newDomain}
+                            onChange={(e) =>
+                              setNewDomainMutation.mutate(e.target.value)
+                            }
+                            placeholder="Enter new domain"
+                            className="flex-grow"
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => addDomainMutation.mutate(newDomain)}
                           >
-                            {editingDomain && editingDomain.id === domain.id ? (
-                              <>
-                                <Input
-                                  type="text"
-                                  value={editingDomain.domain}
-                                  onChange={(e) =>
-                                    setEditingDomain({
-                                      ...editingDomain,
-                                      domain: e.target.value,
-                                    })
-                                  }
-                                  className="flex-grow"
-                                />
-                                <Button
-                                  onClick={updateDomain}
-                                  variant="outline"
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  onClick={() => setEditingDomain(null)}
-                                  variant="outline"
-                                >
-                                  Cancel
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <span className="flex-grow">
-                                  {domain.domain}
-                                </span>
-                                <Button
-                                  onClick={() => setEditingDomain(domain)}
-                                  variant="outline"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  onClick={() => deleteDomain(domain.id)}
-                                  variant="destructive"
-                                >
-                                  Delete
-                                </Button>
-                              </>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                    {/* <ScrollBar orientation="vertical" /> */}
-                    {/* </ScrollArea> */}
-                  </div>
-                </Card>
-              )}
+                            Add Domain
+                          </Button>
+                        </div>
+
+                        <ul className="space-y-2 flex flex-col flex-shrink-0">
+                          {domains?.map((domain) => (
+                            <li
+                              key={domain.id}
+                              className="flex items-center space-x-2"
+                            >
+                              {editingDomain &&
+                              editingDomain.id === domain.id ? (
+                                <>
+                                  <Input
+                                    type="text"
+                                    value={editingDomain?.domain || ""}
+                                    onChange={(e) =>
+                                      setEditingDomainMutation.mutate({
+                                        ...editingDomain,
+                                        domain: e.target.value,
+                                      })
+                                    }
+                                    className="flex-grow"
+                                  />
+                                  <Button
+                                    onClick={() =>
+                                      updateDomainMutation.mutate(editingDomain)
+                                    }
+                                    variant="outline"
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    onClick={() =>
+                                      setEditingDomainMutation.mutate(null)
+                                    }
+                                    variant="outline"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="flex-grow">
+                                    {domain.domain}
+                                  </span>
+                                  <Button
+                                    onClick={() =>
+                                      setEditingDomainMutation.mutate(domain)
+                                    }
+                                    variant="outline"
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    onClick={() =>
+                                      deleteDomainMutation.mutate(domain.id)
+                                    }
+                                    variant="destructive"
+                                  >
+                                    Delete
+                                  </Button>
+                                </>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                      {/* <ScrollBar orientation="vertical" /> */}
+                      {/* </ScrollArea> */}
+                    </div>
+                  </Card>
+                )}
             </div>
             {/* </CardContent>
           </Card> */}
@@ -1190,13 +1149,15 @@ export default function AdminDashboard() {
                         variant="outline"
                         className="w-full pl-3 text-left font-normal mb-2"
                       >
-                        {format(selectedRange.start, "PPP")}
+                        {selectedRange?.start
+                          ? format(selectedRange.start, "PPP")
+                          : "Select Date"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CustomCalendar
-                        selectedDate={selectedRange.start}
+                        selectedDate={selectedRange?.start || undefined}
                         onDateChange={handleRangeChange}
                         disabledDays={() => false}
                       />
@@ -1212,7 +1173,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ${totalGross.toFixed(2)}
+                    ${totalGross?.toFixed(2) || "N/A"}
                   </div>
                 </CardContent>
               </Card>
@@ -1224,7 +1185,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ${totalNet.toFixed(2)}
+                    ${totalNet?.toFixed(2) || "N/A"}
                   </div>
                 </CardContent>
               </Card>
@@ -1236,7 +1197,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ${totalNetMinusExclusions.toFixed(2)}
+                    ${totalNetMinusExclusions?.toFixed(2) || "N/A"}
                   </div>
                 </CardContent>
               </Card>
@@ -1256,10 +1217,13 @@ export default function AdminDashboard() {
                     "w-[calc(100vw-90px)] overflow-auto"
                   )}
                 >
-                  <CardContent className=" flex-grow overflow-auto">
+                  <CardContent className="flex-grow overflow-auto">
                     <div className="h-[400px]">
                       <SalesRangeStackedBarChart
-                        selectedRange={selectedRange}
+                        selectedRange={{
+                          start: selectedRange?.start ?? undefined,
+                          end: selectedRange?.end ?? undefined,
+                        }}
                       />
                     </div>
                   </CardContent>
@@ -1283,8 +1247,16 @@ export default function AdminDashboard() {
                 <Suspense fallback={<div></div>}>
                   <div className=" overflow-hidden ">
                     <SalesDataTable
-                      startDate={format(selectedRange.start, "yyyy-MM-dd")}
-                      endDate={format(selectedRange.end, "yyyy-MM-dd")}
+                      startDate={
+                        selectedRange?.start
+                          ? format(selectedRange.start, "yyyy-MM-dd")
+                          : "N/A"
+                      }
+                      endDate={
+                        selectedRange?.end
+                          ? format(selectedRange.end, "yyyy-MM-dd")
+                          : "N/A"
+                      }
                     />
                   </div>
                 </Suspense>
@@ -1295,172 +1267,192 @@ export default function AdminDashboard() {
       </div>
     </RoleBasedWrapper>
   );
+
+  function ReportCard({
+    title,
+    date,
+    icon,
+    extraInfo,
+    type,
+    details,
+  }: {
+    title: string;
+    date: string | Date | null;
+    icon: React.ReactNode;
+    extraInfo?: string;
+    type?: string;
+    details?: Certificate[] | { name: string; value: string }[];
+  }) {
+    const timeZone = "America/Los_Angeles";
+
+    const formatLocalDate = (dateValue: string | Date) => {
+      if (!dateValue) return "N/A";
+
+      const parsedDate =
+        typeof dateValue === "string" ? parseISO(dateValue) : dateValue;
+      const zonedDate = toZonedTime(parsedDate, timeZone);
+
+      return formatTZ(zonedDate, "PPP", { timeZone });
+    };
+
+    const isSubmitted = () => {
+      if (!date) return false;
+
+      const submissionDate = typeof date === "string" ? parseISO(date) : date;
+      const currentDate = new Date();
+      const oneDayAgo = new Date(currentDate);
+      oneDayAgo.setDate(currentDate.getDate() - 1);
+      oneDayAgo.setHours(0, 0, 0, 0);
+      const sevenDaysAgo = new Date(currentDate);
+      sevenDaysAgo.setDate(currentDate.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+
+      if (type === "maintenance") {
+        return submissionDate >= sevenDaysAgo;
+      } else if (type === "certificate") {
+        return false;
+      } else if (type === "dailyChecklist") {
+        return submissionDate >= oneDayAgo;
+      } else {
+        return submissionDate >= oneDayAgo;
+      }
+    };
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            {DOMPurify.sanitize(title)}
+          </CardTitle>
+          {icon}
+        </CardHeader>
+        <CardContent>
+          {date ? (
+            <>
+              <p className="text-sm text-gray-500">
+                {DOMPurify.sanitize(
+                  type === "certificate"
+                    ? "Oldest expiration:"
+                    : type === "dailyChecklist"
+                    ? "Last updated:"
+                    : "Last submitted:"
+                )}
+              </p>
+              <p className="font-semibold">
+                {DOMPurify.sanitize(formatLocalDate(date))}
+              </p>
+              {extraInfo && (
+                <p className="text-sm text-gray-500">
+                  {DOMPurify.sanitize(
+                    `${
+                      type === "maintenance"
+                        ? "Firearm:"
+                        : type === "deposit"
+                        ? "Employee:"
+                        : type === "certificate"
+                        ? "Total:"
+                        : type === "dailyChecklist"
+                        ? "Firearms down for service:"
+                        : "By:"
+                    } ${extraInfo}`
+                  )}
+                </p>
+              )}
+              <div className="flex items-center mt-2">
+                {type === "certificate" ? (
+                  <>
+                    <CrossCircledIcon className="text-red-500 mr-2" />
+                    <Badge
+                      variant="outline"
+                      className="bg-red-100 text-red-800"
+                    >
+                      Renewals Needed
+                    </Badge>
+                  </>
+                ) : isSubmitted() ? (
+                  <>
+                    <CheckCircledIcon className="text-green-500 mr-2" />
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-800"
+                    >
+                      Submitted
+                    </Badge>
+                  </>
+                ) : (
+                  <>
+                    <CrossCircledIcon className="text-red-500 mr-2" />
+                    <Badge
+                      variant="outline"
+                      className="bg-red-100 text-red-800"
+                    >
+                      Not Submitted
+                    </Badge>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-500">No submission found</p>
+              <div className="flex items-center mt-2">
+                <CrossCircledIcon className="text-red-500 mr-2" />
+                <Badge variant="outline" className="bg-red-100 text-red-800">
+                  Not Submitted
+                </Badge>
+              </div>
+            </>
+          )}
+          {details && details.length > 0 && (
+            <ScrollArea
+              className={classNames(styles.noScroll, "h-[calc(100vh-1200px)]")}
+            >
+              <ul className="space-y-2 pr-4">
+                {details.map((item, index) => (
+                  <li
+                    key={index}
+                    className="flex items-center justify-between space-x-2"
+                  >
+                    {"certificate" in item ? (
+                      <>
+                        <span className="flex-shrink-0 w-1/4 truncate">
+                          {DOMPurify.sanitize(item.name)}
+                        </span>
+                        <span className="flex-shrink-0 w-1/4 truncate">
+                          {DOMPurify.sanitize(item.certificate)}
+                        </span>
+                        <span className="flex-shrink-0 w-1/4 truncate">
+                          {DOMPurify.sanitize(item.action_status)}
+                        </span>
+                        <Badge variant="destructive">
+                          {DOMPurify.sanitize(
+                            new Date(item.expiration).toLocaleDateString()
+                          )}
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-shrink-0 w-1/2 truncate">
+                          {DOMPurify.sanitize(item.name)}
+                        </span>
+                        <Badge variant="secondary">
+                          ${DOMPurify.sanitize(item.value)}
+                        </Badge>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <ScrollBar orientation="vertical" />
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 }
 
-function ReportCard({
-  title,
-  date,
-  icon,
-  extraInfo,
-  type,
-  details,
-}: {
-  title: string;
-  date: string | Date | null;
-  icon: React.ReactNode;
-  extraInfo?: string;
-  type?: string;
-  details?: Certificate[] | { name: string; value: string }[];
-}) {
-  const timeZone = "America/Los_Angeles"; // Or use your preferred time zone
-
-  const formatLocalDate = (dateValue: string | Date) => {
-    if (!dateValue) return "N/A";
-
-    const parsedDate =
-      typeof dateValue === "string" ? parseISO(dateValue) : dateValue;
-    const zonedDate = toZonedTime(parsedDate, timeZone);
-
-    return formatTZ(zonedDate, "PPP", { timeZone });
-  };
-
-  const isSubmitted = () => {
-    if (!date) return false;
-
-    const submissionDate = typeof date === "string" ? parseISO(date) : date;
-    const currentDate = new Date();
-    const oneDayAgo = new Date(currentDate);
-    oneDayAgo.setDate(currentDate.getDate() - 1);
-    oneDayAgo.setHours(0, 0, 0, 0); // Set to start of the previous day
-    const sevenDaysAgo = new Date(currentDate);
-    sevenDaysAgo.setDate(currentDate.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0); // Set to start of 7 days ago
-
-    if (type === "maintenance") {
-      return submissionDate >= sevenDaysAgo;
-    } else if (type === "certificate") {
-      return false; // Always show as not submitted for certificates
-    } else if (type === "dailyChecklist") {
-      return submissionDate >= oneDayAgo;
-    } else {
-      return submissionDate >= oneDayAgo;
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        {date ? (
-          <>
-            <p className="text-sm text-gray-500">
-              {type === "certificate"
-                ? "Oldest expiration:"
-                : type === "dailyChecklist"
-                ? "Last updated:"
-                : "Last submitted:"}
-            </p>
-            <p className="font-semibold">{formatLocalDate(date)}</p>
-            {extraInfo && (
-              <p className="text-sm text-gray-500">
-                {type === "maintenance"
-                  ? "Firearm:"
-                  : type === "deposit"
-                  ? "Employee:"
-                  : type === "certificate"
-                  ? "Total:"
-                  : type === "dailyChecklist"
-                  ? "Firearms down for service:"
-                  : "By:"}{" "}
-                {extraInfo}
-              </p>
-            )}
-            <div className="flex items-center mt-2">
-              {type === "certificate" ? (
-                <>
-                  <CrossCircledIcon className="text-red-500 mr-2" />
-                  <Badge variant="outline" className="bg-red-100 text-red-800">
-                    Renewals Needed
-                  </Badge>
-                </>
-              ) : isSubmitted() ? (
-                <>
-                  <CheckCircledIcon className="text-green-500 mr-2" />
-                  <Badge
-                    variant="outline"
-                    className="bg-green-100 text-green-800"
-                  >
-                    Submitted
-                  </Badge>
-                </>
-              ) : (
-                <>
-                  <CrossCircledIcon className="text-red-500 mr-2" />
-                  <Badge variant="outline" className="bg-red-100 text-red-800">
-                    Not Submitted
-                  </Badge>
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-gray-500">No submission found</p>
-            <div className="flex items-center mt-2">
-              <CrossCircledIcon className="text-red-500 mr-2" />
-              <Badge variant="outline" className="bg-red-100 text-red-800">
-                Not Submitted
-              </Badge>
-            </div>
-          </>
-        )}
-        {details && details.length > 0 && (
-          <ScrollArea
-            className={classNames(
-              styles.noScroll,
-              "h-[calc(100vh-1200px)]" // Adjusted height to account for CardHeader
-            )}
-          >
-            <ul className="space-y-2 pr-4">
-              {details.map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-center justify-between space-x-2"
-                >
-                  {"certificate" in item ? (
-                    <>
-                      <span className="flex-shrink-0 w-1/4 truncate">
-                        {item.name}
-                      </span>
-                      <span className="flex-shrink-0 w-1/4 truncate">
-                        {item.certificate}
-                      </span>
-                      <span className="flex-shrink-0 w-1/4 truncate">
-                        {item.action_status}
-                      </span>
-                      <Badge variant="destructive">
-                        {new Date(item.expiration).toLocaleDateString()}
-                      </Badge>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex-shrink-0 w-1/2 truncate">
-                        {item.name}
-                      </span>
-                      <Badge variant="secondary">${item.value}</Badge>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <ScrollBar orientation="vertical" />
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        )}
-      </CardContent>
-    </Card>
-  );
+export default function AdminDashboard() {
+  return <AdminDashboardContent />;
 }
