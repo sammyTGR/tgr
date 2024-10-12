@@ -604,7 +604,7 @@ const ManageSchedules = () => {
         toast.error("Failed to add/update schedule");
       } else {
         fetchActualSchedules();
-        toast.success("Schedule added/updated successfully");
+        // toast.success("Schedule added/updated successfully");
         setAddSchedulePopoverOpen(false); // Close the popover
       }
     } else {
@@ -638,7 +638,7 @@ const ManageSchedules = () => {
       console.error("Error updating schedule:", error);
       toast.error("Failed to update schedule");
     } else {
-      toast.success(`Updated schedule for ${employeeName} on ${date}`);
+      // toast.success(`Updated schedule for ${employeeName} on ${date}`);
       fetchReferenceSchedules();
       setUpdateSchedulePopoverOpen(false);
     }

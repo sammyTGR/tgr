@@ -70,6 +70,7 @@ interface EmployeeCalendar {
   rank: number;
   department: string;
   events: CalendarEvent[];
+  hire_date?: string;
 }
 
 type BreakRoomDuty = {
@@ -115,7 +116,7 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
         day_of_week,
         status,
         employee_id,
-        employees:employee_id (name, birthday, department)
+        employees:employee_id (name, birthday, department, hire_date)
       `
       )
       .eq("employee_id", employeeId)
@@ -132,7 +133,8 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
           employee_id: item.employee_id,
           name: item.employees.name,
           department: item.employees.department,
-          rank: 0, // You might want to fetch this from somewhere
+          hire_date: item.employees.hire_date,
+          rank: item.employees.rank,
           events: [],
         };
       }
@@ -432,6 +434,15 @@ const SchedulesComponent = ({ employeeId }: { employeeId: number }) => {
                   ) ? (
                     <div className="text-teal-500 dark:text-teal-400 font-bold">
                       Happy Birthday! 🎉
+                    </div>
+                  ) : null}
+                  {employee.hire_date &&
+                  isSameDayOfYear(
+                    parseISO(event.schedule_date),
+                    parseISO(employee.hire_date)
+                  ) ? (
+                    <div className="text-indigo-500 dark:text-indigo-400 font-bold">
+                      Work Anniversary!
                     </div>
                   ) : null}
                   {breakRoomDuty &&

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
 
 interface TimesheetData {
   id: number;
@@ -59,6 +60,10 @@ interface PopoverFormProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
+
+const ClientPopoverForm = dynamic(() => Promise.resolve(PopoverForm), {
+  ssr: false,
+});
 
 export const PopoverForm: React.FC<PopoverFormProps> = ({
   onSubmit,
