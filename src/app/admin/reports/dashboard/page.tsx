@@ -68,6 +68,7 @@ import Todos from "../../todo/todos";
 import ClearActions from "../../todo/clear-actions";
 import Todo from "../../todo/todo";
 import TodoWrapper from "../../todo/todo-wrapper";
+import { useFlags } from "flagsmith/react";
 
 interface Certificate {
   id: number;
@@ -121,6 +122,7 @@ interface Suggestion {
 const timeZone = "America/Los_Angeles";
 
 function AdminDashboardContent() {
+  const flags = useFlags(["is_todo_enabled", "is_barchart_enabled"]);
   const queryClient = useQueryClient();
   const { role } = useRole();
 
@@ -770,6 +772,7 @@ function AdminDashboardContent() {
         <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
           {/*todo card*/}
+          {flags.is_todo_enabled.enabled && (
           <div className="w-full overflow-hidden">
             <div className="w-full overflow-hidden">
               <div className="h-full overflow-hidden">
@@ -781,6 +784,7 @@ function AdminDashboardContent() {
               </div>
             </div>
           </div>
+          )}
 
           {/*All Report cards*/}
           <div className="w-full overflow-hidden">
@@ -972,10 +976,13 @@ function AdminDashboardContent() {
           </div>
 
           {/* Super Admin Only*/}
+          
           <div className="w-full overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
               {/* File Upload Section */}
-              {(role === "super admin" || role === "dev") && (
+              
+              {flags.is_barchart_enabled.enabled && (role === "super admin" || role === "dev") && (
+                
                 <Card className="flex flex-col h-full">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
@@ -1026,6 +1033,7 @@ function AdminDashboardContent() {
                   </CardContent>
                 </Card>
               )}
+              
 
               {(role === "super admin" || role === "dev") &&
                 !uploadFileMutation.isPending && (
@@ -1133,6 +1141,7 @@ function AdminDashboardContent() {
           </div>
 
           {/* Sales Chart*/}
+          {flags.is_barchart_enabled.enabled && (
           <div className="col-span-full overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
               <Card>
@@ -1233,8 +1242,10 @@ function AdminDashboardContent() {
               </div>
             </Card>
           </div>
+          )}
 
           {/* Sales Report Table*/}
+          {flags.is_barchart_enabled.enabled && (
           <div className="col-span-full overflow-hidden mt-2">
             <Card className="flex flex-col col-span-full h-full">
               <CardHeader className="flex-shrink-0">
@@ -1263,6 +1274,7 @@ function AdminDashboardContent() {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </div>
     </RoleBasedWrapper>

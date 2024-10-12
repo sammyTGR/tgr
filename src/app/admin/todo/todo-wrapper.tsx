@@ -36,7 +36,7 @@ function TodoContent() {
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error refreshing flags</div>;
 
-  if (!flags.is_todo_enabled.enabled) return null;
+  // if (!flags.is_todo_enabled.enabled) return null;
 
   return (
     <div className="flex flex-col max-w-2xl border rounded-lg shadow-lg p-4">
