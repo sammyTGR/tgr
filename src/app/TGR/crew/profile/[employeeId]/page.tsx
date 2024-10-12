@@ -303,10 +303,20 @@ const EmployeeProfilePage = () => {
 
     if (fetchError && fetchError.code !== "PGRST116") {
       console.error("Error fetching existing clock-in data:", fetchError);
+      toast.error("An error occurred. Please try again.");
       return;
     }
 
     if (existingData) {
+      if (existingData.start_time) {
+        // If there's already a start_time, prevent the new clock-in
+        toast.error(
+          "You've already clocked in for today. If this is an error, please contact your supervisor."
+        );
+        return;
+      }
+
+      // If there's an existing record but no start_time, update the existing record
       const { error: updateError } = await supabase
         .from("employee_clock_events")
         .update({
@@ -316,6 +326,7 @@ const EmployeeProfilePage = () => {
 
       if (updateError) {
         console.error("Error updating clock-in data:", updateError);
+        toast.error("Failed to clock in. Please try again.");
       } else {
         setClockInTime(now);
         setIsClockedIn(true);
@@ -331,6 +342,7 @@ const EmployeeProfilePage = () => {
         toast.success(`Welcome Back ${employee.name}!`);
       }
     } else {
+      // If no existing record, create a new one
       const { data: insertData, error: insertError } = await supabase
         .from("employee_clock_events")
         .insert({
@@ -344,6 +356,7 @@ const EmployeeProfilePage = () => {
 
       if (insertError) {
         console.error("Error clocking in:", insertError);
+        toast.error("Failed to clock in. Please try again.");
       } else {
         setClockInTime(now);
         setIsClockedIn(true);
@@ -362,45 +375,56 @@ const EmployeeProfilePage = () => {
     }
   };
 
-  // sends alert to employee and admins simultaneously
   const scheduleOvertimeAlert = (clockInTime: Date) => {
     const alertTime = new Date(clockInTime.getTime() + 9 * 60 * 60 * 1000); // 9 hours after clock-in
     const now = new Date();
     const timeUntilAlert = alertTime.getTime() - now.getTime();
 
     if (timeUntilAlert > 0) {
-      setTimeout(() => {
-        Promise.all([
-          sendOvertimeAlert(
-            employee.name,
-            employee.contact_info,
-            formatTZ(clockInTime, "h:mm a", { timeZone }),
-            formatTZ(new Date(), "h:mm a", { timeZone }),
-            "EmployeeOvertimeAlert"
-          ),
-          sendOvertimeAlertToAdmins(
-            employee.employee_id.toString(),
-            employee.name,
-            formatTZ(clockInTime, "h:mm a", { timeZone }),
-            formatTZ(new Date(), "h:mm a", { timeZone })
-          ),
-        ]).catch((error) => {
-          console.error("Failed to send overtime alerts:", error);
-        });
+      setTimeout(async () => {
+        const hasClockedOut = await checkIfClockedOut(
+          employee.employee_id.toString()
+        );
+        if (!hasClockedOut) {
+          Promise.all([
+            sendOvertimeAlert(
+              employee.name,
+              employee.contact_info,
+              formatTZ(clockInTime, "h:mm a", { timeZone }),
+              formatTZ(new Date(), "h:mm a", { timeZone }),
+              "EmployeeOvertimeAlert"
+            ),
+            sendOvertimeAlertToAdmins(
+              employee.employee_id.toString(),
+              employee.name,
+              formatTZ(clockInTime, "h:mm a", { timeZone }),
+              formatTZ(new Date(), "h:mm a", { timeZone })
+            ),
+          ]).catch((error) => {
+            console.error("Failed to send overtime alerts:", error);
+          });
+        } else {
+          console.log("Employee has already clocked out. No alert needed.");
+        }
       }, timeUntilAlert);
     }
   };
 
-  const getLatestClockEvent = async (employeeId: string) => {
+  const checkIfClockedOut = async (employeeId: string): Promise<boolean> => {
+    const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
       .from("employee_clock_events")
-      .select("*")
+      .select("end_time")
       .eq("employee_id", employeeId)
-      .order("start_time", { ascending: false })
-      .limit(1);
+      .eq("event_date", today)
+      .single();
 
-    if (error) throw error;
-    return data[0];
+    if (error) {
+      console.error("Error checking clock-out status:", error);
+      return false;
+    }
+
+    return !!data?.end_time;
   };
 
   const sendOvertimeAlertToAdmins = async (
@@ -410,9 +434,9 @@ const EmployeeProfilePage = () => {
     currentTime: string
   ) => {
     try {
-      const latestClockEvent = await getLatestClockEvent(employeeId);
+      const hasClockedOut = await checkIfClockedOut(employeeId);
 
-      if (latestClockEvent && latestClockEvent.end_time) {
+      if (hasClockedOut) {
         console.log("Employee has already clocked out. No alert needed.");
         return;
       }
@@ -989,11 +1013,11 @@ const EmployeeProfilePage = () => {
     const timeZone = "America/Los_Angeles";
     const now = toZonedTime(new Date(), timeZone);
 
-    // Start date of the first pay period
-    const firstPayPeriodStart = new Date(2024, 7, 18); // August 18, 2024
+    // Define the start of the last known pay period
+    const lastKnownPayPeriodStart = new Date(2023, 9, 22); // September 22, 2023
 
     // Calculate the current pay period
-    let currentPeriodStart = startOfDay(firstPayPeriodStart);
+    let currentPeriodStart = startOfDay(lastKnownPayPeriodStart);
     while (currentPeriodStart <= now) {
       currentPeriodStart = addDays(currentPeriodStart, 14);
     }
@@ -1004,8 +1028,6 @@ const EmployeeProfilePage = () => {
     // Format dates for query
     const startDate = formatTZ(currentPeriodStart, "yyyy-MM-dd", { timeZone });
     const endDate = formatTZ(currentPeriodEnd, "yyyy-MM-dd", { timeZone });
-
-    // console.log(`Fetching pay period data from ${startDate} to ${endDate}`);
 
     // Fetch data for the current pay period
     const { data: payPeriodData, error } = await supabase
@@ -1021,27 +1043,16 @@ const EmployeeProfilePage = () => {
       return;
     }
 
-    // console.log(`Fetched ${payPeriodData.length} clock events`);
-
     let totalHours = 0;
-    payPeriodData.forEach((shift, index) => {
+    payPeriodData.forEach((shift) => {
       if (shift.total_hours) {
         const [hours, minutes, seconds] = shift.total_hours
           .split(":")
           .map(Number);
         const duration = hours + minutes / 60 + seconds / 3600; // Convert to hours
-        // console.log(
-        //   `Shift ${index + 1}: ${shift.total_hours} (${duration.toFixed(
-        //     2
-        //   )} hours)`
-        // );
         totalHours += duration;
-      } else {
-        // console.log(`Shift ${index + 1}: No total_hours recorded`);
       }
     });
-
-    // console.log(`Total hours calculated: ${totalHours.toFixed(2)}`);
 
     if (totalHours > 336) {
       // Max possible hours in 14 days (24 * 14)
@@ -1055,8 +1066,8 @@ const EmployeeProfilePage = () => {
 
     // Set the pay period dates for display
     setPayPeriodDates({
-      start: formatTZ(currentPeriodStart, "MMM d, yyyy", { timeZone }),
-      end: formatTZ(currentPeriodEnd, "MMM d, yyyy", { timeZone }),
+      start: formatTZ(currentPeriodStart, "MMM d", { timeZone }),
+      end: formatTZ(currentPeriodEnd, "MMM d", { timeZone }),
     });
   };
 
