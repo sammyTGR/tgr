@@ -27,7 +27,7 @@ export default function Todo({ todo }: { todo: Todo }) {
         >
           <TodoData todo={todo} />
           {todo.is_complete && todo.completed_at && (
-            <span className="text-sm text-gray-500 ml-2">
+            <span className="text-sm text-gray-500 ml-2 mr-auto">
               (Completed: {format(new Date(todo.completed_at), "MMM d")})
             </span>
           )}

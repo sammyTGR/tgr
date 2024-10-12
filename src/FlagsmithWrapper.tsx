@@ -58,13 +58,13 @@ function FlagsmithWrapperInner({
 
       if (customerData) return customerData.role;
 
-      if (roleError && customerError) {
-        console.error(
-          "Error fetching role:",
-          roleError.message,
-          customerError.message
-        );
-      }
+      // if (roleError && customerError) {
+      //   console.error(
+      //     "Error fetching role:",
+      //     roleError.message,
+      //     customerError.message
+      //   );
+      // }
 
       return null;
     },
@@ -94,10 +94,10 @@ function FlagsmithWrapperInner({
           });
         }
 
-        console.log("Flagsmith initialized with role:", role);
+        // console.log("Flagsmith initialized with role:", role);
         setIsInitialized(true);
       } catch (error) {
-        console.error("Failed to initialize Flagsmith:", error);
+        // console.error("Failed to initialize Flagsmith:", error);
         setIsInitialized(true);
       }
     };

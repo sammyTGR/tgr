@@ -24,14 +24,14 @@ export default function ClearActions() {
         size="sm"
         variant="outline"
       >
-        Clear Completed Todos
+        Clear Completed Items
       </Button>
       <Button
         onClick={() => clearAllMutation.mutate()}
         className="ml-auto"
         size="sm"
       >
-        Clear All Todos
+        Clear All Items
       </Button>
     </div>
   );
