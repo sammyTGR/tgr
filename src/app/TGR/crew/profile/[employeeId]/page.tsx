@@ -37,6 +37,17 @@ import {
   DialogOverlay,
   DialogClose,
 } from "@radix-ui/react-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import SuggestionForm from "@/components/SuggestionForm";
 import {
@@ -1004,14 +1015,38 @@ const EmployeeProfilePage = () => {
                                           >
                                             Lunch Break
                                           </Button>
-                                          <Button
-                                            variant="ghost"
-                                            onClick={() =>
-                                              clockOutMutation.mutate()
-                                            }
-                                          >
-                                            End Shift
-                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost">
+                                                End Shift
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                  End Shift Confirmation
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Are you sure you want to end
+                                                  your shift for the day? Only a
+                                                  manager can correct your
+                                                  timesheet to fix this.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>
+                                                  Cancel
+                                                </AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() =>
+                                                    clockOutMutation.mutate()
+                                                  }
+                                                >
+                                                  Confirm End Shift
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
                                         </div>
                                       </PopoverContent>
                                     </Popover>
@@ -1044,15 +1079,41 @@ const EmployeeProfilePage = () => {
                                     )}
                                   {currentShift.lunch_start &&
                                     currentShift.lunch_end && (
-                                      <Button
-                                        variant="outline"
-                                        className="w-full mx-auto"
-                                        onClick={() =>
-                                          clockOutMutation.mutate()
-                                        }
-                                      >
-                                        End Shift
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className="w-full mx-auto"
+                                          >
+                                            End Shift
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                              End Shift Confirmation
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to end your
+                                              shift for the day? Only a manager
+                                              can correct your timesheet to fix
+                                              this.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                              Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() =>
+                                                clockOutMutation.mutate()
+                                              }
+                                            >
+                                              Confirm End Shift
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     )}
                                 </>
                               )}
