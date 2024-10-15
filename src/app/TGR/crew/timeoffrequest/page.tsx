@@ -81,6 +81,19 @@ export default function TimeOffRequestPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
+  const { data: isSubmitting = false } = useQuery({
+    queryKey: ["isSubmitting"],
+    queryFn: () => false,
+    enabled: false,
+  });
+
+  const updateIsSubmitting = useMutation({
+    mutationFn: (newValue: boolean) => Promise.resolve(newValue),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["isSubmitting"], newValue);
+    },
+  });
+
   const { data: timeOffReasons = [] } = useQuery({
     queryKey: ["timeOffReasons"],
     queryFn: async () => {
@@ -324,7 +337,7 @@ export default function TimeOffRequestPage() {
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+        .in("name", ["Sammy"]);
 
       if (employeesError) throw employeesError;
 
@@ -354,6 +367,7 @@ export default function TimeOffRequestPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    updateIsSubmitting.mutate(true);
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
     const formDataObject: TimeOffFormData = Object.fromEntries(
@@ -409,6 +423,7 @@ export default function TimeOffRequestPage() {
       queryClient.setQueryData(["employee_name"], null);
       queryClient.setQueryData(["formData"], null);
       queryClient.setQueryData(["showAlertDialog"], false);
+      updateIsSubmitting.mutate(false);
 
       // Force a re-render of the Calendar component
       queryClient.invalidateQueries({ queryKey: ["selectedDates"] });
@@ -433,15 +448,17 @@ export default function TimeOffRequestPage() {
     } catch (error) {
       console.error("Failed to submit time off request:", error);
       toast.error("Failed to submit time off request. Please try again.");
+      updateIsSubmitting.mutate(false);
     }
   };
 
   const updateShowAlertDialog = useMutation({
-    mutationFn: (newValue: boolean) => {
-      return Promise.resolve(newValue);
-    },
+    mutationFn: (newValue: boolean) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
       queryClient.setQueryData(["showAlertDialog"], newValue);
+      if (!newValue) {
+        updateIsSubmitting.mutate(false);
+      }
     },
   });
 
@@ -563,15 +580,24 @@ export default function TimeOffRequestPage() {
                     />
                   )}
 
-                  <Button type="submit" variant="gooeyRight">
-                    Submit Request
+                  <Button
+                    type="submit"
+                    variant="gooeyRight"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Request"}
                   </Button>
                 </div>
               </form>
 
               <AlertDialog
                 open={showAlertDialog}
-                onOpenChange={(open) => updateShowAlertDialog.mutate(open)}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    updateIsSubmitting.mutate(false);
+                  }
+                  updateShowAlertDialog.mutate(open);
+                }}
               >
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -582,18 +608,25 @@ export default function TimeOffRequestPage() {
                       </p>
                       <p className="mt-4">
                         You Are REQUIRED To Find Someone Trained In Your Duties
-                        To Cover For You Before A Request Can Be Approved
+                        To Cover For You Before A Request Can Be Approved.
+                        <span className="text-red-500 font-bold">
+                          If you do not have someone to cover for you listed
+                          below, your request will be denied.
+                        </span>
                       </p>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel
-                      onClick={() => updateShowAlertDialog.mutate(false)}
+                      onClick={() => {
+                        updateShowAlertDialog.mutate(false);
+                        updateIsSubmitting.mutate(false);
+                      }}
                     >
                       Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction onClick={submitForm}>
-                      Understood
+                      Submit Request
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

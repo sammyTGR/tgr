@@ -81,7 +81,11 @@ interface TimeOffFormData {
   [key: string]: any; // This allows for additional properties
 }
 
-export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
+export default function TimeoffForm({
+  onSubmitSuccess,
+}: {
+  onSubmitSuccess: () => void;
+}) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -356,8 +360,22 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
     }
   };
 
+  const { data: isSubmitting = false } = useQuery({
+    queryKey: ["isSubmitting"],
+    queryFn: () => false,
+    enabled: false,
+  });
+
+  const updateIsSubmitting = useMutation({
+    mutationFn: (newValue: boolean) => Promise.resolve(newValue),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["isSubmitting"], newValue);
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    updateIsSubmitting.mutate(true);
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
     const formDataObject: TimeOffFormData = Object.fromEntries(
@@ -438,13 +456,12 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
     } catch (error) {
       console.error("Failed to submit time off request:", error);
       toast.error("Failed to submit time off request. Please try again.");
+      updateIsSubmitting.mutate(false);
     }
   };
 
   const updateShowAlertDialog = useMutation({
-    mutationFn: (newValue: boolean) => {
-      return Promise.resolve(newValue);
-    },
+    mutationFn: (newValue: boolean) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
       queryClient.setQueryData(["showAlertDialog"], newValue);
     },
@@ -568,15 +585,25 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
                     />
                   )}
 
-                  <Button type="submit" variant="gooeyRight">
-                    Submit Request
+                  <Button
+                    type="submit"
+                    variant="gooeyRight"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Request"}
                   </Button>
                 </div>
               </form>
 
               <AlertDialog
                 open={showAlertDialog}
-                onOpenChange={(open) => updateShowAlertDialog.mutate(open)}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    // Only reset isSubmitting when closing the dialog without submitting
+                    updateIsSubmitting.mutate(false);
+                  }
+                  updateShowAlertDialog.mutate(open);
+                }}
               >
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -587,18 +614,32 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
                       </p>
                       <p className="mt-4">
                         You Are REQUIRED To Find Someone Trained In Your Duties
-                        To Cover For You Before A Request Can Be Approved
+                        To Cover For You Before A Request Can Be Approved.
+                      </p>
+                      <p className="mt-4">
+                        <span className="text-red-500 font-bold">
+                          If you DO NOT have someone to cover for you listed
+                          below, your request will be denied.
+                        </span>
                       </p>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel
-                      onClick={() => updateShowAlertDialog.mutate(false)}
+                      onClick={() => {
+                        updateShowAlertDialog.mutate(false);
+                        updateIsSubmitting.mutate(false);
+                      }}
                     >
                       Cancel
                     </AlertDialogCancel>
-                    <AlertDialogAction onClick={submitForm}>
-                      Understood
+                    <AlertDialogAction
+                      onClick={() => {
+                        updateIsSubmitting.mutate(true);
+                        submitForm();
+                      }}
+                    >
+                      Submit Request
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

@@ -10,6 +10,19 @@ import { format, parseISO } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -54,6 +67,7 @@ export default function ApproveRequestsPage() {
   const [customApprovalText, setCustomApprovalText] = useState("");
   const [currentRequestId, setCurrentRequestId] = useState<number | null>(null);
   const router = useRouter();
+  const [isCustomApprovalOpen, setIsCustomApprovalOpen] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -137,7 +151,12 @@ export default function ApproveRequestsPage() {
 
   const handleCustomApproval = (request_id: number) => {
     setCurrentRequestId(request_id);
-    setShowCustomApprovalModal(true);
+    setIsCustomApprovalOpen(true);
+  };
+
+  const handleCloseCustomApproval = () => {
+    setIsCustomApprovalOpen(false);
+    setCustomApprovalText("");
   };
 
   const handleSubmitCustomApproval = async () => {
@@ -150,12 +169,10 @@ export default function ApproveRequestsPage() {
           currentRequestId,
           `Custom: ${customApprovalText}` as RequestAction,
           `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
-          request.use_sick_time // Pass the use_sick_time parameter
+          request.use_sick_time
         );
       }
-      setShowCustomApprovalModal(false);
-      setCustomApprovalText("");
-      setCurrentRequestId(null);
+      handleCloseCustomApproval();
     }
   };
 
@@ -298,7 +315,7 @@ export default function ApproveRequestsPage() {
           : action === "time_off"
           ? "Time Off Request Approved"
           : action.startsWith("Custom: ")
-          ? "Time Off Request Custom Approval"
+          ? "Time Off Request Approval"
           : "Time Off Request Status Update";
 
       //console.log("Calling approve_request API");
@@ -519,33 +536,28 @@ export default function ApproveRequestsPage() {
           ))}
         </div>
 
-        {showCustomApprovalModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 ">
-            <div className="bg-muted dark:bg-muted p-6 rounded-lg shadow-lg">
-              <h2 className="text-center text-xl font-bold mb-4">
-                Custom Approval
-              </h2>
-              <textarea
-                value={customApprovalText}
-                onChange={(e) => setCustomApprovalText(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded mb-4"
-                rows={4}
-                placeholder="Enter custom approval text..."
-              />
-              <div className="flex justify-center space-between gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCustomApprovalModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button variant="outline" onClick={handleSubmitCustomApproval}>
-                  Submit
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <Dialog
+          open={isCustomApprovalOpen}
+          onOpenChange={setIsCustomApprovalOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Custom Approval</DialogTitle>
+            </DialogHeader>
+            <Textarea
+              value={customApprovalText}
+              onChange={(e) => setCustomApprovalText(e.target.value)}
+              placeholder="Enter custom approval text..."
+              className="min-h-[100px]"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseCustomApproval}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitCustomApproval}>Submit</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </RoleBasedWrapper>
   );

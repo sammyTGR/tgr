@@ -235,6 +235,10 @@ export default function Component() {
   });
 
   const handleDialogOpen = (open: boolean) => {
+    if (!open) {
+      // Reset isSubmitting when the dialog is closed
+      updateIsSubmitting.mutate(false);
+    }
     queryClient.setQueryData(["timeOffDialogOpen"], open);
   };
 
@@ -574,6 +578,24 @@ export default function Component() {
     // You can also display an error message to the user here
   }
 
+  const { data: isSubmitting = false } = useQuery({
+    queryKey: ["isSubmitting"],
+    queryFn: () => false,
+    enabled: false,
+  });
+
+  const updateIsSubmitting = useMutation({
+    mutationFn: (newValue: boolean) => Promise.resolve(newValue),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["isSubmitting"], newValue);
+    },
+  });
+
+  const handleSubmitSuccess = () => {
+    // Reset the isSubmitting state after a successful submission
+    handleDialogOpen(false);
+  };
+
   const renderEmployeeRow = useCallback(
     (employee: EmployeeCalendar) => {
       const eventsByDay: { [key: string]: CalendarEvent[] } = {};
@@ -838,7 +860,7 @@ export default function Component() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogTitle>Request Time Off</DialogTitle>
-                <TimeoffForm onSubmitSuccess={() => handleDialogOpen(false)} />
+                <TimeoffForm onSubmitSuccess={handleSubmitSuccess} />
               </DialogContent>
             </Dialog>
             {(role === "admin" || role === "super admin" || role === "dev") && (
