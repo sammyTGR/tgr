@@ -30,6 +30,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import { DataTablePagination } from "@/app/admin/audits/review/pagination";
 import { ColumnDef, AuditData } from "@/app/admin/audits/review/columns"; // Import the extended type and AuditData type
+import { Cross2Icon } from "@radix-ui/react-icons";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -46,6 +47,11 @@ export function DataTable<TData, TValue>({
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
+  const [localFilters, setLocalFilters] = React.useState({
+    salesreps: "",
+    dros_number: "",
+    error_location: "",
+  });
 
   const table = useReactTable({
     data,
@@ -66,25 +72,67 @@ export function DataTable<TData, TValue>({
     manualSorting: false, // Set based on your data handling strategy
   });
 
+  const hasFilters = Object.values(localFilters).some(
+    (filter) => filter !== ""
+  );
+
+  const clearFilters = React.useCallback(() => {
+    setLocalFilters({
+      salesreps: "",
+      dros_number: "",
+      error_location: "",
+    });
+    table.getColumn("salesreps")?.setFilterValue("");
+    table.getColumn("dros_number")?.setFilterValue("");
+    table.getColumn("error_location")?.setFilterValue("");
+    console.log("Filters cleared");
+  }, [table]);
+
+  const handleFilterChange = (columnId: string, value: string) => {
+    setLocalFilters((prev) => ({ ...prev, [columnId]: value }));
+    table.getColumn(columnId)?.setFilterValue(value);
+    console.log(`${columnId} filter changed:`, value);
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
-        <Input
-          placeholder="Filter By Sales Rep..."
-          value={table.getColumn("salesreps")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("salesreps")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm w-full"
-        />
-        <Input
-          placeholder="Filter By DROS"
-          value={table.getColumn("dros_number")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("dros_number")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm w-full ml-2"
-        />
+        <div className="flex-1 flex items-center space-x-2">
+          <Input
+            placeholder="Filter By Sales Rep..."
+            value={localFilters.salesreps}
+            onChange={(event) =>
+              handleFilterChange("salesreps", event.target.value)
+            }
+            className="max-w-sm w-full"
+          />
+          <Input
+            placeholder="Filter By DROS"
+            value={localFilters.dros_number}
+            onChange={(event) =>
+              handleFilterChange("dros_number", event.target.value)
+            }
+            className="max-w-sm w-full"
+          />
+          <Input
+            placeholder="Filter By Location"
+            value={localFilters.error_location}
+            onChange={(event) =>
+              handleFilterChange("error_location", event.target.value)
+            }
+            className="max-w-sm w-full"
+          />
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="h-8 px-2 lg:px-3"
+            >
+              Clear Filters
+              <Cross2Icon className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
