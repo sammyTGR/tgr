@@ -114,16 +114,25 @@ const PendingResident = dynamic(
 
 // Styled components
 const SubItemsContainer = styled.div`
-  position: absolute;
-  display: none; // Initially hidden
-  grid-template-columns: repeat(3, 2fr);
-  gap: 8px;
-  padding: 8px;
-  background: none; // Background color for the sub-items container
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); // Optional: shadow for the sub-items container
-  z-index: 30; // Ensure it's above other content
-  min-width: 300px;
-  white-space: nowrap;
+  position: fixed;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 4px;
+  background: white;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  width: 620px; // Set a fixed width
+  max-width: calc(100vw - 20px); // Ensure it doesn't exceed viewport width
+  overflow-x: hidden; // Hide horizontal overflow
+`;
+
+const SubItemWrapper = styled.div`
+  cursor: pointer;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  font-size: 0.8rem; // Slightly reduce font size if needed
 `;
 
 const DialogContainer = styled.div`
@@ -237,6 +246,7 @@ export default function SupportNavMenu() {
     useState<React.ReactNode | null>(null);
   const [activeDialog, setActiveDialog] = useState(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [subItemsPosition, setSubItemsPosition] = useState({ left: 0, top: 0 });
 
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -336,6 +346,31 @@ export default function SupportNavMenu() {
     return <span dangerouslySetInnerHTML={{ __html: parsedLabel }} />;
   };
 
+  const handleMenuItemHover = (
+    index: number,
+    event: React.MouseEvent<HTMLLIElement>
+  ) => {
+    const menuItem = event.currentTarget;
+    const rect = menuItem.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const subItemsWidth = Math.min(300, viewportWidth - 20); // Adjust width based on viewport
+
+    let left = rect.left;
+    let top = rect.bottom;
+
+    // Check if the sub-items container would overflow on the right
+    if (left + subItemsWidth > viewportWidth) {
+      // Align the right edge of the sub-items with the right edge of the menu item
+      left = rect.right - subItemsWidth;
+    }
+
+    // Ensure the container doesn't go off the left edge of the screen
+    left = Math.max(10, left);
+
+    setSubItemsPosition({ left, top });
+    setHoveredIndex(index);
+  };
+
   return (
     <RoleBasedWrapper
       allowedRoles={[
@@ -365,7 +400,7 @@ export default function SupportNavMenu() {
             {menuItems.map((menuItem, index) => (
               <NavigationMenu.Item
                 key={index}
-                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseEnter={(event) => handleMenuItemHover(index, event)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <NavigationMenu.Trigger asChild>
@@ -374,16 +409,19 @@ export default function SupportNavMenu() {
                   </Button>
                 </NavigationMenu.Trigger>
                 {hoveredIndex === index && (
-                  <SubItemsContainer style={{ display: "grid" }}>
+                  <SubItemsContainer
+                    style={{
+                      left: `${subItemsPosition.left}px`,
+                      top: `${subItemsPosition.top}px`,
+                    }}
+                  >
                     {menuItem.subItems.map((subItem, subIndex) => (
-                      <div
+                      <SubItemWrapper
                         key={subIndex}
                         onClick={() => handleSubItemClick(subItem.contentId)}
-                        style={{ cursor: "pointer" }}
                       >
                         <StyledSubItemLabel label={subItem.label} />
-                        {renderDialogContent()}
-                      </div>
+                      </SubItemWrapper>
                     ))}
                   </SubItemsContainer>
                 )}
