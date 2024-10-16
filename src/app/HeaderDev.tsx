@@ -261,6 +261,11 @@ const manageComps = [
     href: "/public/classes",
     description: "Class Scheduling Page",
   },
+  {
+    title: "Acquisitions",
+    href: "/TGR/fastbound/Acquisitions",
+    description: "Acquisitions",
+  },
 ];
 
 const comboComps = [
