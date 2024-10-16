@@ -289,17 +289,6 @@ const comboComps = [
     href: "/TGR/crew/range",
     description: "Daily Range Walks & Repairs",
   },
-  // {
-  //   title: "Submit Range Repairs",
-  //   href: "/TGR/rangewalk/report",
-  //   description: "View All Range Walks & Repairs",
-  // },
-
-  // {
-  //   title: "Submit Claimed Points",
-  //   href: "/TGR/crew/points",
-  //   description: "Report All Submitted Points",
-  // },
   {
     title: "Submit Special Orders",
     href: "/sales/orders",
