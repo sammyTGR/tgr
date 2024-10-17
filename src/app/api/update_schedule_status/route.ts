@@ -23,17 +23,21 @@ export async function POST(request: Request) {
   }
 
   try {
+     // Convert the schedule_date to Pacific Time
+     const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
+     // Format the date for database operations
+     const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", schedule_date)
+      .eq("schedule_date", formattedScheduleDate)
       .single();
 
     if (scheduleFetchError) {
       console.error(
-        `Error fetching schedule for date ${schedule_date}:`,
+        `Error fetching schedule for date ${formattedScheduleDate}:`,
         scheduleFetchError
       );
       return NextResponse.json(
@@ -46,11 +50,11 @@ export async function POST(request: Request) {
       // Insert new schedule if it doesn't exist
       const { error: scheduleInsertError } = await supabase
         .from("schedules")
-        .insert({ employee_id, schedule_date, status });
+        .insert({ employee_id, formattedScheduleDate, status });
 
       if (scheduleInsertError) {
         console.error(
-          `Error inserting schedule for date ${schedule_date}:`,
+          `Error inserting schedule for date ${formattedScheduleDate}:`,
           scheduleInsertError
         );
         return NextResponse.json(
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
 
       if (scheduleUpdateError) {
         console.error(
-          `Error updating schedule for date ${schedule_date}:`,
+          `Error updating schedule for date ${formattedScheduleDate}:`,
           scheduleUpdateError
         );
         return NextResponse.json(
@@ -96,7 +100,7 @@ export async function POST(request: Request) {
     const email = employeeData.contact_info;
     const employeeName = employeeData.name;
     const zonedDate = toZonedTime(parseISO(schedule_date), timeZone);
-    const formattedDate = format(zonedDate, "EEEE, MMMM d, yyyy");
+    const formattedDate = format(pacificDate, "EEEE, MMMM d yyyy");
 
     let subject: string;
     let EmailTemplate: React.ComponentType<any>;

@@ -474,9 +474,7 @@ const ManageSchedules = () => {
       };
 
       // Format the date to ensure it's in YYYY-MM-DD format
-      const formattedDate = new Date(date + "T00:00:00")
-        .toISOString()
-        .split("T")[0];
+      const formattedDate = format(parseISO(date), "yyyy-MM-dd");
 
       const timesheetData = {
         employee_id: employeeId,
@@ -624,21 +622,28 @@ const ManageSchedules = () => {
   ) => {
     const employee = employees.find((emp) => emp.name === employeeName);
     if (!employee || !date || !startTime || !endTime) {
-      //console.("Missing required information for updating schedule");
+      console.error("Missing required information for updating schedule");
       return;
     }
 
+    // Format the date
+    const formattedDate = format(parseISO(date), "yyyy-MM-dd");
+
     const { error } = await supabase
       .from("schedules")
-      .update({ start_time: startTime, end_time: endTime })
+      .update({
+        start_time: startTime,
+        end_time: endTime,
+        schedule_date: formattedDate, // Use the formatted date here
+      })
       .eq("employee_id", employee.employee_id)
-      .eq("schedule_date", date);
+      .eq("schedule_date", formattedDate); // Use the formatted date here as well
 
     if (error) {
       console.error("Error updating schedule:", error);
       toast.error("Failed to update schedule");
     } else {
-      // toast.success(`Updated schedule for ${employeeName} on ${date}`);
+      toast.success(`Updated schedule for ${employeeName} on ${formattedDate}`);
       fetchReferenceSchedules();
       setUpdateSchedulePopoverOpen(false);
     }

@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { parseISO } from "date-fns";
+import { format, toZonedTime } from "date-fns-tz";
 
 interface TimesheetData {
   id: number;
@@ -64,6 +66,8 @@ interface PopoverFormProps {
 const ClientPopoverForm = dynamic(() => Promise.resolve(PopoverForm), {
   ssr: false,
 });
+
+const timeZone = "America/Los_Angeles";
 
 export const PopoverForm: React.FC<PopoverFormProps> = ({
   onSubmit,
@@ -116,6 +120,10 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
 
       const formattedStartTime = `${startTime}:00`;
       const formattedEndTime = `${endTime}:00`;
+      // Convert the date to Pacific Time
+      const pacificDate = toZonedTime(parseISO(date), timeZone);
+      // Format the date for the API
+      const formattedDate = format(pacificDate, "yyyy-MM-dd");
 
       onSubmit(
         selectedEmployee?.name || "",
@@ -142,11 +150,11 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
 
       if (formType === "addSchedule") {
         toast.success(
-          `Added a shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
+          `Added a shift for ${selectedEmployee?.name} on ${formattedDate} from ${startTime} - ${endTime}!`
         );
       } else {
         toast.success(
-          `Updated shift for ${selectedEmployee?.name} on ${date} from ${startTime} - ${endTime}!`
+          `Updated shift for ${selectedEmployee?.name} on ${formattedDate} from ${startTime} - ${endTime}!`
         );
       }
     } else if (formType === "editTimesheet") {
@@ -185,7 +193,10 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
     setDate(newDate);
 
     if (formType === "updateSchedule" && employeeId && fetchSchedule) {
-      const schedule = await fetchSchedule(employeeId, newDate);
+      // Convert the date to Pacific Time before fetching the schedule
+      const pacificDate = toZonedTime(parseISO(newDate), timeZone);
+      const formattedDate = format(pacificDate, "yyyy-MM-dd");
+      const schedule = await fetchSchedule(employeeId, formattedDate);
       if (schedule) {
         setStartTime(schedule.start_time.slice(0, 5));
         setEndTime(schedule.end_time.slice(0, 5));
