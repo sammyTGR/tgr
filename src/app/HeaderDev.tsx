@@ -263,8 +263,13 @@ const manageComps = [
   },
   {
     title: "Acquisitions",
-    href: "/TGR/fastbound/Acquisitions",
+    href: "/TGR/fastbound/acquisitions",
     description: "Acquisitions",
+  },
+  {
+    title: "Inventory",
+    href: "/TGR/fastbound/inventory",
+    description: "Inventory",
   },
 ];
 
