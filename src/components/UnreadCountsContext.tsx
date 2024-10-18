@@ -86,7 +86,7 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
     }
 
     let totalUnread = (dmData?.length || 0) + (groupData?.length || 0);
-    console.log("Total unread messages:", totalUnread);
+    // console.log("Total unread messages:", totalUnread);
     setTotalUnreadCount(totalUnread);
   }, [user]);
 
@@ -137,7 +137,7 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
       }
     }
 
-    console.log("Unread counts reset, setting total to 0");
+    // console.log("Unread counts reset, setting total to 0");
     setTotalUnreadCount(0);
   }, [user]);
 

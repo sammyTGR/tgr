@@ -155,11 +155,11 @@ export default function FirearmsChecklist() {
         )
       );
 
-      // Fetch gunsmith and admin emails
+      // Fetch gunsmith, admin, super admin, dev roles, and specific individuals
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
-        .select("contact_info, role")
-        .in("role", ["gunsmith", "admin", "super admin", "dev"]);
+        .select("contact_info, name, role")
+        .or("role.in.(gunsmith),name.in.(Sammy, Russ, Slim Jim, Michelle)");
 
       if (employeesError) throw employeesError;
 

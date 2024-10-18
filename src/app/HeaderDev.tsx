@@ -273,6 +273,19 @@ const manageComps = [
   },
 ];
 
+const fbComps = [
+  {
+    title: "Inventory",
+    href: "/TGR/fastbound/inventory",
+    description: "Inventory",
+  },
+  {
+    title: "Acquisitions",
+    href: "/TGR/fastbound/acquisitions",
+    description: "Acquisitions",
+  },
+];
+
 const comboComps = [
   {
     title: "Safety Waiver",
@@ -512,6 +525,22 @@ const HeaderDev = React.memo(() => {
               <NavigationMenuContent>
                 <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
                   {comboComps.map((component) => (
+                    <ListItem
+                      key={component.title}
+                      title={component.title}
+                      href={component.href}
+                    >
+                      {component.description}
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Fastbound</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  {fbComps.map((component) => (
                     <ListItem
                       key={component.title}
                       title={component.title}

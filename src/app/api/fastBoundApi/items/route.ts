@@ -1,72 +1,94 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 const BASE_URL = 'https://cloud.fastbound.com'; // This is the correct base URL for FastBound
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
 const API_KEY = process.env.FASTBOUND_API_KEY;
 const AUDIT_USER = process.env.FASTBOUND_AUDIT_USER;
 
-const rateLimiter = {
-  lastRequestTime: 0,
+class RateLimiter {
+  private lastRequestTime: number = 0;
+  private requestCount: number = 0;
+  private readonly resetInterval: number = 60000; // 1 minute in milliseconds
+
   async limit() {
     const now = Date.now();
-    if (now - this.lastRequestTime < 1000) {
-      await new Promise(resolve => setTimeout(resolve, 1000 - (now - this.lastRequestTime)));
+    if (now - this.lastRequestTime >= this.resetInterval) {
+      this.requestCount = 0;
+      this.lastRequestTime = now;
     }
-    this.lastRequestTime = Date.now();
+
+    if (this.requestCount >= 60) {
+      const waitTime = this.resetInterval - (now - this.lastRequestTime);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      this.requestCount = 0;
+      this.lastRequestTime = Date.now();
+    }
+
+    this.requestCount++;
   }
-};
+}
 
-export async function GET(request: Request) {
+const rateLimiter = new RateLimiter();
+
+async function fetchItems(url: string, headers: HeadersInit) {
+  await rateLimiter.limit();
+  const response = await fetch(url, { method: 'GET', headers });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`FastBound API error: ${response.status} ${errorText}`);
+  }
+
+  return response.json();
+}
+
+export async function GET(request: NextRequest) {
   try {
-    if (!ACCOUNT_NUMBER || !API_KEY || !AUDIT_USER) {
-      console.error('Missing environment variables:', { ACCOUNT_NUMBER, API_KEY: API_KEY ? 'Set' : 'Not set', AUDIT_USER });
-      throw new Error('Missing required environment variables');
-    }
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const itemsPerPage = parseInt(searchParams.get('itemsPerPage') || '50', 10);
 
-    const { searchParams } = new URL(request.url);
-    const isDropdownDataRequest = searchParams.get('dropdownData') === 'true';
+    // console.log("Received request - Page:", page, "Items per page:", itemsPerPage);
 
     const validParams = new URLSearchParams();
-
     searchParams.forEach((value, key) => {
-      if (value) {
+      if (value && !['page', 'itemsPerPage'].includes(key)) {
         validParams.append(key, value);
       }
     });
+    validParams.append('page', page.toString());
+    validParams.append('itemsPerPage', itemsPerPage.toString());
 
-    const url = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}`;
-    console.log('Request URL:', url);
+    const url = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}&page=${page}&itemsPerPage=${itemsPerPage}`;
+    // console.log("FastBound API URL:", url);
 
     const headers = {
       'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
       'Content-Type': 'application/json',
       'X-AuditUser': AUDIT_USER,
     };
-    console.log('Request headers:', headers);
-
-    await rateLimiter.limit();
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: headers,
+      headers: headers as HeadersInit,
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('FastBound API error:', response.status, errorText);
-      throw new Error(`Failed to fetch items: ${response.status} ${errorText}`);
+      console.error("FastBound API error:", response.status, await response.text());
+      throw new Error(`FastBound API error: ${response.status}`);
     }
 
     const data = await response.json();
+    // console.log("FastBound API response:", JSON.stringify(data, null, 2));
 
-    if (isDropdownDataRequest) {
-      const manufacturers = Array.from(new Set(data.items.map((item: any) => item.manufacturer)));
-      const locations = Array.from(new Set(data.items.map((item: any) => item.location)));
-      const calibers = Array.from(new Set(data.items.map((item: any) => item.caliber)));
-      return NextResponse.json({ manufacturers, locations, calibers });
-    }
-
-    return NextResponse.json(data);
+    return NextResponse.json({
+      items: data.items || [],
+      totalItems: data.records || 0,
+      currentPage: page,
+      totalPages: Math.ceil((data.records || 0) / itemsPerPage),
+      itemsPerPage: itemsPerPage,
+      records: data.records || 0,
+    });
   } catch (error: any) {
     console.error('Error in API route:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
