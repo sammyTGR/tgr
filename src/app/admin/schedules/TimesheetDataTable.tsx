@@ -142,9 +142,11 @@ export function TimesheetDataTable({
         <ScrollArea
           className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}
         >
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="sticky top-0 bg-background z-5">
+          <div className="overflow-auto">
+            <ScrollArea>
+              <div className="flex max-h-calc[(100vh-600px)]">
+                <table className="w-full divide-y divide-gray-200 overflow-hidden">
+                  <thead className="sticky top-0 bg-background z-5">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -212,7 +214,12 @@ export function TimesheetDataTable({
                 })}
               </tbody>
             </table>
+            </div>
+            <ScrollBar orientation="vertical" />
+            <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </div>
+          <ScrollBar orientation="horizontal" />
           <ScrollBar orientation="vertical" />
         </ScrollArea>
       </div>
