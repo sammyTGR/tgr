@@ -160,9 +160,8 @@ export const UnreadCountsProvider: React.FC<React.PropsWithChildren<{}>> = ({
             .contains("users", [user.id]);
 
           if (error) {
-            throw new Error(
-              `Error fetching user's group chats: ${error.message}`
-            );
+            throw new Error();
+            // `Error fetching user's group chats: ${error.message}`
           }
 
           const userGroupChats = groupChats.map((chat) => chat.id);

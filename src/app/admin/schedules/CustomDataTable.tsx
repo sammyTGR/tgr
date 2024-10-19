@@ -18,18 +18,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScheduleRowActions } from "./schedule-row-actions";
 import { SchedulePagination } from "./schedule-pagination";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+
+const timeZone = "America/Los_Angeles";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
-  fetchReferenceSchedules: () => void; // Function to refresh schedules after update
-  fetchActualSchedules: () => void; // Function to refresh schedules after update
+  fetchReferenceSchedules: () => void;
+  fetchActualSchedules: () => void;
   showPagination?: boolean;
 }
 
-export function DataTable<TData, TValue>({
+export function CustomDataTable<TData, TValue>({
   columns,
   data,
   sorting,
@@ -49,7 +52,7 @@ export function DataTable<TData, TValue>({
   ]);
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
-  const sortedColumns = React.useMemo(() => {
+  const formattedColumns = React.useMemo(() => {
     return columns.map((column) => {
       if (column.id === "day_of_week") {
         return {
@@ -71,13 +74,42 @@ export function DataTable<TData, TValue>({
           },
         };
       }
+      if (column.id === "start_time" || column.id === "end_time") {
+        return {
+          ...column,
+          cell: ({ getValue }: { getValue: () => any }) => {
+            const value = getValue();
+            if (typeof value === "string") {
+              // Handle HH:mm:ss or HH:mm format
+              const match = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+              if (match) {
+                const [_, hours, minutes] = match;
+                const date = new Date(
+                  2000,
+                  0,
+                  1,
+                  parseInt(hours),
+                  parseInt(minutes)
+                );
+                const zonedDate = toZonedTime(date, timeZone);
+                return formatInTimeZone(zonedDate, timeZone, "h:mm a");
+              }
+            }
+            if (value instanceof Date) {
+              const zonedDate = toZonedTime(value, timeZone);
+              return formatInTimeZone(zonedDate, timeZone, "h:mm a");
+            }
+            return value;
+          },
+        };
+      }
       return column;
     });
   }, [columns]);
 
   const table = useReactTable({
     data,
-    columns: sortedColumns,
+    columns: formattedColumns,
     state: {
       columnFilters,
       sorting: sorting || [],
@@ -113,22 +145,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
-      <div className="flex flex-row items-center justify-between mx-2 my-2">
-        <Input
-          placeholder="Search schedules..."
-          value={searchInput}
-          onChange={(event) => {
-            setSearchInput(event.target.value);
-            table
-              .getColumn("employee_name")
-              ?.setFilterValue(event.target.value);
-          }}
-          className="max-w-sm w-full"
-        />
-        {searchInput && (
-          <Button onClick={handleResetFilter}>Reset Filter</Button>
-        )}
-      </div>
       <div className="overflow-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
@@ -168,7 +184,6 @@ export function DataTable<TData, TValue>({
             ))}
           </tbody>
         </table>
-        {showPagination && <SchedulePagination table={table} />}
       </div>
     </div>
   );

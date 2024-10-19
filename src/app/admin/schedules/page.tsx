@@ -10,6 +10,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
+  SortingState,
 } from "@tanstack/react-table";
 import { SchedulePagination } from "./schedule-pagination";
 import { PopoverForm } from "./PopoverForm";
@@ -130,6 +131,9 @@ const ManageSchedules = () => {
   >([]);
   const [timesheets, setTimesheets] = useState<TimesheetData[]>([]);
   const [addSchedulePopoverOpen, setAddSchedulePopoverOpen] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "day_of_week", desc: false },
+  ]);
   const [updateSchedulePopoverOpen, setUpdateSchedulePopoverOpen] =
     useState(false);
 
@@ -784,8 +788,11 @@ const ManageSchedules = () => {
               <DataTable
                 columns={scheduleColumns}
                 data={[...referenceSchedules, ...actualSchedules]}
+                sorting={sorting}
+                onSortingChange={setSorting}
                 fetchReferenceSchedules={fetchReferenceSchedules}
                 fetchActualSchedules={fetchActualSchedules}
+                showPagination={true}
               />
             </CardContent>
           </TabsContent>

@@ -22,7 +22,7 @@ const useRealtimeNotifications = () => {
       .contains("users", [user.id]);
 
     if (error) {
-      console.error("Error fetching user's group chats:", error.message);
+      // console.error("Error fetching user's group chats:", error.message);
       return [];
     }
     return data.map((chat) => chat.id);

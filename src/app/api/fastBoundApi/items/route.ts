@@ -45,22 +45,17 @@ async function fetchItems(url: string, headers: HeadersInit) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const itemsPerPage = parseInt(searchParams.get('itemsPerPage') || '50', 10);
+    const pageNumber = searchParams.get('pageNumber') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
 
-    // console.log("Received request - Page:", page, "Items per page:", itemsPerPage);
+    console.log("API route received params:", Object.fromEntries(searchParams));
 
-    const validParams = new URLSearchParams();
-    searchParams.forEach((value, key) => {
-      if (value && !['page', 'itemsPerPage'].includes(key)) {
-        validParams.append(key, value);
-      }
-    });
-    validParams.append('page', page.toString());
-    validParams.append('itemsPerPage', itemsPerPage.toString());
-
-    const url = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}&page=${page}&itemsPerPage=${itemsPerPage}`;
-    // console.log("FastBound API URL:", url);
+    const validParams = new URLSearchParams(searchParams);
+    validParams.set('pageNumber', pageNumber);
+    validParams.set('pageSize', pageSize);
+    
+    const url = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}`;
+    console.log("FastBound API URL:", url);
 
     const headers = {
       'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
@@ -79,16 +74,9 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    // console.log("FastBound API response:", JSON.stringify(data, null, 2));
+    console.log("FastBound API response:", JSON.stringify(data, null, 2));
 
-    return NextResponse.json({
-      items: data.items || [],
-      totalItems: data.records || 0,
-      currentPage: page,
-      totalPages: Math.ceil((data.records || 0) / itemsPerPage),
-      itemsPerPage: itemsPerPage,
-      records: data.records || 0,
-    });
+    return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error in API route:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

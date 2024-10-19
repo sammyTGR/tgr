@@ -1,7 +1,7 @@
 // admin\team\profiles\[employeeId]\page.tsx
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation"; // Correct import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,7 +39,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { CustomDataTable } from "@/app/admin/schedules/CustomDataTable"; // Correct import for the DataTable
+import { columns as scheduleColumns } from "@/app/admin/schedules/columns";
+import {
+  columns as originalColumns,
+  ColumnDef,
+  ScheduleData,
+} from "@/app/admin/schedules/columns";
+import { format, parseISO } from "date-fns";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
@@ -52,7 +59,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { toZonedTime, format as formatTZ, formatInTimeZone } from "date-fns-tz";
+import { SortingState } from "@tanstack/react-table";
 interface Note {
   id: number;
   profile_employee_id: number;
@@ -164,6 +172,8 @@ const daysOfWeek = [
   "Saturday",
 ];
 
+const timezone = "America/Los_Angeles";
+
 const EmployeeProfile = () => {
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
@@ -233,6 +243,11 @@ const EmployeeProfile = () => {
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [weekDates, setWeekDates] = useState<{ [key: string]: string }>({});
+  const [referenceSchedules, setReferenceSchedules] = useState<any[]>([]);
+  const [actualSchedules, setActualSchedules] = useState<any[]>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "day_of_week", desc: false },
+  ]);
   const [data, setData] = useState<{
     calendarData: EmployeeCalendar[];
     employeeNames: string[];
@@ -240,6 +255,101 @@ const EmployeeProfile = () => {
     calendarData: [],
     employeeNames: [],
   });
+
+  const combinedSchedules = useMemo(() => {
+    const timeZone = "America/Los_Angeles"; // Adjust this to your desired time zone
+    const combined = [...referenceSchedules, ...actualSchedules]
+      .filter((schedule) => schedule.employee_id === employeeId)
+      .map((schedule) => {
+        if (!schedule.schedule_date) {
+          console.warn("Schedule missing schedule_date:", schedule);
+          return schedule;
+        }
+
+        try {
+          const scheduleDate = parseISO(schedule.schedule_date);
+          const dayOfWeek = format(scheduleDate, "EEEE");
+
+          // Format start_time and end_time as h:mm a
+          const formattedStartTime = schedule.start_time
+            ? formatInTimeZone(
+                toZonedTime(
+                  parseISO(`${schedule.schedule_date}T${schedule.start_time}`),
+                  timeZone
+                ),
+                timeZone,
+                "h:mm a"
+              )
+            : schedule.start_time;
+          const formattedEndTime = schedule.end_time
+            ? formatInTimeZone(
+                toZonedTime(
+                  parseISO(`${schedule.schedule_date}T${schedule.end_time}`),
+                  timeZone
+                ),
+                timeZone,
+                "h:mm a"
+              )
+            : schedule.end_time;
+
+          console.log(
+            `Schedule date: ${schedule.schedule_date}, Day of week: ${dayOfWeek}, Start time: ${formattedStartTime}, End time: ${formattedEndTime}`
+          );
+
+          return {
+            ...schedule,
+            day_of_week: dayOfWeek,
+            start_time: formattedStartTime,
+            end_time: formattedEndTime,
+          };
+        } catch (error) {
+          console.error("Error processing schedule:", schedule, error);
+          return schedule;
+        }
+      });
+
+    console.log("Combined schedules for employee:", combined);
+    return combined;
+  }, [referenceSchedules, actualSchedules, employeeId]);
+
+  const filteredColumns: ColumnDef<ScheduleData>[] = originalColumns.filter(
+    (column) =>
+      !["employee_name", "event_date", "employee_id"].includes(
+        (column as any).accessorKey
+      )
+  );
+
+  const fetchReferenceSchedules = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("reference_schedules")
+      .select("*")
+      .eq("employee_id", employeeId);
+
+    if (error) {
+      console.error("Error fetching reference schedules:", error);
+    } else {
+      setReferenceSchedules(data || []);
+    }
+  }, [employeeId]);
+
+  const fetchActualSchedules = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("schedules")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .or("status.eq.scheduled,status.eq.added_day");
+
+    if (error) {
+      console.error("Error fetching actual schedules:", error);
+    } else {
+      setActualSchedules(data || []);
+    }
+  }, [employeeId]);
+
+  useEffect(() => {
+    fetchReferenceSchedules();
+    fetchActualSchedules();
+  }, [fetchReferenceSchedules, fetchActualSchedules]);
 
   const fetchCalendarData = useCallback(async (): Promise<
     EmployeeCalendar[]
@@ -1280,7 +1390,9 @@ const EmployeeProfile = () => {
               <TabsList className="border-b border-gray-200 dark:border-gray-700">
                 <TabsTrigger value="daily_briefing">Daily Briefing</TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
-                <TabsTrigger value="absences">Attendance</TabsTrigger>
+                <TabsTrigger value="absences">
+                  Attendance & Schedules
+                </TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="growth">Growth Tracking</TabsTrigger>
                 <TabsTrigger value="sales">Sales</TabsTrigger>
@@ -1675,6 +1787,26 @@ const EmployeeProfile = () => {
                         </Card>
                       </div>
                       {/* End of Cards Grid */}
+
+                      {/* Add the DataTable here */}
+                      <div className="grid p-2 gap-4 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-1">
+                        <Card className="mt-4">
+                          <CardHeader>
+                            <CardTitle>Employee Schedule</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CustomDataTable
+                              columns={filteredColumns}
+                              data={combinedSchedules}
+                              fetchReferenceSchedules={fetchReferenceSchedules}
+                              fetchActualSchedules={fetchActualSchedules}
+                              sorting={sorting}
+                              onSortingChange={setSorting}
+                              showPagination={true}
+                            />
+                          </CardContent>
+                        </Card>
+                      </div>
 
                       {/* Occurrences Card */}
                       <div className="grid p-2 gap-4 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-1">
