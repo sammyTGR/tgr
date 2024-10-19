@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   keepPreviousData,
   useQuery,
@@ -55,8 +55,8 @@ interface SearchParams {
   location: string;
   condition: string;
   status: string;
-  page: number;
-  itemsPerPage: number;
+  skip: number;
+  take: number;
 }
 
 const initialSearchParams: SearchParams = {
@@ -70,8 +70,8 @@ const initialSearchParams: SearchParams = {
   location: "",
   condition: "",
   status: "",
-  page: 1,
-  itemsPerPage: 50,
+  skip: 0,
+  take: 10,
 };
 
 const fetchInventory = async (
@@ -80,30 +80,21 @@ const fetchInventory = async (
   const params = new URLSearchParams(
     Object.entries(searchParams).filter(([_, v]) => v !== "")
   );
-  params.set("pageNumber", searchParams.page.toString());
-  params.set("pageSize", searchParams.itemsPerPage.toString());
   const url = `/api/fastBoundApi/items?${params.toString()}`;
 
-  console.log("Fetching inventory with params:", searchParams);
-  console.log("API URL:", url);
+  console.log("Fetching inventory with URL:", url);
 
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Failed to fetch inventory");
+    const errorText = await response.text();
+    console.error("Error fetching inventory:", errorText);
+    throw new Error(`Failed to fetch inventory: ${errorText}`);
   }
 
   const data = await response.json();
   console.log("Received inventory data:", JSON.stringify(data, null, 2));
 
-  // Ensure the response includes the necessary pagination information
-  return {
-    items: data.items || [],
-    totalItems: data.totalItems || 0,
-    currentPage: data.currentPage || searchParams.page,
-    totalPages: data.totalPages || 1,
-    records: data.records || 0,
-    itemsPerPage: data.itemsPerPage || searchParams.itemsPerPage,
-  };
+  return data;
 };
 
 const fetchManufacturers = async () => {
@@ -124,7 +115,7 @@ const fetchLocations = async () => {
   return response.json();
 };
 
-export function InventoryPageClient() {
+function InventoryPage() {
   const queryClient = useQueryClient();
 
   const searchParamsQuery = useQuery({
@@ -133,23 +124,38 @@ export function InventoryPageClient() {
     staleTime: Infinity,
   });
 
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      console.log("Changing to page:", newPage);
+      const newSkip = (newPage - 1) * (searchParamsQuery.data?.take || 10);
+      updateSearchParams({ skip: newSkip });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    [searchParamsQuery.data?.take, queryClient]
+  );
+
   const inventoryQuery = useQuery({
-    queryKey: [
-      "inventory",
-      searchParamsQuery.data?.page,
-      searchParamsQuery.data?.itemsPerPage,
-      searchParamsQuery.data,
-    ],
+    queryKey: ["inventory", searchParamsQuery.data],
     queryFn: () =>
       fetchInventory(searchParamsQuery.data || initialSearchParams),
-    enabled: false,
+    enabled: !!searchParamsQuery.data,
     placeholderData: keepPreviousData,
+    select: (data: InventoryResponse) => {
+      if (data.items.length === 0 && (searchParamsQuery.data?.skip || 0) > 0) {
+        console.log("Empty page detected, fetching previous page");
+        const currentPage =
+          Math.floor(
+            (searchParamsQuery.data?.skip || 0) /
+              (searchParamsQuery.data?.take || 10)
+          ) + 1;
+        handlePageChange(currentPage - 1);
+      }
+      return data;
+    },
   });
 
-  // Log the data when it changes
-  if (inventoryQuery.data) {
-    console.log("Current inventory data:", inventoryQuery.data);
-  }
+  console.log("Current search params:", searchParamsQuery.data);
+  console.log("Current inventory data:", inventoryQuery.data);
 
   const { data: manufacturers } = useQuery({
     queryKey: ["manufacturers"],
@@ -169,48 +175,26 @@ export function InventoryPageClient() {
   const updateSearchParams = (updates: Partial<SearchParams>) => {
     queryClient.setQueryData<SearchParams>(["searchParams"], (old) => {
       const newParams = { ...old!, ...updates };
-      // Ensure all string fields have at least an empty string
-      Object.keys(newParams).forEach((key) => {
-        const typedKey = key as keyof SearchParams;
-        if (
-          typeof newParams[typedKey] === "string" &&
-          newParams[typedKey] === undefined
-        ) {
-          (newParams[typedKey] as string) = "";
-        }
-      });
+      console.log("Updated search params:", newParams);
       return newParams;
     });
   };
 
   const handleSearch = () => {
-    updateSearchParams({ page: 1 });
+    updateSearchParams({ skip: 0 });
     inventoryQuery.refetch();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSearchParams({ [e.target.name]: e.target.value });
+    updateSearchParams({ [e.target.name]: e.target.value, skip: 0 });
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    updateSearchParams({ [name]: value });
-  };
-
-  const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > (inventoryQuery.data?.totalPages || 1)) {
-      return;
-    }
-    console.log("Changing to page:", newPage);
-    queryClient.setQueryData<SearchParams>(["searchParams"], (old) => {
-      const updatedParams = { ...old!, page: newPage };
-      console.log("Updated search params:", updatedParams);
-      return updatedParams;
-    });
-    inventoryQuery.refetch();
+    updateSearchParams({ [name]: value, skip: 0 });
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    updateSearchParams({ itemsPerPage: newItemsPerPage, page: 1 });
+    updateSearchParams({ take: newItemsPerPage, skip: 0 });
     inventoryQuery.refetch();
   };
 
@@ -221,6 +205,14 @@ export function InventoryPageClient() {
     );
     inventoryQuery.refetch();
   };
+
+  const currentPage =
+    Math.floor(
+      (searchParamsQuery.data?.skip || 0) / (searchParamsQuery.data?.take || 10)
+    ) + 1;
+  const totalPages = Math.ceil(
+    (inventoryQuery.data?.records || 0) / (searchParamsQuery.data?.take || 10)
+  );
 
   return (
     <div className="flex justify-center items-center mt-8 mx-auto max-w-[calc(100vw-100px)] max-h-[calc(100vh-100px)] overflow-auto">
@@ -336,7 +328,7 @@ export function InventoryPageClient() {
               {inventoryQuery.isFetching && <p>Updating...</p>}
               <ScrollArea>
                 <div className="h-[calc(100vh-500px)] overflow-auto">
-                  <table className="w-full h-full mt-2 overflow-hidden">
+                  <table className="w-full mt-2">
                     <thead>
                       <tr>
                         <th>Item Number</th>
@@ -353,7 +345,7 @@ export function InventoryPageClient() {
                     <tbody className="text-left">
                       {inventoryQuery.data?.items.map((item, index) => (
                         <tr
-                          key={`${inventoryQuery.data?.currentPage}-${item.id}-${item.itemNumber}`}
+                          key={`${searchParamsQuery.data?.skip}-${item.id}-${item.itemNumber}`}
                         >
                           <td>{item.itemNumber}</td>
                           <td>{item.serial}</td>
@@ -374,32 +366,18 @@ export function InventoryPageClient() {
               </ScrollArea>
               <div className="mt-4 flex justify-between items-center">
                 <Button
-                  onClick={() =>
-                    handlePageChange(
-                      (inventoryQuery.data?.currentPage ?? 1) - 1
-                    )
-                  }
-                  disabled={
-                    (inventoryQuery.data?.currentPage ?? 1) <= 1 ||
-                    inventoryQuery.isFetching
-                  }
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1 || inventoryQuery.isFetching}
                 >
                   Previous Page
                 </Button>
                 <span>
-                  Page {inventoryQuery.data?.currentPage} of{" "}
-                  {inventoryQuery.data?.totalPages}
+                  Page {currentPage} of {totalPages}
                 </span>
                 <Button
-                  onClick={() =>
-                    handlePageChange(
-                      (inventoryQuery.data?.currentPage ?? 1) + 1
-                    )
-                  }
+                  onClick={() => handlePageChange(currentPage + 1)}
                   disabled={
-                    (inventoryQuery.data?.currentPage ?? 1) >=
-                      (inventoryQuery.data?.totalPages ?? 1) ||
-                    inventoryQuery.isFetching
+                    currentPage >= totalPages || inventoryQuery.isFetching
                   }
                 >
                   Next Page
@@ -408,7 +386,7 @@ export function InventoryPageClient() {
               <div className="mt-2">
                 <Label htmlFor="itemsPerPage">Items per page:</Label>
                 <Select
-                  value={searchParamsQuery.data?.itemsPerPage.toString()}
+                  value={searchParamsQuery.data?.take.toString()}
                   onValueChange={(value) =>
                     handleItemsPerPageChange(parseInt(value, 10))
                   }
@@ -436,4 +414,4 @@ export function InventoryPageClient() {
   );
 }
 
-export default InventoryPageClient;
+export default InventoryPage;

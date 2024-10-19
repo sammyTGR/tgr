@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { NextResponse, NextRequest } from 'next/server';
 
 const BASE_URL = 'https://cloud.fastbound.com'; // This is the correct base URL for FastBound
@@ -45,38 +46,40 @@ async function fetchItems(url: string, headers: HeadersInit) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const pageNumber = searchParams.get('pageNumber') || '1';
-    const pageSize = searchParams.get('pageSize') || '50';
-
     console.log("API route received params:", Object.fromEntries(searchParams));
+    const take = parseInt(searchParams.get('take') || '10', 10);
+    const skip = parseInt(searchParams.get('skip') || '0', 10);
 
-    const validParams = new URLSearchParams(searchParams);
-    validParams.set('pageNumber', pageNumber);
-    validParams.set('pageSize', pageSize);
-    
+    const validParams = new URLSearchParams();
+    validParams.set('take', take.toString());
+    validParams.set('skip', skip.toString());
+
+    // Add other necessary parameters
+    ['search', 'itemNumber', 'serial', 'manufacturer', 'importer', 'model', 'type', 'caliber', 'location', 'condition', 'mpn', 'upc', 'sku', 'isTheftLoss', 'isDestroyed', 'doNotDispose', 'dispositionId', 'status', 'acquiredOnOrAfter', 'acquiredOnOrBefore', 'disposedOnOrAfter', 'disposedOnOrBefore', 'hasExternalId', 'acquisitionType'].forEach(param => {
+      const value = searchParams.get(param);
+      if (value !== null && value !== "") validParams.append(param, value);
+    });
+
     const url = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}`;
     console.log("FastBound API URL:", url);
 
     const headers = {
       'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
       'Content-Type': 'application/json',
-      'X-AuditUser': AUDIT_USER,
+      'X-AuditUser': AUDIT_USER || '',
     };
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: headers as HeadersInit,
-    });
-
-    if (!response.ok) {
-      console.error("FastBound API error:", response.status, await response.text());
-      throw new Error(`FastBound API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await fetchItems(url, headers);
     console.log("FastBound API response:", JSON.stringify(data, null, 2));
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      items: data.items || [],
+      totalItems: data.records || 0,
+      currentPage: Math.floor(skip / take) + 1,
+      totalPages: Math.ceil((data.records || 0) / take),
+      itemsPerPage: take,
+      records: data.records || 0,
+    });
   } catch (error: any) {
     console.error('Error in API route:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
