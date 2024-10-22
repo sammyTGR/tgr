@@ -298,6 +298,13 @@ export default function Component() {
       employeeId: null as number | null,
     }),
     staleTime: Infinity,
+    initialData: {
+      // Add this
+      hour: "",
+      minute: "",
+      period: "AM",
+      employeeId: null,
+    },
   });
 
   const lateStartHourQuery = useQuery({
@@ -884,11 +891,18 @@ export default function Component() {
                           placeholder="Hour"
                           value={lateStartDataQuery.data?.hour ?? ""}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, "");
-                            const numValue = parseInt(value);
-                            if (!value || (numValue >= 1 && numValue <= 12)) {
+                            const value = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 2); // Allow up to 2 digits
+                            const numValue = parseInt(value || "0");
+                            if (numValue >= 0 && numValue <= 12) {
+                              // Allow 0 temporarily while typing
+                              const currentData = queryClient.getQueryData([
+                                "lateStartData",
+                              ]);
                               queryClient.setQueryData(["lateStartData"], {
-                                ...lateStartDataQuery.data,
+                                ...(currentData as any),
+                                employeeId: calendarEvent.employee_id,
                                 hour: value,
                               });
                             }
@@ -902,11 +916,17 @@ export default function Component() {
                           placeholder="Minute"
                           value={lateStartDataQuery.data?.minute ?? ""}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, "");
-                            const numValue = parseInt(value);
-                            if (!value || (numValue >= 0 && numValue <= 59)) {
+                            const value = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 2); // Allow up to 2 digits
+                            const numValue = parseInt(value || "0");
+                            if (numValue >= 0 && numValue <= 59) {
+                              const currentData = queryClient.getQueryData([
+                                "lateStartData",
+                              ]);
                               queryClient.setQueryData(["lateStartData"], {
-                                ...lateStartDataQuery.data,
+                                ...(currentData as any),
+                                employeeId: calendarEvent.employee_id,
                                 minute: value,
                               });
                             }
@@ -975,7 +995,8 @@ export default function Component() {
       role,
       lateStartDataQuery.data,
       updateScheduleStatus,
-      updateLateStartDataMutation,
+      queryClient, // Add this
+      lateStartDataQuery,
     ]
   );
 
