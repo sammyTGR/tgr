@@ -2,6 +2,15 @@
 
 import { useCallback, useMemo } from "react";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   format,
   parseISO,
   startOfWeek,
@@ -80,6 +89,11 @@ interface EmployeeCalendar {
   department: string;
   hire_date: string;
   events: CalendarEvent[];
+}
+
+interface LateStartDialogProps {
+  calendarEvent: CalendarEvent | null;
+  onSubmit: (employeeId: number, date: string, time: string) => void;
 }
 
 type BreakRoomDuty = {
@@ -275,6 +289,41 @@ export default function Component() {
   const queryClient = useQueryClient();
 
   // Queries
+  const lateStartDataQuery = useQuery({
+    queryKey: ["lateStartData"],
+    queryFn: () => ({
+      hour: "",
+      minute: "",
+      period: "AM",
+      employeeId: null as number | null,
+    }),
+    staleTime: Infinity,
+  });
+
+  const lateStartHourQuery = useQuery({
+    queryKey: ["lateStartHour"],
+    queryFn: () => "",
+    staleTime: Infinity,
+  });
+
+  const lateStartMinuteQuery = useQuery({
+    queryKey: ["lateStartMinute"],
+    queryFn: () => "",
+    staleTime: Infinity,
+  });
+
+  const lateStartPeriodQuery = useQuery({
+    queryKey: ["lateStartPeriod"],
+    queryFn: () => "AM",
+    staleTime: Infinity,
+  });
+
+  const openDialogIdQuery = useQuery({
+    queryKey: ["openDialogId"],
+    queryFn: () => null as number | null,
+    staleTime: Infinity,
+  });
+
   const currentDateQuery = useQuery({
     queryKey: ["currentDate"],
     queryFn: () => new Date(),
@@ -358,6 +407,54 @@ export default function Component() {
   });
 
   // Mutations
+  const updateLateStartDataMutation = useMutation({
+    mutationFn: (data: Partial<typeof lateStartDataQuery.data>) =>
+      Promise.resolve(data),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ["lateStartData"] });
+      const previousData = queryClient.getQueryData(["lateStartData"]);
+      queryClient.setQueryData(["lateStartData"], (old: any) => ({
+        ...old,
+        ...newData,
+      }));
+      return { previousData };
+    },
+    onError: (err, newData, context: any) => {
+      queryClient.setQueryData(["lateStartData"], context.previousData);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["lateStartData"] });
+    },
+  });
+
+  const updateLateStartHourMutation = useMutation({
+    mutationFn: (hour: string) => Promise.resolve(hour),
+    onSuccess: (hour) => {
+      queryClient.setQueryData(["lateStartHour"], hour);
+    },
+  });
+
+  const updateLateStartMinuteMutation = useMutation({
+    mutationFn: (minute: string) => Promise.resolve(minute),
+    onSuccess: (minute) => {
+      queryClient.setQueryData(["lateStartMinute"], minute);
+    },
+  });
+
+  const updateLateStartPeriodMutation = useMutation({
+    mutationFn: (period: string) => Promise.resolve(period),
+    onSuccess: (period) => {
+      queryClient.setQueryData(["lateStartPeriod"], period);
+    },
+  });
+
+  const updateOpenDialogIdMutation = useMutation({
+    mutationFn: (id: number | null) => Promise.resolve(id),
+    onSuccess: (id) => {
+      queryClient.setQueryData(["openDialogId"], id);
+    },
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       employee_id,
@@ -674,12 +771,9 @@ export default function Component() {
             calendarEvent.status &&
             calendarEvent.status.startsWith("Custom:")
           ) {
-            const customStatus = calendarEvent.status
-              .replace("Custom:", "")
-              .trim();
             return (
               <div className="text-green-500 dark:text-green-400">
-                {customStatus === "Off" ? "Off" : customStatus}
+                {calendarEvent.status.replace("Custom:", "").trim()}
               </div>
             );
           } else if (
@@ -760,17 +854,19 @@ export default function Component() {
                 >
                   Off
                 </Button>
-                <Dialog
-                  open={dialogOpenQuery.data}
-                  onOpenChange={(open) => updateDialogOpenMutation.mutate(open)}
-                >
+                <Dialog>
                   <DialogTrigger asChild>
                     <Button
                       className="p-4"
                       variant="linkHover2"
                       onClick={() => {
-                        updateCurrentEventMutation.mutate(calendarEvent);
-                        updateDialogOpenMutation.mutate(true);
+                        const now = new Date();
+                        queryClient.setQueryData(["lateStartData"], {
+                          hour: (now.getHours() % 12 || 12).toString(),
+                          minute: now.getMinutes().toString().padStart(2, "0"),
+                          period: now.getHours() >= 12 ? "PM" : "AM",
+                          employeeId: calendarEvent.employee_id,
+                        });
                       }}
                     >
                       Late Start
@@ -780,38 +876,92 @@ export default function Component() {
                     <DialogTitle className="p-4">
                       Enter Late Start Time
                     </DialogTitle>
-                    <input
-                      type="time"
-                      value={lateStartTimeQuery.data}
-                      onChange={(e) =>
-                        updateLateStartTimeMutation.mutate(e.target.value)
-                      }
-                      className="border rounded p-2"
-                    />
-                    <Button
-                      variant="linkHover1"
-                      onClick={() => {
-                        const formattedTime = new Date(
-                          `1970-01-01T${lateStartTimeQuery.data}`
-                        ).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        });
-                        updateScheduleStatus(
-                          calendarEvent.employee_id,
-                          calendarEvent.schedule_date,
-                          `Late Start ${formattedTime}`
-                        );
-                        updateDialogOpenMutation.mutate(false);
-                        updateLateStartTimeMutation.mutate("");
-                      }}
-                    >
-                      Submit
-                    </Button>
-                    <DialogClose asChild>
-                      <Button variant="linkHover2">Cancel</Button>
-                    </DialogClose>
+                    <div className="flex space-x-2">
+                      <div className="flex-1">
+                        <Label htmlFor="hour">Hour (1-12)</Label>
+                        <Input
+                          type="text"
+                          placeholder="Hour"
+                          value={lateStartDataQuery.data?.hour ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            const numValue = parseInt(value);
+                            if (!value || (numValue >= 1 && numValue <= 12)) {
+                              queryClient.setQueryData(["lateStartData"], {
+                                ...lateStartDataQuery.data,
+                                hour: value,
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label htmlFor="minute">Minute (0-59)</Label>
+                        <Input
+                          type="text"
+                          placeholder="Minute"
+                          value={lateStartDataQuery.data?.minute ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            const numValue = parseInt(value);
+                            if (!value || (numValue >= 0 && numValue <= 59)) {
+                              queryClient.setQueryData(["lateStartData"], {
+                                ...lateStartDataQuery.data,
+                                minute: value,
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label htmlFor="period">AM/PM</Label>
+                        <Select
+                          value={lateStartDataQuery.data?.period ?? ""}
+                          onValueChange={(value) => {
+                            queryClient.setQueryData(["lateStartData"], {
+                              ...lateStartDataQuery.data,
+                              period: value,
+                            });
+                          }}
+                        >
+                          <SelectTrigger id="period">
+                            <SelectValue placeholder="AM/PM" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AM">AM</SelectItem>
+                            <SelectItem value="PM">PM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-4">
+                      <Button
+                        variant="linkHover1"
+                        onClick={() => {
+                          const { hour, minute, period } =
+                            lateStartDataQuery.data || {};
+                          if (hour && minute && period) {
+                            const formattedTime = `${hour}:${minute} ${period}`;
+                            updateScheduleStatus(
+                              calendarEvent.employee_id,
+                              calendarEvent.schedule_date,
+                              `Late Start ${formattedTime}`
+                            );
+                            queryClient.setQueryData(["lateStartData"], {
+                              hour: "",
+                              minute: "",
+                              period: "AM",
+                              employeeId: null,
+                            });
+                          }
+                        }}
+                      >
+                        Submit
+                      </Button>
+                      <DialogClose asChild>
+                        <Button variant="linkHover2">Cancel</Button>
+                      </DialogClose>
+                    </div>
                   </DialogContent>
                 </Dialog>
               </PopoverContent>
@@ -823,12 +973,9 @@ export default function Component() {
     },
     [
       role,
-      dialogOpenQuery.data,
-      lateStartTimeQuery.data,
+      lateStartDataQuery.data,
       updateScheduleStatus,
-      updateDialogOpenMutation,
-      updateCurrentEventMutation,
-      updateLateStartTimeMutation,
+      updateLateStartDataMutation,
     ]
   );
 

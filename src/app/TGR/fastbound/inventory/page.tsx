@@ -42,6 +42,7 @@ interface InventoryResponse {
   totalPages: number;
   records: number;
   itemsPerPage: number;
+  skip: number;
 }
 
 interface SearchParams {
@@ -77,16 +78,31 @@ const initialSearchParams: SearchParams = {
 const fetchInventory = async (
   searchParams: SearchParams
 ): Promise<InventoryResponse> => {
-  const { skip, take, ...otherParams } = searchParams;
   const params = new URLSearchParams(
-    Object.entries({
-      ...otherParams,
-      skip: skip.toString(),
-      take: take.toString(),
-    }).filter(([_, v]) => v !== "" && v !== undefined)
+    Object.entries(searchParams).filter(
+      ([_, v]) => v !== "" && v !== undefined && v !== null
+    )
   );
-  const url = `/api/fastBoundApi/items?${params.toString()}`;
 
+  // Check if any search parameters are present (excluding skip, take, and searchTriggered)
+  const hasSearchParams = Array.from(params.entries()).some(
+    ([key, value]) =>
+      value !== "" && !["skip", "take", "searchTriggered"].includes(key)
+  );
+
+  if (!hasSearchParams) {
+    return {
+      items: [],
+      totalItems: 0,
+      currentPage: 1,
+      totalPages: 0,
+      records: 0,
+      itemsPerPage: searchParams.take,
+      skip: 0,
+    };
+  }
+
+  const url = `/api/fastBoundApi/items?${params.toString()}`;
   console.log("Fetching inventory with full URL:", url);
 
   const response = await fetch(url);
@@ -96,10 +112,7 @@ const fetchInventory = async (
     throw new Error(`Failed to fetch inventory: ${errorText}`);
   }
 
-  const data = await response.json();
-  console.log("Received inventory data:", JSON.stringify(data, null, 2));
-
-  return data;
+  return response.json();
 };
 
 const fetchManufacturers = async () => {
@@ -138,20 +151,14 @@ function InventoryPage() {
     ],
     queryFn: () =>
       fetchInventory(searchParamsQuery.data || initialSearchParams),
-    enabled: false,
+    enabled: !!searchParamsQuery.data?.searchTriggered,
     placeholderData: keepPreviousData,
   });
 
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      console.log("Changing to page:", newPage);
-      const newSkip = (newPage - 1) * (searchParamsQuery.data?.take || 10);
-      console.log("New skip value:", newSkip);
-      updateSearchParams({ skip: newSkip });
-      inventoryQuery.refetch();
-    },
-    [searchParamsQuery.data?.take, inventoryQuery]
-  );
+  const handlePageChange = (newPage: number) => {
+    const newSkip = (newPage - 1) * (searchParamsQuery.data?.take || 10);
+    updateSearchParams({ skip: newSkip });
+  };
 
   console.log("Current search params:", searchParamsQuery.data);
   console.log("Current inventory data:", inventoryQuery.data);
@@ -171,20 +178,22 @@ function InventoryPage() {
     queryFn: fetchLocations,
   });
 
-  const updateSearchParams = (updates: Partial<SearchParams>) => {
-    queryClient.setQueryData<SearchParams>(["searchParams"], (old) => {
-      const newParams = {
+  const updateSearchParams = (
+    updates: Partial<SearchParams> & { searchTriggered?: boolean }
+  ) => {
+    queryClient.setQueryData<SearchParams & { searchTriggered: boolean }>(
+      ["searchParams"],
+      (old) => ({
         ...old!,
         ...updates,
-        skip: typeof updates.skip === "number" ? updates.skip : old!.skip,
-      };
-      console.log("Updated search params:", newParams);
-      return newParams;
-    });
+        searchTriggered:
+          updates.searchTriggered ?? old?.searchTriggered ?? false,
+      })
+    );
   };
 
   const handleSearch = () => {
-    updateSearchParams({ skip: 0 });
+    updateSearchParams({ skip: 0, searchTriggered: true });
     inventoryQuery.refetch();
   };
 
@@ -198,15 +207,22 @@ function InventoryPage() {
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     updateSearchParams({ take: newItemsPerPage, skip: 0 });
-    inventoryQuery.refetch();
   };
 
   const resetSearch = () => {
-    queryClient.setQueryData<SearchParams>(
+    queryClient.setQueryData<SearchParams & { searchTriggered: boolean }>(
       ["searchParams"],
-      initialSearchParams
+      { ...initialSearchParams, searchTriggered: false }
     );
-    inventoryQuery.refetch();
+    queryClient.removeQueries({ queryKey: ["inventory"] });
+    console.log(
+      "Reset search params:",
+      queryClient.getQueryData(["searchParams"])
+    );
+    console.log(
+      "Reset inventory data:",
+      queryClient.getQueryData(["inventory"])
+    );
   };
 
   const currentPage =
@@ -325,7 +341,7 @@ function InventoryPage() {
             <p>Loading...</p>
           ) : inventoryQuery.isError ? (
             <p>Error: {(inventoryQuery.error as Error).message}</p>
-          ) : inventoryQuery.data ? (
+          ) : inventoryQuery.data && searchParamsQuery.data?.searchTriggered ? (
             <div className="mt-4 text-left">
               <h3>Results: {inventoryQuery.data.records} items found</h3>
               {inventoryQuery.isFetching && <p>Updating...</p>}
@@ -372,9 +388,6 @@ function InventoryPage() {
                 >
                   Previous Page
                 </Button>
-                <span>
-                  Page {currentPage} of {totalPages}
-                </span>
                 <Button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={

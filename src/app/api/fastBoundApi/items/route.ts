@@ -66,7 +66,6 @@ export async function GET(request: NextRequest) {
     const validParams = new URLSearchParams();
     validParams.set('take', take.toString());
     validParams.set('skip', skip.toString());
-    validParams.set('accountNumber', ACCOUNT_NUMBER || '');
 
     // Add other necessary parameters
     ['search', 'itemNumber', 'serial', 'manufacturer', 'importer', 'model', 'type', 'caliber', 'location', 'condition', 'mpn', 'upc', 'sku', 'isTheftLoss', 'isDestroyed', 'doNotDispose', 'dispositionId', 'status', 'acquiredOnOrAfter', 'acquiredOnOrBefore', 'disposedOnOrAfter', 'disposedOnOrBefore', 'hasExternalId', 'acquisitionType'].forEach(param => {
@@ -76,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     const fbParams = validParams;
 
-    const fbUrl = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}`;
+    const fbUrl = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${fbParams.toString()}`;
     console.log("Requesting FastBound API with URL:", fbUrl);
 
     if (!API_KEY) {
