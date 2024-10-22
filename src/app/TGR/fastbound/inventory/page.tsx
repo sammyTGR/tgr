@@ -77,12 +77,17 @@ const initialSearchParams: SearchParams = {
 const fetchInventory = async (
   searchParams: SearchParams
 ): Promise<InventoryResponse> => {
+  const { skip, take, ...otherParams } = searchParams;
   const params = new URLSearchParams(
-    Object.entries(searchParams).filter(([_, v]) => v !== "")
+    Object.entries({
+      ...otherParams,
+      skip: skip.toString(),
+      take: take.toString(),
+    }).filter(([_, v]) => v !== "" && v !== undefined)
   );
   const url = `/api/fastBoundApi/items?${params.toString()}`;
 
-  console.log("Fetching inventory with URL:", url);
+  console.log("Fetching inventory with full URL:", url);
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -120,39 +125,33 @@ function InventoryPage() {
 
   const searchParamsQuery = useQuery({
     queryKey: ["searchParams"],
-    queryFn: () => initialSearchParams,
+    queryFn: () => ({ ...initialSearchParams, searchTriggered: false }),
     staleTime: Infinity,
+  });
+
+  const inventoryQuery = useQuery({
+    queryKey: [
+      "inventory",
+      searchParamsQuery.data?.skip,
+      searchParamsQuery.data?.take,
+      searchParamsQuery.data,
+    ],
+    queryFn: () =>
+      fetchInventory(searchParamsQuery.data || initialSearchParams),
+    enabled: false,
+    placeholderData: keepPreviousData,
   });
 
   const handlePageChange = useCallback(
     (newPage: number) => {
       console.log("Changing to page:", newPage);
       const newSkip = (newPage - 1) * (searchParamsQuery.data?.take || 10);
+      console.log("New skip value:", newSkip);
       updateSearchParams({ skip: newSkip });
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      inventoryQuery.refetch();
     },
-    [searchParamsQuery.data?.take, queryClient]
+    [searchParamsQuery.data?.take, inventoryQuery]
   );
-
-  const inventoryQuery = useQuery({
-    queryKey: ["inventory", searchParamsQuery.data],
-    queryFn: () =>
-      fetchInventory(searchParamsQuery.data || initialSearchParams),
-    enabled: !!searchParamsQuery.data,
-    placeholderData: keepPreviousData,
-    select: (data: InventoryResponse) => {
-      if (data.items.length === 0 && (searchParamsQuery.data?.skip || 0) > 0) {
-        console.log("Empty page detected, fetching previous page");
-        const currentPage =
-          Math.floor(
-            (searchParamsQuery.data?.skip || 0) /
-              (searchParamsQuery.data?.take || 10)
-          ) + 1;
-        handlePageChange(currentPage - 1);
-      }
-      return data;
-    },
-  });
 
   console.log("Current search params:", searchParamsQuery.data);
   console.log("Current inventory data:", inventoryQuery.data);
@@ -174,7 +173,11 @@ function InventoryPage() {
 
   const updateSearchParams = (updates: Partial<SearchParams>) => {
     queryClient.setQueryData<SearchParams>(["searchParams"], (old) => {
-      const newParams = { ...old!, ...updates };
+      const newParams = {
+        ...old!,
+        ...updates,
+        skip: typeof updates.skip === "number" ? updates.skip : old!.skip,
+      };
       console.log("Updated search params:", newParams);
       return newParams;
     });
@@ -215,7 +218,7 @@ function InventoryPage() {
   );
 
   return (
-    <div className="flex justify-center items-center mt-8 mx-auto max-w-[calc(100vw-100px)] max-h-[calc(100vh-100px)] overflow-auto">
+    <div className="flex justify-center items-center mt-8 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Inventory Search</CardTitle>
@@ -327,7 +330,7 @@ function InventoryPage() {
               <h3>Results: {inventoryQuery.data.records} items found</h3>
               {inventoryQuery.isFetching && <p>Updating...</p>}
               <ScrollArea>
-                <div className="h-[calc(100vh-500px)] overflow-auto">
+                <div className="h-[calc(100vh-500px)] overflow-hidden">
                   <table className="w-full mt-2">
                     <thead>
                       <tr>
@@ -344,9 +347,7 @@ function InventoryPage() {
                     </thead>
                     <tbody className="text-left">
                       {inventoryQuery.data?.items.map((item, index) => (
-                        <tr
-                          key={`${searchParamsQuery.data?.skip}-${item.id}-${item.itemNumber}`}
-                        >
+                        <tr key={`${item.id}-${item.itemNumber}`}>
                           <td>{item.itemNumber}</td>
                           <td>{item.serial}</td>
                           <td>{item.manufacturer}</td>

@@ -674,9 +674,12 @@ export default function Component() {
             calendarEvent.status &&
             calendarEvent.status.startsWith("Custom:")
           ) {
+            const customStatus = calendarEvent.status
+              .replace("Custom:", "")
+              .trim();
             return (
               <div className="text-green-500 dark:text-green-400">
-                {calendarEvent.status.replace("Custom:", "").trim()}
+                {customStatus === "Off" ? "Off" : customStatus}
               </div>
             );
           } else if (

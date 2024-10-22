@@ -3,6 +3,9 @@ import { NextResponse, NextRequest } from 'next/server';
 
 const BASE_URL = 'https://cloud.fastbound.com'; // This is the correct base URL for FastBound
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
+if (!ACCOUNT_NUMBER) {
+  throw new Error('FASTBOUND_ACCOUNT_NUMBER is not set in environment variables');
+};
 const API_KEY = process.env.FASTBOUND_API_KEY;
 const AUDIT_USER = process.env.FASTBOUND_AUDIT_USER;
 
@@ -33,26 +36,37 @@ const rateLimiter = new RateLimiter();
 
 async function fetchItems(url: string, headers: HeadersInit) {
   await rateLimiter.limit();
-  const response = await fetch(url, { method: 'GET', headers });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`FastBound API error: ${response.status} ${errorText}`);
-  }
+  try {
+    const response = await fetch(url, { method: 'GET', headers });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("FastBound API error response:", {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers),
+        body: errorText
+      });
+      throw new Error(`FastBound API error: ${response.status} ${errorText}`);
+    }
 
-  return response.json();
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching items from FastBound API:", error);
+    throw error;
+  }
 }
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    console.log("API route received params:", Object.fromEntries(searchParams));
-    const take = parseInt(searchParams.get('take') || '10', 10);
     const skip = parseInt(searchParams.get('skip') || '0', 10);
+    const take = parseInt(searchParams.get('take') || '10', 10);
 
     const validParams = new URLSearchParams();
     validParams.set('take', take.toString());
     validParams.set('skip', skip.toString());
+    validParams.set('accountNumber', ACCOUNT_NUMBER || '');
 
     // Add other necessary parameters
     ['search', 'itemNumber', 'serial', 'manufacturer', 'importer', 'model', 'type', 'caliber', 'location', 'condition', 'mpn', 'upc', 'sku', 'isTheftLoss', 'isDestroyed', 'doNotDispose', 'dispositionId', 'status', 'acquiredOnOrAfter', 'acquiredOnOrBefore', 'disposedOnOrAfter', 'disposedOnOrBefore', 'hasExternalId', 'acquisitionType'].forEach(param => {
@@ -60,8 +74,14 @@ export async function GET(request: NextRequest) {
       if (value !== null && value !== "") validParams.append(param, value);
     });
 
-    const url = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}`;
-    console.log("FastBound API URL:", url);
+    const fbParams = validParams;
+
+    const fbUrl = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${validParams.toString()}`;
+    console.log("Requesting FastBound API with URL:", fbUrl);
+
+    if (!API_KEY) {
+      throw new Error('FASTBOUND_API_KEY is not set in environment variables');
+    }
 
     const headers = {
       'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
@@ -69,16 +89,31 @@ export async function GET(request: NextRequest) {
       'X-AuditUser': AUDIT_USER || '',
     };
 
-    const data = await fetchItems(url, headers);
+    console.log("Request headers:", headers);
+
+    const data = await fetchItems(fbUrl, headers);
     console.log("FastBound API response:", JSON.stringify(data, null, 2));
+
+    const totalItems = data.records || 0;
+    const totalPages = Math.ceil(totalItems / take);
+    const currentPage = Math.floor(skip / take) + 1;
+
+    console.log("Pagination info:", {
+      skip,
+      take,
+      currentPage,
+      totalPages,
+      totalItems,
+    });
 
     return NextResponse.json({
       items: data.items || [],
-      totalItems: data.records || 0,
-      currentPage: Math.floor(skip / take) + 1,
-      totalPages: Math.ceil((data.records || 0) / take),
+      totalItems,
+      currentPage,
+      totalPages,
       itemsPerPage: take,
-      records: data.records || 0,
+      records: totalItems,
+      skip,
     });
   } catch (error: any) {
     console.error('Error in API route:', error);
