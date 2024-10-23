@@ -101,6 +101,13 @@ type BreakRoomDuty = {
   dutyDate: Date;
 } | null;
 
+type LateStartData = {
+  employeeId: string;
+  hour: string;
+  minute: string;
+  period: string;
+};
+
 // Utility functions
 const getStartOfWeek = (date: Date) => {
   const start = new Date(date);
@@ -289,6 +296,18 @@ export default function Component() {
   const queryClient = useQueryClient();
 
   // Queries
+  const popoverOpenQuery = useQuery({
+    queryKey: ["popoverOpen"],
+    queryFn: () => false,
+    staleTime: Infinity,
+  });
+
+  const { data: lateStartData } = useQuery({
+    queryKey: ["lateStartData"],
+    queryFn: () => ({ hour: "", minute: "", period: "AM", employeeId: null }),
+    // This provides default values if no data is set
+  });
+
   const lateStartDataQuery = useQuery({
     queryKey: ["lateStartData"],
     queryFn: () => ({
@@ -414,6 +433,27 @@ export default function Component() {
   });
 
   // Mutations
+  const updatePopoverOpenMutation = useMutation({
+    mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
+    onSuccess: (isOpen) => {
+      queryClient.setQueryData(["popoverOpen"], isOpen);
+    },
+  });
+
+  const updateLateStartData = useMutation({
+    mutationFn: (newData: Partial<typeof lateStartData>) => {
+      // Here you would typically update the data on the server
+      // For now, we'll just return the new data
+      return Promise.resolve(newData);
+    },
+    onSuccess: (newData) => {
+      queryClient.setQueryData(["lateStartData"], (oldData: any) => ({
+        ...oldData,
+        ...newData,
+      }));
+    },
+  });
+
   const updateLateStartDataMutation = useMutation({
     mutationFn: (data: Partial<typeof lateStartDataQuery.data>) =>
       Promise.resolve(data),
@@ -557,6 +597,13 @@ export default function Component() {
     },
     [queryClient, updateIsSubmittingMutation]
   );
+
+  const handleInputChange = (
+    field: keyof typeof lateStartData,
+    value: string
+  ) => {
+    updateLateStartData.mutate({ [field]: value });
+  };
 
   const handleSubmitSuccess = useCallback(() => {
     updateIsSubmittingMutation.mutate(false);
@@ -818,174 +865,183 @@ export default function Component() {
       if (role && ["admin", "super admin", "dev"].includes(role)) {
         return (
           <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="linkHover1">
-                  <CaretUpIcon className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Button
-                  variant="linkHover2"
-                  onClick={() =>
-                    updateScheduleStatus(
-                      calendarEvent.employee_id,
-                      calendarEvent.schedule_date,
-                      "called_out"
-                    )
-                  }
-                >
-                  Called Out
-                </Button>
-                <Button
-                  variant="linkHover2"
-                  onClick={() =>
-                    updateScheduleStatus(
-                      calendarEvent.employee_id,
-                      calendarEvent.schedule_date,
-                      "left_early"
-                    )
-                  }
-                >
-                  Left Early
-                </Button>
-                <Button
-                  variant="linkHover2"
-                  onClick={() =>
-                    updateScheduleStatus(
-                      calendarEvent.employee_id,
-                      calendarEvent.schedule_date,
-                      "Custom:Off"
-                    )
-                  }
-                >
-                  Off
-                </Button>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      className="p-4"
-                      variant="linkHover2"
-                      onClick={() => {
-                        const now = new Date();
-                        queryClient.setQueryData(["lateStartData"], {
-                          hour: (now.getHours() % 12 || 12).toString(),
-                          minute: now.getMinutes().toString().padStart(2, "0"),
-                          period: now.getHours() >= 12 ? "PM" : "AM",
-                          employeeId: calendarEvent.employee_id,
-                        });
-                      }}
-                    >
-                      Late Start
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogTitle className="p-4">
-                      Enter Late Start Time
-                    </DialogTitle>
-                    <div className="flex space-x-2">
-                      <div className="flex-1">
-                        <Label htmlFor="hour">Hour (1-12)</Label>
-                        <Input
-                          type="text"
-                          placeholder="Hour"
-                          value={lateStartDataQuery.data?.hour ?? ""}
-                          onChange={(e) => {
-                            const value = e.target.value
-                              .replace(/\D/g, "")
-                              .slice(0, 2); // Allow up to 2 digits
-                            const numValue = parseInt(value || "0");
-                            if (numValue >= 0 && numValue <= 12) {
-                              // Allow 0 temporarily while typing
-                              const currentData = queryClient.getQueryData([
-                                "lateStartData",
-                              ]);
-                              queryClient.setQueryData(["lateStartData"], {
-                                ...(currentData as any),
-                                employeeId: calendarEvent.employee_id,
-                                hour: value,
-                              });
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Label htmlFor="minute">Minute (0-59)</Label>
-                        <Input
-                          type="text"
-                          placeholder="Minute"
-                          value={lateStartDataQuery.data?.minute ?? ""}
-                          onChange={(e) => {
-                            const value = e.target.value
-                              .replace(/\D/g, "")
-                              .slice(0, 2); // Allow up to 2 digits
-                            const numValue = parseInt(value || "0");
-                            if (numValue >= 0 && numValue <= 59) {
-                              const currentData = queryClient.getQueryData([
-                                "lateStartData",
-                              ]);
-                              queryClient.setQueryData(["lateStartData"], {
-                                ...(currentData as any),
-                                employeeId: calendarEvent.employee_id,
-                                minute: value,
-                              });
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Label htmlFor="period">AM/PM</Label>
-                        <Select
-                          value={lateStartDataQuery.data?.period ?? ""}
-                          onValueChange={(value) => {
-                            queryClient.setQueryData(["lateStartData"], {
-                              ...lateStartDataQuery.data,
-                              period: value,
-                            });
-                          }}
-                        >
-                          <SelectTrigger id="period">
-                            <SelectValue placeholder="AM/PM" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="AM">AM</SelectItem>
-                            <SelectItem value="PM">PM</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-2 mt-4">
-                      <Button
-                        variant="linkHover1"
-                        onClick={() => {
-                          const { hour, minute, period } =
-                            lateStartDataQuery.data || {};
-                          if (hour && minute && period) {
-                            const formattedTime = `${hour}:${minute} ${period}`;
-                            updateScheduleStatus(
-                              calendarEvent.employee_id,
-                              calendarEvent.schedule_date,
-                              `Late Start ${formattedTime}`
-                            );
-                            queryClient.setQueryData(["lateStartData"], {
-                              hour: "",
-                              minute: "",
-                              period: "AM",
-                              employeeId: null,
-                            });
-                          }
-                        }}
-                      >
-                        Submit
-                      </Button>
-                      <DialogClose asChild>
-                        <Button variant="linkHover2">Cancel</Button>
-                      </DialogClose>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </PopoverContent>
-            </Popover>
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="linkHover1">
+      <CaretUpIcon className="h-4 w-4" />
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent>
+    <Button
+      variant="linkHover2"
+      onClick={() => {
+        updateScheduleStatus(
+          calendarEvent.employee_id,
+          calendarEvent.schedule_date,
+          "called_out"
+        );
+        updatePopoverOpenMutation.mutate(false);
+      }}
+    >
+      Called Out
+    </Button>
+    <Button
+      variant="linkHover2"
+      onClick={() => {
+        updateScheduleStatus(
+          calendarEvent.employee_id,
+          calendarEvent.schedule_date,
+          "left_early"
+        );
+        updatePopoverOpenMutation.mutate(false);
+      }}
+    >
+      Left Early
+    </Button>
+    <Button
+      variant="linkHover2"
+      onClick={() => {
+        updateScheduleStatus(
+          calendarEvent.employee_id,
+          calendarEvent.schedule_date,
+          "Custom:Off"
+        );
+        updatePopoverOpenMutation.mutate(false);
+      }}
+    >
+      Off
+    </Button>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          className="p-4"
+          variant="linkHover2"
+          onClick={() => {
+            queryClient.setQueryData(["lateStartData"], {
+              hour: "",
+              minute: "",
+              period: "AM",
+              employeeId: calendarEvent.employee_id,
+            });
+            updatePopoverOpenMutation.mutate(false);
+          }}
+        >
+          Late Start
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogTitle className="p-4">Enter Late Start Time</DialogTitle>
+        <div className="flex space-x-2">
+          <div className="flex-1">
+            <Label>Hour</Label>
+            <Input
+              type="text"
+              placeholder="HH"
+              maxLength={2}
+              onChange={(e) => {
+                const value = e.target.value;
+                const currentData =
+                  queryClient.getQueryData(["lateStartData"]) || {};
+                queryClient.setQueryData(["lateStartData"], {
+                  ...currentData,
+                  hour: value,
+                  employeeId: calendarEvent.employee_id,
+                });
+              }}
+            />
+          </div>
+          <div className="flex-1">
+            <Label>Minute</Label>
+            <Input
+              type="text"
+              placeholder="MM"
+              maxLength={2}
+              onChange={(e) => {
+                const value = e.target.value;
+                const currentData =
+                  queryClient.getQueryData(["lateStartData"]) || {};
+                queryClient.setQueryData(["lateStartData"], {
+                  ...currentData,
+                  minute: value,
+                  employeeId: calendarEvent.employee_id,
+                });
+              }}
+            />
+          </div>
+          <div className="flex-1">
+            <Label>AM/PM</Label>
+            <Select
+              defaultValue="AM"
+              onValueChange={(value) => {
+                const currentData =
+                  queryClient.getQueryData(["lateStartData"]) || {};
+                queryClient.setQueryData(["lateStartData"], {
+                  ...currentData,
+                  period: value,
+                  employeeId: calendarEvent.employee_id,
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AM">AM</SelectItem>
+                <SelectItem value="PM">PM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex justify-end space-x-2 mt-4">
+          <DialogClose asChild>
+            <Button
+              onClick={() => {
+                const data = queryClient.getQueryData([
+                  "lateStartData",
+                ]) as any;
+                if (data?.hour && data?.minute && data?.period) {
+                  const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
+                  updateScheduleStatus(
+                    calendarEvent.employee_id,
+                    calendarEvent.schedule_date,
+                    `Late Start ${formattedTime}`
+                  );
+                  // Reset the form
+                  queryClient.setQueryData(["lateStartData"], {
+                    hour: "",
+                    minute: "",
+                    period: "AM",
+                    employeeId: null,
+                  });
+                  // Close both Dialog and Popover
+                  updatePopoverOpenMutation.mutate(false);
+                }
+              }}
+            >
+              Submit
+            </Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                // Reset form on cancel
+                queryClient.setQueryData(["lateStartData"], {
+                  hour: "",
+                  minute: "",
+                  period: "AM",
+                  employeeId: null,
+                });
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogClose>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </PopoverContent>
+</Popover>
           </div>
         );
       }
