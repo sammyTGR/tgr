@@ -78,6 +78,18 @@ interface Certificate {
   expiration: Date;
 }
 
+interface SalesDataResponse {
+  totalGross: number;
+  totalNet: number;
+  totalNetMinusExclusions: number;
+  salesData: Array<{
+    category_label: string;
+    total_gross: number;
+    total_net: number;
+    // Add other fields as needed
+  }>;
+}
+
 interface Gunsmith {
   last_maintenance_date: string;
   firearm_name: string;
@@ -119,12 +131,30 @@ interface Suggestion {
   email: string;
 }
 
+interface ReplyStates {
+  [key: number]: string;
+}
+
+declare global {
+  interface Function {
+    timeoutId?: number;
+  }
+}
+
 const timeZone = "America/Los_Angeles";
 
 function AdminDashboardContent() {
   const flags = useFlags(["is_todo_enabled", "is_barchart_enabled"]);
   const queryClient = useQueryClient();
   const { role } = useRole();
+
+  // Modify the suggestions section in AdminDashboardContent:
+  const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
+    useQuery({
+      queryKey: ["replyStates"],
+      queryFn: () => ({} as ReplyStates),
+      staleTime: Infinity,
+    });
 
   const { data: domains } = useQuery({
     queryKey: ["domains"],
@@ -192,6 +222,99 @@ function AdminDashboardContent() {
     staleTime: Infinity,
   });
 
+  //Mutations
+  const handleSuggestionReplyMutation = useMutation({
+    mutationFn: async ({
+      suggestion,
+      replyText,
+    }: {
+      suggestion: Suggestion;
+      replyText: string;
+    }) => {
+      if (!suggestion.id) {
+        throw new Error("Suggestion ID is missing");
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const fullName = user?.user_metadata?.name || "";
+      const firstName = fullName.split(" ")[0];
+      const replierName = firstName || "Admin";
+
+      const { error } = await supabase
+        .from("employee_suggestions")
+        .update({
+          is_read: true,
+          replied_by: replierName,
+          replied_at: new Date().toISOString(),
+          reply: replyText,
+        })
+        .eq("id", suggestion.id);
+
+      if (error) throw error;
+
+      await sendEmail(
+        suggestion.email,
+        "Reply to Your Suggestion",
+        "SuggestionReply",
+        {
+          employeeName: suggestion.created_by,
+          originalSuggestion: suggestion.suggestion,
+          replyText: replyText,
+          repliedBy: replierName,
+        }
+      );
+
+      return { suggestion, replyText };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggestions"] });
+      toast.success("Reply sent successfully!");
+    },
+    onError: (error) => {
+      console.error("Error sending reply:", error);
+      toast.error("Failed to send reply. Please try again.");
+    },
+  });
+
+  const updateRangeMutation = useMutation({
+    mutationFn: (date: Date) => {
+      const newStart = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+      const newEnd = new Date(newStart);
+      newEnd.setHours(23, 59, 59, 999);
+      return Promise.resolve({ start: newStart, end: newEnd });
+    },
+    onSuccess: (newRange) => {
+      queryClient.setQueryData(["selectedRange"], newRange);
+    },
+  });
+
+  const handleReplyTextChangeMutation = useMutation({
+    mutationFn: ({
+      suggestionId,
+      text,
+    }: {
+      suggestionId: number;
+      text: string;
+    }) => {
+      return Promise.resolve({ suggestionId, text });
+    },
+    onSuccess: ({ suggestionId, text }) => {
+      queryClient.setQueryData(["replyStates"], (old: ReplyStates = {}) => ({
+        ...old,
+        [suggestionId]: text,
+      }));
+    },
+  });
+
   const updateReplyTextMutation = useMutation({
     mutationFn: (newReplyText: string) => {
       return Promise.resolve(newReplyText);
@@ -213,19 +336,36 @@ function AdminDashboardContent() {
       yesterday.setHours(0, 0, 0, 0);
       const endOfYesterday = new Date(yesterday);
       endOfYesterday.setHours(23, 59, 59, 999);
-      return { start: yesterday, end: endOfYesterday };
+      return {
+        start: yesterday,
+        end: endOfYesterday,
+      } as const; // Make the return type more explicit
     },
-    staleTime: Infinity, // This data doesn't change unless we explicitly change it
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Convert salesData to a query
+  // Update the sales data query with proper configuration
   const { data: salesData, refetch: refetchSalesData } = useQuery({
-    queryKey: ["salesData", selectedRange],
+    queryKey: [
+      "salesData",
+      selectedRange?.start?.toISOString(),
+      selectedRange?.end?.toISOString(),
+    ],
     queryFn: () =>
       selectedRange
         ? fetchLatestSalesData(selectedRange.start, selectedRange.end)
         : null,
-    enabled: !!selectedRange, // Only run this query when selectedRange is available
+    enabled: !!selectedRange,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch on component mount
+    refetchOnReconnect: false, // Don't refetch on reconnection
   });
 
   const totalGross = salesData?.totalGross ?? 0;
@@ -256,17 +396,7 @@ function AdminDashboardContent() {
   // Update the handlers to use these new mutations
   const handleRangeChange = (date: Date | undefined) => {
     if (date) {
-      const newStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      );
-      const newEnd = new Date(newStart);
-      newEnd.setHours(23, 59, 59, 999);
-      queryClient.setQueryData(["selectedRange"], {
-        start: newStart,
-        end: newEnd,
-      });
+      updateRangeMutation.mutate(date);
     }
   };
 
@@ -296,7 +426,13 @@ function AdminDashboardContent() {
   });
 
   const handleReplyMutation = useMutation({
-    mutationFn: handleReply,
+    mutationFn: ({
+      suggestion,
+      replyText,
+    }: {
+      suggestion: Suggestion;
+      replyText: string;
+    }) => handleReply({ suggestion, replyText }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["suggestions"] }),
   });
@@ -323,6 +459,60 @@ function AdminDashboardContent() {
     onError: (error) => {
       console.error("Error during upload and processing:", error);
       toast.error("Failed to upload and process file");
+    },
+  });
+
+  const replyMutation = useMutation({
+    mutationFn: async ({
+      suggestion,
+      replyText,
+    }: {
+      suggestion: Suggestion;
+      replyText: string;
+    }) => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const fullName = user?.user_metadata?.name || "";
+      const firstName = fullName.split(" ")[0];
+      const replierName = firstName || "Admin";
+
+      const { error } = await supabase
+        .from("employee_suggestions")
+        .update({
+          is_read: true,
+          replied_by: replierName,
+          replied_at: new Date().toISOString(),
+          reply: replyText,
+        })
+        .eq("id", suggestion.id);
+
+      if (error) throw error;
+
+      await sendEmail(
+        suggestion.email,
+        "Reply to Your Suggestion",
+        "SuggestionReply",
+        {
+          employeeName: suggestion.created_by,
+          originalSuggestion: suggestion.suggestion,
+          replyText: replyText,
+          repliedBy: replierName,
+        }
+      );
+
+      return { suggestion, replyText };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggestions"] });
+      toast.success("Reply sent successfully!");
+    },
+    onError: (error) => {
+      console.error("Error sending reply:", error);
+      toast.error("Failed to send reply. Please try again.");
     },
   });
 
@@ -484,6 +674,7 @@ function AdminDashboardContent() {
       "CA Excise Tax",
       "CA Excise Tax Adjustment",
     ];
+
     const excludeCategoriesFromTotalNet = [
       "Pistol",
       "Rifle",
@@ -497,7 +688,13 @@ function AdminDashboardContent() {
     let totalNetMinusExclusions = 0;
     let totalNet = 0;
 
-    salesData.forEach((item: any) => {
+    interface SalesItem {
+      category_label: string;
+      total_gross: number;
+      total_net: number;
+    }
+
+    salesData.forEach((item: SalesItem) => {
       const category = item.category_label;
       const grossValue = item.total_gross ?? 0;
       const netValue = item.total_net ?? 0;
@@ -539,46 +736,19 @@ function AdminDashboardContent() {
     if (error) throw error;
   }
 
-  async function handleReply({
+  function handleReply({
     suggestion,
     replyText,
   }: {
     suggestion: Suggestion;
     replyText: string;
-  }) {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-    if (userError) throw userError;
-
-    const fullName = user?.user_metadata?.name || "";
-    const firstName = fullName.split(" ")[0];
-    const replierName = firstName || "Admin";
-
-    const { error } = await supabase
-      .from("employee_suggestions")
-      .update({
-        is_read: true,
-        replied_by: replierName,
-        replied_at: new Date().toISOString(),
-        reply: replyText,
-      })
-      .eq("id", suggestion.id);
-
-    if (error) throw error;
-
-    await sendEmail(
-      suggestion.email,
-      "Reply to Your Suggestion",
-      "SuggestionReply",
-      {
-        employeeName: suggestion.created_by,
-        originalSuggestion: suggestion.suggestion,
-        replyText: replyText,
-        repliedBy: replierName,
-      }
-    );
+  }): Promise<void> {
+    if (!suggestion.id) {
+      console.error("Suggestion ID is undefined", suggestion);
+      toast.error("Unable to reply: Suggestion ID is missing");
+      return Promise.reject("Suggestion ID is missing");
+    }
+    return replyMutation.mutateAsync({ suggestion, replyText }).then(() => {});
   }
 
   async function handleFileUpload(
@@ -718,7 +888,7 @@ function AdminDashboardContent() {
       }
 
       const result = await response.json();
-      console.log("Email sent successfully:", result);
+      // console.log("Email sent successfully:", result);
     } catch (error: any) {
       console.error("Failed to send email:", error.message);
       throw error;
@@ -766,6 +936,57 @@ function AdminDashboardContent() {
     ["170-8", "Basic Ammunition Eligibility Check"],
   ]);
 
+  function SuggestionReplyForm({
+    suggestion,
+    onSubmit,
+    onClose,
+  }: {
+    suggestion: Suggestion;
+    onSubmit: (text: string) => void;
+    onClose: () => void;
+  }) {
+    const queryClient = useQueryClient();
+
+    const replyTextMutation = useMutation({
+      mutationFn: ({ id, text }: { id: number; text: string }) => {
+        return Promise.resolve({ id, text });
+      },
+      onSuccess: ({ id, text }) => {
+        queryClient.setQueryData(["replyText", id], text);
+      },
+    });
+
+    const { data: replyText = "" } = useQuery({
+      queryKey: ["replyText", suggestion.id],
+      queryFn: () => "",
+      staleTime: Infinity,
+    });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      await onSubmit(replyText);
+      replyTextMutation.mutate({ id: suggestion.id, text: "" }); // Clear the form
+      onClose(); // Close the popover after successful submission
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <h4 className="font-medium">Reply to Suggestion</h4>
+        <Textarea
+          placeholder="Type your reply here..."
+          value={replyText}
+          onChange={(e) =>
+            replyTextMutation.mutate({
+              id: suggestion.id,
+              text: e.target.value,
+            })
+          }
+        />
+        <Button type="submit">Send Reply</Button>
+      </form>
+    );
+  }
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
       <div className="section w-full overflow-hidden">
@@ -773,17 +994,17 @@ function AdminDashboardContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
           {/*todo card*/}
           {flags.is_todo_enabled.enabled && (
-          <div className="w-full overflow-hidden">
             <div className="w-full overflow-hidden">
-              <div className="h-full overflow-hidden">
-                <div className="flex items-center gap-4 pb-4">
-                  <CheckCircledIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
-                  <h1 className="font-semibold text-2xl">Todos</h1>
+              <div className="w-full overflow-hidden">
+                <div className="h-full overflow-hidden">
+                  <div className="flex items-center gap-4 pb-4">
+                    <CheckCircledIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                    <h1 className="font-semibold text-2xl">Todos</h1>
+                  </div>
+                  <TodoWrapper />
                 </div>
-                <TodoWrapper />
               </div>
             </div>
-          </div>
           )}
 
           {/*All Report cards*/}
@@ -914,23 +1135,16 @@ function AdminDashboardContent() {
                                         </Button>
                                       </PopoverTrigger>
                                       <PopoverContent className="w-80">
-                                        <div className="space-y-2">
-                                          <h4 className="font-medium">
-                                            Reply to Suggestion
-                                          </h4>
-                                          <Textarea
-                                            placeholder="Type your reply here..."
-                                            value={replyText}
-                                            onChange={handleReplyTextChange}
-                                          />
-                                          <Button
-                                            onClick={() =>
-                                              handleReply(suggestion)
-                                            }
-                                          >
-                                            Send Reply
-                                          </Button>
-                                        </div>
+                                        <SuggestionReplyForm
+                                          suggestion={suggestion}
+                                          onSubmit={async (replyText) => {
+                                            await handleReply({
+                                              suggestion,
+                                              replyText,
+                                            });
+                                          }}
+                                          onClose={() => {}}
+                                        />
                                       </PopoverContent>
                                     </Popover>
                                     {suggestion.is_read && (
@@ -976,64 +1190,63 @@ function AdminDashboardContent() {
           </div>
 
           {/* Super Admin Only*/}
-          
+
           <div className="w-full overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
               {/* File Upload Section */}
-              
-              {flags.is_barchart_enabled.enabled && (role === "super admin" || role === "dev") && (
-                
-                <Card className="flex flex-col h-full">
-                  <CardHeader className="flex-shrink-0">
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarIcon className="h-6 w-6" />
-                      Select Date For Chart & Table
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                    <div className="mt-4 rounded-md border">
-                      <div className="flex flex-col items-start gap-2 p-2">
-                        <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
-                          <Input
-                            type="file"
-                            accept=".csv,.xlsx"
-                            onChange={handleFileChange}
-                            className="hidden"
-                          />
-                          <span>{fileData?.fileName || "Select File"}</span>
-                        </label>
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            fileData?.file &&
-                            uploadFileMutation.mutate(fileData.file)
-                          }
-                          className="w-full"
-                          disabled={
-                            uploadFileMutation.isPending || !fileData?.file
-                          }
-                        >
-                          {uploadFileMutation.isPending
-                            ? "Uploading..."
-                            : "Upload & Process"}
-                        </Button>
-                      </div>
-                    </div>
 
-                    {uploadFileMutation.isPending && (
-                      <Progress
-                        value={
-                          typeof uploadProgress === "number"
-                            ? uploadProgress
-                            : 0
-                        }
-                        className="mt-4"
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-              
+              {flags.is_barchart_enabled.enabled &&
+                (role === "super admin" || role === "dev") && (
+                  <Card className="flex flex-col h-full">
+                    <CardHeader className="flex-shrink-0">
+                      <CardTitle className="flex items-center gap-2">
+                        <CalendarIcon className="h-6 w-6" />
+                        Select Date For Chart & Table
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                      <div className="mt-4 rounded-md border">
+                        <div className="flex flex-col items-start gap-2 p-2">
+                          <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                            <Input
+                              type="file"
+                              accept=".csv,.xlsx"
+                              onChange={handleFileChange}
+                              className="hidden"
+                            />
+                            <span>{fileData?.fileName || "Select File"}</span>
+                          </label>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              fileData?.file &&
+                              uploadFileMutation.mutate(fileData.file)
+                            }
+                            className="w-full"
+                            disabled={
+                              uploadFileMutation.isPending || !fileData?.file
+                            }
+                          >
+                            {uploadFileMutation.isPending
+                              ? "Uploading..."
+                              : "Upload & Process"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {uploadFileMutation.isPending && (
+                        <Progress
+                          value={
+                            typeof uploadProgress === "number"
+                              ? uploadProgress
+                              : 0
+                          }
+                          className="mt-4"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
               {(role === "super admin" || role === "dev") &&
                 !uploadFileMutation.isPending && (
@@ -1142,138 +1355,138 @@ function AdminDashboardContent() {
 
           {/* Sales Chart*/}
           {flags.is_barchart_enabled.enabled && (
-          <div className="col-span-full overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <CalendarIcon className="h-6 w-6" />
-                    Select Date For Chart & Table
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full pl-3 text-left font-normal mb-2"
-                      >
-                        {selectedRange?.start
-                          ? format(selectedRange.start, "PPP")
-                          : "Select Date"}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CustomCalendar
-                        selectedDate={selectedRange?.start || undefined}
-                        onDateChange={handleRangeChange}
-                        disabledDays={() => false}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Gross Sales
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${totalGross?.toFixed(2) || "N/A"}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Net Sales With Firearms
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${totalNet?.toFixed(2) || "N/A"}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Net Sales Without Firearms
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${totalNetMinusExclusions?.toFixed(2) || "N/A"}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="flex flex-col col-span-full mt-2 mb-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChartIcon className="h-6 w-6" />
-                  Sales Report Chart
-                </CardTitle>
-              </CardHeader>
-              <div className="overflow-hidden">
-                <ScrollArea
-                  className={classNames(
-                    styles.noScroll,
-                    "w-[calc(100vw-90px)] overflow-auto"
-                  )}
-                >
-                  <CardContent className="flex-grow overflow-auto">
-                    <div className="h-[400px]">
-                      <SalesRangeStackedBarChart
-                        selectedRange={{
-                          start: selectedRange?.start ?? undefined,
-                          end: selectedRange?.end ?? undefined,
-                        }}
-                      />
+            <div className="col-span-full overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <CalendarIcon className="h-6 w-6" />
+                      Select Date For Chart & Table
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full pl-3 text-left font-normal mb-2"
+                        >
+                          {selectedRange?.start
+                            ? format(selectedRange.start, "PPP")
+                            : "Select Date"}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CustomCalendar
+                          selectedDate={selectedRange?.start || undefined}
+                          onDateChange={handleRangeChange}
+                          disabledDays={() => false}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Gross Sales
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${totalGross?.toFixed(2) || "N/A"}
                     </div>
                   </CardContent>
-                  <ScrollBar orientation="horizontal" />
-                  <ScrollBar orientation="vertical" />
-                </ScrollArea>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Net Sales With Firearms
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${totalNet?.toFixed(2) || "N/A"}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Total Net Sales Without Firearms
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${totalNetMinusExclusions?.toFixed(2) || "N/A"}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </Card>
-          </div>
+
+              <Card className="flex flex-col col-span-full mt-2 mb-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChartIcon className="h-6 w-6" />
+                    Sales Report Chart
+                  </CardTitle>
+                </CardHeader>
+                <div className="overflow-hidden">
+                  <ScrollArea
+                    className={classNames(
+                      styles.noScroll,
+                      "w-[calc(100vw-90px)] overflow-auto"
+                    )}
+                  >
+                    <CardContent className="flex-grow overflow-auto">
+                      <div className="h-[400px]">
+                        <SalesRangeStackedBarChart
+                          selectedRange={{
+                            start: selectedRange?.start ?? undefined,
+                            end: selectedRange?.end ?? undefined,
+                          }}
+                        />
+                      </div>
+                    </CardContent>
+                    <ScrollBar orientation="horizontal" />
+                    <ScrollBar orientation="vertical" />
+                  </ScrollArea>
+                </div>
+              </Card>
+            </div>
           )}
 
           {/* Sales Report Table*/}
           {flags.is_barchart_enabled.enabled && (
-          <div className="col-span-full overflow-hidden mt-2">
-            <Card className="flex flex-col col-span-full h-full">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle className="flex items-center gap-2">
-                  <TableIcon className="h-6 w-6" />
-                  Sales Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
-                <Suspense fallback={<div></div>}>
-                  <div className=" overflow-hidden ">
-                    <SalesDataTable
-                      startDate={
-                        selectedRange?.start
-                          ? format(selectedRange.start, "yyyy-MM-dd")
-                          : "N/A"
-                      }
-                      endDate={
-                        selectedRange?.end
-                          ? format(selectedRange.end, "yyyy-MM-dd")
-                          : "N/A"
-                      }
-                    />
-                  </div>
-                </Suspense>
-              </CardContent>
-            </Card>
-          </div>
+            <div className="col-span-full overflow-hidden mt-2">
+              <Card className="flex flex-col col-span-full h-full">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="flex items-center gap-2">
+                    <TableIcon className="h-6 w-6" />
+                    Sales Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
+                  <Suspense fallback={<div></div>}>
+                    <div className=" overflow-hidden ">
+                      <SalesDataTable
+                        startDate={
+                          selectedRange?.start
+                            ? format(selectedRange.start, "yyyy-MM-dd")
+                            : "N/A"
+                        }
+                        endDate={
+                          selectedRange?.end
+                            ? format(selectedRange.end, "yyyy-MM-dd")
+                            : "N/A"
+                        }
+                      />
+                    </div>
+                  </Suspense>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </div>

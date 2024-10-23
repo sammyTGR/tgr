@@ -13,6 +13,7 @@ import OrderSetStatus from "../../../../emails/OrderSetStatus";
 import SuggestionReply from "../../../../emails/SuggestionReply";
 import AdminOvertimeAlert from "../../../../emails/AdminOvertimeAlert";
 import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
+import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotification";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -114,6 +115,13 @@ export async function POST(request: Request) {
           originalSuggestion: templateData.originalSuggestion,
           replyText: templateData.replyText,
           repliedBy: templateData.repliedBy,
+        });
+        fromEmail = `TGR <suggestions@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "AdminSuggestionNotification":
+        emailTemplate = AdminSuggestionNotification({
+          employeeName: templateData.employeeName,
+          suggestion: templateData.suggestion,
         });
         fromEmail = `TGR <suggestions@${process.env.RESEND_DOMAIN}>`;
         break;
