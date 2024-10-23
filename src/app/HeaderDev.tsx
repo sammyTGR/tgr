@@ -485,9 +485,9 @@ const HeaderDev = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["dev"]}>
-      <header className="flex justify-between items-center p-2">
+      <header className="flex justify-between items-center p-1">
         <NavigationMenu>
-          <NavigationMenuList className="flex space-x-4 mr-3">
+          <NavigationMenuList className="flex space-x-1 mr-3">
             <NavigationMenuItem>
               <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -602,38 +602,34 @@ const HeaderDev = React.memo(() => {
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-        <div className="flex items-center">
+        <div className="flex items-center -space-x-2">
           {unreadOrderCount > 0 && (
-            <Link href="/sales/orderreview">
-              <Button variant="linkHover1" size="icon">
+            <Link href="/sales/orderreview" className="mr-1">
+              <Button variant="ghost" size="icon">
                 <FileTextIcon />
                 <span className="badge">{unreadOrderCount}</span>
               </Button>
             </Link>
           )}
           {unreadTimeOffCount > 0 && (
-            <Link href="/admin/timeoffreview">
-              <Button variant="linkHover1" size="icon">
+            <Link href="/admin/timeoffreview" className="mr-1">
+              <Button variant="ghost" size="icon">
                 <CalendarIcon />
                 <span className="badge">{unreadTimeOffCount}</span>
               </Button>
             </Link>
           )}
-          <Link href="/">
-            <Button variant="linkHover2" size="icon">
+          <Link href="/" className="mr-1">
+            <Button variant="ghost" size="icon">
               <HomeIcon />
             </Button>
           </Link>
 
           {user ? (
-            <>
+            <div className="flex items-center space-x-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="linkHover2"
-                    size="icon"
-                    className="mr-2 relative"
-                  >
+                  <Button variant="ghost" size="icon" className="mr-2 relative">
                     <PersonIcon />
                     {totalUnreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
@@ -707,7 +703,7 @@ const HeaderDev = React.memo(() => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </>
+            </div>
           ) : (
             <Link href="/sign-in">
               <Button variant="linkHover2">Sign In</Button>
