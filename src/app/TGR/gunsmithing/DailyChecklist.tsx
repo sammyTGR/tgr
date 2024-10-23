@@ -184,6 +184,21 @@ export default function DailyChecklist({
     }
   };
 
+  const fetchGunsmithEmail = async () => {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("contact_info")
+      .eq("role", "gunsmith")
+      .single();
+
+    if (error) {
+      console.error("Error fetching gunsmith email:", error);
+      return null;
+    }
+
+    return data?.contact_info || null;
+  };
+
   const submitAdminRequest = async (id: number) => {
     try {
       const firearm = firearms.find((f) => f.id === id);
@@ -224,6 +239,36 @@ export default function DailyChecklist({
       setNewRequest("");
       setActiveRequestFirearmId(null);
       toast.success("Request submitted successfully");
+
+      // Fetch gunsmith email
+      const gunsmithEmail = await fetchGunsmithEmail();
+
+      if (!gunsmithEmail) {
+        throw new Error("Gunsmith email not found");
+      }
+
+      // Send email notification to gunsmith
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: gunsmithEmail,
+          subject: "Requesting Update",
+          templateName: "GunsmithNewRequest",
+          templateData: {
+            firearmId: firearm.id,
+            firearmName: firearm.firearm_name,
+            requestedBy: userName || "Unknown",
+            requestMessage: newRequest,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email notification");
+      }
     } catch (error) {
       console.error("Error submitting request:", error);
       toast.error("Failed to submit request");

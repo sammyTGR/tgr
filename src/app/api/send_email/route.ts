@@ -14,6 +14,7 @@ import SuggestionReply from "../../../../emails/SuggestionReply";
 import AdminOvertimeAlert from "../../../../emails/AdminOvertimeAlert";
 import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
 import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotification";
+import GunsmithNewRequest from "../../../../emails/GunsmithNewRequest";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -89,6 +90,15 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
         break;
+        case "GunsmithNewRequest":
+          emailTemplate = GunsmithNewRequest({
+            firearmId: templateData.firearmId,
+            firearmName: templateData.firearmName,
+            requestedBy: templateData.requestedBy,
+            requestMessage: templateData.requestMessage,
+          });
+          fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
+          break;
       case "OrderCustomerContacted":
         emailTemplate = OrderCustomerContacted({
           id: templateData.id,
