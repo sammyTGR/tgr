@@ -208,7 +208,7 @@ export default function SignIn() {
                   className="w-full"
                   disabled={loading}
                 >
-                  {loading ? "Logging in..." : "Login with Google"}
+                  {loading ? "Logging in..." : "Login With Google"}
                 </Button>
               </form>
               <div className="mt-6 text-center text-sm">

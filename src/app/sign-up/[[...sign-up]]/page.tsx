@@ -192,7 +192,7 @@ export default function SignUp() {
             variant="outline"
             className="w-full mt-4"
           >
-            Sign Up with Google
+            Sign Up With Google
           </Button>
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
