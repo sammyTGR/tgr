@@ -22,36 +22,17 @@ const useRealtimeNotifications = () => {
       .contains("users", [user.id]);
 
     if (error) {
-      // console.error("Error fetching user's group chats:", error.message);
       return [];
     }
-    return data.map((chat) => chat.id);
+    const chatIds = data.map((chat) => chat.id);
+    setUserGroupChats(chatIds); // Update state manually
+    return chatIds;
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
 
     const client = supabase;
-
-    fetchUserGroupChats().then((chats) => {
-      setUserGroupChats(chats);
-    });
-
-    const fetchGroupChatName = async (groupChatId: number) => {
-      try {
-        const { data, error } = await supabase
-          .from("group_chats")
-          .select("name")
-          .eq("id", groupChatId)
-          .single();
-
-        if (error) throw error;
-        return data.name;
-      } catch (error) {
-        console.error("Error fetching group chat name:", error);
-        return "Group Chat";
-      }
-    };
 
     const fetchSender = async (senderId: string) => {
       try {
@@ -92,7 +73,7 @@ const useRealtimeNotifications = () => {
         if (shouldNotify && payload.new.message.trim() !== "") {
           const senderName = await fetchSender(payload.new.sender_id);
           const chatName = isGroupChat
-            ? await fetchGroupChatName(payload.new.group_chat_id)
+            ? "Group Chat"
             : senderName;
 
           // Check if the user is on the chat page
@@ -198,14 +179,14 @@ const useRealtimeNotifications = () => {
             });
 
             // Fetch the group chat name
-            const groupChatName = await fetchGroupChatName(payload.new.id);
+            // const groupChatName = await fetchGroupChatName(payload.new.id);
 
             // Fetch the creator's name
             const creatorName = await fetchSender(payload.new.created_by);
 
             // Show notification only to the members of the new group chat
             if (user.id !== payload.new.created_by) {
-              toast(`New Group Chat Created: ${groupChatName}`, {
+              toast(`New Group Chat Created: ${payload.new.name}`, {
                 description: `${creatorName} has added you to a new group chat.`,
                 action: {
                   label: "Open",
@@ -225,16 +206,9 @@ const useRealtimeNotifications = () => {
       groupChatChannel?.unsubscribe();
       groupChatCreationChannel?.unsubscribe();
     };
-  }, [
-    user,
-    pathname,
-    router,
-    userGroupChats,
-    fetchUserGroupChats,
-    setTotalUnreadCount,
-  ]);
+  }, [user, pathname, router, userGroupChats, setTotalUnreadCount]);
 
-  return null;
+  return { fetchUserGroupChats }; // Return the function so it can be called externally
 };
 
 export default useRealtimeNotifications;

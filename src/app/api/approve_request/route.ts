@@ -86,7 +86,12 @@ export async function POST(request: Request) {
     }
 
     if (use_vacation_time) {
-      const { error: vacationTimeError } = await supabase.rpc("deduct_vacation_time", {
+      console.log('Calling deduct_vacation_time with:', {
+        p_emp_id: timeOffData.employee_id,
+        p_start_date: timeOffData.start_date,
+        p_end_date: timeOffData.end_date,
+      });
+      const { data: vacationTimeData, error: vacationTimeError } = await supabase.rpc("deduct_vacation_time", {
         p_emp_id: timeOffData.employee_id,
         p_start_date: timeOffData.start_date,
         p_end_date: timeOffData.end_date,
