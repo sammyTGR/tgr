@@ -37,7 +37,7 @@ import {
   SunIcon,
   MoonIcon,
 } from "@radix-ui/react-icons";
-import { useUnreadCounts } from "@/components/UnreadCountsContext";
+// import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const schedComponents = [
   {
@@ -83,8 +83,8 @@ const HeaderGunsmith = React.memo(() => {
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const { setTheme } = useTheme();
   const router = useRouter();
-  const { resetUnreadCounts } = useUnreadCounts();
-  const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
+  // const { resetUnreadCounts } = useUnreadCounts();
+  // const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -97,24 +97,24 @@ const HeaderGunsmith = React.memo(() => {
     fetchUser();
   }, []);
 
-  useEffect(() => {
-    setTotalUnreadCount(globalUnreadCount);
-  }, [globalUnreadCount]);
+  // useEffect(() => {
+  //   setTotalUnreadCount(globalUnreadCount);
+  // }, [globalUnreadCount]);
 
-  useEffect(() => {
-    const handleUnreadCountsChanged = () => {
-      setTotalUnreadCount(globalUnreadCount);
-    };
+  // useEffect(() => {
+  //   const handleUnreadCountsChanged = () => {
+  //     setTotalUnreadCount(globalUnreadCount);
+  //   };
 
-    window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
+  //   window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
 
-    return () => {
-      window.removeEventListener(
-        "unreadCountsChanged",
-        handleUnreadCountsChanged
-      );
-    };
-  }, [globalUnreadCount]);
+  //   return () => {
+  //     window.removeEventListener(
+  //       "unreadCountsChanged",
+  //       handleUnreadCountsChanged
+  //     );
+  //   };
+  // }, [globalUnreadCount]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -161,7 +161,7 @@ const HeaderGunsmith = React.memo(() => {
       }
 
       // Reset the unread count using the context
-      resetUnreadCounts();
+      // resetUnreadCounts();
 
       // Navigate to the chat page
       router.push("/TGR/crew/chat");

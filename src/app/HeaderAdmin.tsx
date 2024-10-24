@@ -45,7 +45,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
-import { useUnreadCounts } from "@/components/UnreadCountsContext";
+// import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 export interface ChatMessage {
   id: string;
@@ -285,8 +285,8 @@ const HeaderAdmin = React.memo(() => {
   const [isChatActive, setIsChatActive] = useState(false);
   const [unreadOrderCount, setUnreadOrderCount] = useState(0);
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
-  const { resetUnreadCounts } = useUnreadCounts();
-  const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
+  // const { resetUnreadCounts } = useUnreadCounts();
+  // const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
 
   const fetchUnreadOrders = async () => {
     try {
@@ -461,24 +461,24 @@ const HeaderAdmin = React.memo(() => {
     }
   }, [user, fetchUnreadCounts, isChatActive]);
 
-  useEffect(() => {
-    setTotalUnreadCount(globalUnreadCount);
-  }, [globalUnreadCount]);
+  // useEffect(() => {
+  //   setTotalUnreadCount(globalUnreadCount);
+  // }, [globalUnreadCount]);
 
-  useEffect(() => {
-    const handleUnreadCountsChanged = () => {
-      setTotalUnreadCount(globalUnreadCount);
-    };
+  // useEffect(() => {
+  //   const handleUnreadCountsChanged = () => {
+  //     setTotalUnreadCount(globalUnreadCount);
+  //   };
 
-    window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
+  //   window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
 
-    return () => {
-      window.removeEventListener(
-        "unreadCountsChanged",
-        handleUnreadCountsChanged
-      );
-    };
-  }, [globalUnreadCount]);
+  //   return () => {
+  //     window.removeEventListener(
+  //       "unreadCountsChanged",
+  //       handleUnreadCountsChanged
+  //     );
+  //   };
+  // }, [globalUnreadCount]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -526,7 +526,7 @@ const HeaderAdmin = React.memo(() => {
       }
 
       // Reset the unread count using the context
-      resetUnreadCounts();
+      // resetUnreadCounts();
 
       // Navigate to the chat page
       router.push("/TGR/crew/chat");

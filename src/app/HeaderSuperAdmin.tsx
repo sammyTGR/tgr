@@ -45,7 +45,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
-import { useUnreadCounts } from "@/components/UnreadCountsContext";
+// import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 interface HeaderSuperAdminProps {
   totalUnreadCount: number;
@@ -326,7 +326,7 @@ const HeaderSuperAdmin = React.memo(() => {
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const router = useRouter();
   const { setTheme } = useTheme();
-  const { totalUnreadCount, resetUnreadCounts } = useUnreadCounts();
+  // const { totalUnreadCount, resetUnreadCounts } = useUnreadCounts();
   const [unreadOrderCount, setUnreadOrderCount] = useState(0);
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
 
@@ -606,11 +606,11 @@ const HeaderSuperAdmin = React.memo(() => {
                     className="mr-2 relative"
                   >
                     <PersonIcon />
-                    {totalUnreadCount > 0 && (
+                    {/* {totalUnreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
                         {totalUnreadCount}
                       </span>
-                    )}
+                    )} */}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 mr-2">
@@ -637,11 +637,11 @@ const HeaderSuperAdmin = React.memo(() => {
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
                     <span>Messages</span>
-                    {totalUnreadCount > 0 && (
+                    {/* {totalUnreadCount > 0 && (
                       <span className="ml-auto text-red-500 font-bold">
                         {totalUnreadCount}
                       </span>
-                    )}
+                    )} */}
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />

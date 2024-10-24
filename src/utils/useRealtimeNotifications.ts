@@ -5,14 +5,14 @@ import { toast } from "sonner";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import { usePathname, useRouter } from "next/navigation";
-import { useUnreadCounts } from "@/components/UnreadCountsContext";
+// import { useUnreadCounts } from "@/components/UnreadCountsContext";
 
 const useRealtimeNotifications = () => {
   const { user } = useRole();
   const pathname = usePathname();
   const router = useRouter();
   const [userGroupChats, setUserGroupChats] = useState<number[]>([]);
-  const { setTotalUnreadCount } = useUnreadCounts();
+  // const { setTotalUnreadCount } = useUnreadCounts();
 
   const fetchUserGroupChats = useCallback(async () => {
     if (!user) return [];
@@ -206,7 +206,7 @@ const useRealtimeNotifications = () => {
       groupChatChannel?.unsubscribe();
       groupChatCreationChannel?.unsubscribe();
     };
-  }, [user, pathname, router, userGroupChats, setTotalUnreadCount]);
+  }, [user, pathname, router, userGroupChats]);
 
   return { fetchUserGroupChats }; // Return the function so it can be called externally
 };

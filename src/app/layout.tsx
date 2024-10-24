@@ -10,7 +10,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
-import { UnreadCountsProvider } from "../components/UnreadCountsContext.tsx";
+// import { UnreadCountsProvider } from "../components/UnreadCountsContext.tsx";
 import QueryProvider from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { VercelToolbar } from "@vercel/toolbar/next";
@@ -79,18 +79,18 @@ export default async function RootLayout({
                   enableSystem
                   disableTransitionOnChange
                 >
-                  <UnreadCountsProvider>
-                    <NotificationsProvider>
-                      <Header />
-                      <main>
-                        {children as ReactElement}
+                  {/* <UnreadCountsProvider> */}
+                  <NotificationsProvider>
+                    <Header />
+                    <main>
+                      {children as ReactElement}
 
-                        {shouldInjectToolbar && <VercelToolbar />}
-                        <Analytics />
-                      </main>
-                      <Toaster />
-                    </NotificationsProvider>
-                  </UnreadCountsProvider>
+                      {shouldInjectToolbar && <VercelToolbar />}
+                      <Analytics />
+                    </main>
+                    <Toaster />
+                  </NotificationsProvider>
+                  {/* </UnreadCountsProvider> */}
                 </ThemeProvider>
               </FlagsmithWrapper>
             </QueryProvider>
