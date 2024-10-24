@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
 export default function AimPage() {
   const [searchStr, setSearchStr] = useState("");
   const [inventorySearch, setInventorySearch] = useState<any[]>([]); // Change to an array type
@@ -51,7 +50,6 @@ export default function AimPage() {
       //console.(err);
     }
   };
-
   return (
     <div className="w-full p-4">
       <h1>AIM Inventory Management</h1>

@@ -85,28 +85,28 @@ export async function POST(request: Request) {
       }
     }
 
-    if (use_vacation_time) {
-      console.log('Calling deduct_vacation_time with:', {
-        p_emp_id: timeOffData.employee_id,
-        p_start_date: timeOffData.start_date,
-        p_end_date: timeOffData.end_date,
-      });
-      const { data: vacationTimeData, error: vacationTimeError } = await supabase.rpc("deduct_vacation_time", {
-        p_emp_id: timeOffData.employee_id,
-        p_start_date: timeOffData.start_date,
-        p_end_date: timeOffData.end_date,
-      });
+    // if (use_vacation_time) {
+    //   console.log('Calling deduct_vacation_time with:', {
+    //     p_emp_id: timeOffData.employee_id,
+    //     p_start_date: timeOffData.start_date,
+    //     p_end_date: timeOffData.end_date,
+    //   });
+    //   const { data: vacationTimeData, error: vacationTimeError } = await supabase.rpc("deduct_vacation_time", {
+    //     p_emp_id: timeOffData.employee_id,
+    //     p_start_date: timeOffData.start_date,
+    //     p_end_date: timeOffData.end_date,
+    //   });
 
-      if (vacationTimeError) {
-        console.error("Error deducting vacation time:", vacationTimeError);
-        // Revert the time off request update
-        await supabase
-          .from("time_off_requests")
-          .update({ status: "pending", use_vacation_time: false, is_read: false })
-          .eq("request_id", request_id);
-        return NextResponse.json({ error: vacationTimeError.message }, { status: 500 });
-      }
-    }
+    //   if (vacationTimeError) {
+    //     console.error("Error deducting vacation time:", vacationTimeError);
+    //     // Revert the time off request update
+    //     await supabase
+    //       .from("time_off_requests")
+    //       .update({ status: "pending", use_vacation_time: false, is_read: false })
+    //       .eq("request_id", request_id);
+    //     return NextResponse.json({ error: vacationTimeError.message }, { status: 500 });
+    //   }
+    // }
 
     if (!timeOffData.email) {
       console.error("Email not found in the time off request:", timeOffData);

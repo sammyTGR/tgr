@@ -169,7 +169,8 @@ export default function ApproveRequestsPage() {
           currentRequestId,
           `Custom: ${customApprovalText}` as RequestAction,
           `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
-          request.use_sick_time
+          request.use_sick_time,
+          request.use_vacation_time
         );
       }
       handleCloseCustomApproval();

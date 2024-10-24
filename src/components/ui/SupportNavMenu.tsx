@@ -119,7 +119,7 @@ const SubItemsContainer = styled.div`
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 4px;
-  background: white;
+  background: muted;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 20;
   width: 620px; // Set a fixed width
