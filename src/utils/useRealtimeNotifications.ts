@@ -14,20 +14,20 @@ const useRealtimeNotifications = () => {
   const [userGroupChats, setUserGroupChats] = useState<number[]>([]);
   // const { setTotalUnreadCount } = useUnreadCounts();
 
-  const fetchUserGroupChats = useCallback(async () => {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from("group_chats")
-      .select("id")
-      .contains("users", [user.id]);
+  // const fetchUserGroupChats = useCallback(async () => {
+  //   if (!user) return [];
+  //   const { data, error } = await supabase
+  //     .from("group_chats")
+  //     .select("id")
+  //     .contains("users", [user.id]);
 
-    if (error) {
-      return [];
-    }
-    const chatIds = data.map((chat) => chat.id);
-    setUserGroupChats(chatIds); // Update state manually
-    return chatIds;
-  }, [user]);
+  //   if (error) {
+  //     return [];
+  //   }
+  //   const chatIds = data.map((chat) => chat.id);
+  //   setUserGroupChats(chatIds); // Update state manually
+  //   return chatIds;
+  // }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -174,9 +174,9 @@ const useRealtimeNotifications = () => {
         },
         async (payload) => {
           if (payload.new.users.includes(user.id)) {
-            fetchUserGroupChats().then((chats) => {
-              setUserGroupChats(chats);
-            });
+              // fetchUserGroupChats().then((chats) => {
+              //   setUserGroupChats(chats);
+              // });
 
             // Fetch the group chat name
             // const groupChatName = await fetchGroupChatName(payload.new.id);
@@ -208,7 +208,7 @@ const useRealtimeNotifications = () => {
     };
   }, [user, pathname, router, userGroupChats]);
 
-  return { fetchUserGroupChats }; // Return the function so it can be called externally
+  return { }; // Return the function so it can be called externally
 };
 
 export default useRealtimeNotifications;
