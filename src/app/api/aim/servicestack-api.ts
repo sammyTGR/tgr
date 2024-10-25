@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import {
   InventoryDetailRequest,
@@ -6,10 +7,17 @@ import {
   InventoryLookupResponse,
   SearchInventoryRequest,
   SearchInventoryResponse,
+  BaseResponse
 } from "./dtos";
 import dotenv from "dotenv";
+import { JsonServiceClient } from '@servicestack/client';
+
+const client = new JsonServiceClient('https://10846.active-e.net:7890');
 
 dotenv.config();
+
+const MAX_RETRIES = 3;
+const INITIAL_DELAY = 1000; // 1 second
 
 const API_KEY = process.env.ApiKey!;
 const OAUTH_TOKEN = process.env.OAuthToken!;
@@ -20,30 +28,23 @@ const API_PASSWORD = process.env.Password!;
 const BASE_URL = "https://10846.active-e.net:7890";
 
 // Function to get inventory detail
-export async function getInventoryDetail(
-  model: string
-): Promise<InventoryDetailResponse> {
+export async function getInventoryDetail(model: string): Promise<InventoryDetailResponse> {
   const request = new InventoryDetailRequest({
     Model: model,
+    ApiKey: API_KEY,
+    OAuthToken: OAUTH_TOKEN,
+    AppId: APP_ID,
+    Token: TOKEN,
+    DeviceId: undefined,
+    SkipImages: false,
+    IncludeSerialInfo: true,
   });
 
   try {
-    const response = await axios.post(
-      `${BASE_URL}/json/reply/InventoryDetailRequest`,
-      request,
-      {
-        headers: {
-          ApiKey: API_KEY,
-          OAuthToken: OAUTH_TOKEN,
-          AppId: APP_ID,
-          Token: TOKEN,
-          // 'Accept': 'application/json'
-        },
-      }
-    );
-    return response.data;
+    const response = await client.post(request);
+    return response;
   } catch (error) {
-    //console.('Error fetching inventory detail:', error);
+    console.error('Error fetching inventory detail:', error);
     throw error;
   }
 }
@@ -89,42 +90,43 @@ export async function lookupInventory(
 export async function searchInventory(
   searchStr: string
 ): Promise<SearchInventoryResponse> {
-  try {
-    const requestBody = {
-      Username: process.env.Username, // Use environment variables
-      Password: process.env.Password,
-      SearchStr: searchStr,
-      StartOffset: 0,
-      RecordCount: 100, // You can adjust this value as needed
-    };
+  const request = new SearchInventoryRequest({
+    SearchStr: searchStr,
+    StartOffset: 0,
+    RecordCount: 100,
+  });
 
-    const response = await axios.post(
-      `${BASE_URL}/api/SearchInventory?Username=${API_USERNAME}&Password=${API_PASSWORD}`,
-      requestBody,
-      {
+  let retries = 0;
+  let delay = INITIAL_DELAY;
+
+  while (retries < MAX_RETRIES) {
+    try {
+      const response = await fetch('/api/proxy/searchInventory', {
+        method: 'POST',
         headers: {
-          ApiKey: process.env.ApiKey,
-          OAuthToken: process.env.OAuthToken,
-          AppId: process.env.AppId,
-          Token: process.env.Token,
-          Accept: "application/json",
+          'Content-Type': 'application/json',
         },
-      }
-    );
+        body: JSON.stringify(request),
+      });
 
-    // console.log('Inventory search response:', response.data);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Error searching inventory:",
-        error.response?.data || error.message
-      );
-    } else {
-      //console.("Error searching inventory:", error);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      retries++;
+      if (retries >= MAX_RETRIES) {
+        console.error('Max retries reached. Unable to complete the request.');
+        throw error;
+      }
+      console.log(`Retry attempt ${retries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Exponential backoff
     }
-    throw error;
   }
+
+  throw new Error('Unable to complete the request after multiple retries');
 }
 
 // You can add more functions for other API calls here

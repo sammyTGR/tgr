@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import DOMPurify from "isomorphic-dompurify";
 
+// Type definitions
+interface Customer {
+  role: string;
+  user_uuid: string;
+}
+
+interface SignInResponse {
+  user: {
+    id: string;
+    email: string;
+  } | null;
+  error: Error | null;
+}
+
+// Form validation schema
 const schema = z.object({
   email: z
     .string()
@@ -34,10 +51,10 @@ type FormData = z.infer<typeof schema>;
 
 export default function SignIn() {
   const params = useSearchParams();
-  const next = params ? params.get("next") || "" : "";
+  const next = params ? DOMPurify.sanitize(params.get("next") || "") : "";
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
 
+  // Form setup with validation
   const {
     handleSubmit,
     control,
@@ -46,26 +63,25 @@ export default function SignIn() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
-    const { email, password } = data;
-
-    try {
+  // Mutation for email/password sign in
+  const emailSignInMutation = useMutation({
+    mutationFn: async (data: FormData) => {
       const { data: signInData, error } =
         await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: DOMPurify.sanitize(data.email),
+          password: data.password, // No need to sanitize password
         });
 
       if (error) throw error;
 
-      if (signInData.user) {
-        const user = signInData.user;
-
-        // Fetch the customer's role from the customers table
+      return { user: signInData.user, error: null } as SignInResponse;
+    },
+    onSuccess: async (data) => {
+      if (data.user) {
         const { data: customerData, error: fetchError } = await supabase
           .from("customers")
           .select("role")
-          .eq("user_uuid", user.id)
+          .eq("user_uuid", data.user.id)
           .single();
 
         if (fetchError) {
@@ -76,23 +92,19 @@ export default function SignIn() {
 
         if (customerData) {
           toast.success("Signed in successfully");
-          window.location.href = "/"; // Redirect to home page after sign-in
+          window.location.href = "/";
         }
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error signing in:", error.message);
-        toast.error(error.message);
-      } else {
-        console.error("Unexpected error signing in:", error);
-        toast.error("Unexpected error occurred.");
-      }
-    }
-  };
+    },
+    onError: (error: Error) => {
+      console.error("Error signing in:", error.message);
+      toast.error(error.message);
+    },
+  });
 
-  const loginWithOAuth = async (provider: "google") => {
-    setLoading(true);
-    try {
+  // Mutation for OAuth sign in
+  const oAuthSignInMutation = useMutation({
+    mutationFn: async (provider: "google") => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -102,37 +114,46 @@ export default function SignIn() {
 
       if (error) throw error;
 
-      setTimeout(async () => {
-        const userResponse = await supabase.auth.getUser();
-        const user = userResponse.data.user;
+      return data;
+    },
+    onSuccess: async () => {
+      // Wait for OAuth redirect and user session
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        if (user) {
-          const { data: customerData, error: fetchError } = await supabase
-            .from("customers")
-            .select("role")
-            .eq("user_uuid", user.id)
-            .single();
+      const userResponse = await supabase.auth.getUser();
+      const user = userResponse.data.user;
 
-          if (fetchError) {
-            console.error("Error fetching customer role:", fetchError.message);
-            return;
-          }
+      if (user) {
+        const { data: customerData, error: fetchError } = await supabase
+          .from("customers")
+          .select("role")
+          .eq("user_uuid", user.id)
+          .single();
 
-          if (customerData) {
-            // If role is fetched successfully, redirect to the desired page
-            window.location.href = next || "/";
-          }
+        if (fetchError) {
+          console.error("Error fetching customer role:", fetchError.message);
+          return;
         }
-      }, 2000);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error logging in with OAuth:", error.message);
-      } else {
-        console.error("Unexpected error logging in with OAuth:", error);
+
+        if (customerData) {
+          window.location.href = next || "/";
+        }
       }
-    } finally {
-      setLoading(false);
-    }
+    },
+    onError: (error: Error) => {
+      console.error("Error logging in with OAuth:", error.message);
+      toast.error("Failed to login with Google");
+    },
+  });
+
+  // Form submission handler
+  const onSubmit = (data: FormData) => {
+    emailSignInMutation.mutate(data);
+  };
+
+  // OAuth login handler
+  const handleOAuthLogin = () => {
+    oAuthSignInMutation.mutate("google");
   };
 
   return (
@@ -144,11 +165,6 @@ export default function SignIn() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="membersLogin">
-            {/* <TabsList className="flex">
-              <TabsTrigger value="membersLogin">Members Login</TabsTrigger>
-              <TabsTrigger value="employeesLogin">Employees Login</TabsTrigger>
-            </TabsList> */}
-
             <TabsContent value="membersLogin">
               <form onSubmit={handleSubmit(onSubmit)} className="grid gap-2">
                 <div className="grid gap-2">
@@ -197,18 +213,22 @@ export default function SignIn() {
                   variant="gooeyLeft"
                   type="submit"
                   className="w-full mb-4 mt-2"
+                  disabled={emailSignInMutation.isPending}
                 >
-                  Sign In With Email
+                  {emailSignInMutation.isPending
+                    ? "Signing in..."
+                    : "Sign In With Email"}
                 </Button>
                 <Separator className="my-4" />
-                {/* <Label htmlFor="email">OR</Label> */}
                 <Button
-                  onClick={() => loginWithOAuth("google")}
+                  onClick={handleOAuthLogin}
                   variant="outline"
                   className="w-full"
-                  disabled={loading}
+                  disabled={oAuthSignInMutation.isPending}
                 >
-                  {loading ? "Logging in..." : "Login With Google"}
+                  {oAuthSignInMutation.isPending
+                    ? "Logging in..."
+                    : "Login With Google"}
                 </Button>
               </form>
               <div className="mt-6 text-center text-sm">
@@ -223,22 +243,6 @@ export default function SignIn() {
                 </Link>
               </div>
             </TabsContent>
-
-            {/* <TabsContent value="employeesLogin">
-              <div className="flex flex-col my-4 items-center justify-center">
-                <div className="flex flex-col gap-1 my-4">
-                  <Label htmlFor="email">Login With Your Work Email</Label>
-                  <Button
-                    onClick={() => loginWithOAuth("google")}
-                    variant="gooeyRight"
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? "Logging in..." : "Login with Google"}
-                  </Button>
-                </div>
-              </div>
-            </TabsContent> */}
           </Tabs>
         </CardContent>
       </Card>

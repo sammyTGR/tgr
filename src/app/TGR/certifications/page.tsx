@@ -1,6 +1,8 @@
 // src/app/TGR/certifications/page.tsx
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,13 +11,18 @@ import {
   getSortedRowModel,
   SortingState,
   PaginationState,
+  ColumnFiltersState,
+  VisibilityState,
+  TableState,
+  Updater,
 } from "@tanstack/react-table";
+import DOMPurify from "isomorphic-dompurify";
 import { supabase } from "@/utils/supabase/client";
 import { CertificationDataTable } from "./certification-data-table";
 import { CertificationTableToolbar } from "./certification-table-toolbar";
 import { certificationColumns } from "./columns";
 import { toast } from "sonner";
-import { useRole } from "@/context/RoleContext"; // Import useRole hook
+import { useRole } from "@/context/RoleContext";
 import { PopoverForm } from "./PopoverForm";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -24,6 +31,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 import styles from "./table.module.css";
 
+// Types and Interfaces
 interface CertificationData {
   id: string;
   name: string;
@@ -34,200 +42,217 @@ interface CertificationData {
   action_status: string;
 }
 
+interface Employee {
+  employee_id: number;
+  name: string;
+}
+
+interface FetchCertificationsResponse {
+  data: CertificationData[];
+  count: number;
+  error: Error | null;
+}
+
+interface FilterItem {
+  id: string;
+  value: string | string[];
+}
+
+interface MutationError extends Error {
+  type: "update" | "delete";
+}
+
 const CertificationsPage: React.FC = () => {
-  const [certifications, setCertifications] = useState<CertificationData[]>([]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageCount, setPageCount] = useState(0);
-  const [filters, setFilters] = useState<any[]>([]);
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "expiration", desc: false },
-  ]);
-  const [employees, setEmployees] = useState<
-    { employee_id: number; name: string }[]
-  >([]);
-  const { role } = useRole(); // Get the user's role
+  const queryClient = useQueryClient();
+  const { role } = useRole();
 
-  const fetchCertificationsData = async (
-    pageIndex: number,
-    pageSize: number,
-    filters: any[],
-    sorting: SortingState
-  ) => {
-    const response = await fetch("/api/fetch-certifications-data", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ pageIndex, pageSize, filters, sorting }),
-    });
+  // Create ref for current table state
+  const tableState = React.useRef({
+    sorting: [{ id: "expiration", desc: false }] as SortingState,
+    pagination: {
+      pageIndex: 0,
+      pageSize: 10,
+    } as PaginationState,
+    columnFilters: [] as ColumnFiltersState,
+    columnVisibility: {} as VisibilityState,
+  });
 
-    const { data, count, error } = await response.json();
-
-    if (error) {
-      console.error("Error fetching certifications data:", error);
-    } else {
-      setCertifications(data);
-      if (count !== undefined) {
-        setPageCount(Math.ceil(count / pageSize));
-      }
-    }
-  };
-  const fetchEmployees = async () => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("employee_id, name");
-
-    if (error) {
-      console.error("Error fetching employees:", error);
-    } else {
-      setEmployees(data);
-    }
-  };
-
-  useEffect(() => {
-    fetchCertificationsData(pageIndex, pageSize, filters, sorting);
-  }, [pageIndex, pageSize, filters, sorting]);
-
-  const onUpdate = async (id: string, updates: Partial<CertificationData>) => {
-    if (Object.keys(updates).length === 0) {
-      // Handle deletion case
-      const { error } = await supabase
-        .from("certifications")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        console.error("Error deleting certification:", error);
-        toast.error("Failed to delete certification.");
-      } else {
-        setCertifications((currentCertifications) =>
-          currentCertifications.filter(
-            (certification) => certification.id !== id
-          )
-        );
-        toast.success("Certification deleted successfully.");
-      }
-    } else {
-      // Handle update case
-      const { error } = await supabase
-        .from("certifications")
-        .update(updates)
-        .eq("id", id);
-
-      if (error) {
-        console.error("Error updating certification:", error);
-        toast.error("Failed to update certification.");
-      } else {
-        setCertifications((currentCertifications) =>
-          currentCertifications.map((certification) =>
-            certification.id === id
-              ? { ...certification, ...updates }
-              : certification
-          )
-        );
-        toast.success("Certification updated successfully.");
-      }
-    }
-  };
-
-  const handleAddCertificate = async (
-    id: string, // This parameter will be ignored for adding a new certificate
-    updates: Partial<CertificationData> // This will contain the updates to be made
-  ) => {
-    const { name, certificate, number, expiration, status } = updates;
-
-    if (!name || !certificate || !number || !expiration || !status) {
-      console.error("Missing required fields for adding certification.");
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("certifications")
-      .insert([{ name, certificate, number, expiration, status }])
-      .select(); // Ensure data is returned after insert
-
-    if (error) {
-      console.error("Error adding certification:", error);
-      toast.error("Failed to add certification.");
-    } else if (data && Array.isArray(data) && data.length > 0) {
-      const newCertification = data[0] as CertificationData;
-
-      setCertifications((prevCertifications) => [
-        ...prevCertifications,
-        { ...newCertification, action_status: "" },
-      ]);
-      toast.success("Certification added successfully.");
-    } else {
-      console.error("No data returned after inserting certification.");
-      toast.error("Failed to add certification.");
-    }
-  };
-
-  const handleFilterChange = (newFilters: any[]) => {
-    setFilters(newFilters);
-    setPageIndex(0); // Reset to the first page when filters change
-  };
-
-  const handleSortingChange = (
-    updaterOrValue: SortingState | ((old: SortingState) => SortingState)
-  ) => {
-    setSorting((old) =>
-      typeof updaterOrValue === "function"
-        ? updaterOrValue(old)
-        : updaterOrValue
-    );
-  };
-
-  const table = useReactTable({
-    data: certifications,
-    columns: certificationColumns(onUpdate),
-    state: {
-      sorting,
-      columnFilters: filters,
-      pagination: { pageIndex, pageSize },
+  // Queries
+  const employeesQuery = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id, name");
+      if (error) throw error;
+      return data.map((emp) => ({
+        ...emp,
+        name: DOMPurify.sanitize(emp.name),
+      }));
     },
+  });
+
+  const certificationsQuery = useQuery({
+    queryKey: [
+      "certifications",
+      tableState.current.pagination,
+      tableState.current.sorting,
+      tableState.current.columnFilters,
+    ],
+    queryFn: async () => {
+      const state = tableState.current;
+      const response = await fetch("/api/fetch-certifications-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageIndex: state.pagination.pageIndex,
+          pageSize: state.pagination.pageSize,
+          filters: state.columnFilters.map((filter) => ({
+            id: DOMPurify.sanitize(filter.id),
+            value:
+              typeof filter.value === "string"
+                ? DOMPurify.sanitize(filter.value)
+                : filter.value,
+          })),
+          sorting: state.sorting,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const result = await response.json();
+      return {
+        data: result.data.map((cert: CertificationData) => ({
+          ...cert,
+          name: DOMPurify.sanitize(cert.name),
+          certificate: DOMPurify.sanitize(cert.certificate),
+          status: DOMPurify.sanitize(cert.status),
+        })),
+        pageCount: Math.ceil(result.count / state.pagination.pageSize),
+      };
+    },
+  });
+
+  // Create memoized data first
+  const tableData = React.useMemo(
+    () => certificationsQuery.data?.data ?? [],
+    [certificationsQuery.data]
+  );
+
+  const pageCount = React.useMemo(
+    () =>
+      Math.ceil(
+        (certificationsQuery.data?.pageCount ?? 0) *
+          tableState.current.pagination.pageSize
+      ),
+    [
+      certificationsQuery.data?.pageCount,
+      tableState.current.pagination.pageSize,
+    ]
+  );
+
+  // Mutations
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<CertificationData>;
+    }) => {
+      if (Object.keys(updates).length === 0) {
+        const { error } = await supabase
+          .from("certifications")
+          .delete()
+          .eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("certifications")
+          .update(updates)
+          .eq("id", id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["certifications"] });
+      toast.success("Certification updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update certification: ${error.message}`);
+    },
+  });
+
+  const addMutation = useMutation<
+    CertificationData,
+    Error,
+    Partial<CertificationData>
+  >({
+    mutationFn: async (newCertification) => {
+      const sanitizedCert = {
+        ...newCertification,
+        name: DOMPurify.sanitize(newCertification.name || ""),
+        certificate: DOMPurify.sanitize(newCertification.certificate || ""),
+        status: DOMPurify.sanitize(newCertification.status || ""),
+      };
+
+      const { data, error } = await supabase
+        .from("certifications")
+        .insert([sanitizedCert])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["certifications"] });
+      toast.success("Certification added successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add certification: ${error.message}`);
+    },
+  });
+
+  // Table instance
+  const table = useReactTable({
+    data: [],
+    columns: certificationColumns((id, updates) =>
+      updateMutation.mutate({ id, updates })
+    ),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onSortingChange: handleSortingChange,
-    onColumnFiltersChange: setFilters,
-    onPaginationChange: (
-      updater: PaginationState | ((old: PaginationState) => PaginationState)
-    ) => {
-      if (typeof updater === "function") {
-        const { pageIndex: newPageIndex, pageSize: newPageSize } = updater({
-          pageIndex,
-          pageSize,
-        });
-        setPageIndex(newPageIndex);
-        setPageSize(newPageSize);
-      } else {
-        setPageIndex(updater.pageIndex);
-        setPageSize(updater.pageSize);
-      }
-    },
     manualPagination: true,
-    pageCount,
+    manualFiltering: true,
+    manualSorting: true,
+    defaultColumn: {
+      minSize: 0,
+      size: 150,
+      maxSize: 500,
+    },
+    initialState: {
+      pagination: {
+        pageIndex: 0,
+        pageSize: 10,
+      },
+      sorting: [{ id: "expiration", desc: false }],
+      columnFilters: [],
+    },
+    onStateChange: (updater) => {
+      queryClient.invalidateQueries({ queryKey: ["certifications"] });
+    },
   });
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name");
-
-      if (error) {
-        console.error("Error fetching employees:", error);
-      } else {
-        setEmployees(data);
-      }
-    };
-
-    fetchEmployees();
-  }, []);
+  // Update table state
+  table.options.data = tableData;
+  table.options.pageCount = Math.ceil(
+    (certificationsQuery.data?.pageCount ?? 0) *
+      table.getState().pagination.pageSize
+  );
 
   return (
     <div className="flex flex-col h-screen my-8 overflow-hidden">
@@ -236,7 +261,6 @@ const CertificationsPage: React.FC = () => {
           <div className="container justify-start px-4 mt-4">
             <TabsList>
               <TabsTrigger value="certifications">Certifications</TabsTrigger>
-              {/* Add more tabs if needed */}
             </TabsList>
           </div>
 
@@ -252,29 +276,32 @@ const CertificationsPage: React.FC = () => {
                       <TextGenerateEffect words="Certifications Management" />
                     </CardTitle>
                   </CardHeader>
-                  <ScrollArea className="h-[calc(100vh-300px)] overflow-auto">
-                    <CardContent className="p-0 mx-auto overflow-hidden">
-                      <CertificationTableToolbar
-                        table={table}
-                        onFilterChange={handleFilterChange}
-                      />
-                      <div className="border rounded-md">
-                        <CertificationDataTable
-                          columns={certificationColumns(onUpdate)}
-                          data={certifications}
-                          pageCount={pageCount}
-                          pageIndex={pageIndex}
-                          setPageIndex={setPageIndex}
-                          pageSize={pageSize}
-                          setPageSize={setPageSize}
-                          filters={filters}
-                          handleAddCertificate={handleAddCertificate}
-                          employees={employees}
+                  <ScrollArea>
+                    <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto">
+                      <CardContent className="p-0 mx-auto overflow-hidden">
+                        <CertificationTableToolbar
+                          table={table}
+                          onFilterChange={(filters) => {
+                            tableState.current.columnFilters = filters;
+                            queryClient.invalidateQueries({
+                              queryKey: ["certifications"],
+                            });
+                          }}
                         />
-                      </div>
-                    </CardContent>
-                    <ScrollBar orientation="vertical" />
-                    <ScrollBar orientation="horizontal" />
+                        <div>
+                          <CertificationDataTable
+                            data={tableData}
+                            table={table}
+                            employees={employeesQuery.data ?? []}
+                            onAddCertificate={(
+                              cert: Partial<CertificationData>
+                            ) => addMutation.mutate(cert)}
+                          />
+                        </div>
+                      </CardContent>
+                      <ScrollBar orientation="vertical" />
+                      <ScrollBar orientation="horizontal" />
+                    </div>
                   </ScrollArea>
                 </Card>
               </TabsContent>

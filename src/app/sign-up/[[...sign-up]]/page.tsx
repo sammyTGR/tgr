@@ -16,8 +16,18 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { signup, signInWithGoogle } from "@/lib/auth-actions"; // Import the signup and signInWithGoogle functions
+import { signup, signInWithGoogle } from "@/lib/auth-actions";
 import { Separator } from "@/components/ui/separator";
+import {
+  useMutation,
+  useQueryClient,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import DOMPurify from "isomorphic-dompurify";
+
+// Create a client
+const queryClient = new QueryClient();
 
 // Define the validation schema using Zod
 const schema = z.object({
@@ -34,10 +44,11 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function SignUp() {
+function SignUpForm() {
   const params = useSearchParams();
   const next = params ? params.get("next") || "" : "";
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     handleSubmit,
@@ -47,38 +58,46 @@ export default function SignUp() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      await signup(data); // Call the signup function
-
+  // Mutation for email signup
+  const signupMutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      // Sanitize input data
+      const sanitizedData = {
+        firstName: DOMPurify.sanitize(data.firstName),
+        lastName: DOMPurify.sanitize(data.lastName),
+        email: DOMPurify.sanitize(data.email),
+        password: data.password, // Don't sanitize password as it needs to match exactly
+      };
+      return await signup(sanitizedData);
+    },
+    onSuccess: () => {
       toast.success("Account created successfully! G'head & sign in!");
-
-      // Redirect to sign-in page
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       router.push("/sign-in");
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error creating account:", error.message);
-        toast.error(error.message);
-      } else {
-        console.error("Unexpected error creating account:", error);
-        toast.error("Unexpected error occurred.");
-      }
-    }
+    },
+    onError: (error: Error) => {
+      console.error("Error creating account:", error);
+      toast.error(error.message || "An unexpected error occurred");
+    },
+  });
+
+  // Mutation for Google signup
+  const googleSignupMutation = useMutation({
+    mutationFn: signInWithGoogle,
+    onError: (error: Error) => {
+      console.error("Error with Google sign-up:", error);
+      toast.error(
+        error.message || "An unexpected error occurred with Google sign-up"
+      );
+    },
+  });
+
+  const onSubmit = (data: FormData) => {
+    signupMutation.mutate(data);
   };
 
-  const handleGoogleSignUp = async () => {
-    try {
-      await signInWithGoogle(); // This will redirect to Google's OAuth flow
-      // No further code needed here as the user is redirected.
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error with Google sign-up:", error.message);
-        toast.error(error.message);
-      } else {
-        console.error("Unexpected error with Google sign-up:", error);
-        toast.error("Unexpected error occurred.");
-      }
-    }
+  const handleGoogleSignUp = () => {
+    googleSignupMutation.mutate();
   };
 
   return (
@@ -92,7 +111,11 @@ export default function SignUp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="grid gap-4"
+            aria-label="Sign up form"
+          >
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="first_name">First name</Label>
@@ -103,13 +126,21 @@ export default function SignUp() {
                     <Input
                       {...field}
                       id="first_name"
-                      placeholder="Max"
+                      type="text"
+                      aria-invalid={errors.firstName ? "true" : "false"}
+                      aria-describedby={
+                        errors.firstName ? "firstName-error" : undefined
+                      }
                       required
                     />
                   )}
                 />
                 {errors.firstName && (
-                  <span className="text-red-500 text-xs">
+                  <span
+                    id="firstName-error"
+                    role="alert"
+                    className="text-red-500 text-xs"
+                  >
                     {errors.firstName.message}
                   </span>
                 )}
@@ -123,13 +154,21 @@ export default function SignUp() {
                     <Input
                       {...field}
                       id="last_name"
-                      placeholder="Robinson"
+                      type="text"
+                      aria-invalid={errors.lastName ? "true" : "false"}
+                      aria-describedby={
+                        errors.lastName ? "lastName-error" : undefined
+                      }
                       required
                     />
                   )}
                 />
                 {errors.lastName && (
-                  <span className="text-red-500 text-xs">
+                  <span
+                    id="lastName-error"
+                    role="alert"
+                    className="text-red-500 text-xs"
+                  >
                     {errors.lastName.message}
                   </span>
                 )}
@@ -145,13 +184,18 @@ export default function SignUp() {
                     {...field}
                     id="email"
                     type="email"
-                    placeholder="m@example.com"
+                    aria-invalid={errors.email ? "true" : "false"}
+                    aria-describedby={errors.email ? "email-error" : undefined}
                     required
                   />
                 )}
               />
               {errors.email && (
-                <span className="text-red-500 text-xs">
+                <span
+                  id="email-error"
+                  role="alert"
+                  className="text-red-500 text-xs"
+                >
                   {errors.email.message}
                 </span>
               )}
@@ -166,13 +210,20 @@ export default function SignUp() {
                     {...field}
                     id="password"
                     type="password"
-                    placeholder="Enter your password"
+                    aria-invalid={errors.password ? "true" : "false"}
+                    aria-describedby={
+                      errors.password ? "password-error" : undefined
+                    }
                     required
                   />
                 )}
               />
               {errors.password && (
-                <span className="text-red-500 text-xs">
+                <span
+                  id="password-error"
+                  role="alert"
+                  className="text-red-500 text-xs"
+                >
                   {errors.password.message}
                 </span>
               )}
@@ -181,19 +232,29 @@ export default function SignUp() {
               variant="gooeyRight"
               type="submit"
               className="w-full mb-4 mt-2"
+              disabled={signupMutation.isPending}
+              aria-busy={signupMutation.isPending}
             >
-              Sign Up With Email
+              {signupMutation.isPending
+                ? "Signing up..."
+                : "Sign Up With Email"}
             </Button>
           </form>
+
           <Separator className="my-4" />
 
           <Button
             onClick={handleGoogleSignUp}
             variant="outline"
             className="w-full mt-4"
+            disabled={googleSignupMutation.isPending}
+            aria-busy={googleSignupMutation.isPending}
           >
-            Sign Up With Google
+            {googleSignupMutation.isPending
+              ? "Connecting..."
+              : "Sign Up With Google"}
           </Button>
+
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
             <Link href="/sign-in" className="underline">
@@ -203,5 +264,14 @@ export default function SignUp() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Wrap the component with QueryClientProvider
+export default function SignUp() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SignUpForm />
+    </QueryClientProvider>
   );
 }

@@ -1,8 +1,8 @@
 // src/app/TGR/certifications/certification-table-toolbar.tsx
 "use client";
-import { useState, useEffect } from "react";
+
 import { Cross2Icon } from "@radix-ui/react-icons";
-import { Table } from "@tanstack/react-table";
+import { ColumnFiltersState, Table } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
@@ -10,86 +10,69 @@ import { statuses } from "./statuses";
 
 interface CertificationTableToolbarProps<TData> {
   table: Table<TData>;
-  onFilterChange: (filters: any[]) => void;
+  onFilterChange: (filters: ColumnFiltersState) => void;
 }
 
 export function CertificationTableToolbar<TData>({
   table,
   onFilterChange,
 }: CertificationTableToolbarProps<TData>) {
-  const [nameFilter, setNameFilter] = useState("");
-  const [certificateFilter, setCertificateFilter] = useState("");
-  const [numberFilter, setNumberFilter] = useState("");
-  const [actionStatusFilter, setActionStatusFilter] = useState<string[]>([]);
-
-  // Check if any filter is applied
-  const isFiltered =
-    nameFilter.length > 0 ||
-    certificateFilter.length > 0 ||
-    numberFilter.length > 0 ||
-    actionStatusFilter.length > 0;
-
-  // Sync local state with table state
-  useEffect(() => {
-    const columnFilters = table.getState().columnFilters;
-    columnFilters.forEach((filter) => {
-      if (filter.id === "name") setNameFilter(filter.value as string);
-      if (filter.id === "certificate")
-        setCertificateFilter(filter.value as string);
-      if (filter.id === "number") setNumberFilter(filter.value as string);
-      if (filter.id === "action_status")
-        setActionStatusFilter(filter.value as string[]);
-    });
-  }, [table]);
-
-  const handleFilterChange = (columnId: string, value: string | string[]) => {
-    table.getColumn(columnId)?.setFilterValue(value);
-
-    // Update the corresponding local state
-    if (columnId === "name") setNameFilter(value as string);
-    if (columnId === "certificate") setCertificateFilter(value as string);
-    if (columnId === "number") setNumberFilter(value as string);
-    if (columnId === "action_status") setActionStatusFilter(value as string[]);
-
-    // Update filters in the parent component
-    const newFilters = table
-      .getState()
-      .columnFilters.map((filter) =>
-        filter.id === columnId ? { id: columnId, value } : filter
-      );
-    onFilterChange(newFilters);
+  // Get current filter values
+  const getColumnFilterValue = (columnId: string) => {
+    const column = table.getColumn(columnId);
+    return column?.getFilterValue() ?? "";
   };
+
+  // Handle filter changes
+  const handleFilterChange = (columnId: string, value: unknown) => {
+    const column = table.getColumn(columnId);
+    if (column) {
+      column.setFilterValue(value);
+
+      // Get all current filters
+      const newFilters = table
+        .getAllColumns()
+        .map((col) => ({
+          id: col.id,
+          value: col.getFilterValue(),
+        }))
+        .filter(
+          (filter) => filter.value != null && filter.value !== ""
+        ) as ColumnFiltersState;
+
+      onFilterChange(newFilters);
+    }
+  };
+
+  // Check if any filters are applied
+  const isFiltered = table.getState().columnFilters.length > 0;
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2 p-1">
         <Input
           placeholder="Filter By Name..."
-          value={table.getColumn("name")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
+          value={getColumnFilterValue("name") as string}
+          onChange={(event) => handleFilterChange("name", event.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
         />
         <Input
           placeholder="Filter By Certificate"
-          value={table.getColumn("certificate")?.getFilterValue() as string}
+          value={getColumnFilterValue("certificate") as string}
           onChange={(event) =>
-            table.getColumn("certificate")?.setFilterValue(event.target.value)
+            handleFilterChange("certificate", event.target.value)
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        <Input
+        {/* <Input
           placeholder="Filter By Number"
-          value={table.getColumn("number")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("number")?.setFilterValue(event.target.value)
-          }
+          value={getColumnFilterValue("number") as string}
+          onChange={(event) => handleFilterChange("number", event.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
-        />
+        /> */}
         {table.getColumn("action_status") && (
           <DataTableFacetedFilter
-            column={table.getColumn("action_status")}
+            column={table.getColumn("action_status")!}
             title="Status"
             options={statuses}
             onSelect={(selectedValues) =>
@@ -102,10 +85,6 @@ export function CertificationTableToolbar<TData>({
             variant="ghost"
             onClick={() => {
               table.resetColumnFilters();
-              setNameFilter("");
-              setCertificateFilter("");
-              setNumberFilter("");
-              setActionStatusFilter([]);
               onFilterChange([]);
             }}
             className="h-8 px-2 lg:px-3"

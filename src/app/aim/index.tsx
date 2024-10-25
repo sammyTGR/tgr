@@ -1,96 +1,96 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  getInventoryDetail,
+  searchInventory,
+} from "@/app/api/aim/servicestack-api";
+import { SearchInventoryResponse } from "@/app/api/aim/dtos";
+
 export default function AimPage() {
-  const [searchStr, setSearchStr] = useState("");
-  const [inventorySearch, setInventorySearch] = useState<any[]>([]); // Change to an array type
-  const [error, setError] = useState<string | null>(null);
+  const [searchStr, setSearchStr] = React.useState("");
 
-  const handleInventorySearch = async () => {
-    try {
-      setError(null);
-      const requestBody = {
-        SearchStr: searchStr,
-      };
+  const {
+    data: inventorySearch,
+    error,
+    isLoading,
+    refetch,
+  } = useQuery<SearchInventoryResponse, Error>({
+    queryKey: ["inventorySearch", searchStr],
+    queryFn: async () => {
+      return searchInventory(searchStr);
+    },
+    enabled: false,
+  });
 
-      // Hardcode the Username and Password for testing
-      const username = "sxlee"; // Hardcoded Username
-      const password = "Sl123456"; // Hardcoded Password
-
-      // Encode the Username and Password into a single query parameter
-      const queryParams = encodeURIComponent(
-        `Username=${username}&Password=${password}`
-      );
-
-      // Make the fetch request to your API route with QueryParams
-      const response = await fetch(
-        `/api/proxy/searchInventory?QueryParams=${queryParams}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Network response was not ok");
-      }
-
-      const result = await response.json();
-      setInventorySearch(result); // Set the results directly
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error searching inventory"
-      );
-      //console.(err);
-    }
+  const handleInventorySearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    refetch();
   };
+
   return (
     <div className="w-full p-4">
-      <h1>AIM Inventory Management</h1>
+      <h1 className="text-2xl font-bold mb-4">AIM Inventory Management</h1>
 
-      <div>
-        <h2>Inventory Search</h2>
-        <Input
-          className="max-w-md p-2"
-          type="text"
-          value={searchStr}
-          onChange={(e) => setSearchStr(e.target.value)}
-          placeholder="Enter search string"
-        />
-        <Button variant="linkHover1" onClick={handleInventorySearch}>
-          Search Inventory
-        </Button>
-      </div>
+      <form onSubmit={handleInventorySearch} className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">Inventory Search</h2>
+        <div className="flex gap-2">
+          <Input
+            className="max-w-md"
+            type="text"
+            value={searchStr}
+            onChange={(e) => setSearchStr(e.target.value)}
+            placeholder="Enter search string"
+          />
+          <Button type="submit" variant="linkHover1" disabled={isLoading}>
+            {isLoading ? "Searching..." : "Search Inventory"}
+          </Button>
+        </div>
+      </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {isLoading && <p>Loading...</p>}
 
-      {inventorySearch.length > 0 && (
+      {error && <p className="text-red-500">{(error as Error).message}</p>}
+
+      {inventorySearch &&
+      inventorySearch.Records &&
+      inventorySearch.Records.length > 0 ? (
         <div className="max-w-md">
-          <h3>Inventory Search Result</h3>
-          <ul>
-            {inventorySearch.map((item, index) => (
-              <li key={index}>
-                <strong>Description:</strong> {item.Description}
-                <br />
-                <strong>Manufacturer:</strong> {item.Manufacturer}
-                <br />
-                <strong>Model:</strong> {item.Model}
-                <br />
-                <strong>Category:</strong> {item.CategoryDescription}
-                <br />
-                <strong>Subcategory:</strong> {item.SubCategoryDescription}
-                <br />
-                <strong>SKU:</strong> {item.Sku}
+          <h3 className="text-lg font-semibold mb-2">
+            Inventory Search Result
+          </h3>
+          <ul className="space-y-4">
+            {inventorySearch.Records.map((item, index) => (
+              <li key={index} className="border p-4 rounded-md">
+                <p>
+                  <strong>Description:</strong> {item.Detail?.Description}
+                </p>
+                <p>
+                  <strong>Manufacturer:</strong> {item.Detail?.Mfg}
+                </p>
+                <p>
+                  <strong>Model:</strong> {item.Detail?.Model}
+                </p>
+                <p>
+                  <strong>Category:</strong> {item.Detail?.CategoryDescription}
+                </p>
+                <p>
+                  <strong>Subcategory:</strong>{" "}
+                  {item.Detail?.SubCategoryDescription}
+                </p>
+                <p>
+                  <strong>SKU:</strong> {item.Detail?.Sku}
+                </p>
               </li>
             ))}
           </ul>
         </div>
+      ) : (
+        inventorySearch && <p>No results found.</p>
       )}
     </div>
   );

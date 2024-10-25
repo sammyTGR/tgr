@@ -2,7 +2,14 @@ export interface IReturn<T> {
     createResponse(): T;
 }
 
-// @DataContract
+export class BaseResponse {
+    public Status?: BaseResponseResult;
+
+    constructor(init?: Partial<BaseResponse>) {
+        Object.assign(this, init);
+    }
+}
+
 export class BaseRequest {
     public ApiKey: string = '';
     public OAuthToken?: string;
@@ -12,7 +19,6 @@ export class BaseRequest {
     }
 }
 
-// @DataContract
 export class BaseSecureRequest extends BaseRequest {
     public Token?: string;
     public DeviceId?: string;
@@ -24,83 +30,7 @@ export class BaseSecureRequest extends BaseRequest {
     }
 }
 
-// @DataContract
-export class SearchInventoryRequest extends BaseSecureRequest implements IReturn<SearchInventoryResponse> {
-    public LocFk?: number;
-    public MfgFk?: number;
-    public CatFk?: number;
-    public SubFk?: number;
-    public SelFk?: number;
-    public Cat?: number;
-    public Sub?: number;
-    public SelectionCode?: string;
-    public Mfg?: string;
-    public IncludeSerials?: boolean;
-    public IncludeMedia?: boolean;
-    public IncludeAccessories?: boolean;
-    public IncludePackages?: boolean;
-    public SearchStr?: string;
-    public ExactModel?: boolean;
-    public StartOffset?: number;
-    public RecordCount?: number;
-    public IncludeIconImage?: boolean;
-    public CatIdList?: number[];
-    public SubIdList?: number[];
-    public MfgIdList?: number[];
-    public SelIdList?: number[];
-    public IncludeDeleted?: boolean;
-    public ChangedDate?: string;
-    public IncludePackageLineItems?: boolean;
-    public IncludeDetails?: boolean;
-    public MinimumAvailableQuantity?: number;
 
-    constructor(init?: Partial<SearchInventoryRequest>) {
-        super(init);
-        Object.assign(this, init);
-    }
-
-    // Implement the createResponse method
-    public createResponse(): SearchInventoryResponse {
-        return new SearchInventoryResponse(); // Return a new instance of SearchInventoryResponse
-    }
-}
-
-// @DataContract
-export class SearchInventoryResponse {
-    public StartOffset: number = 0;
-    public RecordCount: number = 0;
-    public RemainingRecords: number = 0;
-    public TotalRecords: number = 0;
-    public Records?: SearchInventoryApiResult[];
-    public Status?: BaseResponseResult;
-
-    constructor(init?: Partial<SearchInventoryResponse>) {
-        Object.assign(this, init);
-    }
-}
-
-// @DataContract
-export class SearchInventoryApiResult {
-    public Detail?: InventoryDetail;
-    public IconImage?: ImageInfo;
-    public CustomerPrice: number = 0;
-    // ... add other properties from SearchInventoryResultSet here
-
-    constructor(init?: Partial<SearchInventoryApiResult>) {
-        Object.assign(this, init);
-    }
-}
-
-// @DataContract
-export class BaseResponse {
-    public Status?: BaseResponseResult;
-
-    constructor(init?: Partial<BaseResponse>) {
-        Object.assign(this, init);
-    }
-}
-
-// @DataContract
 export class InventoryDetailResponse extends BaseResponse {
     public SadPk?: number;
     public InvType?: string;
@@ -130,7 +60,7 @@ export class InventoryDetailResponse extends BaseResponse {
     }
 }
 
-// @DataContract
+
 export class InventoryDetailRequest extends BaseSecureRequest implements IReturn<InventoryDetailResponse> {
     public Pk?: number;
     public PkType?: string;
@@ -232,9 +162,51 @@ export class ActiveEInfo {
 
 // Define or import InventoryDetail if it's defined elsewhere
 // For now, we'll define it as an interface with some sample properties
-interface InventoryDetail {
+export interface InventoryDetail {
     // Add properties as needed
     id: number;
     name: string;
-    // ... other properties
+    Description?: string;
+    Mfg?: string;
+    Model?: string;
+    CategoryDescription?: string;
+    SubCategoryDescription?: string;
+    Sku?: string;
+}
+
+export class SearchInventoryRequest extends BaseSecureRequest implements IReturn<SearchInventoryResponse> {
+    public SearchStr?: string;
+    public StartOffset?: number;
+    public RecordCount?: number;
+
+    constructor(init?: Partial<SearchInventoryRequest>) {
+        super(init);
+        Object.assign(this, init);
+    }
+    public getTypeName() { return 'SearchInventoryRequest'; }
+    public getMethod() { return 'POST'; }
+    public createResponse() { return new SearchInventoryResponse(); }
+}
+
+export class SearchInventoryResponse extends BaseResponse {
+    public StartOffset: number = 0;
+    public RecordCount: number = 0;
+    public RemainingRecords: number = 0;
+    public TotalRecords: number = 0;
+    public Records?: SearchInventoryApiResult[];
+
+    constructor(init?: Partial<SearchInventoryResponse>) {
+        super(init);
+        Object.assign(this, init);
+    }
+}
+
+export class SearchInventoryApiResult {
+    public Detail?: InventoryDetail;
+    public IconImage?: ImageInfo;
+    public CustomerPrice: number = 0;
+
+    constructor(init?: Partial<SearchInventoryApiResult>) {
+        Object.assign(this, init);
+    }
 }

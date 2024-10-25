@@ -7,68 +7,56 @@ dotenv.config();
 const BASE_URL = 'https://10846.active-e.net:7890';
 
 export async function POST(request: Request) {
-    const body = await request.json();
-    console.log('Incoming request body:', body); // Log the incoming request body
-
-    const { SearchStr } = body;
-
-    // Extract QueryParams from the URL
-    const url = new URL(request.url);
-    const queryParams = url.searchParams.get('QueryParams');
-
-    // Decode the QueryParams
-    let API_USERNAME = '';
-    let API_PASSWORD = '';
-
-    if (queryParams) {
-        const decodedParams = decodeURIComponent(queryParams);
-        const paramsArray = decodedParams.split('&');
-        API_USERNAME = paramsArray[0].split('=')[1];
-        API_PASSWORD = paramsArray[1].split('=')[1];
-    }
-
-    console.log('API_USERNAME:', API_USERNAME);
-    console.log('API_PASSWORD:', API_PASSWORD);
-
-    // Check if Username and Password are defined
-    if (!API_USERNAME || !API_PASSWORD) {
-        return NextResponse.json({ error: 'Username and Password are required' }, { status: 400 });
-    }
-
-    // Construct the full URL for the external API call
-    const apiUrl = `${BASE_URL}/api/SearchInventory?Username=${encodeURIComponent(API_USERNAME)}&Password=${encodeURIComponent(API_PASSWORD)}`;
-
-    // Log the actual API URL being called
-    console.log('Making request to external API:', apiUrl); // Log the full API URL without QueryParams
-
     try {
-        // Make the POST request to the external API with headers
-        const response = await axios.post(apiUrl, {
-            SearchStr,
+        const body = await request.json();
+        console.log('Incoming request body:', body);
 
-        }, {
-            headers: {
-                'ApiKey': process.env.ApiKey,
-                'OAuthToken': process.env.OAuthToken,
-                'Token': process.env.Token,
-                'AppId': process.env.AppId,
-                'Accept': 'application/json',
-            },
-            timeout: 15000, // Set timeout to 15 seconds
-        });
+        const { SearchStr } = body;
 
-        console.log('Response from external API:', response.data); // Log the response data
+        const API_KEY = process.env.ApiKey;
+        const OAUTH_TOKEN = process.env.OAuthToken;
+        const APP_ID = process.env.AppId;
+        const TOKEN = process.env.Token;
+        const API_USERNAME = process.env.Username;
+        const API_PASSWORD = process.env.Password;
 
-        // Check if the response is valid and contains Records
+        if (!API_KEY || !OAUTH_TOKEN || !APP_ID || !TOKEN || !API_USERNAME || !API_PASSWORD) {
+            return NextResponse.json({ error: 'Missing environment variables' }, { status: 500 });
+        }
+
+        const apiUrl = `${BASE_URL}/api/SearchInventory`;
+
+        console.log('Making request to external API:', apiUrl);
+
+        const response = await axios.post(apiUrl, 
+            { SearchStr },
+            {
+                params: {
+                    Username: API_USERNAME,
+                    Password: API_PASSWORD
+                },
+                headers: {
+                    'ApiKey': API_KEY,
+                    'OAuthToken': OAUTH_TOKEN,
+                    'Token': TOKEN,
+                    'AppId': APP_ID,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+
+        console.log('Response from external API:', response.data);
+
         if (response.data && response.data.Records) {
-            // Extract the desired fields from the response
             const results = response.data.Records.map((item: any) => ({
-                Description: item.Description,
-                Manufacturer: item.Manufacturer,
-                Model: item.Model,
-                CategoryDescription: item.CategoryDescription,
-                SubCategoryDescription: item.SubCategoryDescription,
-                Sku: item.Sku,
+                Description: item.Detail?.Description,
+                Manufacturer: item.Detail?.Mfg,
+                Model: item.Detail?.Model,
+                CategoryDescription: item.Detail?.CategoryDescription,
+                SubCategoryDescription: item.Detail?.SubCategoryDescription,
+                Sku: item.Detail?.Sku,
             }));
 
             return NextResponse.json(results);
@@ -78,10 +66,11 @@ export async function POST(request: Request) {
         }
     } catch (error) {
         console.error('Error in proxy:', error);
-        if (axios.isAxiosError(error) && error.response) {
-            console.error('Error response data:', error.response.data);
-            console.error('Error response status:', error.response.status);
+        if (axios.isAxiosError(error)) {
+            console.error('Error response data:', error.response?.data);
+            console.error('Error response status:', error.response?.status);
+            return NextResponse.json({ error: error.message }, { status: error.response?.status || 500 });
         }
-        return NextResponse.json({ error: 'An error occurred' }, { status: 500 });
+        return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
     }
 }
