@@ -7,29 +7,45 @@ import Image from "next/image";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
 import { TextGenerateColor } from "./ui/text-generate-color";
 import { TracingBeam } from "./ui/tracing-beam";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const title = "The Gun Range";
 const sub = "Your One Stop Shop For All Of Your Shooting Needs";
 
 const LandingPagePublic: React.FC = React.memo(() => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
+
   return (
-    <div className="flex flex-col min-h-[100vh]">
+    <div className="flex flex-col min-h-[100vh] relative">
+      {isLoading && <LoadingIndicator />}
       <main className="flex-1">
-        <TracingBeam className="w-full py-12 md:py-24 lg:py-32 border-y">
+        <TracingBeam className="relative w-full py-12 md:py-24 lg:py-32 border-y">
           <div className="flex items-center justify-center py-6 md:py-6 lg:py-12">
-            <div className="w-full max-w-xl">
+            <div className="relative w-full max-w-xl">
               <Image
                 src="/TestBanner.png"
                 alt="Banner"
-                layout="responsive"
                 width={1000}
                 height={300}
-                quality={100}
-                objectFit="contain"
+                priority
               />
             </div>
           </div>
-          <section className="w-full py-6 md:py-12 lg:py-12 ">
+          <section className="relative w-full py-6 md:py-12 lg:py-12 ">
             <h1 className="lg:leading-tighter text-center text-xl font-bold tracking-tighter sm:text-2xl md:text-3xl xl:text-[3rem] 2xl:text-[2.75rem]">
               <TextGenerateEffect words={sub} />
             </h1>
@@ -42,9 +58,9 @@ const LandingPagePublic: React.FC = React.memo(() => {
             <h1 className="lg:leading-tighter text-xl font-bold tracking-tighter sm:text-2xl md:text-3xl xl:text-[3rem] 2xl:text-[2.75rem] mb-4">
               <TextGenerateEffect words={sub} /></h1>
               </div> */}
-          <section className="w-full py-12 md:py-24 lg:py-32 border-y">
-            <div className="container px-4 md:px-6 space-y-10 xl:space-y-16">
-              <div className="grid items-center max-w-[1300px] mx-auto gap-4 px-4 sm:px-6 md:px-10 md:grid-cols-2 md:gap-8">
+          <section className="relative w-full py-12 md:py-24 lg:py-32 border-y">
+            <div className="container px-4 md:px-6 space-y-10 xl:space-y-16 relative">
+              <div className="grid items-center max-w-[1300px] relative mx-auto gap-4 px-4 sm:px-6 md:px-10 md:grid-cols-2 md:gap-8">
                 <div>
                   <h1 className="lg:leading-tighter text-2xl font-bold tracking-tighter sm:text-3xl md:text-4xl xl:text-[3.4rem] 2xl:text-[3.75rem]">
                     Elevate Your Shooting Skills
@@ -64,8 +80,8 @@ const LandingPagePublic: React.FC = React.memo(() => {
               </div>
             </div>
           </section>
-          <section className="w-full py-12 md:py-24 lg:py-32">
-            <div className="container px-4 md:px-6">
+          <section className="relative w-full py-12 md:py-24 lg:py-32">
+            <div className="container px-4 md:px-6 relative">
               <div className="grid items-center gap-6 lg:grid-cols-[1fr_500px] lg:gap-2 xl:grid-cols-[1fr_550px]">
                 <div className="flex justify-center max-w-full">
                   <Link href="/public/waiver">
@@ -90,8 +106,8 @@ const LandingPagePublic: React.FC = React.memo(() => {
               </div>
             </div>
           </section>
-          <section className="w-full py-12 md:py-24 lg:py-32">
-            <div className="container px-4 md:px-6">
+          <section className="relative w-full py-12 md:py-24 lg:py-32">
+            <div className="container px-4 md:px-6 relative">
               <div className="flex flex-col items-center justify-center space-y-4 text-center">
                 <div className="space-y-2">
                   <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">

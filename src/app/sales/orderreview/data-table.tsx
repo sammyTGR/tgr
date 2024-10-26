@@ -64,7 +64,7 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-500px)] w-[calc(100vw-50px)] overflow-auto"
+              "h-[calc(100vh-500px)] w-[calc(100vw-50px)] overflow-auto relative"
             )}
           >
             <Table className="w-full overflow-hidden">

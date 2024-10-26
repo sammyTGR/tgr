@@ -133,13 +133,6 @@ export function DataTable<TData extends RangeWalkData, TValue>({
       </div>
       <div className="flex-1 overflow-hidden rounded-md border w-full">
         <div className="max-h-[calc(100vh-100px)] overflow-auto">
-          {/* <div className="overflow-hidden">
-            <ScrollArea
-              className={classNames(
-                styles.noScroll,
-                "h-[calc(100vh-300px)] w-[calc(100vw-100px)] overflow-auto"
-              )}
-            > */}
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -187,15 +180,6 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                         </TableCell>
                       );
                     })}
-                    {/* <TableCell>
-                      <DataTableRowActions
-                        row={row}
-                        userRole={userRole}
-                        userUuid={userUuid}
-                        onStatusChange={onStatusChange}
-                        onNotesChange={onNotesChange}
-                      />
-                    </TableCell> */}
                   </TableRow>
                 ))
               ) : (
@@ -210,10 +194,6 @@ export function DataTable<TData extends RangeWalkData, TValue>({
               )}
             </TableBody>
           </Table>
-          {/* <ScrollBar orientation="vertical" />
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </div> */}
         </div>
       </div>
       <div className="flex-none mt-4">

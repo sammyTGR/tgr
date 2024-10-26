@@ -164,7 +164,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-300px)] w-full overflow-auto"
+              "h-[calc(100vh-300px)] w-full overflow-auto relative"
             )}
           >
             <Table className="w-full overflow-hidden">

@@ -99,7 +99,7 @@ export function CertificationDataTable({
       <div className="flex-1 overflow-hidden rounded-md border w-full max-w-7xl sm:w-full md:w-full">
         <div className="h-[calc(100vh-300px)] mx-auto overflow-hidden">
           <ScrollArea>
-            <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto">
+            <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto relative">
               <Table>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (

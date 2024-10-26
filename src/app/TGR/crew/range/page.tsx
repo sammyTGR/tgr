@@ -456,7 +456,7 @@ export default function RangeWalkPage() {
               <ScrollArea
                 className={classNames(
                   styles.noScroll,
-                  "w-[calc(100vw-90px)] overflow-auto"
+                  "w-[calc(100vw-90px)] overflow-auto relative"
                 )}
               >
                 <CardContent className="flex flex-col overflow-auto">

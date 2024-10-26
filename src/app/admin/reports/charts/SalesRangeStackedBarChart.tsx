@@ -155,7 +155,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
         <ScrollArea
           className={classNames(
             styles.noScroll,
-            "w-[calc(100vw-90px)] overflow-auto"
+            "w-[calc(100vw-90px)] overflow-auto relative"
           )}
         >
           <ResponsiveContainer width="100%" height="100%">

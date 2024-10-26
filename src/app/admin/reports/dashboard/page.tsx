@@ -68,6 +68,9 @@ import ClearActions from "../../todo/clear-actions";
 import Todo from "../../todo/todo";
 import TodoWrapper from "../../todo/todo-wrapper";
 import { useFlags } from "flagsmith/react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import dynamic from "next/dynamic";
 
 interface Certificate {
   id: number;
@@ -140,12 +143,35 @@ declare global {
   }
 }
 
+const LazySalesDataTable = dynamic(
+  () =>
+    import("@/app/admin/reports/sales/sales-data-table").then((module) => ({
+      default: module.default,
+    })),
+  {
+    loading: () => <p>Loading chart...</p>,
+  }
+);
+
 const timeZone = "America/Los_Angeles";
 
 function AdminDashboardContent() {
   const flags = useFlags(["is_todo_enabled", "is_barchart_enabled"]);
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { role } = useRole();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   // Modify the suggestions section in AdminDashboardContent:
   const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
@@ -988,6 +1014,7 @@ function AdminDashboardContent() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
+      {isLoading && <LoadingIndicator />}
       <div className="section w-full overflow-hidden">
         <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
@@ -1435,17 +1462,19 @@ function AdminDashboardContent() {
                   <ScrollArea
                     className={classNames(
                       styles.noScroll,
-                      "w-[calc(100vw-90px)] overflow-auto"
+                      "w-[calc(100vw-90px)] overflow-auto relative"
                     )}
                   >
                     <CardContent className="flex-grow overflow-auto">
                       <div className="h-[400px]">
-                        <SalesRangeStackedBarChart
-                          selectedRange={{
-                            start: selectedRange?.start ?? undefined,
-                            end: selectedRange?.end ?? undefined,
-                          }}
-                        />
+                        <Suspense fallback={<div>Loading chart...</div>}>
+                          <SalesRangeStackedBarChart
+                            selectedRange={{
+                              start: selectedRange?.start ?? undefined,
+                              end: selectedRange?.end ?? undefined,
+                            }}
+                          />
+                        </Suspense>
                       </div>
                     </CardContent>
                     <ScrollBar orientation="horizontal" />
@@ -1469,7 +1498,7 @@ function AdminDashboardContent() {
                 <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
                   <Suspense fallback={<div></div>}>
                     <div className=" overflow-hidden ">
-                      <SalesDataTable
+                      <LazySalesDataTable
                         startDate={
                           selectedRange?.start
                             ? format(selectedRange.start, "yyyy-MM-dd")
@@ -1629,7 +1658,10 @@ function AdminDashboardContent() {
           )}
           {details && details.length > 0 && (
             <ScrollArea
-              className={classNames(styles.noScroll, "h-[calc(100vh-1200px)]")}
+              className={classNames(
+                styles.noScroll,
+                "h-[calc(100vh-1200px)] relative"
+              )}
             >
               <ul className="space-y-2 pr-4">
                 {details.map((item, index) => (

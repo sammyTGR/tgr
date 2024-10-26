@@ -140,83 +140,89 @@ export function TimesheetDataTable({
       </div>
       <div className="overflow-hidden">
         <ScrollArea
-          className={classNames(styles.noScroll, "h-[calc(100vh-400px)]")}
+          className={classNames(
+            styles.noScroll,
+            "h-[calc(100vh-400px)] relative"
+          )}
         >
           <div className="overflow-auto">
             <ScrollArea>
-              <div className="flex max-h-calc[(100vh-600px)]">
+              <div className="flex max-h-calc[(100vh-600px)] relative">
                 <table className="w-full divide-y divide-gray-200 overflow-hidden">
                   <thead className="sticky top-0 bg-background z-5">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-
-              <tbody className="divide-y divide-gray-200">
-                {table.getRowModel().rows.map((row) => {
-                  if (row.getIsGrouped()) {
-                    return (
-                      <tr
-                        key={row.id}
-                        onClick={() => row.toggleExpanded()}
-                        className="cursor-pointer"
-                      >
-                        <td colSpan={columns.length + 1} className="px-6 py-4">
-                          <div className="flex items-center">
-                            {row.getIsExpanded() ? (
-                              <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
-                            ) : (
-                              <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
-                            )}
-                            <span>{row.getValue("employee_name")}</span>
-                          </div>
-                        </td>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </th>
+                        ))}
                       </tr>
-                    );
-                  }
+                    ))}
+                  </thead>
 
-                  return (
-                    <tr key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className="px-6 py-4 whitespace-nowrap"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </td>
-                      ))}
-                      <td>
-                        <TimesheetRowActions
-                          row={row}
-                          fetchTimesheets={fetchTimesheets}
-                          updateTimesheet={updateTimesheet}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            </div>
-            <ScrollBar orientation="vertical" />
-            <ScrollBar orientation="horizontal" />
+                  <tbody className="divide-y divide-gray-200">
+                    {table.getRowModel().rows.map((row) => {
+                      if (row.getIsGrouped()) {
+                        return (
+                          <tr
+                            key={row.id}
+                            onClick={() => row.toggleExpanded()}
+                            className="cursor-pointer"
+                          >
+                            <td
+                              colSpan={columns.length + 1}
+                              className="px-6 py-4"
+                            >
+                              <div className="flex items-center">
+                                {row.getIsExpanded() ? (
+                                  <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
+                                )}
+                                <span>{row.getValue("employee_name")}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                        <tr key={row.id}>
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-6 py-4 whitespace-nowrap"
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </td>
+                          ))}
+                          <td>
+                            <TimesheetRowActions
+                              row={row}
+                              fetchTimesheets={fetchTimesheets}
+                              updateTimesheet={updateTimesheet}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <ScrollBar orientation="vertical" />
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>
           <ScrollBar orientation="horizontal" />

@@ -1398,7 +1398,7 @@ const EmployeeProfile = () => {
                 <TabsTrigger value="sales">Sales</TabsTrigger>
                 <TabsTrigger value="performance">Audits</TabsTrigger>
               </TabsList>
-              <ScrollArea className="h-[calc(100vh-300px)]">
+              <ScrollArea className="h-[calc(100vh-300px)] relative">
                 <main
                   className={classNames(
                     "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
@@ -1818,7 +1818,7 @@ const EmployeeProfile = () => {
                             {/* Add any icons or elements you want here */}
                           </CardHeader>
                           <CardContent>
-                            <ScrollArea className="h-[calc(75vh-500px)]">
+                            <ScrollArea className="h-[calc(75vh-500px)] relative">
                               <div
                                 className={classNames(
                                   "grid gap-4 max-h-[300px] max-w-full overflow-hidden overflow-y-auto mt-2 p-6",

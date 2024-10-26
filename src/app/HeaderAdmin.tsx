@@ -31,7 +31,6 @@ import { supabase } from "@/utils/supabase/client";
 // import useUnreadMessages from "@/app/api/fetch-unread/route";
 // import useUnreadOrders from "@/app/api/useUnreadOrders/route"; // Import the hook
 // import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route"; // Import the hook
-import { useRouter } from "next/navigation"; // Import useRouter
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,7 +44,10 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
-// import { useUnreadCounts } from "@/components/UnreadCountsContext";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 
 export interface ChatMessage {
   id: string;
@@ -276,6 +278,36 @@ const comboComps = [
   },
 ];
 
+const LazyNavigationMenu = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyNavigationMenuList = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenuList,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyDropdownMenu = dynamic(
+  () =>
+    import("@/components/ui/dropdown-menu").then((module) => ({
+      default: module.DropdownMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
 const HeaderAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
@@ -285,8 +317,19 @@ const HeaderAdmin = React.memo(() => {
   const [isChatActive, setIsChatActive] = useState(false);
   const [unreadOrderCount, setUnreadOrderCount] = useState(0);
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
-  // const { resetUnreadCounts } = useUnreadCounts();
-  // const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   const fetchUnreadOrders = async () => {
     try {
@@ -539,9 +582,10 @@ const HeaderAdmin = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin"]}>
+      {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
-        <NavigationMenu>
-          <NavigationMenuList className="flex space-x-4 mr-3">
+        <LazyNavigationMenu>
+          <LazyNavigationMenuList className="flex space-x-4 mr-3">
             <NavigationMenuItem>
               <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -622,8 +666,8 @@ const HeaderAdmin = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+          </LazyNavigationMenuList>
+        </LazyNavigationMenu>
         <div className="flex items-center">
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
@@ -649,7 +693,7 @@ const HeaderAdmin = React.memo(() => {
 
           {user ? (
             <>
-              <DropdownMenu>
+              <LazyDropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="linkHover2"
@@ -715,7 +759,7 @@ const HeaderAdmin = React.memo(() => {
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </LazyDropdownMenu>
             </>
           ) : (
             <Link href="/sign-in">
@@ -733,12 +777,23 @@ HeaderAdmin.displayName = "HeaderAdmin";
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
   React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+>(({ className, title, children, href, ...props }, ref) => {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    router.push(href || "");
+  };
+
   return (
     <li>
       <NavigationMenuLink asChild>
         <a
           ref={ref}
+          href={href}
+          onClick={handleClick}
           className={cn(
             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
             className

@@ -210,7 +210,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
         <Button variant="linkHover2">{placeholder}</Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[800px] max-h-[400px] p-0">
-        <ScrollArea className="h-[calc(60vh-2rem)] max-h-[600px]">
+        <ScrollArea className="h-[calc(60vh-2rem)] max-h-[600px] relative">
           <div className="grid grid-cols-3 gap-4 p-4">
             <div className="col-span-3">
               <Label>{placeholder}</Label>

@@ -346,7 +346,7 @@ function InventoryPage() {
               <h3>Results: {inventoryQuery.data.records} items found</h3>
               {inventoryQuery.isFetching && <p>Updating...</p>}
               <ScrollArea>
-                <div className="h-[calc(100vh-500px)] overflow-hidden">
+                <div className="h-[calc(100vh-500px)] overflow-hidden relative">
                   <table className="w-full mt-2">
                     <thead>
                       <tr>

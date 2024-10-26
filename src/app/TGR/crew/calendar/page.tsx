@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ShiftFilter } from "./ShiftFilter";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 import styles from "./calendar.module.css";
 
@@ -132,26 +133,24 @@ const isSameDayOfYear = (date1: Date, date2: Date) => {
 };
 
 // API functions
-const fetchCalendarData = async (
-  currentDate: Date
-): Promise<EmployeeCalendar[]> => {
+const fetchCalendarData = (currentDate: Date): Promise<EmployeeCalendar[]> => {
   const startOfWeekDate = toZonedTime(getStartOfWeek(currentDate), TIME_ZONE);
   const endOfWeek = new Date(startOfWeekDate);
   endOfWeek.setDate(startOfWeekDate.getDate() + 6);
 
-  try {
-    const { data, error } = await supabase
+  return Promise.resolve(
+    supabase
       .from("schedules")
       .select(
         `
-        schedule_date,
-        start_time,
-        end_time,
-        day_of_week,
-        status,
-        employee_id,
-        employees:employee_id (name, birthday, department, rank, hire_date)
-      `
+      schedule_date,
+      start_time,
+      end_time,
+      day_of_week,
+      status,
+      employee_id,
+      employees:employee_id (name, birthday, department, rank, hire_date)
+    `
       )
       .gte(
         "schedule_date",
@@ -160,40 +159,41 @@ const fetchCalendarData = async (
       .lte(
         "schedule_date",
         formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone: TIME_ZONE })
-      );
+      )
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Failed to fetch calendar data:", error.message);
+          return [];
+        }
 
-    if (error) throw error;
+        const groupedData: { [key: number]: EmployeeCalendar } = {};
 
-    const groupedData: { [key: number]: EmployeeCalendar } = {};
+        data.forEach((item: any) => {
+          if (!groupedData[item.employee_id]) {
+            groupedData[item.employee_id] = {
+              employee_id: item.employee_id,
+              name: item.employees.name,
+              department: item.employees.department,
+              rank: item.employees.rank,
+              hire_date: item.employees.hire_date,
+              events: [],
+            };
+          }
 
-    data.forEach((item: any) => {
-      if (!groupedData[item.employee_id]) {
-        groupedData[item.employee_id] = {
-          employee_id: item.employee_id,
-          name: item.employees.name,
-          department: item.employees.department,
-          rank: item.employees.rank,
-          hire_date: item.employees.hire_date,
-          events: [],
-        };
-      }
+          groupedData[item.employee_id].events.push({
+            day_of_week: item.day_of_week,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            schedule_date: item.schedule_date,
+            status: item.status,
+            employee_id: item.employee_id,
+            birthday: item.employees.birthday,
+          });
+        });
 
-      groupedData[item.employee_id].events.push({
-        day_of_week: item.day_of_week,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        schedule_date: item.schedule_date,
-        status: item.status,
-        employee_id: item.employee_id,
-        birthday: item.employees.birthday,
-      });
-    });
-
-    return Object.values(groupedData);
-  } catch (error) {
-    console.error("Failed to fetch calendar data:", (error as Error).message);
-    return [];
-  }
+        return Object.values(groupedData);
+      })
+  );
 };
 
 const getBreakRoomDutyEmployee = async (
@@ -298,7 +298,7 @@ export default function Component() {
   // Queries
   const popoverOpenQuery = useQuery({
     queryKey: ["popoverOpen"],
-    queryFn: () => false,
+    queryFn: () => Promise.resolve(false),
     staleTime: Infinity,
   });
 
@@ -310,12 +310,13 @@ export default function Component() {
 
   const lateStartDataQuery = useQuery({
     queryKey: ["lateStartData"],
-    queryFn: () => ({
-      hour: "",
-      minute: "",
-      period: "AM",
-      employeeId: null as number | null,
-    }),
+    queryFn: () =>
+      Promise.resolve({
+        hour: "",
+        minute: "",
+        period: "AM",
+        employeeId: null as number | null,
+      }),
     staleTime: Infinity,
     initialData: {
       // Add this
@@ -328,67 +329,67 @@ export default function Component() {
 
   const lateStartHourQuery = useQuery({
     queryKey: ["lateStartHour"],
-    queryFn: () => "",
+    queryFn: () => Promise.resolve(""),
     staleTime: Infinity,
   });
 
   const lateStartMinuteQuery = useQuery({
     queryKey: ["lateStartMinute"],
-    queryFn: () => "",
+    queryFn: () => Promise.resolve(""),
     staleTime: Infinity,
   });
 
   const lateStartPeriodQuery = useQuery({
     queryKey: ["lateStartPeriod"],
-    queryFn: () => "AM",
+    queryFn: () => Promise.resolve("AM"),
     staleTime: Infinity,
   });
 
   const openDialogIdQuery = useQuery({
     queryKey: ["openDialogId"],
-    queryFn: () => null as number | null,
+    queryFn: () => Promise.resolve(null as number | null),
     staleTime: Infinity,
   });
 
   const currentDateQuery = useQuery({
     queryKey: ["currentDate"],
-    queryFn: () => new Date(),
+    queryFn: () => Promise.resolve(new Date()),
     staleTime: Infinity,
   });
 
   const selectedDayQuery = useQuery({
     queryKey: ["selectedDay"],
-    queryFn: () => null as string | null,
+    queryFn: () => Promise.resolve(null as string | null),
     staleTime: Infinity,
   });
 
   const selectedShiftsQuery = useQuery({
     queryKey: ["selectedShifts"],
-    queryFn: () => [] as string[],
+    queryFn: () => Promise.resolve([] as string[]),
     staleTime: Infinity,
   });
 
   const customStatusQuery = useQuery({
     queryKey: ["customStatus"],
-    queryFn: () => "",
+    queryFn: () => Promise.resolve(""),
     staleTime: Infinity,
   });
 
   const dialogOpenQuery = useQuery({
     queryKey: ["dialogOpen"],
-    queryFn: () => false,
+    queryFn: () => Promise.resolve(false),
     staleTime: Infinity,
   });
 
   const currentEventQuery = useQuery({
     queryKey: ["currentEvent"],
-    queryFn: () => null as CalendarEvent | null,
+    queryFn: () => Promise.resolve(null as CalendarEvent | null),
     staleTime: Infinity,
   });
 
   const lateStartTimeQuery = useQuery({
     queryKey: ["lateStartTime"],
-    queryFn: () => "",
+    queryFn: () => Promise.resolve(""),
     staleTime: Infinity,
   });
 
@@ -400,13 +401,13 @@ export default function Component() {
 
   const timeOffDialogOpenQuery = useQuery({
     queryKey: ["timeOffDialogOpen"],
-    queryFn: () => false,
+    queryFn: () => Promise.resolve(false),
     staleTime: Infinity,
   });
 
   const isSubmittingQuery = useQuery({
     queryKey: ["isSubmitting"],
-    queryFn: () => false,
+    queryFn: () => Promise.resolve(false),
     staleTime: Infinity,
   });
 
@@ -457,8 +458,7 @@ export default function Component() {
   const updateLateStartDataMutation = useMutation({
     mutationFn: (data: Partial<typeof lateStartDataQuery.data>) =>
       Promise.resolve(data),
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ["lateStartData"] });
+    onMutate: (newData) => {
       const previousData = queryClient.getQueryData(["lateStartData"]);
       queryClient.setQueryData(["lateStartData"], (old: any) => ({
         ...old,
@@ -503,7 +503,7 @@ export default function Component() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       employee_id,
       schedule_date,
       status,
@@ -517,7 +517,7 @@ export default function Component() {
       end_time?: string | null;
     }) => {
       const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
-      const response = await fetch("/api/update_schedule_status", {
+      return fetch("/api/update_schedule_status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -527,11 +527,12 @@ export default function Component() {
           start_time,
           end_time,
         }),
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
       });
-
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendarData"] });
@@ -865,183 +866,185 @@ export default function Component() {
       if (role && ["admin", "super admin", "dev"].includes(role)) {
         return (
           <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
-<Popover>
-  <PopoverTrigger asChild>
-    <Button variant="linkHover1">
-      <CaretUpIcon className="h-4 w-4" />
-    </Button>
-  </PopoverTrigger>
-  <PopoverContent>
-    <Button
-      variant="linkHover2"
-      onClick={() => {
-        updateScheduleStatus(
-          calendarEvent.employee_id,
-          calendarEvent.schedule_date,
-          "called_out"
-        );
-        updatePopoverOpenMutation.mutate(false);
-      }}
-    >
-      Called Out
-    </Button>
-    <Button
-      variant="linkHover2"
-      onClick={() => {
-        updateScheduleStatus(
-          calendarEvent.employee_id,
-          calendarEvent.schedule_date,
-          "left_early"
-        );
-        updatePopoverOpenMutation.mutate(false);
-      }}
-    >
-      Left Early
-    </Button>
-    <Button
-      variant="linkHover2"
-      onClick={() => {
-        updateScheduleStatus(
-          calendarEvent.employee_id,
-          calendarEvent.schedule_date,
-          "Custom:Off"
-        );
-        updatePopoverOpenMutation.mutate(false);
-      }}
-    >
-      Off
-    </Button>
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          className="p-4"
-          variant="linkHover2"
-          onClick={() => {
-            queryClient.setQueryData(["lateStartData"], {
-              hour: "",
-              minute: "",
-              period: "AM",
-              employeeId: calendarEvent.employee_id,
-            });
-            updatePopoverOpenMutation.mutate(false);
-          }}
-        >
-          Late Start
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogTitle className="p-4">Enter Late Start Time</DialogTitle>
-        <div className="flex space-x-2">
-          <div className="flex-1">
-            <Label>Hour</Label>
-            <Input
-              type="text"
-              placeholder="HH"
-              maxLength={2}
-              onChange={(e) => {
-                const value = e.target.value;
-                const currentData =
-                  queryClient.getQueryData(["lateStartData"]) || {};
-                queryClient.setQueryData(["lateStartData"], {
-                  ...currentData,
-                  hour: value,
-                  employeeId: calendarEvent.employee_id,
-                });
-              }}
-            />
-          </div>
-          <div className="flex-1">
-            <Label>Minute</Label>
-            <Input
-              type="text"
-              placeholder="MM"
-              maxLength={2}
-              onChange={(e) => {
-                const value = e.target.value;
-                const currentData =
-                  queryClient.getQueryData(["lateStartData"]) || {};
-                queryClient.setQueryData(["lateStartData"], {
-                  ...currentData,
-                  minute: value,
-                  employeeId: calendarEvent.employee_id,
-                });
-              }}
-            />
-          </div>
-          <div className="flex-1">
-            <Label>AM/PM</Label>
-            <Select
-              defaultValue="AM"
-              onValueChange={(value) => {
-                const currentData =
-                  queryClient.getQueryData(["lateStartData"]) || {};
-                queryClient.setQueryData(["lateStartData"], {
-                  ...currentData,
-                  period: value,
-                  employeeId: calendarEvent.employee_id,
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AM">AM</SelectItem>
-                <SelectItem value="PM">PM</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="flex justify-end space-x-2 mt-4">
-          <DialogClose asChild>
-            <Button
-              onClick={() => {
-                const data = queryClient.getQueryData([
-                  "lateStartData",
-                ]) as any;
-                if (data?.hour && data?.minute && data?.period) {
-                  const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
-                  updateScheduleStatus(
-                    calendarEvent.employee_id,
-                    calendarEvent.schedule_date,
-                    `Late Start ${formattedTime}`
-                  );
-                  // Reset the form
-                  queryClient.setQueryData(["lateStartData"], {
-                    hour: "",
-                    minute: "",
-                    period: "AM",
-                    employeeId: null,
-                  });
-                  // Close both Dialog and Popover
-                  updatePopoverOpenMutation.mutate(false);
-                }
-              }}
-            >
-              Submit
-            </Button>
-          </DialogClose>
-          <DialogClose asChild>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                // Reset form on cancel
-                queryClient.setQueryData(["lateStartData"], {
-                  hour: "",
-                  minute: "",
-                  period: "AM",
-                  employeeId: null,
-                });
-              }}
-            >
-              Cancel
-            </Button>
-          </DialogClose>
-        </div>
-      </DialogContent>
-    </Dialog>
-  </PopoverContent>
-</Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="linkHover1">
+                  <CaretUpIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <Button
+                  variant="linkHover2"
+                  onClick={() => {
+                    updateScheduleStatus(
+                      calendarEvent.employee_id,
+                      calendarEvent.schedule_date,
+                      "called_out"
+                    );
+                    updatePopoverOpenMutation.mutate(false);
+                  }}
+                >
+                  Called Out
+                </Button>
+                <Button
+                  variant="linkHover2"
+                  onClick={() => {
+                    updateScheduleStatus(
+                      calendarEvent.employee_id,
+                      calendarEvent.schedule_date,
+                      "left_early"
+                    );
+                    updatePopoverOpenMutation.mutate(false);
+                  }}
+                >
+                  Left Early
+                </Button>
+                <Button
+                  variant="linkHover2"
+                  onClick={() => {
+                    updateScheduleStatus(
+                      calendarEvent.employee_id,
+                      calendarEvent.schedule_date,
+                      "Custom:Off"
+                    );
+                    updatePopoverOpenMutation.mutate(false);
+                  }}
+                >
+                  Off
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      className="p-4"
+                      variant="linkHover2"
+                      onClick={() => {
+                        queryClient.setQueryData(["lateStartData"], {
+                          hour: "",
+                          minute: "",
+                          period: "AM",
+                          employeeId: calendarEvent.employee_id,
+                        });
+                        updatePopoverOpenMutation.mutate(false);
+                      }}
+                    >
+                      Late Start
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogTitle className="p-4">
+                      Enter Late Start Time
+                    </DialogTitle>
+                    <div className="flex space-x-2">
+                      <div className="flex-1">
+                        <Label>Hour</Label>
+                        <Input
+                          type="text"
+                          placeholder="HH"
+                          maxLength={2}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const currentData =
+                              queryClient.getQueryData(["lateStartData"]) || {};
+                            queryClient.setQueryData(["lateStartData"], {
+                              ...currentData,
+                              hour: value,
+                              employeeId: calendarEvent.employee_id,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label>Minute</Label>
+                        <Input
+                          type="text"
+                          placeholder="MM"
+                          maxLength={2}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const currentData =
+                              queryClient.getQueryData(["lateStartData"]) || {};
+                            queryClient.setQueryData(["lateStartData"], {
+                              ...currentData,
+                              minute: value,
+                              employeeId: calendarEvent.employee_id,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label>AM/PM</Label>
+                        <Select
+                          defaultValue="AM"
+                          onValueChange={(value) => {
+                            const currentData =
+                              queryClient.getQueryData(["lateStartData"]) || {};
+                            queryClient.setQueryData(["lateStartData"], {
+                              ...currentData,
+                              period: value,
+                              employeeId: calendarEvent.employee_id,
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AM">AM</SelectItem>
+                            <SelectItem value="PM">PM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-4">
+                      <DialogClose asChild>
+                        <Button
+                          onClick={() => {
+                            const data = queryClient.getQueryData([
+                              "lateStartData",
+                            ]) as any;
+                            if (data?.hour && data?.minute && data?.period) {
+                              const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                `Late Start ${formattedTime}`
+                              );
+                              // Reset the form
+                              queryClient.setQueryData(["lateStartData"], {
+                                hour: "",
+                                minute: "",
+                                period: "AM",
+                                employeeId: null,
+                              });
+                              // Close both Dialog and Popover
+                              updatePopoverOpenMutation.mutate(false);
+                            }
+                          }}
+                        >
+                          Submit
+                        </Button>
+                      </DialogClose>
+                      <DialogClose asChild>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            // Reset form on cancel
+                            queryClient.setQueryData(["lateStartData"], {
+                              hour: "",
+                              minute: "",
+                              period: "AM",
+                              employeeId: null,
+                            });
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </PopoverContent>
+            </Popover>
           </div>
         );
       }
@@ -1061,7 +1064,7 @@ export default function Component() {
     calendarDataQuery.isLoading ||
     breakRoomDutyQuery.isLoading
   ) {
-    return <div>Loading...</div>;
+    return <LoadingIndicator />;
   }
 
   if (calendarDataQuery.error) {
@@ -1076,7 +1079,7 @@ export default function Component() {
   }
 
   if (calendarDataQuery.isLoading || breakRoomDutyQuery.isLoading) {
-    return <div>Loading...</div>;
+    return <LoadingIndicator />;
   }
 
   if (calendarDataQuery.error) {
@@ -1173,7 +1176,7 @@ export default function Component() {
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
-                    "h-[calc(100vh-350px)] overflow-hidden"
+                    "h-[calc(100vh-350px)] overflow-hidden relative"
                   )}
                 >
                   <div

@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -37,7 +36,10 @@ import {
   SunIcon,
   MoonIcon,
 } from "@radix-ui/react-icons";
-// import { useUnreadCounts } from "@/components/UnreadCountsContext";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 
 const schedComponents = [
   {
@@ -78,14 +80,55 @@ const formComps = [
   },
 ];
 
+const LazyNavigationMenu = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyNavigationMenuList = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenuList,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyDropdownMenu = dynamic(
+  () =>
+    import("@/components/ui/dropdown-menu").then((module) => ({
+      default: module.DropdownMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
 const HeaderGunsmith = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const { setTheme } = useTheme();
   const router = useRouter();
-  // const { resetUnreadCounts } = useUnreadCounts();
-  // const { totalUnreadCount: globalUnreadCount } = useUnreadCounts();
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -170,9 +213,10 @@ const HeaderGunsmith = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["gunsmith"]}>
+      {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
-        <NavigationMenu>
-          <NavigationMenuList className="flex space-x-4 mr-3 ml-1">
+        <LazyNavigationMenu>
+          <LazyNavigationMenuList className="flex space-x-4 mr-3 ml-1">
             <NavigationMenuItem>
               <Link href="/TGR/sop">
                 <Button variant="linkHover2">TGR SOPs</Button>
@@ -226,8 +270,8 @@ const HeaderGunsmith = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+          </LazyNavigationMenuList>
+        </LazyNavigationMenu>
         <div className="flex items-center mr-1">
           <Link href="/">
             <Button variant="linkHover2" size="icon">
@@ -236,7 +280,7 @@ const HeaderGunsmith = React.memo(() => {
           </Link>
           {user ? (
             <>
-              <DropdownMenu>
+              <LazyDropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="linkHover2"
@@ -303,7 +347,7 @@ const HeaderGunsmith = React.memo(() => {
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </LazyDropdownMenu>
             </>
           ) : (
             <Link href="/sign-in">
@@ -321,12 +365,23 @@ HeaderGunsmith.displayName = "HeaderGunsmith";
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
   React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+>(({ className, title, children, href, ...props }, ref) => {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    router.push(href || "");
+  };
+
   return (
     <li>
       <NavigationMenuLink asChild>
         <a
           ref={ref}
+          href={href}
+          onClick={handleClick}
           className={cn(
             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
             className

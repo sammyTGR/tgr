@@ -1,135 +1,185 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import DOMPurify from "isomorphic-dompurify";
 import { supabase } from "@/utils/supabase/client";
 import LandingPagePublic from "@/components/LandingPagePublic";
 import LandingPageCustomer from "@/components/LandingPageCustomer";
-import { ProgressBar } from "@/components/ProgressBar";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import dynamic from "next/dynamic";
+
+interface UserSession {
+  session: any;
+  user: any;
+  role?: string;
+  employee_id?: number;
+}
+
+interface AuthState {
+  isLoading: boolean;
+  isValidating: boolean;
+  hasSession: boolean;
+  progress: number;
+  role: string | null;
+}
+
+const LazyLandingPagePublic = dynamic(
+  () =>
+    import("@/components/LandingPagePublic").then((module) => ({
+      default: module.default,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyLandingPageCustomer = dynamic(
+  () =>
+    import("@/components/LandingPageCustomer").then((module) => ({
+      default: module.default,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
 
 export default function Home() {
-  const [loading, setLoading] = useState(true);
-  const [roleValidating, setRoleValidating] = useState(false);
-  const [noSession, setNoSession] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchRoleAndRedirect = async () => {
-      setProgress(10); // Initial progress
+  // Query for checking auth session
+  const sessionQuery = useQuery<UserSession | null>({
+    queryKey: ["auth-session"],
+    queryFn: () =>
+      supabase.auth
+        .getSession()
+        .then(({ data: { session }, error: sessionError }) => {
+          if (sessionError || !session) {
+            return null;
+          }
+          return supabase.auth
+            .getUser()
+            .then(({ data: { user }, error: userError }) => {
+              if (userError) {
+                throw new Error(userError.message);
+              }
+              return {
+                session,
+                user,
+              };
+            });
+        }),
+  });
 
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+  // Query for fetching user role
+  const roleQuery = useQuery<UserSession, Error>({
+    queryKey: ["user-role", sessionQuery.data?.user?.id],
+    enabled: !!sessionQuery.data?.user,
+    queryFn: () => {
+      const user = sessionQuery.data?.user;
 
-      if (sessionError || !session) {
-        // console.error(
-        //   "Error fetching session or no active session found:",
-        //   sessionError?.message || "Auth session missing!"
-        // );
-        setLoading(false);
-        setNoSession(true);
-        setProgress(100); // Final progress
-        return; // No active session found
-      }
+      return Promise.resolve()
+        .then(() =>
+          supabase
+            .from("employees")
+            .select("role, employee_id")
+            .eq("user_uuid", user.id)
+            .single()
+        )
+        .then(({ data: employeeData, error: employeeError }) => {
+          if (!employeeError && employeeData) {
+            return {
+              session: sessionQuery.data?.session,
+              user: sessionQuery.data?.user,
+              role: employeeData.role,
+              employee_id: employeeData.employee_id,
+            };
+          }
 
-      setRoleValidating(true); // Start role validation
-      setProgress(30); // Update progress
+          // If not an employee, check customers table
+          return Promise.resolve()
+            .then(() =>
+              supabase
+                .from("customers")
+                .select("role")
+                .eq("email", user.email)
+                .single()
+            )
+            .then(({ data: customerData, error: customerError }) => {
+              if (customerError || !customerData) {
+                throw new Error("User role not found");
+              }
 
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
-      if (userError) {
-        //console.("Error fetching user:", userError.message);
-        setLoading(false);
-        setRoleValidating(false); // End role validation
-        setNoSession(true);
-        setProgress(100); // Final progress
-        return; // Fetching the user failed
-      }
+              return {
+                session: sessionQuery.data?.session,
+                user: sessionQuery.data?.user,
+                role: customerData.role,
+              };
+            });
+        });
+    },
+  });
 
-      const user = userData.user;
-      setProgress(50); // Update progress
+  // Navigation state query
+  const navigationQuery = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: () =>
+      Promise.resolve()
+        .then(() => new Promise((resolve) => setTimeout(resolve, 100)))
+        .then(() => null),
+    staleTime: 0,
+    refetchInterval: 0,
+  });
 
-      // Check the employees table
-      const { data: roleData, error: roleError } = await supabase
-        .from("employees")
-        .select("role, employee_id")
-        .eq("user_uuid", user?.id)
-        .single();
+  // Handle role-based routing
+  useQuery({
+    queryKey: ["role-routing", roleQuery.data?.role],
+    enabled: !!roleQuery.data?.role,
+    queryFn: () =>
+      Promise.resolve().then(() => {
+        const role = roleQuery.data?.role;
+        const employeeId = roleQuery.data?.employee_id;
 
-      if (roleError || !roleData) {
-        // Check the customers table if not found in employees table
-        const { data: customerData, error: customerError } = await supabase
-          .from("customers")
-          .select("role")
-          .eq("email", user?.email)
-          .single();
-
-        if (customerError || !customerData) {
-          console.error(
-            "Error fetching role:",
-            roleError?.message || customerError?.message
-          );
-          setLoading(false);
-          setRoleValidating(false); // End role validation
-          setNoSession(true);
-          setProgress(100); // Final progress
-          return; // No role found
-        }
-
-        const role = customerData.role;
-        setRole(role);
-
-        if (role === "customer") {
-          setLoading(false);
-          setRoleValidating(false); // End role validation
-          setProgress(100); // Final progress
-          return; // Show the customer landing page
-        } else {
-          //console.("Invalid role for user:", user?.email);
-          setLoading(false);
-          setRoleValidating(false); // End role validation
-          setNoSession(true);
-          setProgress(100); // Final progress
-          return; // Invalid role
-        }
-      } else {
-        const { role, employee_id } = roleData;
-        setRole(role);
-        setLoading(false); // End loading before redirection
-        setRoleValidating(false); // End role validation
-        setProgress(100); // Final progress
         if (role === "admin" || role === "super admin" || role === "dev") {
           router.push("/admin/reports/dashboard");
-        } else {
-          router.push(`/TGR/crew/profile/${employee_id}`);
+        } else if (employeeId) {
+          router.push(`/TGR/crew/profile/${employeeId}`);
         }
-      }
-    };
+        return null;
+      }),
+    staleTime: Infinity,
+  });
 
-    fetchRoleAndRedirect();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full w-full">
-        <ProgressBar value={progress} showAnimation={true} />
-      </div>
-    ); // Show progress bar while loading
+  // Handle loading states
+  if (sessionQuery.isLoading || navigationQuery.isLoading) {
+    return <LoadingIndicator />;
   }
 
-  if (roleValidating) {
-    return <div>Validating Role...</div>; // Show role validation message
+  // Handle role validation state
+  if (roleQuery.isLoading) {
+    return <div>Validating Role...</div>;
   }
 
-  if (noSession) {
-    return <LandingPagePublic />; // Show the public landing page if no active session
+  // Handle no session state
+  if (!sessionQuery.data) {
+    return <LazyLandingPagePublic />;
   }
 
-  if (role === "customer") {
-    return <LandingPageCustomer />;
+  // Handle customer role
+  if (roleQuery.data?.role === "customer") {
+    return <LazyLandingPageCustomer />;
   }
 
-  return null; // No need to show anything else
+  // Handle error states
+  if (sessionQuery.error || roleQuery.error) {
+    const errorMessage = DOMPurify.sanitize(
+      (sessionQuery.error || roleQuery.error)?.message || "An error occurred"
+    );
+    return <div>Error: {errorMessage}</div>;
+  }
+
+  return null;
 }

@@ -962,7 +962,7 @@ const EmployeeProfilePage = () => {
             <ScrollArea className="h-[calc(100vh-300px)]">
               <main
                 className={classNames(
-                  "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body",
+                  "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body relative",
                   styles.noScroll
                 )}
               >

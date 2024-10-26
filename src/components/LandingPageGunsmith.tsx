@@ -19,17 +19,34 @@ import {
 import { Separator } from "./ui/separator";
 import { useRole } from "../context/RoleContext";
 import { Button } from "./ui/button";
-import Image from "next/image";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const words = "Gunsmithing Dashboard";
 const subwords = "Let's Fix Shit!";
 
 const LandingPageGunsmith: React.FC = React.memo(() => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
+
   const { role } = useRole();
 
   if (role !== "gunsmith") {
     return (
       <div>
+        {isLoading && <LoadingIndicator />}
         <h1>You must be signed in to view this page.</h1>
         <Link href="/sign-in">
           <Button>Sign In</Button>
@@ -40,8 +57,9 @@ const LandingPageGunsmith: React.FC = React.memo(() => {
 
   return (
     <>
-      <section className="w-full py-12 md:py-12">
-        <div className="container px-4 md:px-6">
+      {isLoading && <LoadingIndicator />}
+      <section className="relative w-full py-12 md:py-12">
+        <div className="container px-4 md:px-6 relative">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
               <TextGenerateEffect words={words} />
@@ -59,8 +77,8 @@ const LandingPageGunsmith: React.FC = React.memo(() => {
           </div>
         </div>
       </section>
-      <section className="w-full py-12 md:py-6">
-        <div className="container px-4 md:px-6">
+      <section className="relative w-full py-12 md:py-6">
+        <div className="container px-4 md:px-6 relative">
           <div className="mx-auto grid max-w-4xl gap-8 sm:grid-cols-2 md:grid-cols-2">
             <div className="col-span-full flex justify-center">
               <GunsmithingCard />
@@ -69,14 +87,13 @@ const LandingPageGunsmith: React.FC = React.memo(() => {
             <Separator />
 
             <div className="col-span-full flex justify-center">
-            <OrderCard />
+              <OrderCard />
             </div>
             <Separator />
             <Separator />
 
             <div className="col-span-full flex justify-center">
-            <SOPCard />
-
+              <SOPCard />
             </div>
             {/* <SOPCard /> */}
             <Separator />

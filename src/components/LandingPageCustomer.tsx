@@ -7,13 +7,31 @@ import Image from "next/image";
 import { TextGenerateEffect } from "./ui/text-generate-effect";
 import { TextGenerateColor } from "./ui/text-generate-color";
 import { TracingBeam } from "./ui/tracing-beam";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const title = "TGR Members Page";
 const sub = "Thank You For Joining The TGR Family";
 
 const LandingPageCustomer: React.FC = React.memo(() => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
+
   return (
     <div className="flex flex-col min-h-[100vh]">
+      {isLoading && <LoadingIndicator />}
       <main className="flex-1">
         <TracingBeam className="w-full py-12 md:py-24 lg:py-32 border-y">
           <div className="items-center justify-start text-start mt-12 ">

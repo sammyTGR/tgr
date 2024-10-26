@@ -36,6 +36,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 
 const accountComponents = [
   {
@@ -58,9 +62,52 @@ const profileMenuItems = [
   },
 ];
 
+const LazyNavigationMenu = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyNavigationMenuList = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenuList,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyDropdownMenu = dynamic(
+  () =>
+    import("@/components/ui/dropdown-menu").then((module) => ({
+      default: module.DropdownMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
 const HeaderCustomer = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const { setTheme } = useTheme();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -80,9 +127,10 @@ const HeaderCustomer = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["customer"]}>
+      {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center">
-        <NavigationMenu>
-          <NavigationMenuList className="flex mr-3">
+        <LazyNavigationMenu>
+          <LazyNavigationMenuList className="flex mr-3">
             <NavigationMenuItem>
               <Link href="/">
                 <Button variant="linkHover2">Home</Button>
@@ -138,12 +186,12 @@ const HeaderCustomer = React.memo(() => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
             </div> */}
-          </NavigationMenuList>
-        </NavigationMenu>
+          </LazyNavigationMenuList>
+        </LazyNavigationMenu>
         <div className="flex items-center mr-1 gap-2">
           {user ? (
             <>
-              <DropdownMenu>
+              <LazyDropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="linkHover2" size="icon" className="mr-2">
                     <PersonIcon />
@@ -152,7 +200,7 @@ const HeaderCustomer = React.memo(() => {
                 <DropdownMenuContent className="w-56 mr-2">
                   <DropdownMenuItem>
                     <AvatarIcon className="mr-2 h-4 w-4" />
-                    <Link href="/public/profiles">
+                    <Link href="/customer/profiles">
                       <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
@@ -182,7 +230,7 @@ const HeaderCustomer = React.memo(() => {
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </LazyDropdownMenu>
             </>
           ) : (
             <Link href="/sign-in">
@@ -206,12 +254,23 @@ HeaderCustomer.displayName = "HeaderCustomer";
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
   React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+>(({ className, title, children, href, ...props }, ref) => {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    router.push(href || "");
+  };
+
   return (
     <li>
       <NavigationMenuLink asChild>
         <a
           ref={ref}
+          href={href}
+          onClick={handleClick}
           className={cn(
             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
             className

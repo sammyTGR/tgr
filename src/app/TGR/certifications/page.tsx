@@ -277,7 +277,7 @@ const CertificationsPage: React.FC = () => {
                     </CardTitle>
                   </CardHeader>
                   <ScrollArea>
-                    <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto">
+                    <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto relative">
                       <CardContent className="p-0 mx-auto overflow-hidden">
                         <CertificationTableToolbar
                           table={table}

@@ -282,7 +282,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-500px)] w-[calc(100vw-100px)] overflow-auto"
+              "h-[calc(100vh-500px)] w-[calc(100vw-100px)] overflow-auto relative"
             )}
           >
             <Table className="w-full overflow-hidden">
@@ -308,9 +308,7 @@ const SalesDataTable: React.FC<SalesDataTableProps> = ({
                     <TableCell
                       colSpan={columns.length}
                       className="h-24 text-center"
-                    >
-                      
-                    </TableCell>
+                    ></TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (

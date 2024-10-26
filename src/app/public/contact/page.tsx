@@ -21,9 +21,9 @@ export default function Component() {
           <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">
             <TextGenerateEffect words={title} />
           </h1>
-          <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+          <div className="max-w-[700px]  md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed ">
             <TextGenerateEffect words={sub} />
-          </p>
+          </div>
         </div>
         <div className="grid gap-8 flex flex-col md:grid-cols-2 lg:grid-cols-3 mt-8">
           <div className="space-y-4">
@@ -31,7 +31,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage alt="Main Phone" src="/Circular.jpg" />
+                  <AvatarImage alt="Main Phone" src="/Circular.png" />
                   <AvatarFallback>TGR</AvatarFallback>
                 </Avatar>
                 <div>
@@ -62,7 +62,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex text-left gap-3">
                 <Avatar>
-                  <AvatarImage alt="Rod Ibey" src="/placeholder-avatar.jpg" />
+                  {/* <AvatarImage alt="Rod Ibey" src="/placeholder-avatar.jpg" /> */}
                   <AvatarFallback>RI</AvatarFallback>
                 </Avatar>
                 <div>
@@ -93,10 +93,10 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage
+                  {/* <AvatarImage
                     alt="Michelle Kahn"
                     src="/placeholder-avatar.jpg"
-                  />
+                  /> */}
                   <AvatarFallback>MK</AvatarFallback>
                 </Avatar>
                 <div>
@@ -127,10 +127,10 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage
+                  {/* <AvatarImage
                     alt="Sam Yohannes"
                     src="/placeholder-avatar.jpg"
-                  />
+                  /> */}
                   <AvatarFallback>SY</AvatarFallback>
                 </Avatar>
                 <div>
@@ -161,10 +161,10 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage
+                  {/* <AvatarImage
                     alt="Russell Spence"
                     src="/placeholder-avatar.jpg"
-                  />
+                  /> */}
                   <AvatarFallback>RS</AvatarFallback>
                 </Avatar>
                 <div>
@@ -198,7 +198,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage alt="Jim Vu" src="/placeholder-avatar.jpg" />
+                  {/* <AvatarImage alt="Jim Vu" src="/placeholder-avatar.jpg" /> */}
                   <AvatarFallback>JV</AvatarFallback>
                 </Avatar>
                 <div>
@@ -229,7 +229,7 @@ export default function Component() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage alt="Sammy Lee" src="/placeholder-avatar.jpg" />
+                  {/* <AvatarImage alt="Sammy Lee" src="/placeholder-avatar.jpg" /> */}
                   <AvatarFallback>SL</AvatarFallback>
                 </Avatar>
                 <div>

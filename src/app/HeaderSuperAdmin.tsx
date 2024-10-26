@@ -31,7 +31,6 @@ import { supabase } from "@/utils/supabase/client";
 // import useUnreadOrders from "@/app/api/useUnreadOrders";
 // import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,7 +44,10 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
-// import { useUnreadCounts } from "@/components/UnreadCountsContext";
+import dynamic from "next/dynamic";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface HeaderSuperAdminProps {
   totalUnreadCount: number;
@@ -321,6 +323,35 @@ const comboComps = [
   },
 ];
 
+const LazyNavigationMenu = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyNavigationMenuList = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenuList,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+const LazyDropdownMenu = dynamic(
+  () =>
+    import("@/components/ui/dropdown-menu").then((module) => ({
+      default: module.DropdownMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
 const HeaderSuperAdmin = React.memo(() => {
   const [user, setUser] = useState<any>(null);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
@@ -329,6 +360,19 @@ const HeaderSuperAdmin = React.memo(() => {
   // const { totalUnreadCount, resetUnreadCounts } = useUnreadCounts();
   const [unreadOrderCount, setUnreadOrderCount] = useState(0);
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   const fetchUnreadOrders = async () => {
     try {
@@ -472,9 +516,10 @@ const HeaderSuperAdmin = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["super admin", "dev"]}>
+      {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
-        <NavigationMenu>
-          <NavigationMenuList className="flex space-x-4 mr-3">
+        <LazyNavigationMenu>
+          <LazyNavigationMenuList className="flex space-x-4 mr-3">
             <NavigationMenuItem>
               <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -571,8 +616,8 @@ const HeaderSuperAdmin = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+          </LazyNavigationMenuList>
+        </LazyNavigationMenu>
         <div className="flex items-center">
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview">
@@ -598,7 +643,7 @@ const HeaderSuperAdmin = React.memo(() => {
 
           {user ? (
             <>
-              <DropdownMenu>
+              <LazyDropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="linkHover2"
@@ -677,7 +722,7 @@ const HeaderSuperAdmin = React.memo(() => {
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </LazyDropdownMenu>
             </>
           ) : (
             <Link href="/sign-in">
@@ -695,12 +740,23 @@ HeaderSuperAdmin.displayName = "HeaderSuperAdmin";
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
   React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+>(({ className, title, children, href, ...props }, ref) => {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    router.push(href || "");
+  };
+
   return (
     <li>
       <NavigationMenuLink asChild>
         <a
           ref={ref}
+          href={href}
+          onClick={handleClick}
           className={cn(
             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
             className

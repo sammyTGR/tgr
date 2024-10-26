@@ -94,31 +94,21 @@ export default function TimeOffRequestPage() {
     },
   });
 
-  const { data: timeOffReasons = [] } = useQuery({
+  const timeOffReasonsQuery = useQuery({
     queryKey: ["timeOffReasons"],
-    queryFn: async () => {
-      const response = await fetch("/api/time_off_reasons");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    },
+    queryFn: () => fetch("/api/time_off_reasons").then((res) => res.json()),
   });
 
-  const { data: calendarData = [], refetch: refetchCalendarData } = useQuery({
+  const calendarDataQuery = useQuery({
     queryKey: ["calendarData", "", ""],
-    queryFn: async ({ queryKey }: any) => {
+    queryFn: ({ queryKey }: any) => {
       const [_, start_date, end_date] = queryKey;
-      if (!start_date || !end_date) return [];
-      const response = await fetch("/api/calendar", {
+      if (!start_date || !end_date) return Promise.resolve([]);
+      return fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ start_date, end_date }),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
+      }).then((res) => res.json());
     },
     enabled: false,
   });
@@ -129,26 +119,23 @@ export default function TimeOffRequestPage() {
     enabled: false,
   });
 
-  const {
-    data: activeEmployees = [],
-    isLoading,
-    error,
-  } = useQuery({
+  const activeEmployeesQuery = useQuery({
     queryKey: ["activeEmployees"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("name")
-        .eq("status", "active")
-        .order("name");
-
-      if (error) {
-        throw new Error("Failed to fetch active employees");
-      }
-
-      return data.map((employee) => employee.name);
-    },
+    queryFn: () =>
+      Promise.resolve(
+        supabase
+          .from("employees")
+          .select("name")
+          .eq("status", "active")
+          .order("name")
+          .then(({ data, error }) => {
+            if (error) throw new Error("Failed to fetch active employees");
+            return data.map((employee) => employee.name);
+          })
+      ),
   });
+
+  const { data: activeEmployees = [], isLoading, error } = activeEmployeesQuery;
 
   const { data: showOtherTextarea = false } = useQuery<boolean>({
     queryKey: ["showOtherTextarea"],
@@ -193,17 +180,16 @@ export default function TimeOffRequestPage() {
   });
 
   const submitTimeOffMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      const response = await fetch("/api/time_off", {
+    mutationFn: (payload: any) =>
+      fetch("/api/time_off", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    },
+      }).then((response) => {
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      }),
     onError: (error) => {
       toast.error("Failed to submit time off request. Please try again.");
     },
@@ -315,7 +301,7 @@ export default function TimeOffRequestPage() {
           ["calendarData", start_date, end_date],
           undefined
         );
-        refetchCalendarData();
+        calendarDataQuery.refetch();
       }
     } else {
       queryClient.setQueryData(["selectedDates"], []);
@@ -565,11 +551,13 @@ export default function TimeOffRequestPage() {
                       <SelectValue placeholder="Select Reason" />
                     </SelectTrigger>
                     <SelectContent>
-                      {timeOffReasons.map((reason: TimeOffReason) => (
-                        <SelectItem key={reason.id} value={reason.reason}>
-                          {reason.reason}
-                        </SelectItem>
-                      ))}
+                      {timeOffReasonsQuery.data?.map(
+                        (reason: TimeOffReason) => (
+                          <SelectItem key={reason.id} value={reason.reason}>
+                            {reason.reason}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                   {showOtherTextarea && (

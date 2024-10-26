@@ -1,6 +1,6 @@
 "use client";
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/utils/supabase/client";
 import {
   useQuery,
   QueryClient,
@@ -21,7 +21,6 @@ function FlagsmithWrapperInner({
   children,
 }: FlagsmithWrapperProps) {
   const [isInitialized, setIsInitialized] = useState(false);
-  const supabase = createClientComponentClient();
 
   const { data: user, isLoading: isUserLoading } = useQuery({
     queryKey: ["user"],

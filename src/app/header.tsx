@@ -3,24 +3,127 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 import HeaderDev from "./HeaderDev";
+import HeaderUser from "./HeaderUser";
+import HeaderAdmin from "./HeaderAdmin";
+import HeaderSuperAdmin from "./HeaderSuperAdmin";
+import HeaderPublic from "./HeaderPublic";
+import HeaderCustomer from "./HeaderCustomer";
+import HeaderGunsmith from "./HeaderGunsmith";
+import HeaderAuditor from "./HeaderAuditor";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
-const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
-const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), {
-  ssr: false,
-});
-const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
-const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), {
-  ssr: false,
-});
-const HeaderGunsmith = dynamic(() => import("./HeaderGunsmith"), {
-  ssr: false,
-});
-const HeaderAuditor = dynamic(() => import("./HeaderAuditor"), { ssr: false });
+// const HeaderUser = dynamic(() => import("./HeaderUser"), { ssr: false });
+// const HeaderAdmin = dynamic(() => import("./HeaderAdmin"), { ssr: false });
+// const HeaderSuperAdmin = dynamic(() => import("./HeaderSuperAdmin"), {
+//   ssr: false,
+// });
+// const HeaderPublic = dynamic(() => import("./HeaderPublic"), { ssr: false });
+// const HeaderCustomer = dynamic(() => import("./HeaderCustomer"), {
+//   ssr: false,
+// });
+// const HeaderGunsmith = dynamic(() => import("./HeaderGunsmith"), {
+//   ssr: false,
+// });
+// const HeaderAuditor = dynamic(() => import("./HeaderAuditor"), { ssr: false });
 
 export default function Header() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
+
+  const LazyHeaderDev = dynamic(
+    () =>
+      import("./HeaderDev").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderAdmin = dynamic(
+    () =>
+      import("./HeaderAdmin").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderSuperAdmin = dynamic(
+    () =>
+      import("./HeaderSuperAdmin").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderPublic = dynamic(
+    () =>
+      import("./HeaderPublic").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderCustomer = dynamic(
+    () =>
+      import("./HeaderCustomer").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderGunsmith = dynamic(
+    () =>
+      import("./HeaderGunsmith").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderAuditor = dynamic(
+    () =>
+      import("./HeaderAuditor").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
+
+  const LazyHeaderUser = dynamic(
+    () =>
+      import("./HeaderUser").then((module) => ({
+        default: module.default,
+      })),
+    {
+      loading: () => <LoadingIndicator />,
+    }
+  );
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -76,27 +179,48 @@ export default function Header() {
   }, []);
 
   if (loading) {
-    return <div></div>;
+    return <LoadingIndicator />;
   }
 
   if (!role) {
-    return <HeaderPublic />;
+    return <LazyHeaderPublic />;
   }
 
   switch (role) {
     case "super admin":
-      return <HeaderSuperAdmin />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderSuperAdmin />;
     case "dev":
-      return <HeaderDev />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderDev />;
     case "admin":
-      return <HeaderAdmin />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderAdmin />;
     case "customer":
-      return <HeaderCustomer />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderCustomer />;
     case "gunsmith":
-      return <HeaderGunsmith />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderGunsmith />;
     case "auditor":
-      return <HeaderAuditor />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderAuditor />;
     default:
-      return <HeaderUser />;
+      {
+        isLoading && <LoadingIndicator />;
+      }
+      return <LazyHeaderUser />;
   }
 }

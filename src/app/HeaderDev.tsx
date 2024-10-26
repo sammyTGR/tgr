@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React, { lazy, Suspense } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -45,7 +45,10 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
-// import { useUnreadCounts } from "@/components/UnreadCountsContext";
+import dynamic from "next/dynamic";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface HeaderDev {
   totalUnreadCount: number;
@@ -61,6 +64,36 @@ export interface ChatMessage {
   is_read?: boolean;
   read_by?: string[];
 }
+
+const LazyNavigationMenu = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyNavigationMenuList = dynamic(
+  () =>
+    import("@/components/ui/navigation-menu").then((module) => ({
+      default: module.NavigationMenuList,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyDropdownMenu = dynamic(
+  () =>
+    import("@/components/ui/dropdown-menu").then((module) => ({
+      default: module.DropdownMenu,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
 
 const auditComponents = [
   {
@@ -81,11 +114,6 @@ const schedComponents = [
     href: "/TGR/crew/calendar",
     description: "Schedules & Time Off Requests",
   },
-  // {
-  //   title: "Submit Time Off",
-  //   href: "/TGR/crew/timeoffrequest",
-  //   description: "Submit A Request",
-  // },
   {
     title: "Review Time Off Requests",
     href: "/admin/timeoffreview",
@@ -103,52 +131,6 @@ const schedComponents = [
   },
 ];
 
-const serviceComponents = [
-  {
-    title: "Submit Requests",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
-  },
-  {
-    title: "View Orders",
-    href: "/sales/orderreview",
-    description: "View Customer Requests",
-  },
-  {
-    title: "Safety Waiver",
-    href: "/public/waiver",
-    description: "Submit A Safety Waiver",
-  },
-  {
-    title: "Review Waivers",
-    href: "/sales/waiver/checkin",
-    description: "Review Waivers & Check Customers In",
-  },
-];
-
-const formComps = [
-  {
-    title: "Range Walks",
-    href: "/TGR/rangewalk",
-    description: "Submit Daily Range Walks",
-  },
-  {
-    title: "Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Submit Daily Deposits",
-  },
-  {
-    title: "Points Submissions",
-    href: "/TGR/crew/points",
-    description: "Report All Submitted Points",
-  },
-  {
-    title: "Checklist",
-    href: "/TGR/rentals/checklist",
-    description: "Daily Rental Checklist",
-  },
-];
-
 const sopComps = [
   {
     title: "TGR SOPs",
@@ -159,44 +141,6 @@ const sopComps = [
     title: "Admin SOPs",
     href: "/admin/sop",
     description: "SOPs For Back Of The House",
-  },
-];
-
-const reportsComps = [
-  {
-    title: "Daily Sales",
-    href: "/admin/reports/sales",
-    description: "Set Categories & View Sales",
-  },
-  {
-    title: "Test Charts",
-    href: "/admin/reports/charts",
-    description: "Build Charts",
-  },
-  {
-    title: "Range Walks & Repairs",
-    href: "/TGR/rangewalk/report",
-    description: "View All Range Walks & Repairs",
-  },
-  {
-    title: "Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
-  },
-  {
-    title: "Review Orders",
-    href: "/sales/orderreview",
-    description: "View Submitted Orders",
-  },
-  {
-    title: "Gunsmithing",
-    href: "/TGR/gunsmithing",
-    description: "Weekly Gunsmithing Maintenance",
-  },
-  {
-    title: "Monthly Contest",
-    href: "/admin/audits/contest",
-    description: "Monthly Sales Contest",
   },
 ];
 
@@ -342,6 +286,19 @@ const HeaderDev = React.memo(() => {
   // const { totalUnreadCount, resetUnreadCounts } = useUnreadCounts();
   const [unreadOrderCount, setUnreadOrderCount] = useState(0);
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: async () => {
+      // Simulate a delay to show the loading indicator
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return null;
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   const fetchUnreadOrders = async () => {
     try {
@@ -442,29 +399,6 @@ const HeaderDev = React.memo(() => {
     router.push("/TGR/crew/chat");
   };
 
-  const profileComps = [
-    {
-      title: "Notes",
-      href: "/admin/todo",
-      description: "All Kinda Notes",
-    },
-    {
-      title: "Weekly Agenda",
-      href: "/admin/weeklyagenda",
-      description: "Weekly Agenda Topics",
-    },
-    {
-      title: "Staff Profiles",
-      href: "/admin/dashboard",
-      description: "All Profiles",
-    },
-    {
-      title: "Your Profile",
-      href: employeeId ? `/TGR/crew/profile/${employeeId}` : "#",
-      description: "Your Personal Profile",
-    },
-  ];
-
   const aimComps = [
     {
       title: "AIM",
@@ -485,123 +419,126 @@ const HeaderDev = React.memo(() => {
 
   return (
     <RoleBasedWrapper allowedRoles={["dev"]}>
+      {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-1">
-        <NavigationMenu>
-          <NavigationMenuList className="flex space-x-1 mr-3">
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                  {auditComponents.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Staff Management</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                  {schedComponents.map((sched) => (
-                    <ListItem
-                      key={sched.title}
-                      title={sched.title}
-                      href={sched.href}
-                    >
-                      {sched.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Forms & Reports</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
-                  {comboComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Fastbound</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {fbComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Management</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {manageComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {sopComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>AIM</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                  {aimComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+        <Suspense fallback={<div>Loading navigation...</div>}>
+          <LazyNavigationMenu>
+            <LazyNavigationMenuList className="flex space-x-1 mr-3">
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Auditing</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                    {auditComponents.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Staff Management</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                    {schedComponents.map((sched) => (
+                      <ListItem
+                        key={sched.title}
+                        title={sched.title}
+                        href={sched.href}
+                      >
+                        {sched.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Forms & Reports</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-3 lg:w-[600px]">
+                    {comboComps.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Fastbound</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {fbComps.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Management</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {manageComps.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {sopComps.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>AIM</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                    {aimComps.map((component) => (
+                      <ListItem
+                        key={component.title}
+                        title={component.title}
+                        href={component.href}
+                      >
+                        {component.description}
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </LazyNavigationMenuList>
+          </LazyNavigationMenu>
+        </Suspense>
         <div className="flex items-center -space-x-2">
           {unreadOrderCount > 0 && (
             <Link href="/sales/orderreview" className="mr-1">
@@ -627,82 +564,90 @@ const HeaderDev = React.memo(() => {
 
           {user ? (
             <div className="flex items-center space-x-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="mr-2 relative">
-                    <PersonIcon />
-                    {/* {totalUnreadCount > 0 && (
+              <Suspense fallback={<div>Loading menu...</div>}>
+                <LazyDropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mr-2 relative"
+                    >
+                      <PersonIcon />
+                      {/* {totalUnreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
                         {totalUnreadCount}
                       </span>
                     )} */}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 mr-2">
-                  <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={handleProfileClick}>
-                    <PersonIcon className="mr-2 h-4 w-4" />
-                    <span>Your Profile Page</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => handleLinkClick("/admin/domains")}
-                  >
-                    <Pencil2Icon className="mr-2 h-4 w-4" />
-                    <span>Manage Domains</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => handleLinkClick("/admin/reports/dashboard")}
-                  >
-                    <DashboardIcon className="mr-2 h-4 w-4" />
-                    <span>Admin Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 mr-2">
+                    <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleProfileClick}>
+                      <PersonIcon className="mr-2 h-4 w-4" />
+                      <span>Your Profile Page</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => handleLinkClick("/admin/domains")}
+                    >
+                      <Pencil2Icon className="mr-2 h-4 w-4" />
+                      <span>Manage Domains</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() =>
+                        handleLinkClick("/admin/reports/dashboard")
+                      }
+                    >
+                      <DashboardIcon className="mr-2 h-4 w-4" />
+                      <span>Admin Dashboard</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={handleChatClick}>
-                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                    <span>Messages</span>
-                    {/* {totalUnreadCount > 0 && (
+                    <DropdownMenuItem onClick={handleChatClick}>
+                      <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                      <span>Messages</span>
+                      {/* {totalUnreadCount > 0 && (
                       <span className="ml-auto text-red-500 font-bold">
                         {totalUnreadCount}
                       </span>
                     )} */}
-                  </DropdownMenuItem>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                    <DropdownMenuSeparator />
 
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <ShadowIcon className="mr-2 h-4 w-4" />
-                      <span>Change Theme</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>
-                          <SunIcon className="mr-2 h-4 w-4" />
-                          <span>Light</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>
-                          <MoonIcon className="mr-2 h-4 w-4" />
-                          <span>Dark</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
-                  {/* <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <ShadowIcon className="mr-2 h-4 w-4" />
+                        <span>Change Theme</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => setTheme("light")}>
+                            <SunIcon className="mr-2 h-4 w-4" />
+                            <span>Light</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setTheme("dark")}>
+                            <MoonIcon className="mr-2 h-4 w-4" />
+                            <span>Dark</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+                    {/* <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setTheme("light")}>
                     Light
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setTheme("dark")}>
                     Dark
                   </DropdownMenuItem> */}
-                  <DropdownMenuSeparator />
+                    <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </LazyDropdownMenu>
+              </Suspense>
             </div>
           ) : (
             <Link href="/sign-in">
@@ -720,12 +665,23 @@ HeaderDev.displayName = "HeaderDev";
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
   React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+>(({ className, title, children, href, ...props }, ref) => {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    router.push(href || "");
+  };
+
   return (
     <li>
       <NavigationMenuLink asChild>
         <a
           ref={ref}
+          href={href}
+          onClick={handleClick}
           className={cn(
             "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
             className

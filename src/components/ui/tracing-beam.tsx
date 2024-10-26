@@ -1,11 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  motion,
-  useTransform,
-  useScroll,
-  useSpring,
-} from "framer-motion";
+import { motion, useTransform, useScroll, useSpring } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 export const TracingBeam = ({
@@ -82,11 +77,10 @@ export const TracingBeam = ({
             }}
             animate={{
               backgroundColor:
-                scrollYProgress.get() > 0 ? "white" : "#50C878",
-              borderColor:
-                scrollYProgress.get() > 0 ? "white" : "#4CBB17",
+                scrollYProgress.get() > 0 ? "#FFFFFF" : "#50C878",
+              borderColor: scrollYProgress.get() > 0 ? "#FFFFFF" : "#4CBB17",
             }}
-            className="h-2 w-2 rounded-full border border-neutral-300 bg-white"
+            className="h-2 w-2 rounded-full border border-neutral-300 bg-#FFFFFF"
           />
         </motion.div>
         <svg
