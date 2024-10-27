@@ -31,6 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import dynamic from "next/dynamic";
 
 type OptionType = {
   label: string;
@@ -62,6 +65,26 @@ interface Audit {
   error_notes: string;
   dros_cancel: string;
 }
+
+const LazyDataTable = dynamic(
+  () =>
+    import("@/components/ui/data-table").then((module) => ({
+      default: module.DataTable,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
+
+const LazyDataTableProfile = dynamic(
+  () =>
+    import("./contest/data-table-profile").then((module) => ({
+      default: module.DataTableProfile,
+    })),
+  {
+    loading: () => <LoadingIndicator />,
+  }
+);
 
 export default function AuditsPage() {
   const [activeTab, setActiveTab] = useState("submit");
@@ -300,6 +323,7 @@ export default function AuditsPage() {
 
   return (
     <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin", "dev"]}>
+      {loading && <LoadingIndicator />}
       <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <div className="mb-10 my-8">
           <SupportNavMenu />
@@ -327,7 +351,10 @@ export default function AuditsPage() {
                 {loading ? (
                   <p></p>
                 ) : (
-                  <DataTable columns={columns} data={data} />
+                  <LazyDataTable
+                    columns={columns as any}
+                    data={data as any}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -494,7 +521,7 @@ export default function AuditsPage() {
             <Card>
               <CardContent>
                 <div className="text-left">
-                  <DataTableProfile
+                  <LazyDataTableProfile
                     columns={[
                       { Header: "Sales Rep", accessor: "Lanid" },
                       { Header: "Total DROS", accessor: "TotalDros" },

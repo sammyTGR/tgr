@@ -149,7 +149,7 @@ const LazySalesDataTable = dynamic(
       default: module.default,
     })),
   {
-    loading: () => <p>Loading chart...</p>,
+    loading: () => <LoadingIndicator />,
   }
 );
 
@@ -164,10 +164,12 @@ function AdminDashboardContent() {
 
   const { isLoading } = useQuery({
     queryKey: ["navigation", pathname, searchParams],
-    queryFn: async () => {
-      // Simulate a delay to show the loading indicator
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return null;
+    queryFn: () => {
+      return Promise.resolve(
+        new Promise((resolve) => {
+          setTimeout(() => resolve(null), 100);
+        })
+      );
     },
     staleTime: 0, // Always refetch on route change
     refetchInterval: 0, // Disable automatic refetching
@@ -249,7 +251,7 @@ function AdminDashboardContent() {
 
   //Mutations
   const handleSuggestionReplyMutation = useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       suggestion,
       replyText,
     }: {
@@ -257,44 +259,47 @@ function AdminDashboardContent() {
       replyText: string;
     }) => {
       if (!suggestion.id) {
-        throw new Error("Suggestion ID is missing");
+        return Promise.reject(new Error("Suggestion ID is missing"));
       }
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      return Promise.resolve(
+        supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+          if (userError) throw userError;
 
-      const fullName = user?.user_metadata?.name || "";
-      const firstName = fullName.split(" ")[0];
-      const replierName = firstName || "Admin";
+          const fullName = user?.user_metadata?.name || "";
+          const firstName = fullName.split(" ")[0];
+          const replierName = firstName || "Admin";
 
-      const { error } = await supabase
-        .from("employee_suggestions")
-        .update({
-          is_read: true,
-          replied_by: replierName,
-          replied_at: new Date().toISOString(),
-          reply: replyText,
+          return Promise.resolve(
+            supabase
+              .from("employee_suggestions")
+              .update({
+                is_read: true,
+                replied_by: replierName,
+                replied_at: new Date().toISOString(),
+                reply: replyText,
+              })
+              .eq("id", suggestion.id)
+              .then(({ error }) => {
+                if (error) throw error;
+
+                return Promise.resolve(
+                  sendEmail(
+                    suggestion.email,
+                    "Reply to Your Suggestion",
+                    "SuggestionReply",
+                    {
+                      employeeName: suggestion.created_by,
+                      originalSuggestion: suggestion.suggestion,
+                      replyText: replyText,
+                      repliedBy: replierName,
+                    }
+                  ).then(() => ({ suggestion, replyText }))
+                );
+              })
+          );
         })
-        .eq("id", suggestion.id);
-
-      if (error) throw error;
-
-      await sendEmail(
-        suggestion.email,
-        "Reply to Your Suggestion",
-        "SuggestionReply",
-        {
-          employeeName: suggestion.created_by,
-          originalSuggestion: suggestion.suggestion,
-          replyText: replyText,
-          repliedBy: replierName,
-        }
       );
-
-      return { suggestion, replyText };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suggestions"] });
@@ -463,11 +468,11 @@ function AdminDashboardContent() {
   });
 
   const uploadFileMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: (file: File) => {
       const upload = (progress: number) => {
         queryClient.setQueryData(["uploadProgress"], progress);
       };
-      return handleFileUpload(file, upload);
+      return Promise.resolve(handleFileUpload(file, upload));
     },
     onMutate: () => {
       queryClient.setQueryData(["uploadProgress"], 0);
@@ -488,48 +493,51 @@ function AdminDashboardContent() {
   });
 
   const replyMutation = useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       suggestion,
       replyText,
     }: {
       suggestion: Suggestion;
       replyText: string;
     }) => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      return Promise.resolve(
+        supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+          if (userError) throw userError;
 
-      const fullName = user?.user_metadata?.name || "";
-      const firstName = fullName.split(" ")[0];
-      const replierName = firstName || "Admin";
+          const fullName = user?.user_metadata?.name || "";
+          const firstName = fullName.split(" ")[0];
+          const replierName = firstName || "Admin";
 
-      const { error } = await supabase
-        .from("employee_suggestions")
-        .update({
-          is_read: true,
-          replied_by: replierName,
-          replied_at: new Date().toISOString(),
-          reply: replyText,
+          return Promise.resolve(
+            supabase
+              .from("employee_suggestions")
+              .update({
+                is_read: true,
+                replied_by: replierName,
+                replied_at: new Date().toISOString(),
+                reply: replyText,
+              })
+              .eq("id", suggestion.id)
+              .then(({ error }) => {
+                if (error) throw error;
+
+                return Promise.resolve(
+                  sendEmail(
+                    suggestion.email,
+                    "Reply to Your Suggestion",
+                    "SuggestionReply",
+                    {
+                      employeeName: suggestion.created_by,
+                      originalSuggestion: suggestion.suggestion,
+                      replyText: replyText,
+                      repliedBy: replierName,
+                    }
+                  ).then(() => ({ suggestion, replyText }))
+                );
+              })
+          );
         })
-        .eq("id", suggestion.id);
-
-      if (error) throw error;
-
-      await sendEmail(
-        suggestion.email,
-        "Reply to Your Suggestion",
-        "SuggestionReply",
-        {
-          employeeName: suggestion.created_by,
-          originalSuggestion: suggestion.suggestion,
-          replyText: replyText,
-          repliedBy: replierName,
-        }
       );
-
-      return { suggestion, replyText };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suggestions"] });
@@ -555,210 +563,247 @@ function AdminDashboardContent() {
     }
   };
 
-  async function fetchDomains() {
-    const { data, error } = await supabase
-      .from("employee_domains")
-      .select("*")
-      .order("domain");
-
-    if (error) throw error;
-    return data;
+  function fetchDomains() {
+    return Promise.resolve(
+      supabase
+        .from("employee_domains")
+        .select("*")
+        .order("domain")
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        })
+    );
   }
 
-  async function fetchSuggestions() {
-    const { data, error } = await supabase
-      .from("employee_suggestions")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return data;
+  function fetchSuggestions() {
+    return Promise.resolve(
+      supabase
+        .from("employee_suggestions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        })
+    );
   }
 
-  async function fetchCertificates() {
-    const { data, error } = await supabase
-      .from("certifications")
-      .select("*")
-      .lt(
-        "expiration",
-        new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
-      )
-      .order("expiration", { ascending: true });
-
-    if (error) throw error;
-    return data;
+  function fetchCertificates() {
+    return Promise.resolve(
+      supabase
+        .from("certifications")
+        .select("*")
+        .lt(
+          "expiration",
+          new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+        )
+        .order("expiration", { ascending: true })
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        })
+    );
   }
 
-  async function fetchLatestRangeWalkReport() {
-    const { data, error } = await supabase
-      .from("range_walk_reports")
-      .select("*")
-      .order("date_of_walk", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) throw error;
-    return data;
+  function fetchLatestRangeWalkReport() {
+    return Promise.resolve(
+      supabase
+        .from("range_walk_reports")
+        .select("*")
+        .order("date_of_walk", { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        })
+    );
   }
 
-  async function fetchLatestChecklistSubmission() {
-    const { data, error } = await supabase
-      .from("checklist_submissions")
-      .select("*")
-      .order("submission_date", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) throw error;
-    return data;
+  function fetchLatestChecklistSubmission() {
+    return Promise.resolve(
+      supabase
+        .from("checklist_submissions")
+        .select("*")
+        .order("submission_date", { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        })
+    );
   }
 
-  async function fetchLatestGunsmithMaintenance() {
-    const { data, error } = await supabase
-      .from("firearms_maintenance")
-      .select("id, firearm_name, last_maintenance_date")
-      .order("last_maintenance_date", { ascending: false })
-      .limit(5)
-      .not("last_maintenance_date", "is", null);
-
-    if (error) throw error;
-    return data && data.length > 0 ? data[0] : null;
+  function fetchLatestGunsmithMaintenance() {
+    return Promise.resolve(
+      supabase
+        .from("firearms_maintenance")
+        .select("id, firearm_name, last_maintenance_date")
+        .order("last_maintenance_date", { ascending: false })
+        .limit(5)
+        .not("last_maintenance_date", "is", null)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data && data.length > 0 ? data[0] : null;
+        })
+    );
   }
 
-  async function fetchLatestDailyDeposit() {
-    const { data, error } = await supabase
-      .from("daily_deposits")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) throw error;
-    return data;
+  function fetchLatestDailyDeposit() {
+    return Promise.resolve(
+      supabase
+        .from("daily_deposits")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        })
+    );
   }
 
-  async function fetchDailyChecklistStatus() {
-    const { data, error } = await supabase
-      .from("firearms_maintenance")
-      .select("id, last_maintenance_date")
-      .eq("rental_notes", "With Gunsmith");
+  function fetchDailyChecklistStatus() {
+    return Promise.resolve(
+      supabase
+        .from("firearms_maintenance")
+        .select("id, last_maintenance_date")
+        .eq("rental_notes", "With Gunsmith")
+        .then(({ data, error }) => {
+          if (error) throw error;
 
-    if (error) throw error;
+          const firearmsCount = data.length;
+          const lastSubmission = data.reduce((latest, current) => {
+            return latest && latest > current.last_maintenance_date
+              ? latest
+              : current.last_maintenance_date;
+          }, null);
 
-    const firearmsCount = data.length;
-    const lastSubmission = data.reduce((latest, current) => {
-      return latest && latest > current.last_maintenance_date
-        ? latest
-        : current.last_maintenance_date;
-    }, null);
+          const submitted = lastSubmission
+            ? new Date(lastSubmission) >
+              new Date(Date.now() - 24 * 60 * 60 * 1000)
+            : false;
 
-    const submitted = lastSubmission
-      ? new Date(lastSubmission) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-      : false;
-
-    return {
-      submitted,
-      lastSubmissionDate: lastSubmission,
-      firearmsCount,
-    };
+          return {
+            submitted,
+            lastSubmissionDate: lastSubmission,
+            firearmsCount,
+          };
+        })
+    );
   }
 
-  async function fetchLatestSalesData(startDate: Date, endDate: Date) {
+  function fetchLatestSalesData(startDate: Date, endDate: Date) {
     const utcStartDate = new Date(startDate.toUTCString().slice(0, -4));
     const utcEndDate = new Date(endDate.toUTCString().slice(0, -4));
 
-    const response = await fetch("/api/fetch-sales-data", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        startDate: utcStartDate.toISOString(),
-        endDate: utcEndDate.toISOString(),
-      }),
-    });
+    return Promise.resolve(
+      fetch("/api/fetch-sales-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: utcStartDate.toISOString(),
+          endDate: utcEndDate.toISOString(),
+        }),
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error("Error fetching sales data");
+        }
 
-    if (!response.ok) {
-      throw new Error("Error fetching sales data");
-    }
+        return response.json().then((responseData) => {
+          let salesData;
 
-    const responseData = await response.json();
-    let salesData;
+          if (Array.isArray(responseData)) {
+            salesData = responseData;
+          } else if (responseData && Array.isArray(responseData.data)) {
+            salesData = responseData.data;
+          } else {
+            throw new Error("Unexpected data format");
+          }
 
-    if (Array.isArray(responseData)) {
-      salesData = responseData;
-    } else if (responseData && Array.isArray(responseData.data)) {
-      salesData = responseData.data;
-    } else {
-      throw new Error("Unexpected data format");
-    }
+          const excludeCategoriesFromChart = [
+            "CA Tax Gun Transfer",
+            "CA Tax Adjust",
+            "CA Excise Tax",
+            "CA Excise Tax Adjustment",
+          ];
 
-    const excludeCategoriesFromChart = [
-      "CA Tax Gun Transfer",
-      "CA Tax Adjust",
-      "CA Excise Tax",
-      "CA Excise Tax Adjustment",
-    ];
+          const excludeCategoriesFromTotalNet = [
+            "Pistol",
+            "Rifle",
+            "Revolver",
+            "Shotgun",
+            "Receiver",
+            ...excludeCategoriesFromChart,
+          ];
 
-    const excludeCategoriesFromTotalNet = [
-      "Pistol",
-      "Rifle",
-      "Revolver",
-      "Shotgun",
-      "Receiver",
-      ...excludeCategoriesFromChart,
-    ];
+          let totalGross = 0;
+          let totalNetMinusExclusions = 0;
+          let totalNet = 0;
 
-    let totalGross = 0;
-    let totalNetMinusExclusions = 0;
-    let totalNet = 0;
+          interface SalesItem {
+            category_label: string;
+            total_gross: number;
+            total_net: number;
+          }
 
-    interface SalesItem {
-      category_label: string;
-      total_gross: number;
-      total_net: number;
-    }
+          salesData.forEach((item: SalesItem) => {
+            const category = item.category_label;
+            const grossValue = item.total_gross ?? 0;
+            const netValue = item.total_net ?? 0;
 
-    salesData.forEach((item: SalesItem) => {
-      const category = item.category_label;
-      const grossValue = item.total_gross ?? 0;
-      const netValue = item.total_net ?? 0;
+            totalGross += grossValue;
+            totalNet += netValue;
 
-      totalGross += grossValue;
-      totalNet += netValue;
+            if (!excludeCategoriesFromTotalNet.includes(category)) {
+              totalNetMinusExclusions += netValue;
+            }
+          });
 
-      if (!excludeCategoriesFromTotalNet.includes(category)) {
-        totalNetMinusExclusions += netValue;
-      }
-    });
-
-    return { totalGross, totalNet, totalNetMinusExclusions, salesData };
+          return { totalGross, totalNet, totalNetMinusExclusions, salesData };
+        });
+      })
+    );
   }
 
-  async function addDomain(newDomain: string) {
-    const { error } = await supabase
-      .from("employee_domains")
-      .insert({ domain: newDomain.toLowerCase() });
-
-    if (error) throw error;
+  function addDomain(newDomain: string) {
+    return Promise.resolve(
+      supabase
+        .from("employee_domains")
+        .insert({ domain: newDomain.toLowerCase() })
+        .then(({ error }) => {
+          if (error) throw error;
+        })
+    );
   }
 
-  async function updateDomain(domain: Domain) {
-    const { error } = await supabase
-      .from("employee_domains")
-      .update({ domain: domain.domain.toLowerCase() })
-      .eq("id", domain.id);
-
-    if (error) throw error;
+  function updateDomain(domain: Domain) {
+    return Promise.resolve(
+      supabase
+        .from("employee_domains")
+        .update({ domain: domain.domain.toLowerCase() })
+        .eq("id", domain.id)
+        .then(({ error }) => {
+          if (error) throw error;
+        })
+    );
   }
 
-  async function deleteDomain(id: number) {
-    const { error } = await supabase
-      .from("employee_domains")
-      .delete()
-      .eq("id", id);
-
-    if (error) throw error;
+  function deleteDomain(id: number) {
+    return Promise.resolve(
+      supabase
+        .from("employee_domains")
+        .delete()
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) throw error;
+        })
+    );
   }
 
   function handleReply({
@@ -776,114 +821,133 @@ function AdminDashboardContent() {
     return replyMutation.mutateAsync({ suggestion, replyText }).then(() => {});
   }
 
-  async function handleFileUpload(
+  function handleFileUpload(
     file: File,
     onProgress: (progress: number) => void
   ) {
-    return new Promise<void>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    return Promise.resolve(
+      new Promise<void>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          Promise.resolve().then(() => {
+            try {
+              const data = new Uint8Array(e.target?.result as ArrayBuffer);
+              const workbook = XLSX.read(data, { type: "array" });
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+              const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
+              });
 
-          const keys = jsonData[0] as string[];
-          const formattedData = jsonData.slice(1).map((row: any) => {
-            const rowData: any = {};
-            keys.forEach((key, index) => {
-              rowData[key] = row[index];
-            });
+              const keys = jsonData[0] as string[];
+              const formattedData = jsonData.slice(1).map((row: any) => {
+                const rowData: any = {};
+                keys.forEach((key, index) => {
+                  rowData[key] = row[index];
+                });
 
-            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
-            const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+                const categoryLabel =
+                  categoryMap.get(parseInt(rowData.Cat)) || "";
+                const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
+                const subcategoryLabel =
+                  subcategoryMap.get(subcategoryKey) || "";
 
-            return {
-              ...rowData,
-              Date: convertDateFormat(rowData.Date),
-              category_label: categoryLabel,
-              subcategory_label: subcategoryLabel,
-            };
-          });
+                return {
+                  ...rowData,
+                  Date: convertDateFormat(rowData.Date),
+                  category_label: categoryLabel,
+                  subcategory_label: subcategoryLabel,
+                };
+              });
 
-          const batchSize = 100;
-          let processedCount = 0;
-          for (let i = 0; i < formattedData.length; i += batchSize) {
-            const batch = formattedData.slice(i, i + batchSize);
-            const { data: insertedData, error } = await supabase
-              .from("sales_data")
-              .upsert(batch);
+              const batchSize = 100;
+              let processedCount = 0;
+              let chainPromise = Promise.resolve();
 
-            if (error) {
-              console.error("Error upserting data batch:", error);
-            } else {
-              processedCount += batch.length;
-              onProgress(
-                Math.round((processedCount / formattedData.length) * 100)
-              );
+              for (let i = 0; i < formattedData.length; i += batchSize) {
+                const batch = formattedData.slice(i, i + batchSize);
+                chainPromise = chainPromise.then(() =>
+                  Promise.resolve(
+                    supabase
+                      .from("sales_data")
+                      .upsert(batch)
+                      .then(({ data: insertedData, error }) => {
+                        if (error) {
+                          console.error("Error upserting data batch:", error);
+                        } else {
+                          processedCount += batch.length;
+                          onProgress(
+                            Math.round(
+                              (processedCount / formattedData.length) * 100
+                            )
+                          );
+                        }
+                      })
+                  )
+                );
+              }
+
+              chainPromise.then(() => resolve()).catch(reject);
+            } catch (error) {
+              console.error("Error processing data:", error);
+              reject(error);
             }
-          }
+          });
+        };
 
-          resolve();
-        } catch (error) {
-          console.error("Error processing data:", error);
+        reader.onerror = (error) => {
+          console.error("Error reading file:", error);
           reject(error);
-        }
-      };
+        };
 
-      reader.onerror = (error) => {
-        console.error("Error reading file:", error);
-        reject(error);
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
+        reader.readAsArrayBuffer(file);
+      })
+    );
   }
 
-  async function getServerSideProps() {
+  function getServerSideProps() {
     const queryClient = new QueryClient();
 
-    await queryClient.prefetchQuery({
-      queryKey: ["domains"],
-      queryFn: fetchDomains,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["suggestions"],
-      queryFn: fetchSuggestions,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["certificates"],
-      queryFn: fetchCertificates,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["rangeWalk"],
-      queryFn: fetchLatestRangeWalkReport,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["checklist"],
-      queryFn: fetchLatestChecklistSubmission,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["gunsmiths"],
-      queryFn: fetchLatestGunsmithMaintenance,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["dailyDeposit"],
-      queryFn: fetchLatestDailyDeposit,
-    });
-    await queryClient.prefetchQuery({
-      queryKey: ["dailyChecklistStatus"],
-      queryFn: fetchDailyChecklistStatus,
-    });
-
-    return {
-      props: {
-        dehydratedState: dehydrate(queryClient),
-      },
-    };
+    return Promise.resolve(
+      Promise.all([
+        queryClient.prefetchQuery({
+          queryKey: ["domains"],
+          queryFn: fetchDomains,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["suggestions"],
+          queryFn: fetchSuggestions,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["certificates"],
+          queryFn: fetchCertificates,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["rangeWalk"],
+          queryFn: fetchLatestRangeWalkReport,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["checklist"],
+          queryFn: fetchLatestChecklistSubmission,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["gunsmiths"],
+          queryFn: fetchLatestGunsmithMaintenance,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["dailyDeposit"],
+          queryFn: fetchLatestDailyDeposit,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: ["dailyChecklistStatus"],
+          queryFn: fetchDailyChecklistStatus,
+        }),
+      ]).then(() => ({
+        props: {
+          dehydratedState: dehydrate(queryClient),
+        },
+      }))
+    );
   }
 
   function convertDateFormat(date: string) {
@@ -893,31 +957,35 @@ function AdminDashboardContent() {
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
 
-  async function sendEmail(
+  function sendEmail(
     email: string,
     subject: string,
     templateName: string,
     templateData: any
   ) {
-    try {
-      const response = await fetch("/api/send_email", {
+    return Promise.resolve(
+      fetch("/api/send_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, subject, templateName, templateData }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      // console.log("Email sent successfully:", result);
-    } catch (error: any) {
-      console.error("Failed to send email:", error.message);
-      throw error;
-    }
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((result) => {
+          // console.log("Email sent successfully:", result);
+          return result;
+        })
+        .catch((error: any) => {
+          console.error("Failed to send email:", error.message);
+          throw error;
+        })
+    );
   }
 
   const categoryMap = new Map<number, string>([
@@ -987,11 +1055,14 @@ function AdminDashboardContent() {
       staleTime: Infinity,
     });
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      await onSubmit(replyText);
-      replyTextMutation.mutate({ id: suggestion.id, text: "" }); // Clear the form
-      onClose(); // Close the popover after successful submission
+      return Promise.resolve()
+        .then(() => onSubmit(replyText))
+        .then(() => {
+          replyTextMutation.mutate({ id: suggestion.id, text: "" }); // Clear the form
+          onClose(); // Close the popover after successful submission
+        });
     };
 
     return (
@@ -1163,12 +1234,14 @@ function AdminDashboardContent() {
                                       <PopoverContent className="w-80">
                                         <SuggestionReplyForm
                                           suggestion={suggestion}
-                                          onSubmit={async (replyText) => {
-                                            await handleReply({
-                                              suggestion,
-                                              replyText,
-                                            });
-                                          }}
+                                          onSubmit={(replyText) =>
+                                            Promise.resolve(
+                                              handleReply({
+                                                suggestion,
+                                                replyText,
+                                              })
+                                            )
+                                          }
                                           onClose={() => {}}
                                         />
                                       </PopoverContent>

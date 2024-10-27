@@ -196,98 +196,94 @@ const fetchCalendarData = (currentDate: Date): Promise<EmployeeCalendar[]> => {
   );
 };
 
-const getBreakRoomDutyEmployee = async (
+const getBreakRoomDutyEmployee = (
   employees: EmployeeCalendar[],
   currentWeekStart: Date
 ): Promise<BreakRoomDuty> => {
   const formattedWeekStart = format(currentWeekStart, "yyyy-MM-dd");
 
-  try {
-    const { data: existingDuty, error: existingDutyError } = await supabase
-      .from("break_room_duty")
-      .select("*")
-      .eq("week_start", formattedWeekStart);
-
-    if (existingDutyError) throw existingDutyError;
-
-    if (existingDuty && existingDuty.length > 0) {
-      const employee = employees.find(
-        (emp) => emp.employee_id === existingDuty[0].employee_id
-      );
-      return employee
-        ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
-        : null;
-    }
-
-    const salesEmployees = employees
-      .filter((emp) => emp.department === "Sales")
-      .sort((a, b) => a.rank - b.rank);
-
-    if (salesEmployees.length === 0) return null;
-
-    const { data: lastAssignment, error: lastAssignmentError } = await supabase
-      .from("break_room_duty")
-      .select("employee_id")
-      .order("week_start", { ascending: false })
-      .limit(1);
-
-    if (lastAssignmentError) throw lastAssignmentError;
-
-    let nextEmployeeIndex = 0;
-    if (lastAssignment && lastAssignment.length > 0) {
-      const lastIndex = salesEmployees.findIndex(
-        (emp) => emp.employee_id === lastAssignment[0].employee_id
-      );
-      nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
-    }
-
-    const selectedEmployee = salesEmployees[nextEmployeeIndex];
-
-    const daysToCheck = ["Friday"];
-    let dutyDate = null;
-
-    for (const day of daysToCheck) {
-      const dayIndex = DAYS_OF_WEEK.indexOf(day);
-      const checkDate = addDays(currentWeekStart, dayIndex);
-      const formattedDate = format(checkDate, "yyyy-MM-dd");
-
-      const { data: schedules, error } = await supabase
-        .from("schedules")
+  return Promise.resolve(
+    Promise.resolve(
+      supabase
+        .from("break_room_duty")
         .select("*")
-        .eq("employee_id", selectedEmployee.employee_id)
-        .eq("schedule_date", formattedDate)
-        .in("status", ["scheduled", "added_day"]);
+        .eq("week_start", formattedWeekStart)
+    ).then(({ data: existingDuty, error: existingDutyError }) => {
+      if (existingDutyError) throw existingDutyError;
 
-      if (error) throw error;
-
-      if (schedules && schedules.length > 0) {
-        dutyDate = checkDate;
-        break;
+      if (existingDuty && existingDuty.length > 0) {
+        const employee = employees.find(
+          (emp) => emp.employee_id === existingDuty[0].employee_id
+        );
+        return employee
+          ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
+          : null;
       }
-    }
 
-    if (!dutyDate) {
-      console.error(
-        "No scheduled work day found for the selected employee on Friday this week"
-      );
-      return null;
-    }
+      const salesEmployees = employees
+        .filter((emp) => emp.department === "Sales")
+        .sort((a, b) => a.rank - b.rank);
 
-    const { error: insertError } = await supabase
-      .from("break_room_duty")
-      .insert({
-        week_start: formattedWeekStart,
-        employee_id: selectedEmployee.employee_id,
-        duty_date: format(dutyDate, "yyyy-MM-dd"),
+      if (salesEmployees.length === 0) return null;
+
+      return Promise.resolve(
+        supabase
+          .from("break_room_duty")
+          .select("employee_id")
+          .order("week_start", { ascending: false })
+          .limit(1)
+      ).then(({ data: lastAssignment, error: lastAssignmentError }) => {
+        if (lastAssignmentError) throw lastAssignmentError;
+
+        let nextEmployeeIndex = 0;
+        if (lastAssignment && lastAssignment.length > 0) {
+          const lastIndex = salesEmployees.findIndex(
+            (emp) => emp.employee_id === lastAssignment[0].employee_id
+          );
+          nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+        }
+
+        const selectedEmployee = salesEmployees[nextEmployeeIndex];
+        const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
+        const checkDate = addDays(currentWeekStart, dayIndex);
+        const formattedDate = format(checkDate, "yyyy-MM-dd");
+
+        return Promise.resolve(
+          supabase
+            .from("schedules")
+            .select("*")
+            .eq("employee_id", selectedEmployee.employee_id)
+            .eq("schedule_date", formattedDate)
+            .in("status", ["scheduled", "added_day"])
+        ).then(({ data: schedules, error }) => {
+          if (error) throw error;
+
+          if (schedules && schedules.length > 0) {
+            return Promise.resolve(
+              supabase
+                .from("break_room_duty")
+                .insert({
+                  week_start: formattedWeekStart,
+                  employee_id: selectedEmployee.employee_id,
+                  duty_date: format(checkDate, "yyyy-MM-dd"),
+                })
+            ).then(({ error: insertError }) => {
+              if (insertError) throw insertError;
+              return { employee: selectedEmployee, dutyDate: checkDate };
+            });
+          }
+
+          console.error(
+            "No scheduled work day found for the selected employee on Friday this week"
+          );
+          return null;
+        });
       });
-
-    if (insertError) throw insertError;
-
-    return { employee: selectedEmployee, dutyDate };
-  } catch (error) {
-    console.error("Error in getBreakRoomDutyEmployee:", error);
-    return null;
-  }
+    }).catch((error) => {
+      console.error("Error in getBreakRoomDutyEmployee:", error);
+      return null;
+    })
+  );
 };
 
 // Component
@@ -420,11 +416,79 @@ export default function Component() {
     ],
     queryFn: () => {
       if (!currentDateQuery.data || !(currentDateQuery.data instanceof Date)) {
-        throw new Error("Invalid current date");
+        return Promise.resolve(null);
       }
-      return getBreakRoomDutyEmployee(
-        calendarDataQuery.data || [],
-        startOfWeek(currentDateQuery.data)
+  
+      const formattedWeekStart = format(startOfWeek(currentDateQuery.data), "yyyy-MM-dd");
+  
+      return Promise.resolve(
+        supabase
+          .from("break_room_duty")
+          .select("*")
+          .eq("week_start", formattedWeekStart)
+          .then(({ data: existingDuty, error: existingDutyError }) => {
+            if (existingDutyError) throw existingDutyError;
+  
+            if (existingDuty && existingDuty.length > 0) {
+              const employee = calendarDataQuery.data?.find(
+                (emp) => emp.employee_id === existingDuty[0].employee_id
+              );
+              return employee
+                ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
+                : null;
+            }
+  
+            const salesEmployees = (calendarDataQuery.data || [])
+              .filter((emp) => emp.department === "Sales")
+              .sort((a, b) => a.rank - b.rank);
+  
+            if (salesEmployees.length === 0) return null;
+  
+            return supabase
+              .from("break_room_duty")
+              .select("employee_id")
+              .order("week_start", { ascending: false })
+              .limit(1)
+              .then(({ data: lastAssignment, error: lastAssignmentError }) => {
+                if (lastAssignmentError) throw lastAssignmentError;
+  
+                let nextEmployeeIndex = 0;
+                if (lastAssignment && lastAssignment.length > 0) {
+                  const lastIndex = salesEmployees.findIndex(
+                    (emp) => emp.employee_id === lastAssignment[0].employee_id
+                  );
+                  nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+                }
+  
+                const selectedEmployee = salesEmployees[nextEmployeeIndex];
+                const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
+                const checkDate = addDays(startOfWeek(currentDateQuery.data!), dayIndex);
+                const formattedDate = format(checkDate, "yyyy-MM-dd");
+  
+                return supabase
+                  .from("schedules")
+                  .select("*")
+                  .eq("employee_id", selectedEmployee.employee_id)
+                  .eq("schedule_date", formattedDate)
+                  .in("status", ["scheduled", "added_day"])
+                  .then(({ data: schedules, error }) => {
+                    if (error) throw error;
+  
+                    if (schedules && schedules.length > 0) {
+                      return insertBreakRoomDutyMutation.mutateAsync({
+                        week_start: formattedWeekStart,
+                        employee_id: selectedEmployee.employee_id,
+                        duty_date: format(checkDate, "yyyy-MM-dd"),
+                      }).then(() => ({
+                        employee: selectedEmployee,
+                        dutyDate: checkDate
+                      }));
+                    }
+  
+                    return null;
+                  });
+              });
+          })
       );
     },
     enabled:
@@ -500,6 +564,27 @@ export default function Component() {
     onSuccess: (id) => {
       queryClient.setQueryData(["openDialogId"], id);
     },
+  });
+
+  const insertBreakRoomDutyMutation = useMutation({
+    mutationFn: (data: { 
+      week_start: string;
+      employee_id: number;
+      duty_date: string;
+    }) => {
+      return Promise.resolve(
+        supabase
+          .from("break_room_duty")
+          .insert(data)
+          .then(({ error }) => {
+            if (error) throw error;
+            return data;
+          })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['breakRoomDuty'] });
+    }
   });
 
   const updateStatusMutation = useMutation({
