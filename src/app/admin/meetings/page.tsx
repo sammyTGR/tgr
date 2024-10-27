@@ -20,21 +20,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Plus, Minus, X, Dot } from "lucide-react";
-import { useCallback, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 type NoteItem = {
   id: string;
@@ -52,8 +42,6 @@ type TeamMember = {
   safety_notes: NoteItem[] | null;
   general_notes: NoteItem[] | null;
 };
-
-type TextareaEvent = React.ChangeEvent<HTMLTextAreaElement>;
 
 type NoteType = keyof Omit<
   TeamMember,
@@ -90,7 +78,7 @@ export default function TeamWeeklyNotes() {
 
   const { data: user } = useQuery({
     queryKey: ["user"],
-    queryFn: () =>
+    queryFn: () => 
       Promise.resolve(
         supabase.auth.getUser().then(({ data: { user } }) => user)
       ),
@@ -118,7 +106,7 @@ export default function TeamWeeklyNotes() {
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ["teamMembers"],
-    queryFn: () =>
+    queryFn: () => 
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -130,10 +118,10 @@ export default function TeamWeeklyNotes() {
           })
       ),
   });
-
+  
   const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["employees"],
-    queryFn: () =>
+    queryFn: () => 
       Promise.resolve(
         supabase
           .from("employees")
@@ -144,11 +132,11 @@ export default function TeamWeeklyNotes() {
           })
       ),
   });
-
+  
   const addTeamMemberMutation = useMutation({
     mutationFn: (
       newNotes: Omit<TeamMember, "note_id" | "created_at" | "updated_at">
-    ) =>
+    ) => 
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -172,90 +160,26 @@ export default function TeamWeeklyNotes() {
       console.error("Mutation error:", error);
     },
   });
-
+  
   const updateNoteMutation = useMutation({
-    mutationFn: async (params: { 
-      noteId: number; 
-      topic: NoteType; 
-      itemId: string; 
-      content: string;
-    }) => {
-      const { noteId, topic, itemId, content } = params;
-      const { data, error } = await supabase
-        .from("team_weekly_notes")
-        .update({
-          [topic]: queryClient
-            .getQueryData<TeamMember[]>(["teamMembers"])
-            ?.find(m => m.note_id === noteId)
-            ?.[topic]
-            ?.map(item => item.id === itemId ? { ...item, content } : item)
-        })
-        .eq("note_id", noteId)
-        .select()
-        .single();
-  
-      if (error) throw error;
-      return data;
+    mutationFn: (member: TeamMember) => 
+      Promise.resolve(
+        supabase
+          .from("team_weekly_notes")
+          .update(member)
+          .eq("note_id", member.note_id)
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
     },
-    onMutate: async ({ noteId, topic, itemId, content }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["teamMembers"] });
-  
-      // Snapshot the previous value
-      const previousData = queryClient.getQueryData<TeamMember[]>(["teamMembers"]);
-  
-      // Optimistically update to the new value
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], old => {
-        if (!old) return old;
-        return old.map(member => {
-          if (member.note_id === noteId) {
-            return {
-              ...member,
-              [topic]: member[topic]?.map(item =>
-                item.id === itemId ? { ...item, content } : item
-              )
-            };
-          }
-          return member;
-        });
-      });
-  
-      return { previousData };
-    },
-    onError: (err, variables, context) => {
-      // If there was an error, restore the previous data
-      if (context?.previousData) {
-        queryClient.setQueryData(["teamMembers"], context.previousData);
-      }
-    }
   });
-
-  // Add this new mutation for saving all changes
-const saveChangesMutation = useMutation({
-  mutationFn: async (member: TeamMember) => {
-    const { data, error } = await supabase
-      .from("team_weekly_notes")
-      .update(member)
-      .eq("note_id", member.note_id)
-      .select();
-
-    if (error) throw error;
-    return data;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
-    toast.success("Notes saved successfully");
-  },
-  onError: (error) => {
-    console.error("Error saving changes:", error);
-    toast.error("Failed to save changes");
-  }
-});
-
-
-
+  
   const removeEmployeeMutation = useMutation({
-    mutationFn: (employeeId: number) =>
+    mutationFn: (employeeId: number) => 
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -263,7 +187,7 @@ const saveChangesMutation = useMutation({
           .eq("employee_id", employeeId)
           .then(({ error }) => {
             if (error) throw error;
-
+            
             // Optionally, also remove the employee from the employees table
             // Uncomment the following lines if you want to remove the employee completely
             // return Promise.resolve(
@@ -287,39 +211,6 @@ const saveChangesMutation = useMutation({
     },
   });
 
-  const localEditMutation = useMutation({
-    mutationFn: (params: { 
-      noteId: number; 
-      topic: NoteType; 
-      itemId: string; 
-      content: string;
-    }) => {
-      return Promise.resolve(params); // No DB call, just local state
-    },
-    onMutate: async ({ noteId, topic, itemId, content }) => {
-      await queryClient.cancelQueries({ queryKey: ["teamMembers"] });
-      
-      const previousData = queryClient.getQueryData<TeamMember[]>(["teamMembers"]);
-      
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], old => {
-        if (!old) return old;
-        return old.map(member => {
-          if (member.note_id === noteId) {
-            return {
-              ...member,
-              [topic]: member[topic]?.map(item =>
-                item.id === itemId ? { ...item, content } : item
-              )
-            };
-          }
-          return member;
-        });
-      });
-      
-      return { previousData };
-    }
-  });
-
   const handleRemoveEmployee = (employeeId: number) => {
     removeEmployeeMutation.mutate(employeeId);
   };
@@ -328,19 +219,13 @@ const saveChangesMutation = useMutation({
     return Promise.resolve().then(() => {
       if (user && currentEmployee) {
         // Check if the user has already added themselves
-        const existingEntry = teamMembers.find(
-          (member) => member.employee_id === currentEmployee.employee_id
-        );
-
-        if (
-          existingEntry &&
-          currentEmployee.role !== "super admin" &&
-          currentEmployee.role !== "dev"
-        ) {
+        const existingEntry = teamMembers.find(member => member.employee_id === currentEmployee.employee_id);
+  
+        if (existingEntry && currentEmployee.role !== 'super admin' && currentEmployee.role !== 'dev') {
           toast.error("You have already added yourself to this meeting.");
           return;
         }
-
+  
         // Prepare new team weekly notes
         const newNotes: Omit<
           TeamMember,
@@ -353,82 +238,38 @@ const saveChangesMutation = useMutation({
           safety_notes: [{ id: Date.now().toString(), content: "" }],
           general_notes: [{ id: Date.now().toString(), content: "" }],
         };
-
+  
         console.log("New notes data:", newNotes);
         addTeamMemberMutation.mutate(newNotes);
       } else {
-        console.error(
-          "Cannot add notes: user is not logged in or employee data is not available"
-        );
-        toast.error(
-          "Unable to add you to the meeting. Please try again later."
-        );
+        console.error("Cannot add notes: user is not logged in or employee data is not available");
+        toast.error("Unable to add you to the meeting. Please try again later.");
       }
     });
   };
 
-  const TextareaWithCursor = useCallback(({
-    value,
-    onChange,
-    placeholder,
-    noteId,
-    topic,
-    itemId,
-  }: {
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    placeholder: string;
-    noteId: number;
-    topic: NoteType;
-    itemId: string;
-  }) => {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const textarea = e.target;
-      const cursorPosition = textarea.selectionStart;
-      
-      localEditMutation.mutate({
-        noteId,
-        topic,
-        itemId,
-        content: e.target.value
-      });
-      
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.setSelectionRange(cursorPosition, cursorPosition);
-        }
-      });
-    };
-  
-    return (
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
-        className="flex-grow"
-      />
-    );
-  }, [localEditMutation]);
-  
-  // Update the updateLocalNote function
-  const updateLocalNote = useCallback((
+  const updateLocalNote = (
     noteId: number,
     topic: NoteType,
     itemId: string,
-    e: React.ChangeEvent<HTMLTextAreaElement>
+    content: string
   ) => {
-    const content = DOMPurify.sanitize(e.target.value);
-    updateNoteMutation.mutate({
-      noteId,
-      topic,
-      itemId,
-      content
+    queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+      if (!oldData) return oldData;
+      return oldData.map((member) => {
+        if (member.note_id === noteId) {
+          const updatedNotes =
+            member[topic]?.map((item) =>
+              item.id === itemId
+                ? { ...item, content: DOMPurify.sanitize(content) }
+                : item
+            ) || [];
+          return { ...member, [topic]: updatedNotes };
+        }
+        return member;
+      });
     });
-  }, [updateNoteMutation]);
+  };
 
   const addLocalItem = (noteId: number, topic: NoteType) => {
     queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
@@ -460,11 +301,15 @@ const saveChangesMutation = useMutation({
     });
   };
 
-
   const saveChanges = (noteId: number) => {
     const member = teamMembers.find((m) => m.note_id === noteId);
     if (member) {
-      saveChangesMutation.mutate(member);
+      updateNoteMutation.mutate(member, {
+        onSuccess: () => {
+          console.log("Mutation successful, showing toast");
+          toast.success("Notes saved successfully");
+        },
+      });
     }
   };
 
@@ -482,9 +327,7 @@ const saveChangesMutation = useMutation({
   }, [teamMembers, currentEmployee]);
 
   const hasAddedSelf = useMemo(() => {
-    return teamMembers.some(
-      (member) => member.employee_id === currentEmployee?.employee_id
-    );
+    return teamMembers.some(member => member.employee_id === currentEmployee?.employee_id);
   }, [teamMembers, currentEmployee]);
 
   return (
@@ -494,22 +337,17 @@ const saveChangesMutation = useMutation({
 
         {!hasAddedSelf && (
           <div className="flex flex-col items-start gap-2">
-            <Button
+            <Button 
               variant="gooeyRight"
               onClick={addYourself}
-              disabled={
-                hasAddedSelf &&
-                currentEmployee?.role !== "super admin" &&
-                currentEmployee?.role !== "dev"
-              }
+              disabled={hasAddedSelf && 
+                        currentEmployee?.role !== 'super admin' && 
+                        currentEmployee?.role !== 'dev'}
             >
               Add Yourself
             </Button>
             <label>
-              <span>
-                If this is your first time, add yourself to the meeting by
-                clicking the button above.
-              </span>
+              <span>If this is your first time, add yourself to the meeting by clicking the button above.</span>
             </label>
           </div>
         )}
@@ -534,10 +372,10 @@ const saveChangesMutation = useMutation({
                       <Card key={member.note_id}>
                         <CardHeader>
                           <CardTitle>
-                            <h1 className="text-xl font-semibold">
-                              {employee?.name ||
-                                `Employee ID: ${member.employee_id}`}
-                            </h1>
+                          <h1 className="text-xl font-semibold">
+                            {employee?.name ||
+                              `Employee ID: ${member.employee_id}`}
+                              </h1>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="ml-6">
@@ -553,7 +391,9 @@ const saveChangesMutation = useMutation({
                                     className="flex items-start text-sm"
                                   >
                                     <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                    <span>{item.content || ""}</span>
+                                    <span>
+                                      {item.content || ""}
+                                    </span>
                                   </li>
                                 )) || <li>No notes available.</li>}
                               </ul>
@@ -576,10 +416,10 @@ const saveChangesMutation = useMutation({
                       <Card key={member.note_id} className="relative">
                         <CardHeader>
                           <CardTitle>
-                            <h1 className="text-xl font-semibold">
-                              {employee?.name ||
-                                `Employee ID: ${member.employee_id}`}
-                            </h1>
+                          <h1 className="text-xl font-semibold">
+                            {employee?.name ||
+                              `Employee ID: ${member.employee_id}`}
+                              </h1>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -591,20 +431,18 @@ const saveChangesMutation = useMutation({
                                   key={item.id}
                                   className="mt-1 flex items-center gap-2"
                                 >
-                                  <TextareaWithCursor
+                                  <Textarea
                                     value={item.content}
                                     onChange={(e) =>
                                       updateLocalNote(
                                         member.note_id,
                                         topic,
                                         item.id,
-                                        e
+                                        e.target.value
                                       )
                                     }
                                     placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
-                                    noteId={member.note_id}
-                                    topic={topic}
-                                    itemId={item.id}
+                                    className="flex-grow"
                                   />
                                   <Button
                                     variant="ghost"
@@ -635,32 +473,22 @@ const saveChangesMutation = useMutation({
                           ))}
                         </CardContent>
                         <CardFooter className="flex justify-between">
-                          {(currentEmployee?.role === "super admin" ||
-                            currentEmployee?.role === "dev") && (
+                          
+                          {(currentEmployee?.role === "super admin" || currentEmployee?.role === "dev") && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                  Remove Employee
-                                </Button>
+                                <Button variant="destructive">Remove Employee</Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you absolutely sure?
-                                  </AlertDialogTitle>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This action cannot be undone. This will
-                                    permanently delete the employee&apos;s notes
-                                    and remove them from the team.
+                                    This action cannot be undone. This will permanently delete the employee&apos;s notes and remove them from the team.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleRemoveEmployee(member.employee_id)
-                                    }
-                                  >
+                                  <AlertDialogAction onClick={() => handleRemoveEmployee(member.employee_id)}>
                                     Remove
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -682,6 +510,8 @@ const saveChangesMutation = useMutation({
             </CardContent>
           </Card>
         </Tabs>
+
+       
       </main>
     </RoleBasedWrapper>
   );
