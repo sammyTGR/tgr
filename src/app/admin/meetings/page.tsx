@@ -24,7 +24,18 @@ import { useMemo, useRef } from "react";
 import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { debounce } from "lodash";
 
 type NoteItem = {
   id: string;
@@ -71,6 +82,14 @@ type Employee = {
   role: string;
 };
 
+type DraftNote = {
+  [noteId: number]: {
+    [topic in NoteType]?: {
+      [itemId: string]: string;
+    };
+  };
+};
+
 export default function TeamWeeklyNotes() {
   const queryClient = useQueryClient();
   const supabase = createClientComponentClient();
@@ -78,10 +97,16 @@ export default function TeamWeeklyNotes() {
 
   const { data: user } = useQuery({
     queryKey: ["user"],
-    queryFn: () => 
+    queryFn: () =>
       Promise.resolve(
         supabase.auth.getUser().then(({ data: { user } }) => user)
       ),
+  });
+
+  const draftQuery = useQuery({
+    queryKey: ["noteDrafts"],
+    queryFn: () => ({} as DraftNote),
+    staleTime: Infinity,
   });
 
   const { data: currentEmployee } = useQuery<Employee | null>({
@@ -106,7 +131,7 @@ export default function TeamWeeklyNotes() {
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ["teamMembers"],
-    queryFn: () => 
+    queryFn: () =>
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -118,10 +143,10 @@ export default function TeamWeeklyNotes() {
           })
       ),
   });
-  
+
   const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["employees"],
-    queryFn: () => 
+    queryFn: () =>
       Promise.resolve(
         supabase
           .from("employees")
@@ -132,11 +157,11 @@ export default function TeamWeeklyNotes() {
           })
       ),
   });
-  
+
   const addTeamMemberMutation = useMutation({
     mutationFn: (
       newNotes: Omit<TeamMember, "note_id" | "created_at" | "updated_at">
-    ) => 
+    ) =>
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -160,9 +185,9 @@ export default function TeamWeeklyNotes() {
       console.error("Mutation error:", error);
     },
   });
-  
+
   const updateNoteMutation = useMutation({
-    mutationFn: (member: TeamMember) => 
+    mutationFn: (member: TeamMember) =>
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -177,9 +202,9 @@ export default function TeamWeeklyNotes() {
       queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
     },
   });
-  
+
   const removeEmployeeMutation = useMutation({
-    mutationFn: (employeeId: number) => 
+    mutationFn: (employeeId: number) =>
       Promise.resolve(
         supabase
           .from("team_weekly_notes")
@@ -187,7 +212,7 @@ export default function TeamWeeklyNotes() {
           .eq("employee_id", employeeId)
           .then(({ error }) => {
             if (error) throw error;
-            
+
             // Optionally, also remove the employee from the employees table
             // Uncomment the following lines if you want to remove the employee completely
             // return Promise.resolve(
@@ -219,13 +244,19 @@ export default function TeamWeeklyNotes() {
     return Promise.resolve().then(() => {
       if (user && currentEmployee) {
         // Check if the user has already added themselves
-        const existingEntry = teamMembers.find(member => member.employee_id === currentEmployee.employee_id);
-  
-        if (existingEntry && currentEmployee.role !== 'super admin' && currentEmployee.role !== 'dev') {
+        const existingEntry = teamMembers.find(
+          (member) => member.employee_id === currentEmployee.employee_id
+        );
+
+        if (
+          existingEntry &&
+          currentEmployee.role !== "super admin" &&
+          currentEmployee.role !== "dev"
+        ) {
           toast.error("You have already added yourself to this meeting.");
           return;
         }
-  
+
         // Prepare new team weekly notes
         const newNotes: Omit<
           TeamMember,
@@ -238,12 +269,16 @@ export default function TeamWeeklyNotes() {
           safety_notes: [{ id: Date.now().toString(), content: "" }],
           general_notes: [{ id: Date.now().toString(), content: "" }],
         };
-  
+
         console.log("New notes data:", newNotes);
         addTeamMemberMutation.mutate(newNotes);
       } else {
-        console.error("Cannot add notes: user is not logged in or employee data is not available");
-        toast.error("Unable to add you to the meeting. Please try again later.");
+        console.error(
+          "Cannot add notes: user is not logged in or employee data is not available"
+        );
+        toast.error(
+          "Unable to add you to the meeting. Please try again later."
+        );
       }
     });
   };
@@ -254,6 +289,20 @@ export default function TeamWeeklyNotes() {
     itemId: string,
     content: string
   ) => {
+    const optimisticUpdate = {
+      type: "updateNote",
+      noteId,
+      topic,
+      itemId,
+      content: DOMPurify.sanitize(content),
+    };
+
+    // Store previous data for rollback
+    const previousData = queryClient.getQueryData<TeamMember[]>([
+      "teamMembers",
+    ]);
+
+    // Apply optimistic update
     queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
       if (!oldData) return oldData;
       return oldData.map((member) => {
@@ -261,7 +310,7 @@ export default function TeamWeeklyNotes() {
           const updatedNotes =
             member[topic]?.map((item) =>
               item.id === itemId
-                ? { ...item, content: DOMPurify.sanitize(content) }
+                ? { ...item, content: optimisticUpdate.content }
                 : item
             ) || [];
           return { ...member, [topic]: updatedNotes };
@@ -269,36 +318,78 @@ export default function TeamWeeklyNotes() {
         return member;
       });
     });
+
+    // Track optimistic update
+    queryClient.setQueryData(["optimisticUpdates"], (old: any[] = []) => [
+      ...old,
+      optimisticUpdate,
+    ]);
+
+    // Return rollback function
+    return () => {
+      queryClient.setQueryData<TeamMember[]>(["teamMembers"], previousData);
+      queryClient.setQueryData(["optimisticUpdates"], (updates: any[] = []) =>
+        updates.filter((u) => u !== optimisticUpdate)
+      );
+    };
   };
 
   const addLocalItem = (noteId: number, topic: NoteType) => {
+    const optimisticUpdate = {
+      type: "addItem",
+      noteId,
+      topic,
+      itemId: Date.now().toString(),
+    };
+
     queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
       if (!oldData) return oldData;
       return oldData.map((member) => {
         if (member.note_id === noteId) {
           const updatedNotes = [
             ...(member[topic] || []),
-            { id: Date.now().toString(), content: "" },
+            { id: optimisticUpdate.itemId, content: "" },
           ];
           return { ...member, [topic]: updatedNotes };
         }
         return member;
       });
     });
+
+    // Store the optimistic update
+    const previousData = queryClient.getQueryData<TeamMember[]>([
+      "teamMembers",
+    ]);
+    queryClient.setQueryData(["optimisticUpdates"], (old: any[] = []) => [
+      ...old,
+      optimisticUpdate,
+    ]);
+
+    // Revert if needed
+    return () => {
+      queryClient.setQueryData<TeamMember[]>(["teamMembers"], previousData);
+      queryClient.setQueryData(["optimisticUpdates"], (updates: any[] = []) =>
+        updates.filter((u) => u !== optimisticUpdate)
+      );
+    };
   };
 
   const removeLocalItem = (noteId: number, topic: NoteType, itemId: string) => {
-    queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
-      if (!oldData) return oldData;
-      return oldData.map((member) => {
-        if (member.note_id === noteId) {
-          const updatedNotes =
-            member[topic]?.filter((item) => item.id !== itemId) || [];
-          return { ...member, [topic]: updatedNotes };
-        }
-        return member;
+    const debouncedRemove = debounce(() => {
+      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map((member) => {
+          if (member.note_id === noteId) {
+            const updatedNotes =
+              member[topic]?.filter((item) => item.id !== itemId) || [];
+            return { ...member, [topic]: updatedNotes };
+          }
+          return member;
+        });
       });
-    });
+    }); // 500ms delay
+
+    debouncedRemove();
   };
 
   const saveChanges = (noteId: number) => {
@@ -327,7 +418,9 @@ export default function TeamWeeklyNotes() {
   }, [teamMembers, currentEmployee]);
 
   const hasAddedSelf = useMemo(() => {
-    return teamMembers.some(member => member.employee_id === currentEmployee?.employee_id);
+    return teamMembers.some(
+      (member) => member.employee_id === currentEmployee?.employee_id
+    );
   }, [teamMembers, currentEmployee]);
 
   return (
@@ -337,17 +430,22 @@ export default function TeamWeeklyNotes() {
 
         {!hasAddedSelf && (
           <div className="flex flex-col items-start gap-2">
-            <Button 
+            <Button
               variant="gooeyRight"
               onClick={addYourself}
-              disabled={hasAddedSelf && 
-                        currentEmployee?.role !== 'super admin' && 
-                        currentEmployee?.role !== 'dev'}
+              disabled={
+                hasAddedSelf &&
+                currentEmployee?.role !== "super admin" &&
+                currentEmployee?.role !== "dev"
+              }
             >
               Add Yourself
             </Button>
             <label>
-              <span>If this is your first time, add yourself to the meeting by clicking the button above.</span>
+              <span>
+                If this is your first time, add yourself to the meeting by
+                clicking the button above.
+              </span>
             </label>
           </div>
         )}
@@ -372,10 +470,10 @@ export default function TeamWeeklyNotes() {
                       <Card key={member.note_id}>
                         <CardHeader>
                           <CardTitle>
-                          <h1 className="text-xl font-semibold">
-                            {employee?.name ||
-                              `Employee ID: ${member.employee_id}`}
-                              </h1>
+                            <h1 className="text-xl font-semibold">
+                              {employee?.name ||
+                                `Employee ID: ${member.employee_id}`}
+                            </h1>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="ml-6">
@@ -391,9 +489,7 @@ export default function TeamWeeklyNotes() {
                                     className="flex items-start text-sm"
                                   >
                                     <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                    <span>
-                                      {item.content || ""}
-                                    </span>
+                                    <span>{item.content || ""}</span>
                                   </li>
                                 )) || <li>No notes available.</li>}
                               </ul>
@@ -416,10 +512,10 @@ export default function TeamWeeklyNotes() {
                       <Card key={member.note_id} className="relative">
                         <CardHeader>
                           <CardTitle>
-                          <h1 className="text-xl font-semibold">
-                            {employee?.name ||
-                              `Employee ID: ${member.employee_id}`}
-                              </h1>
+                            <h1 className="text-xl font-semibold">
+                              {employee?.name ||
+                                `Employee ID: ${member.employee_id}`}
+                            </h1>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -473,22 +569,32 @@ export default function TeamWeeklyNotes() {
                           ))}
                         </CardContent>
                         <CardFooter className="flex justify-between">
-                          
-                          {(currentEmployee?.role === "super admin" || currentEmployee?.role === "dev") && (
+                          {(currentEmployee?.role === "super admin" ||
+                            currentEmployee?.role === "dev") && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="destructive">Remove Employee</Button>
+                                <Button variant="destructive">
+                                  Remove Employee
+                                </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Are you absolutely sure?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the employee&apos;s notes and remove them from the team.
+                                    This action cannot be undone. This will
+                                    permanently delete the employee&apos;s notes
+                                    and remove them from the team.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleRemoveEmployee(member.employee_id)}>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleRemoveEmployee(member.employee_id)
+                                    }
+                                  >
                                     Remove
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -510,8 +616,6 @@ export default function TeamWeeklyNotes() {
             </CardContent>
           </Card>
         </Tabs>
-
-       
       </main>
     </RoleBasedWrapper>
   );
