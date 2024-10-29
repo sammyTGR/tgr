@@ -208,81 +208,81 @@ const getBreakRoomDutyEmployee = (
         .from("break_room_duty")
         .select("*")
         .eq("week_start", formattedWeekStart)
-    ).then(({ data: existingDuty, error: existingDutyError }) => {
-      if (existingDutyError) throw existingDutyError;
+    )
+      .then(({ data: existingDuty, error: existingDutyError }) => {
+        if (existingDutyError) throw existingDutyError;
 
-      if (existingDuty && existingDuty.length > 0) {
-        const employee = employees.find(
-          (emp) => emp.employee_id === existingDuty[0].employee_id
-        );
-        return employee
-          ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
-          : null;
-      }
-
-      const salesEmployees = employees
-        .filter((emp) => emp.department === "Sales")
-        .sort((a, b) => a.rank - b.rank);
-
-      if (salesEmployees.length === 0) return null;
-
-      return Promise.resolve(
-        supabase
-          .from("break_room_duty")
-          .select("employee_id")
-          .order("week_start", { ascending: false })
-          .limit(1)
-      ).then(({ data: lastAssignment, error: lastAssignmentError }) => {
-        if (lastAssignmentError) throw lastAssignmentError;
-
-        let nextEmployeeIndex = 0;
-        if (lastAssignment && lastAssignment.length > 0) {
-          const lastIndex = salesEmployees.findIndex(
-            (emp) => emp.employee_id === lastAssignment[0].employee_id
+        if (existingDuty && existingDuty.length > 0) {
+          const employee = employees.find(
+            (emp) => emp.employee_id === existingDuty[0].employee_id
           );
-          nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+          return employee
+            ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
+            : null;
         }
 
-        const selectedEmployee = salesEmployees[nextEmployeeIndex];
-        const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
-        const checkDate = addDays(currentWeekStart, dayIndex);
-        const formattedDate = format(checkDate, "yyyy-MM-dd");
+        const salesEmployees = employees
+          .filter((emp) => emp.department === "Sales")
+          .sort((a, b) => a.rank - b.rank);
+
+        if (salesEmployees.length === 0) return null;
 
         return Promise.resolve(
           supabase
-            .from("schedules")
-            .select("*")
-            .eq("employee_id", selectedEmployee.employee_id)
-            .eq("schedule_date", formattedDate)
-            .in("status", ["scheduled", "added_day"])
-        ).then(({ data: schedules, error }) => {
-          if (error) throw error;
+            .from("break_room_duty")
+            .select("employee_id")
+            .order("week_start", { ascending: false })
+            .limit(1)
+        ).then(({ data: lastAssignment, error: lastAssignmentError }) => {
+          if (lastAssignmentError) throw lastAssignmentError;
 
-          if (schedules && schedules.length > 0) {
-            return Promise.resolve(
-              supabase
-                .from("break_room_duty")
-                .insert({
+          let nextEmployeeIndex = 0;
+          if (lastAssignment && lastAssignment.length > 0) {
+            const lastIndex = salesEmployees.findIndex(
+              (emp) => emp.employee_id === lastAssignment[0].employee_id
+            );
+            nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+          }
+
+          const selectedEmployee = salesEmployees[nextEmployeeIndex];
+          const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
+          const checkDate = addDays(currentWeekStart, dayIndex);
+          const formattedDate = format(checkDate, "yyyy-MM-dd");
+
+          return Promise.resolve(
+            supabase
+              .from("schedules")
+              .select("*")
+              .eq("employee_id", selectedEmployee.employee_id)
+              .eq("schedule_date", formattedDate)
+              .in("status", ["scheduled", "added_day"])
+          ).then(({ data: schedules, error }) => {
+            if (error) throw error;
+
+            if (schedules && schedules.length > 0) {
+              return Promise.resolve(
+                supabase.from("break_room_duty").insert({
                   week_start: formattedWeekStart,
                   employee_id: selectedEmployee.employee_id,
                   duty_date: format(checkDate, "yyyy-MM-dd"),
                 })
-            ).then(({ error: insertError }) => {
-              if (insertError) throw insertError;
-              return { employee: selectedEmployee, dutyDate: checkDate };
-            });
-          }
+              ).then(({ error: insertError }) => {
+                if (insertError) throw insertError;
+                return { employee: selectedEmployee, dutyDate: checkDate };
+              });
+            }
 
-          console.error(
-            "No scheduled work day found for the selected employee on Friday this week"
-          );
-          return null;
+            console.error(
+              "No scheduled work day found for the selected employee on Friday this week"
+            );
+            return null;
+          });
         });
-      });
-    }).catch((error) => {
-      console.error("Error in getBreakRoomDutyEmployee:", error);
-      return null;
-    })
+      })
+      .catch((error) => {
+        console.error("Error in getBreakRoomDutyEmployee:", error);
+        return null;
+      })
   );
 };
 
@@ -418,9 +418,12 @@ export default function Component() {
       if (!currentDateQuery.data || !(currentDateQuery.data instanceof Date)) {
         return Promise.resolve(null);
       }
-  
-      const formattedWeekStart = format(startOfWeek(currentDateQuery.data), "yyyy-MM-dd");
-  
+
+      const formattedWeekStart = format(
+        startOfWeek(currentDateQuery.data),
+        "yyyy-MM-dd"
+      );
+
       return Promise.resolve(
         supabase
           .from("break_room_duty")
@@ -428,7 +431,7 @@ export default function Component() {
           .eq("week_start", formattedWeekStart)
           .then(({ data: existingDuty, error: existingDutyError }) => {
             if (existingDutyError) throw existingDutyError;
-  
+
             if (existingDuty && existingDuty.length > 0) {
               const employee = calendarDataQuery.data?.find(
                 (emp) => emp.employee_id === existingDuty[0].employee_id
@@ -437,13 +440,13 @@ export default function Component() {
                 ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
                 : null;
             }
-  
+
             const salesEmployees = (calendarDataQuery.data || [])
               .filter((emp) => emp.department === "Sales")
               .sort((a, b) => a.rank - b.rank);
-  
+
             if (salesEmployees.length === 0) return null;
-  
+
             return supabase
               .from("break_room_duty")
               .select("employee_id")
@@ -451,7 +454,7 @@ export default function Component() {
               .limit(1)
               .then(({ data: lastAssignment, error: lastAssignmentError }) => {
                 if (lastAssignmentError) throw lastAssignmentError;
-  
+
                 let nextEmployeeIndex = 0;
                 if (lastAssignment && lastAssignment.length > 0) {
                   const lastIndex = salesEmployees.findIndex(
@@ -459,12 +462,15 @@ export default function Component() {
                   );
                   nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
                 }
-  
+
                 const selectedEmployee = salesEmployees[nextEmployeeIndex];
                 const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
-                const checkDate = addDays(startOfWeek(currentDateQuery.data!), dayIndex);
+                const checkDate = addDays(
+                  startOfWeek(currentDateQuery.data!),
+                  dayIndex
+                );
                 const formattedDate = format(checkDate, "yyyy-MM-dd");
-  
+
                 return supabase
                   .from("schedules")
                   .select("*")
@@ -473,18 +479,20 @@ export default function Component() {
                   .in("status", ["scheduled", "added_day"])
                   .then(({ data: schedules, error }) => {
                     if (error) throw error;
-  
+
                     if (schedules && schedules.length > 0) {
-                      return insertBreakRoomDutyMutation.mutateAsync({
-                        week_start: formattedWeekStart,
-                        employee_id: selectedEmployee.employee_id,
-                        duty_date: format(checkDate, "yyyy-MM-dd"),
-                      }).then(() => ({
-                        employee: selectedEmployee,
-                        dutyDate: checkDate
-                      }));
+                      return insertBreakRoomDutyMutation
+                        .mutateAsync({
+                          week_start: formattedWeekStart,
+                          employee_id: selectedEmployee.employee_id,
+                          duty_date: format(checkDate, "yyyy-MM-dd"),
+                        })
+                        .then(() => ({
+                          employee: selectedEmployee,
+                          dutyDate: checkDate,
+                        }));
                     }
-  
+
                     return null;
                   });
               });
@@ -522,18 +530,28 @@ export default function Component() {
   const updateLateStartDataMutation = useMutation({
     mutationFn: (data: Partial<typeof lateStartDataQuery.data>) =>
       Promise.resolve(data),
-    onMutate: (newData) => {
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["lateStartData"] });
+
+      // Snapshot the previous value
       const previousData = queryClient.getQueryData(["lateStartData"]);
+
+      // Optimistically update to the new value
       queryClient.setQueryData(["lateStartData"], (old: any) => ({
         ...old,
         ...newData,
       }));
+
+      // Return a context object with the snapshotted value
       return { previousData };
     },
     onError: (err, newData, context: any) => {
+      // If the mutation fails, roll back to the previous value
       queryClient.setQueryData(["lateStartData"], context.previousData);
     },
     onSettled: () => {
+      // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: ["lateStartData"] });
     },
   });
@@ -567,7 +585,7 @@ export default function Component() {
   });
 
   const insertBreakRoomDutyMutation = useMutation({
-    mutationFn: (data: { 
+    mutationFn: (data: {
       week_start: string;
       employee_id: number;
       duty_date: string;
@@ -583,8 +601,8 @@ export default function Component() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['breakRoomDuty'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["breakRoomDuty"] });
+    },
   });
 
   const updateStatusMutation = useMutation({
@@ -592,16 +610,13 @@ export default function Component() {
       employee_id,
       schedule_date,
       status,
-      start_time,
-      end_time,
     }: {
       employee_id: number;
       schedule_date: string;
       status: string;
-      start_time?: string | null;
-      end_time?: string | null;
     }) => {
       const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
+
       return fetch("/api/update_schedule_status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -609,18 +624,24 @@ export default function Component() {
           employee_id,
           schedule_date: formattedDate,
           status,
-          start_time,
-          end_time,
+          // Remove start_time and end_time from the mutation payload
         }),
-      }).then((response) => {
+      }).then(async (response) => {
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || `HTTP error! status: ${response.status}`
+          );
         }
         return response.json();
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendarData"] });
+      updatePopoverOpenMutation.mutate(false);
+    },
+    onError: (error) => {
+      console.error("Failed to update status:", error);
     },
   });
 
@@ -788,15 +809,13 @@ export default function Component() {
       employee_id: number,
       schedule_date: string,
       status: string,
-      start_time?: string,
-      end_time?: string
+      start_time?: string | null,
+      end_time?: string | null
     ) => {
       updateStatusMutation.mutate({
         employee_id,
         schedule_date,
         status,
-        start_time,
-        end_time,
       });
     },
     [updateStatusMutation]
@@ -961,12 +980,11 @@ export default function Component() {
                 <Button
                   variant="linkHover2"
                   onClick={() => {
-                    updateScheduleStatus(
-                      calendarEvent.employee_id,
-                      calendarEvent.schedule_date,
-                      "called_out"
-                    );
-                    updatePopoverOpenMutation.mutate(false);
+                    updateStatusMutation.mutate({
+                      employee_id: calendarEvent.employee_id,
+                      schedule_date: calendarEvent.schedule_date,
+                      status: "called_out",
+                    });
                   }}
                 >
                   Called Out
@@ -974,12 +992,11 @@ export default function Component() {
                 <Button
                   variant="linkHover2"
                   onClick={() => {
-                    updateScheduleStatus(
-                      calendarEvent.employee_id,
-                      calendarEvent.schedule_date,
-                      "left_early"
-                    );
-                    updatePopoverOpenMutation.mutate(false);
+                    updateStatusMutation.mutate({
+                      employee_id: calendarEvent.employee_id,
+                      schedule_date: calendarEvent.schedule_date,
+                      status: "left_early",
+                    });
                   }}
                 >
                   Left Early
@@ -987,12 +1004,11 @@ export default function Component() {
                 <Button
                   variant="linkHover2"
                   onClick={() => {
-                    updateScheduleStatus(
-                      calendarEvent.employee_id,
-                      calendarEvent.schedule_date,
-                      "Custom:Off"
-                    );
-                    updatePopoverOpenMutation.mutate(false);
+                    updateStatusMutation.mutate({
+                      employee_id: calendarEvent.employee_id,
+                      schedule_date: calendarEvent.schedule_date,
+                      status: "Custom:Off",
+                    });
                   }}
                 >
                   Off
@@ -1135,13 +1151,7 @@ export default function Component() {
       }
       return null;
     },
-    [
-      role,
-      lateStartDataQuery.data,
-      updateScheduleStatus,
-      queryClient, // Add this
-      lateStartDataQuery,
-    ]
+    [role, lateStartDataQuery.data, updateStatusMutation, queryClient]
   );
 
   if (
