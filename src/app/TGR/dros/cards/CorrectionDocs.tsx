@@ -73,6 +73,11 @@ function CorrectionDocs({ className }: { className?: string }) {
                 Federal Firearms License (FFL 03) - Collector Of Curios and
                 Relics
               </li>
+              <li>The Only Utility Bills For Address Correction Accepted:</li>
+              <ul className="list-none list-inside pl-4">
+                <li>- City Of Roseville Water Bill</li>
+                <li>- Sacramento Consolidated Utilities Bill</li>
+              </ul>
             </ul>
           </div>
         </CardContent>

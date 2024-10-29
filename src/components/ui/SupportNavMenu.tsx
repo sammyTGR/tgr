@@ -116,7 +116,7 @@ const PendingResident = dynamic(
 const SubItemsContainer = styled.div`
   position: fixed;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   padding: 4px;
   background: muted;
