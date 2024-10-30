@@ -204,8 +204,6 @@ export default function ApproveRequestsPage() {
   });
 
   // Mutation for updating time usage
-  // Modify the timeUsageMutation
-  // Modify the timeUsageMutation to use the existing approve_request endpoint
   const timeUsageMutation = useMutation({
     mutationFn: async ({
       requestId,
@@ -216,14 +214,24 @@ export default function ApproveRequestsPage() {
       useSickTime: boolean;
       useVacationTime: boolean;
     }) => {
+      // Get current request state
+      const currentRequest = requests.find(
+        (req: TimeOffRequest) => req.request_id === requestId
+      );
+
+      // Only set should_reverse when switching from true to false
+      const should_reverse =
+        currentRequest?.use_vacation_time && !useVacationTime;
+
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           request_id: requestId,
-          action: "pending", // Keep the status as pending when just updating time usage
+          action: "pending",
           use_sick_time: useSickTime,
           use_vacation_time: useVacationTime,
+          should_reverse,
         }),
       });
 
