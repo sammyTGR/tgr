@@ -32,9 +32,10 @@ export async function POST(request: Request) {
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", formattedScheduleDate)
-      .single();
+      .eq("schedule_date", formattedScheduleDate);
 
+    console.log("Found schedules:", scheduleData);
+    
     if (scheduleFetchError) {
       console.error(
         `Error fetching schedule for date ${formattedScheduleDate}:`,
