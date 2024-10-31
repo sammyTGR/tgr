@@ -14,26 +14,26 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const timeZone = "America/Los_Angeles";
 
 export async function POST(request: Request) {
+  const { employee_id, schedule_date, status, start_time, end_time } =
+    await request.json();
+
+  if (!employee_id || !schedule_date || typeof status !== "string") {
+    console.error("Invalid request:", { employee_id, schedule_date, status });
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
   try {
-    const { employee_id, schedule_date, status, start_time, end_time } =
-      await request.json();
-
-    if (!employee_id || !schedule_date || typeof status !== "string") {
-      console.error("Invalid request:", { employee_id, schedule_date, status });
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-    }
-
-    // Convert the schedule_date to Pacific Time
-    const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
-    // Format the date for database operations
-    const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
-
+     // Convert the schedule_date to Pacific Time
+     const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
+     // Format the date for database operations
+     const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", formattedScheduleDate);
+      .eq("schedule_date", formattedScheduleDate)
+      .single();
 
     if (scheduleFetchError) {
       console.error(
@@ -46,18 +46,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Handle schedule update or insert
-    if (!scheduleData || scheduleData.length === 0) {
+    if (!scheduleData) {
       // Insert new schedule if it doesn't exist
       const { error: scheduleInsertError } = await supabase
         .from("schedules")
-        .insert({
-          employee_id,
-          schedule_date: formattedScheduleDate,
-          status,
-          start_time,
-          end_time,
-        });
+        .insert({ employee_id, formattedScheduleDate, status });
 
       if (scheduleInsertError) {
         console.error(
@@ -70,20 +63,12 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      // If we have start_time and end_time, use them to target the specific schedule
-      let query = supabase
+      // Update existing schedule
+      const { error: scheduleUpdateError } = await supabase
         .from("schedules")
         .update({ status })
         .eq("employee_id", employee_id)
         .eq("schedule_date", formattedScheduleDate);
-
-      if (start_time && end_time) {
-        query = query
-          .eq("start_time", start_time)
-          .eq("end_time", end_time);
-      }
-
-      const { error: scheduleUpdateError } = await query;
 
       if (scheduleUpdateError) {
         console.error(
@@ -97,30 +82,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fetch employee data - using limit(1) instead of single() for more reliable behavior
+    // Fetch employee email from contact_info assuming it's plain text
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
       .select("contact_info, name")
       .eq("employee_id", employee_id)
-      .limit(1);
+      .single();
 
-    if (employeeError || !employeeData || employeeData.length === 0 || !employeeData[0].contact_info) {
-      console.error("Failed to fetch employee data:", employeeError);
+    if (employeeError || !employeeData || !employeeData.contact_info) {
+      console.error("Failed to fetch employee contact_info:", employeeError);
       return NextResponse.json(
-        { error: "Failed to fetch employee data" },
+        { error: "Failed to fetch employee contact_info" },
         { status: 500 }
       );
     }
 
-    const email = employeeData[0].contact_info;
-    const employeeName = employeeData[0].name;
+    const email = employeeData.contact_info;
+    const employeeName = employeeData.name;
+    const zonedDate = toZonedTime(parseISO(schedule_date), timeZone);
     const formattedDate = format(pacificDate, "EEEE, MMMM d yyyy");
 
     let subject: string;
     let EmailTemplate: React.ComponentType<any>;
     let templateData: any;
 
-    // Prepare email template and data
     if (status.startsWith("Late Start")) {
       const lateStartTime = status.split("Late Start ")[1];
       subject = "Late Start Notification";
@@ -183,7 +168,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Attempt to send email but don't block on failure
     try {
       await resend.emails.send({
         from: `TGR <scheduling@${process.env.RESEND_DOMAIN}>`,
@@ -192,16 +176,16 @@ export async function POST(request: Request) {
         react: EmailTemplate(templateData),
       });
     } catch (emailError: any) {
-      // Log the error but don't return - allow the update to be considered successful
       console.error("Error sending email:", emailError.message);
+      return NextResponse.json(
+        { error: "Error sending email", details: emailError.message },
+        { status: 500 }
+      );
     }
 
-    // Return success even if email failed - the schedule update is the primary concern
     return NextResponse.json({
-      message: "Schedule updated successfully",
-      emailStatus: "sent", // or "failed" if you want to track this
+      message: "Schedule updated and email sent successfully",
     });
-
   } catch (err) {
     console.error("Unexpected error updating schedule status:", err);
     return NextResponse.json(
