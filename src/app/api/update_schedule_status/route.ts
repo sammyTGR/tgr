@@ -23,10 +23,11 @@ export async function POST(request: Request) {
   }
 
   try {
-     // Convert the schedule_date to Pacific Time
-     const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
-     // Format the date for database operations
-     const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
+    // Convert the schedule_date to Pacific Time
+    const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
+    const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
+    const emailFormattedDate = format(pacificDate, "EEEE, MMMM d, yyyy");
+
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
       .from("schedules")
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
       EmailTemplate = LateStart;
       templateData = {
         name: employeeName,
-        date: formattedScheduleDate,
+        date: emailFormattedDate,
         startTime: lateStartTime,
       };
     } else {
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
           EmailTemplate = ShiftAdded;
           templateData = {
             name: employeeName,
-            date: formattedScheduleDate,
+            date: emailFormattedDate,
             startTime: start_time,
             endTime: end_time,
           };
@@ -133,7 +134,7 @@ export async function POST(request: Request) {
           EmailTemplate = ShiftUpdated;
           templateData = {
             name: employeeName,
-            date: formattedScheduleDate,
+            date: emailFormattedDate,
             startTime: start_time,
             endTime: end_time,
           };
@@ -143,7 +144,7 @@ export async function POST(request: Request) {
           EmailTemplate = LeftEarly;
           templateData = {
             name: employeeName,
-            date: formattedScheduleDate,
+            date: emailFormattedDate,
           };
           break;
         case "called_out":
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
           EmailTemplate = CalledOut;
           templateData = {
             name: employeeName,
-            date: formattedScheduleDate,
+            date: emailFormattedDate,
           };
           break;
         default:
@@ -160,7 +161,7 @@ export async function POST(request: Request) {
             EmailTemplate = CustomStatus;
             templateData = {
               name: employeeName,
-              date: formattedScheduleDate,
+              date: emailFormattedDate,
               status: status.replace("Custom:", "").trim(),
             };
           } else {
