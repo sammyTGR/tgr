@@ -15,7 +15,8 @@ const timeZone = "America/Los_Angeles";
 
 const formatDateWithDay = (dateString: string) => {
   const date = parseISO(dateString);
-  return format(date, "EEEE, MMMM d, yyyy");
+  const pacificDate = toZonedTime(date, timeZone);
+  return format(pacificDate, "EEEE, MMMM d, yyyy");
 };
 
 export async function POST(request: Request) {
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     // Convert the schedule_date to Pacific Time
     const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
     const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
-    const emailFormattedDate = format(pacificDate, "EEEE, MMMM d, yyyy");
+    const emailFormattedDate = formatDateWithDay(schedule_date);
 
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
