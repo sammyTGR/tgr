@@ -45,11 +45,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!scheduleData) {
+    if (!scheduleData || scheduleData.length === 0) {
       // Insert new schedule if it doesn't exist
       const { error: scheduleInsertError } = await supabase
         .from("schedules")
-        .insert({ employee_id, formattedScheduleDate, status });
+        .insert({ employee_id, schedule_date: formattedScheduleDate, status });
 
       if (scheduleInsertError) {
         console.error(
