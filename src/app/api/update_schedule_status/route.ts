@@ -208,19 +208,46 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send email using the send_email API
+    // Replace the fetch call with direct email sending
     try {
-      await resend.emails.send({
-        from: `TGR <scheduling@${process.env.RESEND_DOMAIN}>`,
+      let emailTemplate;
+      const fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+
+      // Select the correct email template based on status
+      switch (emailData.templateName) {
+        case "LateStart":
+          emailTemplate = LateStart(emailData.templateData);
+          break;
+        case "ShiftAdded":
+          emailTemplate = ShiftAdded(emailData.templateData);
+          break;
+        case "ShiftUpdated":
+          emailTemplate = ShiftUpdated(emailData.templateData);
+          break;
+        case "LeftEarly":
+          emailTemplate = LeftEarly(emailData.templateData);
+          break;
+        case "CalledOut":
+          emailTemplate = CalledOut(emailData.templateData);
+          break;
+        case "CustomStatus":
+          emailTemplate = CustomStatus(emailData.templateData);
+          break;
+        default:
+          throw new Error("Invalid template name");
+      }
+
+      const resendRes = await resend.emails.send({
+        from: fromEmail,
         to: [emailData.email],
         subject: emailData.subject,
-        react: emailData.templateName === "LateStart" ? LateStart(emailData.templateData) :
-               emailData.templateName === "ShiftAdded" ? ShiftAdded(emailData.templateData) :
-               emailData.templateName === "ShiftUpdated" ? ShiftUpdated(emailData.templateData) :
-               emailData.templateName === "LeftEarly" ? LeftEarly(emailData.templateData) :
-               emailData.templateName === "CalledOut" ? CalledOut(emailData.templateData) :
-               CustomStatus(emailData.templateData),
+        react: emailTemplate,
       });
+
+      if (resendRes.error) {
+        throw new Error(resendRes.error.message);
+      }
+
     } catch (emailError: any) {
       console.error("Error sending email:", emailError);
       return NextResponse.json(
