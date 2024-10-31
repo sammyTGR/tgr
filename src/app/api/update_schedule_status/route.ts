@@ -68,7 +68,8 @@ export async function POST(request: Request) {
         .from("schedules")
         .update({ status, start_time, end_time })
         .eq("employee_id", employee_id)
-        .eq("schedule_date", schedule_date);
+        .eq("schedule_date", formattedScheduleDate)
+        .single();
 
       if (scheduleUpdateError) {
         console.error(
