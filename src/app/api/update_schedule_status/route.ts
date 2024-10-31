@@ -65,7 +65,12 @@ export async function POST(request: Request) {
       // Update existing schedule
       const { error: scheduleUpdateError } = await supabase
         .from("schedules")
-        .update({ status })
+        .update({ 
+          status, 
+          day_of_week: scheduleData[0].day_of_week,
+          start_time: scheduleData[0].start_time,
+          end_time: scheduleData[0].end_time
+        })
         .eq("employee_id", employee_id)
         .eq("schedule_date", formattedScheduleDate);
 
