@@ -8,7 +8,7 @@ import CustomStatus from "../../../../emails/CustomStatus";
 import CalledOut from "../../../../emails/CalledOut";
 import LateStart from "../../../../emails/LateStart";
 import { format, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { format as formatTZ, toZonedTime } from "date-fns-tz";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const timeZone = "America/Los_Angeles";
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   try {
     // Convert the schedule_date to Pacific Time
     const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
-    const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
+    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", { timeZone });
     const emailFormattedDate = formatDateWithDay(schedule_date);
 
     // Check if the date exists in the schedules table
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", formattedScheduleDate);
+      .eq("schedule_date", schedule_date);
 
     // console.log("Found schedules:", scheduleData);
 
