@@ -14,7 +14,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const timeZone = "America/Los_Angeles";
 
 const formatDateWithDay = (dateString: string) => {
+  // Parse the date and explicitly handle it as UTC
   const date = parseISO(dateString);
+  // Convert to Pacific Time
   const pacificDate = toZonedTime(date, timeZone);
   return format(pacificDate, "EEEE, MMMM d, yyyy");
 };
@@ -30,9 +32,16 @@ export async function POST(request: Request) {
 
   try {
     // Convert the schedule_date to Pacific Time
-    const pacificDate = toZonedTime(parseISO(schedule_date), timeZone);
-    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", { timeZone });
+    const utcDate = parseISO(schedule_date);
+    // Convert to Pacific Time for database operations
+    const pacificDate = toZonedTime(utcDate, timeZone);
+    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
+      timeZone,
+    });
+
+    // Format date for email using the helper function
     const emailFormattedDate = formatDateWithDay(schedule_date);
+
 
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
@@ -74,7 +83,7 @@ export async function POST(request: Request) {
       // Update existing schedule
       const { error: scheduleUpdateError } = await supabase
         .from("schedules")
-        .update({ status, start_time, end_time })
+        .update({ status })
         .eq("employee_id", employee_id)
         .eq("schedule_date", schedule_date);
 
