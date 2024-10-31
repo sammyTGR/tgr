@@ -32,8 +32,7 @@ export async function POST(request: Request) {
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", formattedScheduleDate)
-      .single();
+      .eq("schedule_date", formattedScheduleDate);
 
     if (scheduleFetchError) {
       console.error(
