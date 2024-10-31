@@ -615,7 +615,11 @@ export default function Component() {
       schedule_date: string;
       status: string;
     }) => {
+      // Pass the calendar event's day_of_week in the request
       const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
+
+      // Get the day of week from the date
+      const dayOfWeek = format(parseISO(schedule_date), "EEEE");
 
       return fetch("/api/update_schedule_status", {
         method: "POST",
@@ -624,18 +628,19 @@ export default function Component() {
           employee_id,
           schedule_date: formattedDate,
           status,
-          // Remove start_time and end_time from the mutation payload
+          day_of_week: dayOfWeek, // Add this
         }),
       }).then(async (response) => {
+        const data = await response.json();
         if (!response.ok) {
-          const errorData = await response.json();
           throw new Error(
-            errorData.error || `HTTP error! status: ${response.status}`
+            data.error || `HTTP error! status: ${response.status}`
           );
         }
-        return response.json();
+        return data;
       });
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendarData"] });
       updatePopoverOpenMutation.mutate(false);
