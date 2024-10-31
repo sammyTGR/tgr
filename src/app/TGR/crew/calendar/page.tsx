@@ -615,7 +615,7 @@ export default function Component() {
       schedule_date: string;
       status: string;
     }) => {
-      console.log("Sending update:", { employee_id, schedule_date, status });
+      // console.log("Sending update:", { employee_id, schedule_date, status });
 
       return fetch("/api/update_schedule_status", {
         method: "POST",
@@ -627,7 +627,7 @@ export default function Component() {
         }),
       }).then(async (response) => {
         const data = await response.json();
-        console.log("Update response:", data);
+        // console.log("Update response:", data);
 
         if (!response.ok) {
           throw new Error(

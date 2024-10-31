@@ -34,8 +34,8 @@ export async function POST(request: Request) {
       .eq("employee_id", employee_id)
       .eq("schedule_date", formattedScheduleDate);
 
-    console.log("Found schedules:", scheduleData);
-    
+    // console.log("Found schedules:", scheduleData);
+
     if (scheduleFetchError) {
       console.error(
         `Error fetching schedule for date ${formattedScheduleDate}:`,
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       EmailTemplate = LateStart;
       templateData = {
         name: employeeName,
-        date: formattedDate,
+        date: formattedScheduleDate,
         startTime: lateStartTime,
       };
     } else {
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
           EmailTemplate = ShiftAdded;
           templateData = {
             name: employeeName,
-            date: formattedDate,
+            date: formattedScheduleDate,
             startTime: start_time,
             endTime: end_time,
           };
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
           EmailTemplate = ShiftUpdated;
           templateData = {
             name: employeeName,
-            date: formattedDate,
+            date: formattedScheduleDate,
             startTime: start_time,
             endTime: end_time,
           };
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
           EmailTemplate = LeftEarly;
           templateData = {
             name: employeeName,
-            date: formattedDate,
+            date: formattedScheduleDate,
           };
           break;
         case "called_out":
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
           EmailTemplate = CalledOut;
           templateData = {
             name: employeeName,
-            date: formattedDate,
+            date: formattedScheduleDate,
           };
           break;
         default:
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
             EmailTemplate = CustomStatus;
             templateData = {
               name: employeeName,
-              date: formattedDate,
+              date: formattedScheduleDate,
               status: status.replace("Custom:", "").trim(),
             };
           } else {
