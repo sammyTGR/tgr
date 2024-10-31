@@ -624,19 +624,19 @@ export default function Component() {
           employee_id,
           schedule_date: formattedDate,
           status,
+          // Remove start_time and end_time from the mutation payload
         }),
       }).then(async (response) => {
-        const data = await response.json();
         if (!response.ok) {
+          const errorData = await response.json();
           throw new Error(
-            data.error || `HTTP error! status: ${response.status}`
+            errorData.error || `HTTP error! status: ${response.status}`
           );
         }
-        return data;
+        return response.json();
       });
     },
     onSuccess: () => {
-      // Refresh the calendar data after successful update
       queryClient.invalidateQueries({ queryKey: ["calendarData"] });
       updatePopoverOpenMutation.mutate(false);
     },
@@ -1105,12 +1105,11 @@ export default function Component() {
                             ]) as any;
                             if (data?.hour && data?.minute && data?.period) {
                               const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
-                              // Use updateStatusMutation instead of updateScheduleStatus
-                              updateStatusMutation.mutate({
-                                employee_id: calendarEvent.employee_id,
-                                schedule_date: calendarEvent.schedule_date,
-                                status: `Late Start ${formattedTime}`,
-                              });
+                              updateScheduleStatus(
+                                calendarEvent.employee_id,
+                                calendarEvent.schedule_date,
+                                `Late Start ${formattedTime}`
+                              );
                               // Reset the form
                               queryClient.setQueryData(["lateStartData"], {
                                 hour: "",
@@ -1152,7 +1151,7 @@ export default function Component() {
       }
       return null;
     },
-    [role, updateStatusMutation, queryClient, updatePopoverOpenMutation]
+    [role, lateStartDataQuery.data, updateStatusMutation, queryClient]
   );
 
   if (
