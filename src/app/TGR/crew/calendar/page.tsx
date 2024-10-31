@@ -615,23 +615,20 @@ export default function Component() {
       schedule_date: string;
       status: string;
     }) => {
-      // Pass the calendar event's day_of_week in the request
-      const formattedDate = format(parseISO(schedule_date), "yyyy-MM-dd");
-
-      // Get the day of week from the date
-      const dayOfWeek = format(parseISO(schedule_date), "EEEE");
+      console.log("Sending update:", { employee_id, schedule_date, status });
 
       return fetch("/api/update_schedule_status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employee_id,
-          schedule_date: formattedDate,
+          schedule_date,
           status,
-          day_of_week: dayOfWeek, // Add this
         }),
       }).then(async (response) => {
         const data = await response.json();
+        console.log("Update response:", data);
+
         if (!response.ok) {
           throw new Error(
             data.error || `HTTP error! status: ${response.status}`
@@ -640,7 +637,6 @@ export default function Component() {
         return data;
       });
     },
-
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendarData"] });
       updatePopoverOpenMutation.mutate(false);

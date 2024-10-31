@@ -32,7 +32,8 @@ export async function POST(request: Request) {
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", formattedScheduleDate);
+      .eq("schedule_date", formattedScheduleDate)
+      .single();
 
     if (scheduleFetchError) {
       console.error(
@@ -45,23 +46,29 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!scheduleData || scheduleData.length === 0) {
-      return NextResponse.json(
-        { error: "No schedule found to update" },
-        { status: 404 }
-      );
-    }
+    if (!scheduleData) {
+      // Insert new schedule if it doesn't exist
+      const { error: scheduleInsertError } = await supabase
+        .from("schedules")
+        .insert({ employee_id, formattedScheduleDate, status });
+
+      if (scheduleInsertError) {
+        console.error(
+          `Error inserting schedule for date ${formattedScheduleDate}:`,
+          scheduleInsertError
+        );
+        return NextResponse.json(
+          { error: scheduleInsertError.message },
+          { status: 500 }
+        );
+      }
+    } else {
       // Update existing schedule
       const { error: scheduleUpdateError } = await supabase
         .from("schedules")
-        .update({ 
-          status,
-          day_of_week: scheduleData[0].day_of_week,
-          start_time: scheduleData[0].start_time || start_time,
-          end_time: scheduleData[0].end_time || end_time
-        })
+        .update({ status, start_time, end_time })
         .eq("employee_id", employee_id)
-        .eq("schedule_date", formattedScheduleDate);
+        .eq("schedule_date", schedule_date);
 
       if (scheduleUpdateError) {
         console.error(
@@ -73,7 +80,7 @@ export async function POST(request: Request) {
           { status: 500 }
         );
       }
-    
+    }
 
     // Fetch employee email from contact_info assuming it's plain text
     const { data: employeeData, error: employeeError } = await supabase
@@ -178,11 +185,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: "Schedule updated and email sent successfully",
-      debug: {
-        originalDayOfWeek: scheduleData[0].day_of_week,
-        providedDayOfWeek: scheduleData[0].day_of_week, // Use the value from scheduleData since day_of_week is undefined
-        usedDayOfWeek: scheduleData[0].day_of_week // Remove the undefined variable
-      }
     });
   } catch (err) {
     console.error("Unexpected error updating schedule status:", err);
