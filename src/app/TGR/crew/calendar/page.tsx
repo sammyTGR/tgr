@@ -97,6 +97,18 @@ interface LateStartDialogProps {
   onSubmit: (employeeId: number, date: string, time: string) => void;
 }
 
+interface EmailPayload {
+  email: string;
+  subject: string;
+  templateName: string;
+  templateData: {
+    name: string;
+    date: string;
+    startTime?: string;
+    status?: string;
+  };
+}
+
 type BreakRoomDuty = {
   employee: EmployeeCalendar;
   dutyDate: Date;
@@ -107,6 +119,20 @@ type LateStartData = {
   hour: string;
   minute: string;
   period: string;
+};
+
+const formatDateForEmail = (dateString: string) => {
+  const date = parseISO(dateString);
+  // Ensure date is interpreted in Pacific Time
+  const zonedDate = toZonedTime(date, TIME_ZONE);
+  return format(zonedDate, "EEEE, MMMM d, yyyy");
+};
+
+const formatDateForDB = (dateString: string) => {
+  const date = parseISO(dateString);
+  // Ensure date is interpreted in Pacific Time
+  const zonedDate = toZonedTime(date, TIME_ZONE);
+  return formatTZ(zonedDate, "yyyy-MM-dd", { timeZone: TIME_ZONE });
 };
 
 // Utility functions
@@ -806,20 +832,110 @@ export default function Component() {
   }, [filteredCalendarData]);
 
   const updateScheduleStatus = useCallback(
-    (
+    async (
       employee_id: number,
       schedule_date: string,
       status: string,
       start_time?: string | null,
       end_time?: string | null
     ) => {
-      updateStatusMutation.mutate({
-        employee_id,
-        schedule_date,
-        status,
-      });
+      try {
+        // First, get employee data for email
+        const { data: employeeData, error: employeeError } = await supabase
+          .from("employees")
+          .select("name, contact_info")
+          .eq("employee_id", employee_id)
+          .single();
+
+        if (employeeError || !employeeData) {
+          throw new Error("Failed to fetch employee data");
+        }
+
+        // Format date for database and email
+        const formattedDateForDB = formatDateForDB(schedule_date);
+        const formattedDateForEmail = formatDateForEmail(schedule_date);
+
+        // Update schedule status
+        const scheduleResponse = await fetch("/api/update_schedule_status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employee_id,
+            schedule_date: formattedDateForDB,
+            status,
+          }),
+        });
+
+        if (!scheduleResponse.ok) {
+          throw new Error("Failed to update schedule status");
+        }
+
+        // Prepare email payload based on status
+        let emailPayload: EmailPayload = {
+          email: employeeData.contact_info,
+          subject: "",
+          templateName: "",
+          templateData: {
+            name: employeeData.name,
+            date: formattedDateForEmail,
+          },
+        };
+
+        // Set email template and subject based on status
+        if (status.startsWith("Late Start")) {
+          emailPayload = {
+            ...emailPayload,
+            subject: "Late Start Notification",
+            templateName: "LateStart",
+            templateData: {
+              ...emailPayload.templateData,
+              startTime: status.split("Late Start ")[1],
+            },
+          };
+        } else if (status === "called_out") {
+          emailPayload = {
+            ...emailPayload,
+            subject: "Called Out Confirmation",
+            templateName: "CalledOut",
+          };
+        } else if (status === "left_early") {
+          emailPayload = {
+            ...emailPayload,
+            subject: "Left Early Notification",
+            templateName: "LeftEarly",
+          };
+        } else if (status.startsWith("Custom:")) {
+          emailPayload = {
+            ...emailPayload,
+            subject: "Schedule Update",
+            templateName: "CustomStatus",
+            templateData: {
+              ...emailPayload.templateData,
+              status: status.replace("Custom:", "").trim(),
+            },
+          };
+        }
+
+        // Send email notification
+        const emailResponse = await fetch("/api/send_email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(emailPayload),
+        });
+
+        if (!emailResponse.ok) {
+          throw new Error("Failed to send email notification");
+        }
+
+        // Update UI state
+        updatePopoverOpenMutation.mutate(false);
+        queryClient.invalidateQueries({ queryKey: ["calendarData"] });
+      } catch (error) {
+        console.error("Error updating schedule:", error);
+        // Handle error appropriately
+      }
     },
-    [updateStatusMutation]
+    [queryClient, updatePopoverOpenMutation]
   );
 
   // Render functions
