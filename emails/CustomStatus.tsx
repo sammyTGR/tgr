@@ -6,6 +6,7 @@ import {
   Text,
   Button,
   Hr,
+  Link,
 } from "@react-email/components";
 import * as React from "react";
 
@@ -26,13 +27,13 @@ export default function CustomStatus({
       <Body style={main}>
         <Container style={container}>
           <Text style={heading}>Schedule Status Update</Text>
-          <Text style={paragraph}>Aye {name},</Text>
-          <Text style={paragraph}>
+          <Text style={text}>Aye {name},</Text>
+          <Text style={text}>
             This email confirms that your schedule status for {date} has been
             updated to: {status}.
           </Text>
           <Hr style={hr} />
-          <Text style={paragraph}>
+          <Text style={text}>
             If you have any questions or need to discuss this further, please
             contact your manager.
           </Text>
@@ -72,6 +73,12 @@ const paragraph = {
   fontSize: "18px",
   lineHeight: "1.4",
   color: "#484848",
+};
+
+const text = {
+  color: "#333",
+  fontSize: "14px",
+  lineHeight: "24px",
 };
 
 const hr = {
