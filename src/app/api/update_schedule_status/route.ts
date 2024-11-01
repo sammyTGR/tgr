@@ -14,12 +14,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const timeZone = "America/Los_Angeles";
 
 const formatDateWithDay = (dateString: string) => {
-  // Parse the date and explicitly set it to midnight Pacific time
   const date = parseISO(dateString);
+  // Convert to Pacific Time
   const pacificDate = toZonedTime(date, timeZone);
-  
-  // Format with explicit timezone
-  return formatTZ(pacificDate, "EEEE, MMMM d, yyyy", { timeZone });
+  return format(pacificDate, "EEEE, MMMM d, yyyy");
 };
 
 // Add interface for email payload
@@ -39,14 +37,12 @@ export async function POST(request: Request) {
   const { employee_id, schedule_date, status } = await request.json();
 
   try {
-    // Ensure consistent timezone handling
+    // Single timezone conversion for database
     const utcDate = parseISO(schedule_date);
     const pacificDate = toZonedTime(utcDate, timeZone);
     
     // Format for database
-    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
-      timeZone,
-    });
+    const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
 
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
@@ -115,8 +111,8 @@ export async function POST(request: Request) {
       throw new Error("Failed to fetch employee data");
     }
 
-    // Format for email using the timezone-aware function
-    const formattedDate = formatDateWithDay(formattedScheduleDate);
+    // Use the original schedule_date for email formatting
+    const emailFormattedDate = formatDateWithDay(schedule_date);
 
     // Initialize emailPayload with proper typing
     let emailPayload: EmailPayload = {
@@ -125,7 +121,7 @@ export async function POST(request: Request) {
       templateName: "", // Will be set based on status
       templateData: {
         name: employeeData.name,
-        date: formattedDate,
+        date: emailFormattedDate,
       },
     };
 
