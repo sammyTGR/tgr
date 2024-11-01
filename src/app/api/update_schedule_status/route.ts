@@ -14,11 +14,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const timeZone = "America/Los_Angeles";
 
 const formatDateWithDay = (dateString: string) => {
-  // Parse the date and explicitly handle it as UTC
+  // Parse the date and explicitly set it to midnight Pacific time
   const date = parseISO(dateString);
-  // Convert to Pacific Time
   const pacificDate = toZonedTime(date, timeZone);
-  return format(pacificDate, "EEEE, MMMM d, yyyy");
+  
+  // Format with explicit timezone
+  return formatTZ(pacificDate, "EEEE, MMMM d, yyyy", { timeZone });
 };
 
 // Add interface for email payload
@@ -38,9 +39,11 @@ export async function POST(request: Request) {
   const { employee_id, schedule_date, status } = await request.json();
 
   try {
-    // Convert the schedule_date to Pacific Time
+    // Ensure consistent timezone handling
     const utcDate = parseISO(schedule_date);
     const pacificDate = toZonedTime(utcDate, timeZone);
+    
+    // Format for database
     const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
       timeZone,
     });
@@ -112,8 +115,8 @@ export async function POST(request: Request) {
       throw new Error("Failed to fetch employee data");
     }
 
-    // Format the date correctly for the email
-    const formattedDate = format(pacificDate, "EEEE, MMMM d, yyyy");
+    // Format for email using the timezone-aware function
+    const formattedDate = formatDateWithDay(formattedScheduleDate);
 
     // Initialize emailPayload with proper typing
     let emailPayload: EmailPayload = {
