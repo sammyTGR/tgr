@@ -40,7 +40,6 @@ export async function POST(request: Request) {
   try {
     // Convert the schedule_date to Pacific Time
     const utcDate = parseISO(schedule_date);
-    // Convert to Pacific Time for database operations
     const pacificDate = toZonedTime(utcDate, timeZone);
     const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
       timeZone,
@@ -114,7 +113,7 @@ export async function POST(request: Request) {
     }
 
     // Format the date correctly for the email
-    const formattedDate = formatDateWithDay(schedule_date);
+    const formattedDate = format(pacificDate, "EEEE, MMMM d, yyyy");
 
     // Initialize emailPayload with proper typing
     let emailPayload: EmailPayload = {
