@@ -21,14 +21,21 @@ const formatDateWithDay = (dateString: string) => {
   return format(pacificDate, "EEEE, MMMM d, yyyy");
 };
 
-export async function POST(request: Request) {
-  const { employee_id, schedule_date, status, start_time, end_time } =
-    await request.json();
+// Add interface for email payload
+interface EmailPayload {
+  email: string;
+  subject: string;
+  templateName: string;
+  templateData: {
+    name: string;
+    date: string;
+    startTime?: string;
+    status?: string;
+  };
+}
 
-  if (!employee_id || !schedule_date || typeof status !== "string") {
-    console.error("Invalid request:", { employee_id, schedule_date, status });
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
+export async function POST(request: Request) {
+  const { employee_id, schedule_date, status } = await request.json();
 
   try {
     // Convert the schedule_date to Pacific Time
@@ -38,10 +45,6 @@ export async function POST(request: Request) {
     const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
       timeZone,
     });
-
-    // Format date for email using the helper function
-    const emailFormattedDate = formatDateWithDay(schedule_date);
-
 
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
@@ -107,162 +110,80 @@ export async function POST(request: Request) {
       .single();
 
     if (employeeError || !employeeData || !employeeData.contact_info) {
-      console.error("Failed to fetch employee contact_info:", employeeError);
-      return NextResponse.json(
-        { error: "Failed to fetch employee contact_info" },
-        { status: 500 }
-      );
+      throw new Error("Failed to fetch employee data");
     }
 
-    const email = employeeData.contact_info;
-    const employeeName = employeeData.name;
-    const zonedDate = toZonedTime(parseISO(schedule_date), timeZone);
-    const formattedDate = format(pacificDate, "EEEE, MMMM d yyyy");
-    
+    // Format the date correctly for the email
+    const formattedDate = formatDateWithDay(schedule_date);
 
-     // Prepare email data
-     let emailData: {
-      email: string;
-      subject: string;
-      templateName: string;
-      templateData: any;
+    // Initialize emailPayload with proper typing
+    let emailPayload: EmailPayload = {
+      email: employeeData.contact_info,
+      subject: "", // Will be set based on status
+      templateName: "", // Will be set based on status
+      templateData: {
+        name: employeeData.name,
+        date: formattedDate,
+      },
     };
 
+    // Set email subject and template based on status
     if (status.startsWith("Late Start")) {
-      const lateStartTime = status.split("Late Start ")[1];
-      emailData = {
-        email: employeeData.contact_info,
+      emailPayload = {
+        ...emailPayload,
         subject: "Late Start Notification",
         templateName: "LateStart",
         templateData: {
-          name: employeeData.name,
-          date: emailFormattedDate,
-          startTime: lateStartTime,
+          ...emailPayload.templateData,
+          startTime: status.split("Late Start ")[1],
         },
       };
-    } else {
-      switch (status) {
-        case "added_day":
-          emailData = {
-            email: employeeData.contact_info,
-            subject: "New Shift Added to Your Schedule",
-            templateName: "ShiftAdded",
-            templateData: {
-              name: employeeData.name,
-              date: emailFormattedDate,
-              startTime: start_time,
-              endTime: end_time,
-            },
-          };
-          break;
-        case "updated_shift":
-          emailData = {
-            email: employeeData.contact_info,
-            subject: "Your Shift Has Been Updated",
-            templateName: "ShiftUpdated",
-            templateData: {
-              name: employeeData.name,
-              date: emailFormattedDate,
-              startTime: start_time,
-              endTime: end_time,
-            },
-          };
-          break;
-        case "left_early":
-          emailData = {
-            email: employeeData.contact_info,
-            subject: "Left Early Notification",
-            templateName: "LeftEarly",
-            templateData: {
-              name: employeeData.name,
-              date: emailFormattedDate,
-            },
-          };
-          break;
-        case "called_out":
-          emailData = {
-            email: employeeData.contact_info,
-            subject: "Called Out Confirmation",
-            templateName: "CalledOut",
-            templateData: {
-              name: employeeData.name,
-              date: emailFormattedDate,
-            },
-          };
-          break;
-        default:
-          if (status.startsWith("Custom:")) {
-            emailData = {
-              email: employeeData.contact_info,
-              subject: "Schedule Update",
-              templateName: "CustomStatus",
-              templateData: {
-                name: employeeData.name,
-                date: emailFormattedDate,
-                status: status.replace("Custom:", "").trim(),
-              },
-            };
-          } else {
-            throw new Error("Invalid status");
-          }
-      }
+    } else if (status === "called_out") {
+      emailPayload = {
+        ...emailPayload,
+        subject: "Called Out Confirmation",
+        templateName: "CalledOut",
+      };
+    } else if (status === "left_early") {
+      emailPayload = {
+        ...emailPayload,
+        subject: "Left Early Notification",
+        templateName: "LeftEarly",
+      };
+    } else if (status.startsWith("Custom:")) {
+      emailPayload = {
+        ...emailPayload,
+        subject: "Schedule Update",
+        templateName: "CustomStatus",
+        templateData: {
+          ...emailPayload.templateData,
+          status: status.replace("Custom:", "").trim(),
+        },
+      };
     }
 
-    // Replace the fetch call with direct email sending
-    try {
-      let emailTemplate;
-      const fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+    // Send email using the send_email API
+    const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_VERCEL_URL}/api/send_email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
 
-      // Select the correct email template based on status
-      switch (emailData.templateName) {
-        case "LateStart":
-          emailTemplate = LateStart(emailData.templateData);
-          break;
-        case "ShiftAdded":
-          emailTemplate = ShiftAdded(emailData.templateData);
-          break;
-        case "ShiftUpdated":
-          emailTemplate = ShiftUpdated(emailData.templateData);
-          break;
-        case "LeftEarly":
-          emailTemplate = LeftEarly(emailData.templateData);
-          break;
-        case "CalledOut":
-          emailTemplate = CalledOut(emailData.templateData);
-          break;
-        case "CustomStatus":
-          emailTemplate = CustomStatus(emailData.templateData);
-          break;
-        default:
-          throw new Error("Invalid template name");
-      }
-
-      const resendRes = await resend.emails.send({
-        from: fromEmail,
-        to: [emailData.email],
-        subject: emailData.subject,
-        react: emailTemplate,
-      });
-
-      if (resendRes.error) {
-        throw new Error(resendRes.error.message);
-      }
-
-    } catch (emailError: any) {
-      console.error("Error sending email:", emailError);
-      return NextResponse.json(
-        { error: "Error sending email", details: emailError.message },
-        { status: 500 }
-      );
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json();
+      throw new Error(errorData.error || 'Failed to send email');
     }
 
     return NextResponse.json({
       message: "Schedule updated and email sent successfully",
     });
-  } catch (err) {
-    console.error("Unexpected error updating schedule status:", err);
+
+  } catch (error: any) {
+    console.error("Error:", error);
     return NextResponse.json(
-      { error: "Unexpected error updating schedule status" },
+      { error: error.message || "An error occurred" },
       { status: 500 }
     );
   }
