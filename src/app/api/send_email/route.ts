@@ -15,6 +15,7 @@ import AdminOvertimeAlert from "../../../../emails/AdminOvertimeAlert";
 import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
 import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotification";
 import GunsmithNewRequest from "../../../../emails/GunsmithNewRequest";
+import LateStart from "../../../../emails/LateStart";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -57,6 +58,13 @@ export async function POST(request: Request) {
           ...templateData,
           startDate: templateData.startDate,
           endDate: templateData.endDate,
+        });
+        fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "LateStart":
+        emailTemplate = LateStart({
+          ...templateData,
+          startTime: templateData.startTime,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;

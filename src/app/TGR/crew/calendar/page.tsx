@@ -72,6 +72,13 @@ const DAYS_OF_WEEK = [
   "Saturday",
 ];
 
+const formatDateWithDay = (dateString: string) => {
+  const date = parseISO(dateString);
+  // Ensure date is interpreted in Pacific Time
+  const zonedDate = toZonedTime(date, TIME_ZONE);
+  return format(zonedDate, "EEEE, MMMM d, yyyy");
+};
+
 // Types
 interface CalendarEvent {
   day_of_week: string;
@@ -631,47 +638,6 @@ export default function Component() {
     },
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({
-      employee_id,
-      schedule_date,
-      status,
-    }: {
-      employee_id: number;
-      schedule_date: string;
-      status: string;
-    }) => {
-      // console.log("Sending update:", { employee_id, schedule_date, status });
-
-      return fetch("/api/update_schedule_status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employee_id,
-          schedule_date,
-          status,
-        }),
-      }).then(async (response) => {
-        const data = await response.json();
-        // console.log("Update response:", data);
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || `HTTP error! status: ${response.status}`
-          );
-        }
-        return data;
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calendarData"] });
-      updatePopoverOpenMutation.mutate(false);
-    },
-    onError: (error) => {
-      console.error("Failed to update status:", error);
-    },
-  });
-
   const updateCurrentDateMutation = useMutation({
     mutationFn: (newDate: Date) => Promise.resolve(newDate),
     onSuccess: (newDate) => {
@@ -831,14 +797,16 @@ export default function Component() {
     return [...filteredCalendarData].sort((a, b) => a.rank - b.rank);
   }, [filteredCalendarData]);
 
-  const updateScheduleStatus = useCallback(
-    async (
-      employee_id: number,
-      schedule_date: string,
-      status: string,
-      start_time?: string | null,
-      end_time?: string | null
-    ) => {
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      employee_id,
+      schedule_date,
+      status,
+    }: {
+      employee_id: number;
+      schedule_date: string;
+      status: string;
+    }) => {
       try {
         // First, get employee data for email
         const { data: employeeData, error: employeeError } = await supabase
@@ -851,17 +819,13 @@ export default function Component() {
           throw new Error("Failed to fetch employee data");
         }
 
-        // Format date for database and email
-        const formattedDateForDB = formatDateForDB(schedule_date);
-        const formattedDateForEmail = formatDateForEmail(schedule_date);
-
         // Update schedule status
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date: formattedDateForDB,
+            schedule_date,
             status,
           }),
         });
@@ -870,14 +834,14 @@ export default function Component() {
           throw new Error("Failed to update schedule status");
         }
 
-        // Prepare email payload based on status
+        // Prepare email payload
         let emailPayload: EmailPayload = {
           email: employeeData.contact_info,
           subject: "",
           templateName: "",
           templateData: {
             name: employeeData.name,
-            date: formattedDateForEmail,
+            date: formatDateWithDay(schedule_date),
           },
         };
 
@@ -916,7 +880,7 @@ export default function Component() {
           };
         }
 
-        // Send email notification
+        // Send email
         const emailResponse = await fetch("/api/send_email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -927,16 +891,21 @@ export default function Component() {
           throw new Error("Failed to send email notification");
         }
 
-        // Update UI state
-        updatePopoverOpenMutation.mutate(false);
-        queryClient.invalidateQueries({ queryKey: ["calendarData"] });
+        return { success: true };
       } catch (error) {
-        console.error("Error updating schedule:", error);
-        // Handle error appropriately
+        console.error("Error in updateStatusMutation:", error);
+        throw error;
       }
     },
-    [queryClient, updatePopoverOpenMutation]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calendarData"] });
+      updatePopoverOpenMutation.mutate(false);
+    },
+    onError: (error) => {
+      console.error("Failed to update status and send email:", error);
+      // Handle error appropriately
+    },
+  });
 
   // Render functions
   const renderEmployeeRow = useCallback(
@@ -1222,11 +1191,11 @@ export default function Component() {
                             ]) as any;
                             if (data?.hour && data?.minute && data?.period) {
                               const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
-                              updateScheduleStatus(
-                                calendarEvent.employee_id,
-                                calendarEvent.schedule_date,
-                                `Late Start ${formattedTime}`
-                              );
+                              updateStatusMutation.mutate({
+                                employee_id: calendarEvent.employee_id,
+                                schedule_date: calendarEvent.schedule_date,
+                                status: `Late Start ${formattedTime}`,
+                              });
                               // Reset the form
                               queryClient.setQueryData(["lateStartData"], {
                                 hour: "",
