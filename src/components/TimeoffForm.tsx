@@ -332,7 +332,7 @@ export default function TimeoffForm({
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy"]);
+        .in("name", ["Sammy", "Russ", "Slim Jim"]);
 
       if (employeesError) throw employeesError;
 
