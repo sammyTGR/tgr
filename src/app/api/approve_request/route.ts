@@ -4,74 +4,51 @@ import { corsHeaders } from "@/utils/cors";
 
 export async function POST(request: Request) {
   try {
-    const { request_id, action, use_sick_time, use_vacation_time } = await request.json();
+    const body = await request.json();
+    // console.log('Received request body:', body);
     
-    if (!request_id || typeof action !== "string") {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-    }
-
-    if (use_sick_time && use_vacation_time) {
-      return NextResponse.json(
-        { error: "Cannot use both sick time and vacation time for the same request" },
-        { status: 400 }
-      );
+    const { request_id, action, use_sick_time, use_vacation_time } = body;
+    
+    if (!request_id) {
+      return NextResponse.json({ error: "Invalid request - missing request_id" }, { 
+        status: 400,
+        headers: corsHeaders 
+      });
     }
 
     const supabase = createClient();
 
-    // First get the time off request data
+    // Get the time off request with employee data
     const { data: timeOffData, error: fetchError } = await supabase
       .from("time_off_requests")
-      .select("*")
+      .select(`
+        *,
+        employees!time_off_requests_user_uuid_fkey (
+          employee_id,
+          sick_time_used,
+          vacation_time,
+          pay_type,
+          name
+        )
+      `)
       .eq("request_id", request_id)
       .single();
 
-    if (fetchError || !timeOffData) {
-      return NextResponse.json({ error: "Failed to fetch request data" }, { status: 500 });
+    if (fetchError) {
+      console.error('Error fetching time off request:', fetchError);
+      return NextResponse.json({ 
+        error: "Failed to fetch request data", 
+        details: fetchError.message 
+      }, { 
+        status: 500, 
+        headers: corsHeaders 
+      });
     }
 
-    // Check if this is just a vacation time toggle or an action change
-    const isVacationToggle = timeOffData.use_vacation_time !== use_vacation_time;
-    const isActionChange = (
-      action === "time_off" || 
-      action === "deny" || 
-      action === "called_out" || 
-      action === "left_early" || 
-      action.startsWith("Custom:")
-    );
-
-    // Handle vacation time toggle without changing is_read
-    if (isVacationToggle && !isActionChange) {
-      if (use_vacation_time) {
-        const { error: deductError } = await supabase.rpc('deduct_vacation_time', {
-          p_emp_id: timeOffData.employee_id,
-          p_start_date: timeOffData.start_date,
-          p_end_date: timeOffData.end_date,
-          p_use_vacation_time: true
-        });
-
-        if (deductError) {
-          return NextResponse.json({ error: deductError.message }, { status: 500 });
-        }
-      }
-
-      // Just update use_vacation_time without changing is_read
-      const { data: updatedRequest, error: updateError } = await supabase
-        .from("time_off_requests")
-        .update({ use_vacation_time })
-        .eq("request_id", request_id)
-        .select()
-        .single();
-
-      if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
-      }
-
-      return NextResponse.json(updatedRequest);
-    }
+    // console.log('Time off request data:', timeOffData);
 
     // Handle action changes (approve, deny, etc.)
-    if (isActionChange) {
+    if (action === "time_off" || action === "deny" || action === "called_out" || action === "left_early" || action.startsWith("Custom:")) {
       // Update schedules first
       if (timeOffData.employee_id) {
         let scheduleStatus = action === "time_off" ? "time_off" : action;
@@ -97,9 +74,7 @@ export async function POST(request: Request) {
         .from("time_off_requests")
         .update({
           status: action,
-          use_sick_time,
-          use_vacation_time: timeOffData.use_vacation_time,
-          is_read: true, // Only set is_read for action changes
+          is_read: true, // Set is_read for action changes
         })
         .eq("request_id", request_id)
         .select()
@@ -108,29 +83,119 @@ export async function POST(request: Request) {
       if (timeOffError) {
         return NextResponse.json({ error: timeOffError.message }, { status: 500 });
       }
-
-      // Handle sick time if needed
-      if (use_sick_time) {
-        const { error: sickTimeError } = await supabase.rpc("deduct_sick_time", {
-          p_emp_id: timeOffData.employee_id,
-          p_start_date: timeOffData.start_date,
-          p_end_date: timeOffData.end_date,
-        });
-
-        if (sickTimeError) {
-          console.error("Error deducting sick time:", sickTimeError);
-          return NextResponse.json({ error: sickTimeError.message }, { status: 500 });
-        }
-      }
-
-      return NextResponse.json(updatedTimeOff);
     }
 
-    // If neither vacation toggle nor action change, just return current data
-    return NextResponse.json(timeOffData);
+    // Handle sick time toggle
+    if (typeof use_sick_time !== 'undefined' && use_sick_time !== timeOffData.use_sick_time) {
+      // console.log('Attempting to update sick time usage:', {
+      //   use_sick_time,
+      //   employee_id: timeOffData.employee_id,
+      //   start_date: timeOffData.start_date,
+      //   end_date: timeOffData.end_date
+      // });
+
+      try {
+        // First update the time_off_requests table directly
+        const { error: updateError } = await supabase
+          .from("time_off_requests")
+          .update({
+            use_sick_time,
+            sick_time_year: new Date().getFullYear()
+          })
+          .eq("request_id", request_id);
+
+        if (updateError) {
+          console.error('Error updating time off request:', updateError);
+          return NextResponse.json({ 
+            error: "Failed to update time off request", 
+            details: updateError.message 
+          }, { 
+            status: 500, 
+            headers: corsHeaders 
+          });
+        }
+
+        // Then if enabling sick time, calculate the hours
+        if (use_sick_time) {
+          // console.log('Calling deduct_sick_time with params:', {
+          //   p_emp_id: timeOffData.employee_id,
+          //   p_start_date: timeOffData.start_date,
+          //   p_end_date: timeOffData.end_date
+          // });
+
+          const { error: sickTimeError } = await supabase.rpc('deduct_sick_time', {
+            p_emp_id: timeOffData.employee_id,
+            p_start_date: timeOffData.start_date,
+            p_end_date: timeOffData.end_date
+          });
+
+          if (sickTimeError) {
+            console.error('Error in deduct_sick_time:', sickTimeError);
+            // Rollback the update if the function call failed
+            await supabase
+              .from("time_off_requests")
+              .update({ use_sick_time: false, sick_time_year: null })
+              .eq("request_id", request_id);
+
+            return NextResponse.json({ 
+              error: "Failed to deduct sick time", 
+              details: sickTimeError.message 
+            }, { 
+              status: 500, 
+              headers: corsHeaders 
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error in sick time handling:', err);
+        return NextResponse.json({ 
+          error: "Error processing sick time", 
+          details: err instanceof Error ? err.message : 'Unknown error occurred'
+        }, { 
+          status: 500, 
+          headers: corsHeaders 
+        });
+      }
+    }
+
+    // Get final state of the request
+    const { data: finalState, error: finalError } = await supabase
+      .from("time_off_requests")
+      .select(`
+        *,
+        employees!time_off_requests_user_uuid_fkey (
+          employee_id,
+          sick_time_used,
+          vacation_time,
+          pay_type,
+          name
+        )
+      `)
+      .eq("request_id", request_id)
+      .single();
+
+    if (finalError) {
+      console.error('Error fetching final state:', finalError);
+      return NextResponse.json({ 
+        error: "Failed to fetch final state", 
+        details: finalError.message 
+      }, { 
+        status: 500, 
+        headers: corsHeaders 
+      });
+    }
+
+    return NextResponse.json(finalState, { headers: corsHeaders });
+
   } catch (err: any) {
-    console.error("Unexpected error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Unexpected error in approve_request:", err);
+    return NextResponse.json({ 
+      error: "Internal server error", 
+      details: err.message 
+    }, { 
+      status: 500, 
+      headers: corsHeaders 
+    });
   }
 }
 
