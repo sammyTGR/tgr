@@ -53,14 +53,7 @@ function ProofDocs({ className }: { className?: string }) {
                 <li>- Off Road Vehicle Registration</li>
               </ul>
               <li>Signed & Dated Lease Agreement For A Duration Of 1 Year</li>
-              <li>
-                Most Recent Property Tax Bill (Meets ATF Federal Req), With One
-                Of The Following:
-              </li>
-              <ul className="list-none list-inside pl-4">
-                <li>- Property Deed (Meets DOJ State Req)</li>
-                <li>- Current (Wtihin 90 Days) Utility Bill</li>
-              </ul>
+
               <li>Property Deed (Meets DOJ State Req)</li>
               <li>
                 Current (Within 90 Days) Utility Bill For Current Physical
