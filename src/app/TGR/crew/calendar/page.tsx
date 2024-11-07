@@ -17,6 +17,7 @@ import {
   addDays,
   isSameDay,
   isFriday,
+  eachDayOfInterval,
 } from "date-fns";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -57,7 +58,9 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ShiftFilter } from "./ShiftFilter";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
+import { isHoliday } from "@/utils/holidays";
 import styles from "./calendar.module.css";
+import { HolidayManager } from "@/components/HolidayManager";
 
 // Constants
 const TITLE = "TGR Team Calendar";
@@ -88,6 +91,7 @@ interface CalendarEvent {
   status?: string;
   employee_id: number;
   birthday?: string;
+  notes?: string;
 }
 
 interface EmployeeCalendar {
@@ -227,6 +231,72 @@ const fetchCalendarData = (currentDate: Date): Promise<EmployeeCalendar[]> => {
         return Object.values(groupedData);
       })
   );
+};
+
+// Add this to your existing calendar fetching logic:
+const fetchCalendarDataWithHolidays = async (currentDate: Date) => {
+  const startOfWeekDate = toZonedTime(getStartOfWeek(currentDate), TIME_ZONE);
+  const endOfWeek = new Date(startOfWeekDate);
+  endOfWeek.setDate(startOfWeekDate.getDate() + 6);
+
+  // Format dates for query
+  const startDateStr = formatTZ(startOfWeekDate, "yyyy-MM-dd", {
+    timeZone: TIME_ZONE,
+  });
+  const endDateStr = formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone: TIME_ZONE });
+
+  // First get your calendar data
+  const calendarData = await fetchCalendarData(currentDate);
+
+  // Fetch holidays for this week
+  const { data: holidays, error: holidaysError } = await supabase
+    .from("holidays")
+    .select("*")
+    .gte("date", startDateStr)
+    .lte("date", endDateStr);
+
+  if (holidaysError) {
+    console.error("Error fetching holidays:", holidaysError);
+    return calendarData;
+  }
+
+  // Add logging to debug holiday dates
+  console.log("Holiday processing:", {
+    weekStart: startDateStr,
+    weekEnd: endDateStr,
+    holidays: holidays?.map((h) => ({
+      name: h.name,
+      date: h.date,
+      formattedDate: formatTZ(
+        toZonedTime(parseISO(h.date), TIME_ZONE),
+        "yyyy-MM-dd",
+        { timeZone: TIME_ZONE }
+      ),
+    })),
+  });
+
+  // Mark holiday closures in the calendar data
+  holidays?.forEach((holiday) => {
+    // Get the holiday date in Pacific Time
+    const holidayDate = parseISO(holiday.date);
+    const formattedHolidayDate = formatTZ(holidayDate, "yyyy-MM-dd", {
+      timeZone: TIME_ZONE,
+    });
+
+    calendarData.forEach((employee) => {
+      const eventIndex = employee.events.findIndex(
+        (event) => event.schedule_date === formattedHolidayDate
+      );
+
+      if (eventIndex >= 0) {
+        employee.events[eventIndex].status = "holiday";
+        employee.events[eventIndex].notes = `Closed for ${holiday.name}`;
+        // Remove holiday_id since it's not part of the CalendarEvent type
+      }
+    });
+  });
+
+  return calendarData;
 };
 
 const getBreakRoomDutyEmployee = (
@@ -986,6 +1056,12 @@ export default function Component() {
           {formatTime(calendarEvent.end_time)}
         </div>
       );
+    } else if (calendarEvent.status === "holiday") {
+      return (
+        <div className="text-pink-600 dark:text-pink-500 font-bold">
+          {calendarEvent.notes || "Holiday Closure"}
+        </div>
+      );
     } else if (calendarEvent.start_time && calendarEvent.end_time) {
       switch (calendarEvent.status) {
         case "time_off":
@@ -1282,6 +1358,9 @@ export default function Component() {
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={TITLE} />
         </h1>
+        {(role === "admin" || role === "super admin" || role === "dev") && (
+          <HolidayManager />
+        )}
         <div className="w-full max-w-7xl">
           <div className="flex justify-between items-center mb-4">
             <Dialog
