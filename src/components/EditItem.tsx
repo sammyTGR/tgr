@@ -46,27 +46,30 @@ export function EditItem({ item, updateItem, deleteItem }: EditItemProps) {
     setName(item.name);
   }, [item.name]);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim() === "") {
-      console.log("Name is empty, not updating");
-      return;
-    }
-    try {
-      await updateItem(item.id, { name });
-      console.log("Update function called successfully");
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error("Error updating item:", error);
-    } finally {
-      setIsDialogOpen(false);
-    }
-  }, [item.id, name, updateItem]);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (name.trim() === "") {
+        // console.log("Name is empty, not updating");
+        return;
+      }
+      try {
+        await updateItem(item.id, { name });
+        // console.log("Update function called successfully");
+        setIsDialogOpen(false);
+      } catch (error) {
+        console.error("Error updating item:", error);
+      } finally {
+        setIsDialogOpen(false);
+      }
+    },
+    [item.id, name, updateItem]
+  );
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteItem(item.id);
-      console.log("Delete function called successfully");
+      // console.log("Delete function called successfully");
       setIsDropdownOpen(false);
     } catch (error) {
       console.error("Error deleting item:", error);

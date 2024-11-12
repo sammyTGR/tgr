@@ -103,7 +103,7 @@ const fetchInventory = async (
   }
 
   const url = `/api/fastBoundApi/items?${params.toString()}`;
-  console.log("Fetching inventory with full URL:", url);
+  // console.log("Fetching inventory with full URL:", url);
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -160,8 +160,8 @@ function InventoryPage() {
     updateSearchParams({ skip: newSkip });
   };
 
-  console.log("Current search params:", searchParamsQuery.data);
-  console.log("Current inventory data:", inventoryQuery.data);
+  // console.log("Current search params:", searchParamsQuery.data);
+  // console.log("Current inventory data:", inventoryQuery.data);
 
   const { data: manufacturers } = useQuery({
     queryKey: ["manufacturers"],
@@ -215,14 +215,14 @@ function InventoryPage() {
       { ...initialSearchParams, searchTriggered: false }
     );
     queryClient.removeQueries({ queryKey: ["inventory"] });
-    console.log(
-      "Reset search params:",
-      queryClient.getQueryData(["searchParams"])
-    );
-    console.log(
-      "Reset inventory data:",
-      queryClient.getQueryData(["inventory"])
-    );
+    // console.log(
+    //   "Reset search params:",
+    //   queryClient.getQueryData(["searchParams"])
+    // );
+    // console.log(
+    //   "Reset inventory data:",
+    //   queryClient.getQueryData(["inventory"])
+    // );
   };
 
   const currentPage =

@@ -745,7 +745,7 @@ const EmployeeProfilePage = () => {
             console.error("Failed to send overtime alerts:", error);
           });
         } else {
-          console.log("Employee has already clocked out. No alert needed.");
+          // console.log("Employee has already clocked out. No alert needed.");
         }
       }, timeUntilAlert);
     }
@@ -797,13 +797,13 @@ const EmployeeProfilePage = () => {
         throw new Error("Failed to send overtime alert email");
       }
 
-      console.log(
-        `Overtime alert sent to ${
-          Array.isArray(recipientEmail)
-            ? recipientEmail.join(", ")
-            : recipientEmail
-        }`
-      );
+      // console.log(
+      //   `Overtime alert sent to ${
+      //     Array.isArray(recipientEmail)
+      //       ? recipientEmail.join(", ")
+      //       : recipientEmail
+      //   }`
+      // );
     } catch (error) {
       console.error("Error sending overtime alert:", error);
     }
@@ -819,7 +819,7 @@ const EmployeeProfilePage = () => {
       const hasClockedOut = await checkIfClockedOut(employeeId);
 
       if (hasClockedOut) {
-        console.log("Employee has already clocked out. No alert needed.");
+        // console.log("Employee has already clocked out. No alert needed.");
         return;
       }
 
@@ -901,7 +901,7 @@ const EmployeeProfilePage = () => {
   // For the time off request form
   const onSubmitTimeOff = (data: TimeOffFormData) => {
     // Handle time off request submission
-    console.log("Time off request data:", data);
+    // console.log("Time off request data:", data);
     // Add your submission logic here
   };
 
@@ -1620,7 +1620,7 @@ const EmployeeProfilePage = () => {
                               onClick={() => {
                                 // Implementation of review dialog
                                 // This could be a separate component or a modal
-                                console.log("View Review:", review);
+                                // console.log("View Review:", review);
                               }}
                             >
                               View Review
@@ -2157,7 +2157,7 @@ const scheduleOvertimeAlert = (
           console.error("Failed to send overtime alerts:", error);
         });
       } else {
-        console.log("Employee has already clocked out. No alert needed.");
+        // console.log("Employee has already clocked out. No alert needed.");
       }
     }, timeUntilAlert);
   }
@@ -2209,13 +2209,13 @@ const sendOvertimeAlert = async (
       throw new Error("Failed to send overtime alert email");
     }
 
-    console.log(
-      `Overtime alert sent to ${
-        Array.isArray(recipientEmail)
-          ? recipientEmail.join(", ")
-          : recipientEmail
-      }`
-    );
+    // console.log(
+    //   `Overtime alert sent to ${
+    //     Array.isArray(recipientEmail)
+    //       ? recipientEmail.join(", ")
+    //       : recipientEmail
+    //   }`
+    // );
   } catch (error) {
     console.error("Error sending overtime alert:", error);
   }
@@ -2231,7 +2231,7 @@ const sendOvertimeAlertToAdmins = async (
     const hasClockedOut = await checkIfClockedOut(employeeId);
 
     if (hasClockedOut) {
-      console.log("Employee has already clocked out. No alert needed.");
+      // console.log("Employee has already clocked out. No alert needed.");
       return;
     }
 

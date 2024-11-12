@@ -84,7 +84,7 @@ const AdminReportsPage = () => {
   ) => {
     setTimesheetData((prevData) => {
       const newData = updater(prevData);
-      console.log("Updated timesheet data:", newData);
+      // console.log("Updated timesheet data:", newData);
       return newData;
     });
   };
@@ -134,7 +134,7 @@ const AdminReportsPage = () => {
   };
 
   useEffect(() => {
-    console.log("Filtered Timesheet Data:", filteredTimesheetData);
+    // console.log("Filtered Timesheet Data:", filteredTimesheetData);
   }, [filteredTimesheetData]);
 
   const handleExpandCollapseAll = () => {

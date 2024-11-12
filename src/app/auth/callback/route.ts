@@ -83,7 +83,7 @@ export async function GET(request: Request) {
       const role = employeeData?.role || customerData?.role;
 
       if (role === "blocked") {
-        console.log("User is blocked, preventing login");
+        // console.log("User is blocked, preventing login");
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/auth/blocked`);
       }

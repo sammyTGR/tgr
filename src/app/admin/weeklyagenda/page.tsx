@@ -526,7 +526,7 @@ const WeeklyAgenda: React.FC<HomeProps> = () => {
         )
       );
 
-      console.log(`List ${listId} cleared successfully`);
+      // console.log(`List ${listId} cleared successfully`);
     } catch (error) {
       //console.("Error clearing list:", error);
     }

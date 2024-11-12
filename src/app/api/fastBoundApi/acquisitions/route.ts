@@ -108,7 +108,7 @@ async function getOrCreateContact(contact: any): Promise<{ id: string; isNew: bo
     if (contact.fflNumber) searchParams.append('fflNumber', contact.fflNumber);
     searchParams.append('take', '1'); // We only need one result
 
-    console.log('Contact search parameters:', searchParams.toString());
+    // console.log('Contact search parameters:', searchParams.toString());
 
     const searchResponse = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Contacts?${searchParams.toString()}`, {
       method: 'GET',
@@ -120,7 +120,7 @@ async function getOrCreateContact(contact: any): Promise<{ id: string; isNew: bo
     });
 
     const responseText = await searchResponse.text();
-    console.log('Contact search response:', searchResponse.status, responseText);
+    // console.log('Contact search response:', searchResponse.status, responseText);
 
     if (!searchResponse.ok) {
       if (searchResponse.status === 400) {
@@ -153,7 +153,7 @@ async function getOrCreateContact(contact: any): Promise<{ id: string; isNew: bo
 }
 
 async function createNewContact(contact: any): Promise<{ id: string; isNew: boolean }> {
-  console.log('Creating new contact:', JSON.stringify(contact, null, 2));
+  // console.log('Creating new contact:', JSON.stringify(contact, null, 2));
 
   // Prepare the contact object with only the required fields
   const newContact: any = {
@@ -191,7 +191,7 @@ async function createNewContact(contact: any): Promise<{ id: string; isNew: bool
   });
 
   const createResponseText = await createResponse.text();
-  console.log('Contact creation response:', createResponse.status, createResponseText);
+  // console.log('Contact creation response:', createResponse.status, createResponseText);
 
   if (!createResponse.ok) {
     throw new Error(`Contact creation failed: ${createResponse.status} ${createResponseText}`);
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
     await rateLimiter.limit()
 
     const requestData = await request.json()
-    console.log('Received data:', JSON.stringify(requestData, null, 2))
+    // console.log('Received data:', JSON.stringify(requestData, null, 2))
 
     // Get or create contact
     let contact;
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
       purchaseOrderNumber: requestData.poNumber || null,
     };
 
-    console.log('Sending payload to FastBound:', JSON.stringify(payload, null, 2))
+    // console.log('Sending payload to FastBound:', JSON.stringify(payload, null, 2))
 
     const response = await fetch(`${BASE_URL}/${ACCOUNT_NUMBER}/api/Acquisitions/CreateAndCommit`, {
       method: 'POST',
@@ -264,16 +264,16 @@ export async function POST(request: Request) {
       body: JSON.stringify(payload),
     })
 
-    console.log('FastBound API response status:', response.status)
-    console.log('FastBound API response headers:', Object.fromEntries(response.headers))
+    // console.log('FastBound API response status:', response.status)
+    // console.log('FastBound API response headers:', Object.fromEntries(response.headers))
 
     if (response.status === 204) {
-      console.log('FastBound API returned 204 No Content - operation successful')
+      // console.log('FastBound API returned 204 No Content - operation successful')
       return NextResponse.json({ message: 'Acquisition created successfully', contactId: contact.id, isNewContact: contact.isNew }, { status: 200 })
     }
     
     const responseText = await response.text()
-    console.log('FastBound API response text:', responseText)
+    // console.log('FastBound API response text:', responseText)
 
     let responseData
     try {
@@ -292,7 +292,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'An error occurred while processing your request', details: responseData }, { status: response.status })
     }
 
-    console.log('FastBound API success:', responseData)
+    // console.log('FastBound API success:', responseData)
     return NextResponse.json({ ...responseData, contactId: contact.id, isNewContact: contact.isNew })
 
   } catch (error: any) {

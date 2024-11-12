@@ -57,12 +57,12 @@ const useRealtimeNotifications = () => {
           const currentChat = localStorage.getItem("currentChat");
           const isChatActive = localStorage.getItem("isChatActive") === "true";
 
-          console.log("Notification context:", {
-            isOnChatPage,
-            currentChat,
-            chatId: payload.new.sender_id,
-            isChatActive,
-          });
+          // console.log("Notification context:", {
+          //   isOnChatPage,
+          //   currentChat,
+          //   chatId: payload.new.sender_id,
+          //   isChatActive,
+          // });
 
           if (
             !isOnChatPage ||
@@ -70,7 +70,7 @@ const useRealtimeNotifications = () => {
             !isChatActive ||
             (currentChat !== payload.new.sender_id && !isAdminChat)
           ) {
-            console.log("Showing toast notification");
+            // console.log("Showing toast notification");
             toast(`New message from ${chatName}`, {
               description: payload.new.message,
               action: {

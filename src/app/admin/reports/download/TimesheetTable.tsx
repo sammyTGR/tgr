@@ -167,7 +167,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
     row: TimesheetReport,
     hoursToReconcile: number
   ) => {
-    console.log("Reconciling hours:", { row, hoursToReconcile });
+    // console.log("Reconciling hours:", { row, hoursToReconcile });
     try {
       const response = await fetch("/api/reconcile-hours", {
         method: "POST",
@@ -189,7 +189,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
       }
 
       const updatedRow = await response.json();
-      console.log("Updated row:", updatedRow);
+      // console.log("Updated row:", updatedRow);
 
       // Update the local state immediately
       onDataUpdate((prevData) =>
@@ -226,7 +226,7 @@ export const TimesheetTable: FC<TimesheetTableProps> = ({
           toast.error("Failed to refresh data");
         } else {
           onDataUpdate(() => data as TimesheetReport[]);
-          console.log("Data refreshed successfully");
+          // console.log("Data refreshed successfully");
         }
       };
 

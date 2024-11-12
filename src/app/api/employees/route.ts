@@ -16,12 +16,12 @@ export async function GET() {
     }
 
     if (!data || data.length === 0) {
-      console.log("No employees found");
+      // console.log("No employees found");
       return NextResponse.json([]);
     }
 
     const employeeNames = data.map(employee => employee.name);
-    console.log("Fetched employee names:", employeeNames);
+    // console.log("Fetched employee names:", employeeNames);
 
     return NextResponse.json(employeeNames);
   } catch (err) {

@@ -59,7 +59,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
       if (employeeData) {
         setRole(employeeData.role);
-        console.log("Role from employees:", employeeData.role);
+        // console.log("Role from employees:", employeeData.role);
       } else {
         const { data: customerData, error: customerError } = await supabase
           .from("customers")
@@ -76,7 +76,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
         if (customerData) {
           setRole(customerData.role || "customer");
-          console.log("Role from customers:", customerData.role || "customer");
+          // console.log("Role from customers:", customerData.role || "customer");
         } else {
           setRole(null);
         }

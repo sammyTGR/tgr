@@ -46,25 +46,28 @@ export function EditListTitle({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim() === "") {
-      return;
-    }
-    try {
-      await updateListTitle(list.id, title);
-      console.log("List title updated successfully");
-    } catch (error) {
-      console.error("Error updating list title:", error);
-    } finally {
-      setIsDialogOpen(false);
-    }
-  }, [list.id, title, updateListTitle]);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (title.trim() === "") {
+        return;
+      }
+      try {
+        await updateListTitle(list.id, title);
+        // console.log("List title updated successfully");
+      } catch (error) {
+        console.error("Error updating list title:", error);
+      } finally {
+        setIsDialogOpen(false);
+      }
+    },
+    [list.id, title, updateListTitle]
+  );
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteList(list.id);
-      console.log("List deleted successfully");
+      // console.log("List deleted successfully");
     } catch (error) {
       console.error("Error deleting list:", error);
     } finally {
@@ -75,7 +78,7 @@ export function EditListTitle({
   const handleClearList = useCallback(async () => {
     try {
       await clearList(list.id);
-      console.log("List cleared successfully");
+      // console.log("List cleared successfully");
     } catch (error) {
       console.error("Error clearing list:", error);
     } finally {
@@ -91,12 +94,8 @@ export function EditListTitle({
   return (
     <>
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-      <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 p-0"
-          >
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
             <DotsVerticalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>

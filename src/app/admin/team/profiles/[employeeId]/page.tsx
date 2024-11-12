@@ -292,9 +292,9 @@ const EmployeeProfile = () => {
               )
             : schedule.end_time;
 
-          console.log(
-            `Schedule date: ${schedule.schedule_date}, Day of week: ${dayOfWeek}, Start time: ${formattedStartTime}, End time: ${formattedEndTime}`
-          );
+          // console.log(
+          //   `Schedule date: ${schedule.schedule_date}, Day of week: ${dayOfWeek}, Start time: ${formattedStartTime}, End time: ${formattedEndTime}`
+          // );
 
           return {
             ...schedule,
@@ -308,7 +308,7 @@ const EmployeeProfile = () => {
         }
       });
 
-    console.log("Combined schedules for employee:", combined);
+    // console.log("Combined schedules for employee:", combined);
     return combined;
   }, [referenceSchedules, actualSchedules, employeeId]);
 

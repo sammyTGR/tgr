@@ -270,7 +270,7 @@ export default function TeamWeeklyNotes() {
           general_notes: [{ id: Date.now().toString(), content: "" }],
         };
 
-        console.log("New notes data:", newNotes);
+        // console.log("New notes data:", newNotes);
         addTeamMemberMutation.mutate(newNotes);
       } else {
         console.error(
@@ -397,7 +397,7 @@ export default function TeamWeeklyNotes() {
     if (member) {
       updateNoteMutation.mutate(member, {
         onSuccess: () => {
-          console.log("Mutation successful, showing toast");
+          // console.log("Mutation successful, showing toast");
           toast.success("Notes saved successfully");
         },
       });

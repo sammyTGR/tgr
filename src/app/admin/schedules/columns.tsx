@@ -58,8 +58,8 @@ export const columns: ColumnDef<ScheduleData>[] = [
     header: "Day of Week",
     cell: ({ row }) => {
       const day = row.getValue("day_of_week");
-      console.log("Row data:", row.original);
-      console.log("Day of week:", day);
+      // console.log("Row data:", row.original);
+      // console.log("Day of week:", day);
       return day;
     },
   },

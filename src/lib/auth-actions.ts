@@ -55,7 +55,7 @@ export async function handlePostGoogleSignIn() {
         console.error("Error inserting new employee:", insertEmployeeError.message);
         redirect("/error");
       } else {
-        console.log("User inserted into employees table:", user.email);
+        // console.log("User inserted into employees table:", user.email);
       }
     }
 
@@ -81,7 +81,7 @@ export async function handlePostGoogleSignIn() {
         console.error("Error inserting new customer:", insertCustomerError.message);
         redirect("/error");
       } else {
-        console.log("User inserted into customers table:", user.email);
+        // console.log("User inserted into customers table:", user.email);
       }
     }
   }

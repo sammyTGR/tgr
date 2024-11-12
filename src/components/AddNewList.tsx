@@ -20,21 +20,24 @@ export function AddNewList({
   const [listName, setListName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (listName.trim() === "") {
-      return;
-    }
-    try {
-      await addNewList(listName);
-      console.log("New list added successfully");
-      setListName("");
-    } catch (error) {
-      console.error("Error adding new list:", error);
-    } finally {
-      setIsOpen(false);
-    }
-  }, [listName, addNewList]);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (listName.trim() === "") {
+        return;
+      }
+      try {
+        await addNewList(listName);
+        // console.log("New list added successfully");
+        setListName("");
+      } catch (error) {
+        console.error("Error adding new list:", error);
+      } finally {
+        setIsOpen(false);
+      }
+    },
+    [listName, addNewList]
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

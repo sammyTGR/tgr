@@ -7,13 +7,13 @@ import { createClient } from "@/utils/supabase/server";
 export async function POST(req: Request) {
   try {
     const { name, description, price, start_time, end_time } = await req.json();
-    console.log("Received data:", {
-      name,
-      description,
-      price,
-      start_time,
-      end_time,
-    });
+    // console.log("Received data:", {
+    //   name,
+    //   description,
+    //   price,
+    //   start_time,
+    //   end_time,
+    // });
 
     // Create Stripe product with metadata
     let product;
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
           training: "true",
         },
       });
-      console.log("Stripe product created:", product);
+      // console.log("Stripe product created:", product);
     } catch (stripeError) {
       console.error("Error creating Stripe product:", stripeError);
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         unit_amount: Math.round(price * 100), // Stripe uses cents
         currency: "usd",
       });
-      console.log("Stripe price created:", stripePrice);
+      // console.log("Stripe price created:", stripePrice);
     } catch (stripeError) {
       console.error("Error creating Stripe price:", stripeError);
       return NextResponse.json(
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       data = result.data;
       error = result.error;
 
-      console.log("Supabase insert result:", { data, error });
+      // console.log("Supabase insert result:", { data, error });
     } catch (supabaseError) {
       console.error("Error inserting into class_schedules:", supabaseError);
       return NextResponse.json(

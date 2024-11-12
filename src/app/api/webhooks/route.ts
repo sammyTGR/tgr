@@ -165,10 +165,10 @@ async function handleInvoiceEvent(
   invoice: Stripe.Invoice,
   eventType: string
 ) {
-  console.log(`Handling invoice event: ${eventType}`);
-  console.log(`Invoice ID: ${invoice.id}`);
-  console.log(`Invoice status: ${invoice.status}`);
-  console.log(`Invoice total: ${invoice.total}`);
+  // console.log(`Handling invoice event: ${eventType}`);
+  // console.log(`Invoice ID: ${invoice.id}`);
+  // console.log(`Invoice status: ${invoice.status}`);
+  // console.log(`Invoice total: ${invoice.total}`);
   // Handle invoice events (e.g., update payment status)
   await supabase.from("invoices").upsert({
     id: invoice.id,

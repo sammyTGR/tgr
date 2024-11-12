@@ -16,7 +16,7 @@ export async function GET() {
       orderBy: "startTime",
     });
 
-    console.log("Fetched events:", response.data.items);
+    // console.log("Fetched events:", response.data.items);
     return NextResponse.json({ events: response.data.items });
   } catch (error) {
     if (error instanceof Error) {

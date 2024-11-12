@@ -9,7 +9,7 @@ const BASE_URL = 'https://10846.active-e.net:7890';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        console.log('Incoming request body:', body);
+        // console.log('Incoming request body:', body);
 
         const { SearchStr } = body;
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
         const apiUrl = `${BASE_URL}/api/SearchInventory`;
 
-        console.log('Making request to external API:', apiUrl);
+        // console.log('Making request to external API:', apiUrl);
 
         const response = await axios.post(apiUrl, 
             { SearchStr },
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
             }
         );
 
-        console.log('Response from external API:', response.data);
+        // console.log('Response from external API:', response.data);
 
         if (response.data && response.data.Records) {
             const results = response.data.Records.map((item: any) => ({

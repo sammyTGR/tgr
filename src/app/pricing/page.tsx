@@ -9,7 +9,7 @@ import { syncStripeData } from "@/utils/stripe/syncStripeData";
 import { cache } from "react";
 
 const cachedSyncStripeData = cache(async () => {
-  console.log("Syncing Stripe data");
+  // console.log("Syncing Stripe data");
   await syncStripeData();
 });
 

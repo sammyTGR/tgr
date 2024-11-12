@@ -85,13 +85,13 @@ export function DataTable<TData, TValue>({
     table.getColumn("salesreps")?.setFilterValue("");
     table.getColumn("dros_number")?.setFilterValue("");
     table.getColumn("error_location")?.setFilterValue("");
-    console.log("Filters cleared");
+    // console.log("Filters cleared");
   }, [table]);
 
   const handleFilterChange = (columnId: string, value: string) => {
     setLocalFilters((prev) => ({ ...prev, [columnId]: value }));
     table.getColumn(columnId)?.setFilterValue(value);
-    console.log(`${columnId} filter changed:`, value);
+    // console.log(`${columnId} filter changed:`, value);
   };
 
   return (

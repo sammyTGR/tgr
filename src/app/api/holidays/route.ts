@@ -1,20 +1,16 @@
 // src/app/api/holidays/route.ts
+import { NextResponse } from "next/server";
 import { createClient } from '@/utils/supabase/server';
-import { NextResponse } from 'next/server';
-import { parseISO } from 'date-fns';
-import { toZonedTime, format as formatTZ } from 'date-fns-tz';
+import { format, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
-const TIME_ZONE = "America/Los_Angeles";
+const timeZone = "America/Los_Angeles";
+const supabase = createClient();
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const supabase = createClient();
-    
-    const body = await req.json();
-    console.log('Received request body:', body);
-    
-    const { name, date, is_full_day, repeat_yearly } = body;
-    
+    const { name, date, is_full_day, repeat_yearly } = await request.json();
+
     if (!name || !date) {
       return NextResponse.json({
         error: 'Missing required fields',
@@ -22,17 +18,8 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Convert the date to Pacific Time
-    const parsedDate = parseISO(date);
-    const zonedDate = toZonedTime(parsedDate, TIME_ZONE);
-    const formattedDate = formatTZ(zonedDate, 'yyyy-MM-dd', { timeZone: TIME_ZONE });
-    
-    // Get the day of week for the holiday
-    const holidayDayOfWeek = formatTZ(zonedDate, 'EEEE', { timeZone: TIME_ZONE });
-
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
     if (userError || !user) {
       return NextResponse.json({
         error: 'Not authenticated',
@@ -40,7 +27,12 @@ export async function POST(req: Request) {
       }, { status: 401 });
     }
 
-    // Insert or update holiday
+    // Single timezone conversion for database
+    const utcDate = parseISO(date);
+    const pacificDate = toZonedTime(utcDate, timeZone);
+    const formattedDate = format(pacificDate, "yyyy-MM-dd");
+
+    // Insert holiday
     const { data: holiday, error: holidayError } = await supabase
       .from('holidays')
       .upsert(
@@ -60,75 +52,117 @@ export async function POST(req: Request) {
       .single();
 
     if (holidayError) {
-      console.error('Holiday upsert error:', holidayError);
       return NextResponse.json({
         error: 'Failed to save holiday',
         details: holidayError
       }, { status: 500 });
     }
 
-    // Get employees who are scheduled to work on this day of week from reference_schedules
-    const { data: scheduledEmployees, error: scheduledError } = await supabase
-      .from('reference_schedules')
-      .select(`
-        employee_id,
-        start_time,
-        end_time,
-        employees!inner (
-          employee_id,
-          status
-        )
-      `)
-      .eq('day_of_week', holidayDayOfWeek)
-      .eq('employees.status', 'active');
+    // Get the day of week using the same timezone handling
+    const dayOfWeek = format(pacificDate, "EEEE").trim();
 
-    if (scheduledError) {
-      console.warn('Error fetching scheduled employees:', scheduledError);
-      return NextResponse.json({
-        error: 'Failed to fetch scheduled employees',
-        details: scheduledError
-      }, { status: 500 });
+    // Get employees scheduled for this day
+    const { data: scheduledEmployees, error: refScheduleError } = await supabase
+      .from('reference_schedules')
+      .select('employee_id')
+      .eq('day_of_week', dayOfWeek)
+      .not('start_time', 'is', null)
+      .not('end_time', 'is', null);
+
+    if (refScheduleError) {
+      console.error('Error fetching reference schedules:', refScheduleError);
+      return NextResponse.json({ error: refScheduleError.message }, { status: 500 });
     }
 
-    console.log('Scheduled employees for', holidayDayOfWeek, ':', scheduledEmployees);
-
-    // Update schedules only for employees who are scheduled on this day
+    // Process each scheduled employee
     if (scheduledEmployees && scheduledEmployees.length > 0) {
-      for (const emp of scheduledEmployees) {
-        const { error: scheduleError } = await supabase
-          .from('schedules')
-          .upsert({
-            employee_id: emp.employee_id,
-            schedule_date: formattedDate,
-            status: `Custom: Closed For ${name}`,
-            notes: `Closed For ${name}`,
-            holiday_id: holiday.id,
-            // Use the employee's regular scheduled times
-            start_time: emp.start_time,
-            end_time: emp.end_time
-          }, {
-            onConflict: 'employee_id,schedule_date'
-          });
+      const scheduledIds = scheduledEmployees.map(emp => emp.employee_id);
 
-        if (scheduleError) {
-          console.warn(`Failed to update schedule for employee ${emp.employee_id}:`, scheduleError);
+      // Get active employees
+      const { data: activeEmployees, error: employeesError } = await supabase
+        .from('employees')
+        .select('employee_id')
+        .eq('status', 'active')
+        .in('employee_id', scheduledIds);
+
+      if (employeesError) {
+        console.error('Error fetching active employees:', employeesError);
+        return NextResponse.json({ error: employeesError.message }, { status: 500 });
+      }
+
+      // Process each active employee
+      for (const emp of (activeEmployees || [])) {
+        // Check if schedule exists
+        const { data: existingSchedule, error: scheduleCheckError } = await supabase
+          .from('schedules')
+          .select('*')
+          .eq('employee_id', emp.employee_id)
+          .eq('schedule_date', formattedDate)
+          .single();
+
+        if (scheduleCheckError && scheduleCheckError.code !== 'PGRST116') { // Not found error is ok
+          console.error('Error checking schedule:', scheduleCheckError);
+          continue;
+        }
+
+        if (existingSchedule) {
+          // Update only status, notes, and holiday_id for existing schedule
+          const { error: updateError } = await supabase
+            .from('schedules')
+            .update({
+              status: `Custom: Closed For ${name}`,
+              notes: `Closed For ${name}`,
+              holiday_id: holiday.id
+            })
+            .eq('schedule_id', existingSchedule.schedule_id);
+
+          if (updateError) {
+            console.error('Error updating schedule:', updateError);
+          }
+        } else {
+          // Insert new schedule for this employee
+          const { error: insertError } = await supabase
+            .from('schedules')
+            .insert({
+              employee_id: emp.employee_id,
+              schedule_date: formattedDate,
+              day_of_week: dayOfWeek.trim(),
+              status: `Custom: Closed For ${name}`,
+              notes: `Closed For ${name}`,
+              holiday_id: holiday.id
+            });
+
+          if (insertError) {
+            console.error('Error inserting schedule:', insertError);
+          }
         }
       }
     }
 
     return NextResponse.json({
-      data: holiday,
       message: 'Holiday saved successfully',
-      affectedEmployees: scheduledEmployees?.length || 0
+      data: holiday
     });
-    
+
   } catch (error: any) {
-    console.error('Unhandled error:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: error.message
-    }, { status: 500 });
+    console.error('Error:', error);
+    return NextResponse.json(
+      { error: error.message || "An error occurred" },
+      { status: 500 }
+    );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "authorization, x-client-info, apikey, content-type",
+    },
+  });
 }
 
 export const dynamic = 'force-dynamic';

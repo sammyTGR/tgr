@@ -20,21 +20,24 @@ export function AddNewItem({
   const [itemName, setItemName] = React.useState("");
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (itemName.trim() === "") {
-      return;
-    }
-    try {
-      await addNewItem(itemName);
-      console.log("New item added successfully");
-      setItemName("");
-    } catch (error) {
-      console.error("Error adding new item:", error);
-    } finally {
-      setIsOpen(false);
-    }
-  }, [itemName, addNewItem]);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (itemName.trim() === "") {
+        return;
+      }
+      try {
+        await addNewItem(itemName);
+        // console.log("New item added successfully");
+        setItemName("");
+      } catch (error) {
+        console.error("Error adding new item:", error);
+      } finally {
+        setIsOpen(false);
+      }
+    },
+    [itemName, addNewItem]
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

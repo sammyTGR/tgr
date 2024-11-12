@@ -76,11 +76,11 @@ export function EditScheduleDialog({
       onClose();
     } catch (error) {
       console.error("Error updating schedule:", error);
-      console.log(
-        `Failed to update schedule: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      // console.log(
+      //   `Failed to update schedule: ${
+      //     error instanceof Error ? error.message : "Unknown error"
+      //   }`
+      // );
     } finally {
       setIsLoading(false);
     }

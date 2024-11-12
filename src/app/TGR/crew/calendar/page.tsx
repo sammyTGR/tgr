@@ -261,19 +261,19 @@ const fetchCalendarDataWithHolidays = async (currentDate: Date) => {
   }
 
   // Add logging to debug holiday dates
-  console.log("Holiday processing:", {
-    weekStart: startDateStr,
-    weekEnd: endDateStr,
-    holidays: holidays?.map((h) => ({
-      name: h.name,
-      date: h.date,
-      formattedDate: formatTZ(
-        toZonedTime(parseISO(h.date), TIME_ZONE),
-        "yyyy-MM-dd",
-        { timeZone: TIME_ZONE }
-      ),
-    })),
-  });
+  // console.log("Holiday processing:", {
+  //   weekStart: startDateStr,
+  //   weekEnd: endDateStr,
+  //   holidays: holidays?.map((h) => ({
+  //     name: h.name,
+  //     date: h.date,
+  //     formattedDate: formatTZ(
+  //       toZonedTime(parseISO(h.date), TIME_ZONE),
+  //       "yyyy-MM-dd",
+  //       { timeZone: TIME_ZONE }
+  //     ),
+  //   })),
+  // });
 
   // Mark holiday closures in the calendar data
   holidays?.forEach((holiday) => {

@@ -10,23 +10,23 @@ export async function GET(request: Request) {
   const locationCode = searchParams.get('locationCode');
   const searchStr = searchParams.get('searchStr');
 
-  console.log('Request URL:', request.url);
-  console.log('Action:', action);
-  console.log('Model:', model);
-  console.log('Item:', item);
-  console.log('Location Code:', locationCode);
-  console.log('Search String:', searchStr);
+  // console.log('Request URL:', request.url);
+  // console.log('Action:', action);
+  // console.log('Model:', model);
+  // console.log('Item:', item);
+  // console.log('Location Code:', locationCode);
+  // console.log('Search String:', searchStr);
 
   try {
     let result;
     if (action === 'detail' && model) {
-      console.log('Fetching inventory detail for model:', model);
+      // console.log('Fetching inventory detail for model:', model);
       result = await getInventoryDetail(model);
     } else if (action === 'lookup' && item) {
-      console.log('Looking up inventory for item:', item, 'and location:', locationCode || 'Not specified');
+      // console.log('Looking up inventory for item:', item, 'and location:', locationCode || 'Not specified');
       result = await lookupInventory(item, locationCode || undefined);
     } else if (action === 'search' && searchStr) {
-      console.log('Searching inventory for:', searchStr);
+      // console.log('Searching inventory for:', searchStr);
       result = await searchInventory(searchStr);
     } else {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });

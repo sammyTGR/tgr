@@ -120,7 +120,7 @@ export async function searchInventory(
         console.error('Max retries reached. Unable to complete the request.');
         throw error;
       }
-      console.log(`Retry attempt ${retries} after ${delay}ms`);
+      // console.log(`Retry attempt ${retries} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
       delay *= 2; // Exponential backoff
     }

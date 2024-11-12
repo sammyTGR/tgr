@@ -112,7 +112,7 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
         end_time: endTimeZoned,
       };
 
-      console.log("Sending data to API:", newClass);
+      // console.log("Sending data to API:", newClass);
 
       // Call the API to create Stripe product and class
       const response = await fetch("/api/create-stripe-product", {
@@ -124,7 +124,7 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
       });
 
       const responseData = await response.json();
-      console.log("API response:", responseData);
+      // console.log("API response:", responseData);
 
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to create class");

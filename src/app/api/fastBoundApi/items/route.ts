@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const fbParams = validParams;
 
     const fbUrl = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${fbParams.toString()}`;
-    console.log("Requesting FastBound API with URL:", fbUrl);
+    // console.log("Requesting FastBound API with URL:", fbUrl);
 
     if (!API_KEY) {
       throw new Error('FASTBOUND_API_KEY is not set in environment variables');
@@ -88,22 +88,22 @@ export async function GET(request: NextRequest) {
       'X-AuditUser': AUDIT_USER || '',
     };
 
-    console.log("Request headers:", headers);
+    // console.log("Request headers:", headers);
 
     const data = await fetchItems(fbUrl, headers);
-    console.log("FastBound API response:", JSON.stringify(data, null, 2));
+    // console.log("FastBound API response:", JSON.stringify(data, null, 2));
 
     const totalItems = data.records || 0;
     const totalPages = Math.ceil(totalItems / take);
     const currentPage = Math.floor(skip / take) + 1;
 
-    console.log("Pagination info:", {
-      skip,
-      take,
-      currentPage,
-      totalPages,
-      totalItems,
-    });
+    // console.log("Pagination info:", {
+    //   skip,
+    //   take,
+    //   currentPage,
+    //   totalPages,
+    //   totalItems,
+    // });
 
     return NextResponse.json({
       items: data.items || [],

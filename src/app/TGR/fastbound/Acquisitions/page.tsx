@@ -259,10 +259,10 @@ export default function Acquisitions() {
       note,
     };
 
-    console.log(
-      "Acquisition data being sent:",
-      JSON.stringify(acquisitionData, null, 2)
-    );
+    // console.log(
+    //   "Acquisition data being sent:",
+    //   JSON.stringify(acquisitionData, null, 2)
+    // );
 
     mutation.mutate(acquisitionData);
     resetForm();

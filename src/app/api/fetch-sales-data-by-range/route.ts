@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const start = searchParams.get("start");
   const end = searchParams.get("end");
 
-  console.log(`Fetching sales data from ${start} to ${end}`);
+  // console.log(`Fetching sales data from ${start} to ${end}`);
   if (!start || !end) {
     return NextResponse.json(
       { error: "Invalid date parameters" },
