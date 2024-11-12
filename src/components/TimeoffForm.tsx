@@ -318,46 +318,60 @@ export default function TimeoffForm({
     queryClient.setQueryData(["date"], dates?.[0]);
   };
 
-  const sendNotificationToAdmins = async (
+  const sendNotificationToAdmins = (
     timeOffData: any,
     selectedDates: Date[]
   ) => {
-    const startDate = format(selectedDates[0], "yyyy-MM-dd");
-    const endDate = format(
-      selectedDates[selectedDates.length - 1],
-      "yyyy-MM-dd"
+    // Get the earliest and latest dates from the selection
+    const firstDate = new Date(
+      Math.min(...selectedDates.map((date) => date.getTime()))
+    );
+    const lastDate = new Date(
+      Math.max(...selectedDates.map((date) => date.getTime()))
     );
 
-    try {
-      const { data: employees, error: employeesError } = await supabase
+    // Format dates consistently using date-fns-tz
+    const timeZone = "America/Los_Angeles";
+    const startDate = formatTZ(
+      toZonedTime(firstDate, timeZone),
+      "EEEE, MMMM d, yyyy"
+    );
+    const endDate = formatTZ(
+      toZonedTime(lastDate, timeZone),
+      "EEEE, MMMM d, yyyy"
+    );
+
+    return Promise.resolve(
+      supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim", "Sam"]);
+        .in("name", ["Sammy", "Russ", "Slim Jim", "Sam"])
+    )
+      .then(({ data: employees, error: employeesError }) => {
+        if (employeesError) throw employeesError;
+        if (!employees || employees.length === 0) {
+          console.warn("No super admin emails found");
+          return;
+        }
 
-      if (employeesError) throw employeesError;
+        const recipientEmails = employees.map((emp) => emp.contact_info);
 
-      const recipientEmails = employees.map((emp) => emp.contact_info);
-
-      if (recipientEmails.length === 0) {
-        console.warn("No super admin emails found");
-        return;
-      }
-
-      await sendNotificationMutation.mutateAsync({
-        email: recipientEmails,
-        subject: "New Time Off Request Submitted",
-        templateName: "TimeOffRequest",
-        templateData: {
-          employeeName: timeOffData.employee_name,
-          startDate,
-          endDate,
-          reason: timeOffData.reason,
-          other_reason: timeOffData.other_reason,
-        },
+        return sendNotificationMutation.mutateAsync({
+          email: recipientEmails,
+          subject: "New Time Off Request Submitted",
+          templateName: "TimeOffRequest",
+          templateData: {
+            employeeName: timeOffData.employee_name,
+            startDate,
+            endDate,
+            reason: timeOffData.reason,
+            other_reason: timeOffData.other_reason || "",
+          },
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to send notification email:", error);
       });
-    } catch (error) {
-      console.error("Failed to send notification email:", error);
-    }
   };
 
   const { data: isSubmitting = false } = useQuery({
@@ -385,7 +399,7 @@ export default function TimeoffForm({
     queryClient.setQueryData(["showAlertDialog"], true);
   };
 
-  const submitForm = async () => {
+  const submitForm = () => {
     if (!formData) {
       toast.error("No form data available");
       return;
@@ -420,44 +434,47 @@ export default function TimeoffForm({
       end_date,
     };
 
-    try {
-      await submitTimeOffMutation.mutateAsync(payload);
-      await sendNotificationToAdmins(payload, selectedDates);
+    submitTimeOffMutation
+      .mutateAsync(payload)
+      .then(() => {
+        return sendNotificationToAdmins(payload, selectedDates);
+      })
+      .then(() => {
+        // Reset form and query data
+        queryClient.setQueryData(["selectedDates"], []);
+        queryClient.setQueryData(["showOtherTextarea"], false);
+        queryClient.setQueryData(["reason"], null);
+        queryClient.setQueryData(["employee_name"], null);
+        queryClient.setQueryData(["formData"], null);
+        queryClient.setQueryData(["showAlertDialog"], false);
 
-      // Reset form and query data
-      queryClient.setQueryData(["selectedDates"], []);
-      queryClient.setQueryData(["showOtherTextarea"], false);
-      queryClient.setQueryData(["reason"], null);
-      queryClient.setQueryData(["employee_name"], null);
-      queryClient.setQueryData(["formData"], null);
-      queryClient.setQueryData(["showAlertDialog"], false);
+        // Force a re-render of the Calendar component
+        queryClient.invalidateQueries({ queryKey: ["selectedDates"] });
 
-      // Force a re-render of the Calendar component
-      queryClient.invalidateQueries({ queryKey: ["selectedDates"] });
+        // Reset the Calendar component
+        const calendarElement = document.querySelector(
+          ".react-calendar"
+        ) as HTMLElement;
+        if (calendarElement) {
+          const selectedElements = calendarElement.querySelectorAll(
+            '[aria-pressed="true"]'
+          );
+          selectedElements.forEach((el) =>
+            el.setAttribute("aria-pressed", "false")
+          );
+        }
 
-      // Reset the Calendar component
-      const calendarElement = document.querySelector(
-        ".react-calendar"
-      ) as HTMLElement;
-      if (calendarElement) {
-        const selectedElements = calendarElement.querySelectorAll(
-          '[aria-pressed="true"]'
-        );
-        selectedElements.forEach((el) =>
-          el.setAttribute("aria-pressed", "false")
-        );
-      }
-
-      // Show success toast after everything is reset
-      toast.success("Your Request Has Been Submitted", {
-        position: "bottom-right",
+        // Show success toast after everything is reset
+        toast.success("Your Request Has Been Submitted", {
+          position: "bottom-right",
+        });
+        onSubmitSuccess?.();
+      })
+      .catch((error) => {
+        console.error("Failed to submit time off request:", error);
+        toast.error("Failed to submit time off request. Please try again.");
+        updateIsSubmitting.mutate(false);
       });
-      onSubmitSuccess?.();
-    } catch (error) {
-      console.error("Failed to submit time off request:", error);
-      toast.error("Failed to submit time off request. Please try again.");
-      updateIsSubmitting.mutate(false);
-    }
   };
 
   const updateShowAlertDialog = useMutation({

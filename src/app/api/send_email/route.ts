@@ -36,14 +36,6 @@ export async function POST(request: Request) {
     let emailTemplate;
     let fromEmail;
 
-    const formatDateIfString = (dateString: string) => {
-      if (typeof dateString === "string") {
-        const date = parseISO(dateString);
-        return format(date, "EEEE, MMMM d, yyyy");
-      }
-      return dateString; // Return as is if it's already formatted
-    };
-
     switch (templateName) {
       case "TimeOffApproved":
         emailTemplate = TimeOffApproved({
