@@ -14,11 +14,12 @@ import {
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 
 type OnboardingData = {
-  first_name: string;
+  name: string;
   last_name: string;
-  work_email: string;
+  contact_info: string;
   phone_number: string;
   street_address: string;
   city: string;
@@ -26,11 +27,11 @@ type OnboardingData = {
   zip: string;
   birthday: string;
   hire_date: string;
-  promotion_date: string | null;
+  // promotion_date: string | null;
   department: string;
   role: string;
   position: string | null;
-  employee_number: number;
+  rank: number;
   pay_type: string;
   pay_rate: number;
   schedule: {
@@ -39,9 +40,9 @@ type OnboardingData = {
 };
 
 const initialData: OnboardingData = {
-  first_name: "",
+  name: "",
   last_name: "",
-  work_email: "",
+  contact_info: "",
   phone_number: "",
   street_address: "",
   city: "",
@@ -49,11 +50,11 @@ const initialData: OnboardingData = {
   zip: "",
   birthday: "",
   hire_date: "",
-  promotion_date: null,
+  // promotion_date: null,
   department: "",
   role: "",
   position: null,
-  employee_number: 0,
+  rank: 0,
   pay_type: "hourly",
   pay_rate: 0,
   schedule: {
@@ -153,9 +154,9 @@ const OnboardingWizard = () => {
     switch (step) {
       case 1:
         return (
-          data.first_name.trim() !== "" &&
+          data.name.trim() !== "" &&
           data.last_name.trim() !== "" &&
-          data.work_email.trim() !== ""
+          data.contact_info.trim() !== ""
         );
       case 2:
         return data.department !== "" && data.role !== "";
@@ -179,8 +180,8 @@ const OnboardingWizard = () => {
               <Label htmlFor="first_name">First Name</Label>
               <Input
                 id="first_name"
-                value={data.first_name}
-                onChange={(e) => updateData({ first_name: e.target.value })}
+                value={data.name}
+                onChange={(e) => updateData({ name: e.target.value })}
                 placeholder="John"
               />
             </div>
@@ -194,11 +195,11 @@ const OnboardingWizard = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="work_email">Work Email</Label>
+              <Label htmlFor="contact_info">Work Email</Label>
               <Input
-                id="work_email"
-                value={data.work_email}
-                onChange={(e) => updateData({ work_email: e.target.value })}
+                id="contact_info"
+                value={data.contact_info}
+                onChange={(e) => updateData({ contact_info: e.target.value })}
                 placeholder="john.doe@company.com"
               />
             </div>
@@ -265,7 +266,7 @@ const OnboardingWizard = () => {
                 onChange={(e) => updateData({ hire_date: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="promotion_date">Promotion Date</Label>
               <Input
                 id="promotion_date"
@@ -275,7 +276,7 @@ const OnboardingWizard = () => {
                   updateData({ promotion_date: e.target.value || null })
                 }
               />
-            </div>
+            </div> */}
           </div>
         );
       case 2:
@@ -336,13 +337,13 @@ const OnboardingWizard = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employee_number">Employee Number</Label>
+              <Label htmlFor="rank">Employee Number</Label>
               <Input
-                id="employee_number"
+                id="rank"
                 type="number"
-                value={data.employee_number.toString()}
+                value={data.rank.toString()}
                 onChange={(e) =>
-                  updateData({ employee_number: parseInt(e.target.value) || 0 })
+                  updateData({ rank: parseInt(e.target.value) || 0 })
                 }
                 placeholder="0"
               />
@@ -421,182 +422,89 @@ const OnboardingWizard = () => {
     }
   };
 
-  const saveEmployeeData = async (employeeData: Partial<OnboardingData>) => {
-    const { data, error } = await supabase
-      .from("employees")
-      .insert({
-        name: employeeData.first_name,
-        last_name: employeeData.last_name,
-        department: employeeData.department,
-        role: employeeData.role,
-        contact_info: employeeData.work_email,
-        position: employeeData.position,
-        rank: employeeData.employee_number,
-        pay_type: employeeData.pay_type,
-        pay_rate: employeeData.pay_rate,
-        hire_date: employeeData.hire_date,
-        birthday: employeeData.birthday,
-        promotion_date: employeeData.promotion_date,
-        phone_number: employeeData.phone_number,
-        street_address: employeeData.street_address,
-        city: employeeData.city,
-        state: employeeData.state,
-        zip: employeeData.zip,
-      })
-      .select();
-
-    if (error) {
-      //console.("Error saving employee data:", error);
-      throw error;
-    }
-
-    return data[0];
-  };
-
-  const saveScheduleData = async (
-    employeeId: number,
-    employeeName: string,
-    scheduleData: OnboardingData["schedule"]
-  ) => {
-    const daysOfWeek = [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ];
-
-    for (const day of daysOfWeek) {
-      const times = scheduleData[
-        day.toLowerCase() as keyof typeof scheduleData
-      ] || { start_time: null, end_time: null };
-
-      // First, try to select the existing record
-      const { data: existingRecord, error: selectError } = await supabase
-        .from("reference_schedules")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .eq("day_of_week", day)
-        .single();
-
-      if (selectError && selectError.code !== "PGRST116") {
-        console.error(
-          `Error checking existing record for ${day}:`,
-          selectError
-        );
-        throw selectError;
-      }
-
-      const formattedTimes = {
-        start_time: times.start_time ? `${times.start_time}:00` : null,
-        end_time: times.end_time ? `${times.end_time}:00` : null,
-      };
-
-      let error;
-      if (existingRecord) {
-        // If record exists, update it
-        const { error: updateError } = await supabase
-          .from("reference_schedules")
-          .update({
-            start_time: formattedTimes.start_time,
-            end_time: formattedTimes.end_time,
-            name: employeeName,
-          })
-          .eq("id", existingRecord.id);
-        error = updateError;
-      } else {
-        // If record doesn't exist, insert a new one
-        const { error: insertError } = await supabase
-          .from("reference_schedules")
-          .insert({
-            employee_id: employeeId,
-            day_of_week: day,
-            start_time: formattedTimes.start_time,
-            end_time: formattedTimes.end_time,
-            name: employeeName,
-          });
-        error = insertError;
-      }
+  const employeeMutation = useMutation({
+    mutationFn: async (employeeData: Partial<OnboardingData>) => {
+      const { data, error } = await supabase
+        .from("employees")
+        .insert({
+          name: employeeData.name,
+          last_name: employeeData.last_name,
+          department: employeeData.department,
+          role: employeeData.role,
+          contact_info: employeeData.contact_info,
+          rank: employeeData.rank,
+          pay_type: employeeData.pay_type,
+          pay_rate: employeeData.pay_rate,
+          hire_date: employeeData.hire_date,
+          birthday: employeeData.birthday,
+          phone_number: employeeData.phone_number,
+          street_address: employeeData.street_address,
+          city: employeeData.city,
+          state: employeeData.state,
+          zip: employeeData.zip,
+        })
+        .select();
 
       if (error) {
-        //console.(`Error updating/inserting schedule for ${day}:`, error);
         throw error;
       }
-    }
-  };
+      return data[0];
+    },
+    onError: (error) => {
+      console.error("Error inserting employee:", error);
+      toast.error(
+        "Failed to add employee. Please check if the name or employee number is unique."
+      );
+    },
+  });
+
+  const scheduleMutation = useMutation({
+    mutationFn: async ({
+      employeeId,
+      scheduleData,
+    }: {
+      employeeId: number;
+      scheduleData: OnboardingData["schedule"];
+    }) => {
+      const scheduleEntries = Object.entries(scheduleData).map(
+        ([day, times]) => ({
+          employee_id: employeeId,
+          day_of_week: day.charAt(0).toUpperCase() + day.slice(1),
+          start_time: times.start_time ? `${times.start_time}:00` : null,
+          end_time: times.end_time ? `${times.end_time}:00` : null,
+          name: `${data.name} ${data.last_name}`,
+        })
+      );
+
+      const { error } = await supabase
+        .from("reference_schedules")
+        .insert(scheduleEntries);
+
+      if (error) throw error;
+    },
+    onError: (error) => {
+      console.error("Error inserting schedule:", error);
+      toast.error("Failed to add employee schedule");
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Save employee data
-      const employeeData = {
-        name: data.first_name,
-        last_name: data.last_name,
-        department: data.department,
-        role: data.role,
-        contact_info: data.work_email,
-        rank: data.employee_number,
-        pay_type: data.pay_type,
-        pay_rate: data.pay_rate,
-        hire_date: data.hire_date,
-        birthday: data.birthday,
-        promotion_date: data.promotion_date,
-        phone_number: data.phone_number,
-        street_address: data.street_address,
-        city: data.city,
-        state: data.state,
-        zip: data.zip,
-      };
+      const employee = await employeeMutation.mutateAsync(data);
 
-      const { data: newEmployee, error: employeeError } = await supabase
-        .from("employees")
-        .insert([employeeData])
-        .select();
+      if (employee) {
+        await scheduleMutation.mutateAsync({
+          employeeId: employee.id,
+          scheduleData: data.schedule,
+        });
 
-      if (employeeError) {
-        //console.("Error inserting employee:", employeeError);
-        toast.error("Failed to add employee");
-        return;
+        toast.success("Employee onboarded with their working schedule!");
+        setData(initialData);
+        setStep(1);
       }
-
-      if (!newEmployee || newEmployee.length === 0) {
-        //console.("No employee data returned after insertion");
-        toast.error("Failed to add employee");
-        return;
-      }
-
-      // Save schedule data
-      const scheduleData = Object.entries(data.schedule).map(
-        ([day, times]) => ({
-          employee_id: newEmployee[0].employee_id,
-          day_of_week: day.charAt(0).toUpperCase() + day.slice(1),
-          start_time: times.start_time ? `${times.start_time}:00` : null,
-          end_time: times.end_time ? `${times.end_time}:00` : null,
-          name: newEmployee[0].name,
-        })
-      );
-
-      const { error: scheduleError } = await supabase
-        .from("reference_schedules")
-        .insert(scheduleData);
-
-      if (scheduleError) {
-        //console.("Error inserting schedule:", scheduleError);
-        toast.error("Failed to add employee schedule");
-        return;
-      }
-
-      // console.log("Onboarding completed successfully");
-      toast.success("Employee onboarded with their working schedule!");
-
-      // Reset form or navigate to a success page
-      setData(initialData);
-      setStep(1);
     } catch (error) {
-      //console.("Error during onboarding:", error);
-      toast.error("An unexpected error occurred during onboarding");
+      // Error handling is managed by the mutation callbacks
     }
   };
 
