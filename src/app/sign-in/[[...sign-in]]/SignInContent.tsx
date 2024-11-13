@@ -61,7 +61,6 @@ const LazySignIn = dynamic(
   }
 );
 
-
 export default function SignIn() {
   const params = useSearchParams();
   const next = params ? DOMPurify.sanitize(params.get("next") || "") : "";
