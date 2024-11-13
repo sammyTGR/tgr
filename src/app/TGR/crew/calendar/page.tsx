@@ -159,7 +159,7 @@ const formatTime = (time: string | null) => {
   if (!time || isNaN(Date.parse(`1970-01-01T${time}`))) return "N/A";
   return formatTZ(
     toZonedTime(new Date(`1970-01-01T${time}`), TIME_ZONE),
-    "hh:mma",
+    "h:mma",
     { timeZone: TIME_ZONE }
   );
 };
@@ -993,13 +993,15 @@ export default function Component() {
 
       return (
         <TableRow key={employee.employee_id}>
-          <TableCell className="font-medium w-26 sticky max-w-sm left-0 z-5 bg-background">
+          {/* Employee Name Column */}
+          <TableCell className="text-left font-medium w-22 sticky max-w-sm z-5 bg-background">
             {employee.name}
           </TableCell>
+          {/* Days of the Week Columns */}
           {DAYS_OF_WEEK.map((day) => (
             <TableCell
               key={day}
-              className={`text-left relative group w-26 max-w-sm ${
+              className={`text-left relative group w-22 max-w-sm ${
                 selectedDayQuery.data && day !== selectedDayQuery.data
                   ? "hidden"
                   : ""
@@ -1406,13 +1408,15 @@ export default function Component() {
                   >
                     <TableHeader className="sticky top-0 z-5 bg-background">
                       <TableRow>
-                        <TableHead className="w-20 max-w-sm bg-background sticky left-0 z-5">
+                        {/* Employee Name Header */}
+                        <TableHead className="text-left w-28 max-w-sm bg-background sticky left-0 z-5">
                           Employee
                         </TableHead>
+                        {/* Days of the Week Headers */}
                         {DAYS_OF_WEEK.map((day) => (
                           <TableHead
                             key={day}
-                            className={`w-20 max-w-sm text-left ${
+                            className={`text-left w-22 max-w-sm ${
                               selectedDayQuery.data === day ? "bg-muted" : ""
                             } ${
                               role &&
@@ -1429,9 +1433,7 @@ export default function Component() {
                             }`}
                             onClick={() => handleDayClick(day)}
                           >
-                            {day}
-                            <br />
-                            {weekDates[day]}
+                            {day} {weekDates[day]}
                           </TableHead>
                         ))}
                       </TableRow>
