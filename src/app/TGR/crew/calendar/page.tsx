@@ -1036,8 +1036,7 @@ export default function Component() {
                     calendarEvent.status === "added_day") ? (
                     <div className="text-pink-600 font-bold">
                       Break Room Duty 🧹
-                      {!isFriday(breakRoomDutyQuery.data.dutyDate) &&
-                        " (Rescheduled)"}
+                      {!isFriday(breakRoomDutyQuery.data.dutyDate) && ""}
                     </div>
                   ) : null}
                   {renderEventStatus(calendarEvent)}
