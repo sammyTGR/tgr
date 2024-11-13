@@ -47,6 +47,7 @@ import {
   DialogContent,
   DialogTitle,
   DialogClose,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import TimeoffForm from "@/components/TimeoffForm";
 import {
@@ -830,6 +831,9 @@ export default function Component() {
   const filteredCalendarData = useMemo(() => {
     if (!calendarDataQuery.data) return [];
     return calendarDataQuery.data
+      .filter(
+        (employee) => employee.rank !== null && employee.rank !== undefined
+      ) // Add this line to filter out employees without rank
       .map((employee) => ({
         ...employee,
         events: employee.events.filter((event) => {
@@ -989,13 +993,13 @@ export default function Component() {
 
       return (
         <TableRow key={employee.employee_id}>
-          <TableCell className="font-medium w-20 sticky max-w-sm left-0 z-5 bg-background">
+          <TableCell className="font-medium w-26 sticky max-w-sm left-0 z-5 bg-background">
             {employee.name}
           </TableCell>
           {DAYS_OF_WEEK.map((day) => (
             <TableCell
               key={day}
-              className={`text-left relative group w-20 max-w-sm ${
+              className={`text-left relative group w-26 max-w-sm ${
                 selectedDayQuery.data && day !== selectedDayQuery.data
                   ? "hidden"
                   : ""
@@ -1194,9 +1198,11 @@ export default function Component() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
-                    <DialogTitle className="p-4">
-                      Enter Late Start Time
-                    </DialogTitle>
+                    <DialogHeader>
+                      <DialogTitle className="p-4">
+                        Enter Late Start Time
+                      </DialogTitle>
+                    </DialogHeader>
                     <div className="flex space-x-2">
                       <div className="flex-1">
                         <Label>Hour</Label>

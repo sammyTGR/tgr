@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
 import { createClient } from '@/utils/supabase/server';
-import { format, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { parseISO } from "date-fns";
+import { format, toZonedTime } from "date-fns-tz";
 
 const timeZone = "America/Los_Angeles";
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Define the schedule data type
+interface ScheduleData {
+  employee_id: number;
+  schedule_date: string;
+  day_of_week: string;
+  start_time: string | null;
+  end_time: string | null;
+  holiday_id: number;
+  status?: string | null;
+  notes?: string | null;
+}
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -28,14 +40,11 @@ export async function POST(request: Request) {
       }, { status: 401 });
     }
 
-    // Format date
+    // Format date and get day of week
     const utcDate = parseISO(date);
     const pacificDate = toZonedTime(utcDate, timeZone);
     const formattedDate = format(pacificDate, "yyyy-MM-dd");
-    
-    // Get exact day name from array
-    const dayIndex = new Date(formattedDate + "T00:00:00").getDay();
-    const dayOfWeek = DAYS_OF_WEEK[dayIndex];
+    const dayOfWeek = format(pacificDate, 'EEEE').trim();
 
     // Step 1: Insert/Update holiday record
     const { data: holiday, error: holidayError } = await supabase
@@ -49,9 +58,7 @@ export async function POST(request: Request) {
           created_by: user.id,
           updated_at: new Date().toISOString()
         },
-        {
-          onConflict: 'date'
-        }
+        { onConflict: 'date' }
       )
       .select()
       .single();
@@ -63,28 +70,24 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    // Step 2: ONLY READ from reference_schedules to get employees scheduled that day
-    const { data: employeesWithSchedules, error: refScheduleError } = await supabase
+    // Step 2: Get all reference schedules for this day (including those with null times)
+    const { data: referenceSchedules, error: refScheduleError } = await supabase
       .from('reference_schedules')
-      .select('employee_id')
-      .eq('day_of_week', dayOfWeek)
-      .not('start_time', 'is', null)
-      .not('end_time', 'is', null);
+      .select('employee_id, start_time, end_time')
+      .eq('day_of_week', dayOfWeek);
 
     if (refScheduleError) {
       console.error('Error fetching reference schedules:', refScheduleError);
       return NextResponse.json({ error: refScheduleError.message }, { status: 500 });
     }
 
-    if (employeesWithSchedules && employeesWithSchedules.length > 0) {
-      const scheduledIds = employeesWithSchedules.map(emp => emp.employee_id);
-
-      // Get only active employees from those scheduled
+    if (referenceSchedules && referenceSchedules.length > 0) {
+      // Get all active employees with their rank information
       const { data: activeEmployees, error: employeesError } = await supabase
         .from('employees')
-        .select('employee_id')
+        .select('employee_id, rank')
         .eq('status', 'active')
-        .in('employee_id', scheduledIds);
+        .in('employee_id', referenceSchedules.map(s => s.employee_id));
 
       if (employeesError) {
         console.error('Error fetching active employees:', employeesError);
@@ -93,49 +96,49 @@ export async function POST(request: Request) {
 
       // Process each active employee
       for (const emp of (activeEmployees || [])) {
-        // Check if schedule exists
-        const { data: existingSchedule, error: scheduleCheckError } = await supabase
-          .from('schedules')
-          .select('schedule_id')
-          .eq('employee_id', emp.employee_id)
-          .eq('schedule_date', formattedDate)
-          .single();
+        const refSchedule = referenceSchedules.find(
+          ref => ref.employee_id === emp.employee_id
+        );
 
-        if (scheduleCheckError && scheduleCheckError.code !== 'PGRST116') {
-          console.error('Error checking schedule:', scheduleCheckError);
-          continue;
+        if (!refSchedule) continue;
+
+        // Create schedule data object with proper typing
+        const scheduleData: ScheduleData = {
+          employee_id: emp.employee_id,
+          schedule_date: formattedDate,
+          day_of_week: dayOfWeek,
+          start_time: refSchedule.start_time,
+          end_time: refSchedule.end_time,
+          holiday_id: holiday.id,
+          status: undefined,  // Initialize these as undefined
+          notes: undefined
+        };
+
+        // Check if employee has valid times and rank
+        const hasValidTimes = refSchedule.start_time && 
+                            refSchedule.end_time && 
+                            refSchedule.start_time.trim() !== '' && 
+                            refSchedule.end_time.trim() !== '';
+                            
+        if (hasValidTimes && emp.rank !== null && emp.rank !== undefined) {
+          // Employee has valid times and rank - set holiday status
+          scheduleData.status = `Custom: Closed For ${name}`;
+          scheduleData.notes = `Closed For ${name}`;
+        } else {
+          // Employee either has no valid times or no rank - set to not scheduled
+          scheduleData.status = 'not scheduled';
+          scheduleData.notes = null;
         }
 
-        if (existingSchedule) {
-          // Update ONLY holiday-related fields
-          const { error: updateError } = await supabase
-            .from('schedules')
-            .update({
-              status: `Custom: Closed For ${name}`,
-              notes: `Closed For ${name}`,
-              holiday_id: holiday.id
-            })
-            .eq('schedule_id', existingSchedule.schedule_id);
+        // Upsert the schedule
+        const { error: scheduleError } = await supabase
+          .from('schedules')
+          .upsert(scheduleData, {
+            onConflict: 'employee_id,schedule_date'
+          });
 
-          if (updateError) {
-            console.error('Error updating schedule:', updateError);
-          }
-        } else {
-          // Insert new schedule with ONLY necessary fields
-          const { error: insertError } = await supabase
-            .from('schedules')
-            .insert({
-              employee_id: emp.employee_id,
-              schedule_date: formattedDate,
-              day_of_week: DAYS_OF_WEEK[dayIndex],
-              status: `Custom: Closed For ${name}`,
-              notes: `Closed For ${name}`,
-              holiday_id: holiday.id
-            });
-
-          if (insertError) {
-            console.error('Error inserting schedule:', insertError);
-          }
+        if (scheduleError) {
+          console.error('Error upserting schedule:', scheduleError);
         }
       }
     }
