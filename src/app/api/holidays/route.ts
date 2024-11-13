@@ -4,7 +4,7 @@ import { format, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
 const timeZone = "America/Los_Angeles";
-const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -32,10 +32,10 @@ export async function POST(request: Request) {
     const utcDate = parseISO(date);
     const pacificDate = toZonedTime(utcDate, timeZone);
     const formattedDate = format(pacificDate, "yyyy-MM-dd");
-
-    // Get exact day of week from array to avoid any space issues
+    
+    // Get exact day name from array
     const dayIndex = new Date(formattedDate + "T00:00:00").getDay();
-    const dayOfWeek = daysOfWeek[dayIndex];
+    const dayOfWeek = DAYS_OF_WEEK[dayIndex];
 
     // Step 1: Insert/Update holiday record
     const { data: holiday, error: holidayError } = await supabase
@@ -63,26 +63,23 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    // Step 2: Get ONLY employees who are actually scheduled for this day
-    const { data: scheduledEmployees, error: refScheduleError } = await supabase
+    // Step 2: ONLY READ from reference_schedules to get employees scheduled that day
+    const { data: employeesWithSchedules, error: refScheduleError } = await supabase
       .from('reference_schedules')
       .select('employee_id')
       .eq('day_of_week', dayOfWeek)
       .not('start_time', 'is', null)
-      .not('end_time', 'is', null)
-      .not('start_time', 'eq', '00:00:00')
-      .not('end_time', 'eq', '00:00:00');
+      .not('end_time', 'is', null);
 
     if (refScheduleError) {
       console.error('Error fetching reference schedules:', refScheduleError);
       return NextResponse.json({ error: refScheduleError.message }, { status: 500 });
     }
 
-    // Only proceed if we found employees that are actually scheduled
-    if (scheduledEmployees && scheduledEmployees.length > 0) {
-      const scheduledIds = scheduledEmployees.map(emp => emp.employee_id);
+    if (employeesWithSchedules && employeesWithSchedules.length > 0) {
+      const scheduledIds = employeesWithSchedules.map(emp => emp.employee_id);
 
-      // Get active employees
+      // Get only active employees from those scheduled
       const { data: activeEmployees, error: employeesError } = await supabase
         .from('employees')
         .select('employee_id')
@@ -124,13 +121,13 @@ export async function POST(request: Request) {
             console.error('Error updating schedule:', updateError);
           }
         } else {
-          // Insert new schedule with minimal fields
+          // Insert new schedule with ONLY necessary fields
           const { error: insertError } = await supabase
             .from('schedules')
             .insert({
               employee_id: emp.employee_id,
               schedule_date: formattedDate,
-              day_of_week: dayOfWeek,  // Using clean day name from array
+              day_of_week: DAYS_OF_WEEK[dayIndex],
               status: `Custom: Closed For ${name}`,
               notes: `Closed For ${name}`,
               holiday_id: holiday.id
