@@ -1,13 +1,14 @@
-// src/app/api/holidays/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from '@/utils/supabase/server';
 import { format, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
 const timeZone = "America/Los_Angeles";
-const supabase = createClient();
+const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export async function POST(request: Request) {
+  const supabase = createClient();
+
   try {
     const { name, date, is_full_day, repeat_yearly } = await request.json();
 
@@ -27,12 +28,16 @@ export async function POST(request: Request) {
       }, { status: 401 });
     }
 
-    // Single timezone conversion for database
+    // Format date
     const utcDate = parseISO(date);
     const pacificDate = toZonedTime(utcDate, timeZone);
     const formattedDate = format(pacificDate, "yyyy-MM-dd");
 
-    // Insert holiday
+    // Get exact day of week from array to avoid any space issues
+    const dayIndex = new Date(formattedDate + "T00:00:00").getDay();
+    const dayOfWeek = daysOfWeek[dayIndex];
+
+    // Step 1: Insert/Update holiday record
     const { data: holiday, error: holidayError } = await supabase
       .from('holidays')
       .upsert(
@@ -58,23 +63,22 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    // Get the day of week using the same timezone handling
-    const dayOfWeek = format(pacificDate, "EEEE").trim();
-
-    // Get employees scheduled for this day
+    // Step 2: Get ONLY employees who are actually scheduled for this day
     const { data: scheduledEmployees, error: refScheduleError } = await supabase
       .from('reference_schedules')
       .select('employee_id')
       .eq('day_of_week', dayOfWeek)
       .not('start_time', 'is', null)
-      .not('end_time', 'is', null);
+      .not('end_time', 'is', null)
+      .not('start_time', 'eq', '00:00:00')
+      .not('end_time', 'eq', '00:00:00');
 
     if (refScheduleError) {
       console.error('Error fetching reference schedules:', refScheduleError);
       return NextResponse.json({ error: refScheduleError.message }, { status: 500 });
     }
 
-    // Process each scheduled employee
+    // Only proceed if we found employees that are actually scheduled
     if (scheduledEmployees && scheduledEmployees.length > 0) {
       const scheduledIds = scheduledEmployees.map(emp => emp.employee_id);
 
@@ -95,18 +99,18 @@ export async function POST(request: Request) {
         // Check if schedule exists
         const { data: existingSchedule, error: scheduleCheckError } = await supabase
           .from('schedules')
-          .select('*')
+          .select('schedule_id')
           .eq('employee_id', emp.employee_id)
           .eq('schedule_date', formattedDate)
           .single();
 
-        if (scheduleCheckError && scheduleCheckError.code !== 'PGRST116') { // Not found error is ok
+        if (scheduleCheckError && scheduleCheckError.code !== 'PGRST116') {
           console.error('Error checking schedule:', scheduleCheckError);
           continue;
         }
 
         if (existingSchedule) {
-          // Update only status, notes, and holiday_id for existing schedule
+          // Update ONLY holiday-related fields
           const { error: updateError } = await supabase
             .from('schedules')
             .update({
@@ -120,13 +124,13 @@ export async function POST(request: Request) {
             console.error('Error updating schedule:', updateError);
           }
         } else {
-          // Insert new schedule for this employee
+          // Insert new schedule with minimal fields
           const { error: insertError } = await supabase
             .from('schedules')
             .insert({
               employee_id: emp.employee_id,
               schedule_date: formattedDate,
-              day_of_week: dayOfWeek.trim(),
+              day_of_week: dayOfWeek,  // Using clean day name from array
               status: `Custom: Closed For ${name}`,
               notes: `Closed For ${name}`,
               holiday_id: holiday.id
