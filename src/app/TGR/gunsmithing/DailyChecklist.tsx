@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil1Icon } from "@radix-ui/react-icons";
-import { Pencil } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface Employee {
   user_uuid: string;
@@ -35,7 +35,7 @@ interface FirearmWithGunsmith {
   admin_name?: string;
   admin_uuid?: string;
   gunsmith_response?: string;
-  has_new_request: boolean; // Client-side property
+  has_new_request: boolean;
 }
 
 interface RequestResponse {
@@ -43,7 +43,7 @@ interface RequestResponse {
   message: string;
   timestamp: string;
   authorUuid: string;
-  linkedInquiryId?: number | null; // Add this to link responses to inquiries
+  linkedInquiryId?: number | null;
 }
 
 interface RequestResponsePair {
@@ -51,15 +51,101 @@ interface RequestResponsePair {
   response: RequestResponse | null;
 }
 
-interface HoverStates {
-  inquiryId: number | null;
-  canEdit: boolean;
-  type: "inquiry" | "response" | null;
-}
-
 interface CombinedMessage extends RequestResponse {
   type: "inquiry" | "response";
 }
+
+interface UIState {
+  selectedInquiryId: number | null;
+  editingInquiryId: string | null;
+  editingResponseId: number | null;
+  editingNoteId: number | null;
+  activeRequestFirearmId: number | null;
+  activeResponseFirearmId: number | null;
+  showOnlyPendingRequests: boolean;
+  newRequest: string;
+  newResponse: string;
+  editingInquiryText: string;
+  editingResponseText: string;
+  hoverState: {
+    inquiryId: number | null;
+    canEdit: boolean;
+    type: "inquiry" | "response" | null;
+  };
+}
+
+// Custom hook for managing UI state with React Query
+function useUIState() {
+  return useQuery({
+    queryKey: ["uiState"],
+    queryFn: () =>
+      ({
+        selectedInquiryId: null,
+        editingInquiryId: null,
+        editingResponseId: null,
+        editingNoteId: null,
+        activeRequestFirearmId: null,
+        activeResponseFirearmId: null,
+        showOnlyPendingRequests: false,
+        newRequest: "",
+        newResponse: "",
+        editingInquiryText: "",
+        editingResponseText: "",
+        hoverState: {
+          inquiryId: null,
+          canEdit: false,
+          type: null,
+        },
+      } as UIState),
+    staleTime: Infinity,
+  });
+}
+
+// Helper function to parse request responses
+const parseRequestResponses = (
+  jsonString: string | null
+): RequestResponse[] => {
+  if (!jsonString) return [];
+  try {
+    const parsed = JSON.parse(jsonString);
+    const responses = Array.isArray(parsed) ? parsed : [parsed];
+    return responses.map((response) => ({
+      ...response,
+      id:
+        typeof response.id === "number"
+          ? response.id
+          : Math.floor(Math.random() * 1000000),
+      timestamp: response.timestamp || new Date().toISOString(),
+      authorUuid: response.authorUuid || "Unknown",
+      linkedInquiryId: response.linkedInquiryId || null,
+    }));
+  } catch {
+    return [
+      {
+        id: Math.floor(Math.random() * 1000000),
+        message: DOMPurify.sanitize(jsonString || ""),
+        timestamp: new Date().toISOString(),
+        authorUuid: "Unknown",
+        linkedInquiryId: undefined,
+      },
+    ];
+  }
+};
+
+// Helper function to format dates
+const formatDate = (dateString: string) => {
+  if (dateString === "Unknown") return "Unknown Date";
+  const date = new Date(dateString);
+  return isNaN(date.getTime())
+    ? "Invalid Date"
+    : date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};
 
 export default function DailyChecklist({
   userRole,
@@ -67,41 +153,10 @@ export default function DailyChecklist({
   userName,
   onSubmit,
 }: DailyChecklistProps) {
-  const [selectedInquiryId, setSelectedInquiryId] = useState<number | null>(
-    null
-  );
-  const [hoverStates, setHoverStates] = useState<HoverStates>({
-    inquiryId: null,
-    canEdit: false,
-    type: null,
-  });
+  const queryClient = useQueryClient();
 
-  const [editingInquiryId, setEditingInquiryId] = useState<string | null>(null);
-  const [editingInquiryText, setEditingInquiryText] = useState("");
-  const [editingResponseText, setEditingResponseText] = useState("");
-  const [firearms, setFirearms] = useState<FirearmWithGunsmith[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeRequestId, setActiveRequestId] = useState<number | null>(null);
-  const [activeResponseId, setActiveResponseId] = useState<number | null>(null);
-  const [showOnlyPendingRequests, setShowOnlyPendingRequests] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<{
-    [key: number]: string;
-  }>({});
-  const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
-  const [editingResponseId, setEditingResponseId] = useState<number | null>(
-    null
-  );
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [newRequest, setNewRequest] = useState<string>("");
-  const [newResponse, setNewResponse] = useState<string>("");
-  const [activeRequestFirearmId, setActiveRequestFirearmId] = useState<
-    number | null
-  >(null);
-  const [activeResponseFirearmId, setActiveResponseFirearmId] = useState<
-    number | null
-  >(null);
-
-  const { data: employees } = useQuery<Employee[]>({
+  // Query for employees
+  const { data: employees } = useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -112,211 +167,73 @@ export default function DailyChecklist({
     },
   });
 
-  const getEmployeeName = useCallback(
-    (uuid: string | null | undefined) => {
-      if (!uuid) return "Unknown";
-      const employee = employees?.find((e) => e.user_uuid === uuid);
-      return employee?.name || "Unknown";
-    },
-    [employees]
-  );
-  const handleInquiryHover = (inquiryId: number, authorUuid: string) => {
-    setHoverStates({
-      inquiryId,
-      canEdit: authorUuid === userUuid && userRole !== "gunsmith",
-      type: "inquiry",
-    });
-  };
-
-  const handleInquiryLeave = () => {
-    if (!editingInquiryId) {
-      setHoverStates({ inquiryId: null, canEdit: false, type: null });
-    }
-  };
-  // Helper functions
-  const startEditingInquiry = (inquiry: RequestResponse) => {
-    setEditingInquiryId(inquiry.id.toString());
-    setEditingInquiryText(inquiry.message);
-    setHoverStates({ inquiryId: null, canEdit: false, type: null });
-  };
-
-  const startEditingResponse = (response: RequestResponse) => {
-    setEditingResponseId(response.id);
-    setEditingResponseText(response.message);
-    setHoverStates({ inquiryId: null, canEdit: false, type: null });
-  };
-
-  const cancelEdit = (type: "inquiry" | "response") => {
-    if (type === "inquiry") {
-      setEditingInquiryId(null);
-      setEditingInquiryText("");
-    } else {
-      setEditingResponseId(null);
-      setEditingResponseText("");
-    }
-  };
-
-  const handleHover = (
-    id: number,
-    authorUuid: string,
-    type: "inquiry" | "response"
-  ) => {
-    const isAdmin = ["admin", "super admin", "dev"].includes(userRole || "");
-
-    // For gunsmith: can edit responses (not inquiries)
-    // For admin/dev: can edit their own inquiries
-    const canEdit =
-      (type === "response" &&
-        userRole === "gunsmith" &&
-        authorUuid === userUuid) ||
-      (type === "inquiry" && isAdmin && authorUuid === userUuid);
-
-    console.log({
-      id,
-      authorUuid,
-      userUuid,
-      type,
-      userRole,
-      isAdmin,
-      canEdit,
-    }); // Add this for debugging
-
-    setHoverStates({
-      inquiryId: id,
-      canEdit,
-      type,
-    });
-  };
-
-  const handleLeave = () => {
-    if (!editingInquiryId && !editingResponseId) {
-      setHoverStates({ inquiryId: null, canEdit: false, type: null });
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    if (dateString === "Unknown") return "Unknown Date";
-    const date = new Date(dateString);
-    return isNaN(date.getTime())
-      ? "Invalid Date"
-      : date.toLocaleString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-  };
-
-  const combineAndSortMessages = (
-    requests: RequestResponse[],
-    responses: RequestResponse[]
-  ): CombinedMessage[] => {
-    const combined = [
-      ...requests.map((r) => ({ ...r, type: "inquiry" as const })),
-      ...responses.map((r) => ({ ...r, type: "response" as const })),
-    ];
-    return combined.sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-  };
-
-  const fetchFirearmsWithGunsmith = useCallback(async () => {
-    setLoading(true);
-    try {
+  // Query for firearms
+  const { data: firearms = [], isLoading } = useQuery({
+    queryKey: ["firearms"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("firearms_maintenance")
         .select("*")
         .eq("rental_notes", "With Gunsmith");
       if (error) throw error;
-      setFirearms(
+      return Promise.resolve(
         data.map((firearm) => {
           const adminRequests = parseRequestResponses(firearm.admin_request);
           const gunsmithResponses = parseRequestResponses(
             firearm.gunsmith_response
           );
-          const hasNewRequest = adminRequests.length > gunsmithResponses.length;
           return {
             ...firearm,
-            has_new_request: hasNewRequest,
+            has_new_request: adminRequests.length > gunsmithResponses.length,
           };
-        }) || []
+        })
       );
-    } catch (error: unknown) {
-      console.error("Error fetching firearms:", error);
-      toast.error("Failed to fetch firearms");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+  });
 
-  useEffect(() => {
-    fetchFirearmsWithGunsmith();
-  }, [fetchFirearmsWithGunsmith]);
+  // UI State management
+  const { data: uiState, refetch: refetchUI } = useUIState();
 
-  const handleNoteChange = (id: number, note: string) => {
-    setFirearms(
-      firearms.map((f) => (f.id === id ? { ...f, maintenance_notes: note } : f))
-    );
-  };
+  // Mutation for updating UI state
+  const updateUIMutation = useMutation({
+    mutationFn: (newState: Partial<UIState>) => {
+      return Promise.resolve(
+        queryClient.setQueryData(["uiState"], (old: UIState) => ({
+          ...old,
+          ...newState,
+        }))
+      );
+    },
+  });
 
-  const handleAdminRequestChange = (id: number, request: string) => {
-    setPendingRequests({ ...pendingRequests, [id]: request });
-  };
+  // Mutation for updating firearm notes
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: number; note: string }) => {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({ maintenance_notes: DOMPurify.sanitize(note) })
+        .eq("id", id);
+      if (error) throw error;
+      return { id, note };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
+      toast.success("Notes updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update notes");
+    },
+  });
 
-  const parseRequestResponses = (
-    jsonString: string | null
-  ): RequestResponse[] => {
-    if (!jsonString) return [];
-    try {
-      const parsed = JSON.parse(jsonString);
-      const responses = Array.isArray(parsed) ? parsed : [parsed];
-      return responses.map((response) => ({
-        ...response,
-        id:
-          typeof response.id === "number"
-            ? response.id
-            : Math.floor(Math.random() * 1000000), // Fallback to random number if not valid
-        timestamp: response.timestamp || new Date().toISOString(),
-        authorUuid: response.authorUuid || "Unknown",
-        linkedInquiryId: response.linkedInquiryId || null,
-      }));
-    } catch {
-      return [
-        {
-          id: Math.floor(Math.random() * 1000000),
-          message: jsonString,
-          timestamp: new Date().toISOString(),
-          authorUuid: "Unknown",
-          linkedInquiryId: undefined,
-        },
-      ];
-    }
-  };
-
-  const fetchGunsmithEmail = async () => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("contact_info")
-      .eq("role", "gunsmith")
-      .single();
-
-    if (error) {
-      console.error("Error fetching gunsmith email:", error);
-      return null;
-    }
-
-    return data?.contact_info || null;
-  };
-
-  const submitAdminRequest = async (id: number) => {
-    try {
+  // Mutation for submitting admin request
+  const submitAdminRequestMutation = useMutation({
+    mutationFn: async ({ id, request }: { id: number; request: string }) => {
       const firearm = firearms.find((f) => f.id === id);
       if (!firearm) throw new Error("Firearm not found");
-      const newInquiryObj: RequestResponse = {
-        id: Number(crypto.randomUUID().replace(/-/g, "")), // Convert UUID to number
-        message: newRequest,
+
+      const newRequestObj: RequestResponse = {
+        id: Number(crypto.randomUUID().replace(/-/g, "")),
+        message: DOMPurify.sanitize(request),
         timestamp: new Date().toISOString(),
         authorUuid: userUuid || "Unknown",
       };
@@ -324,12 +241,6 @@ export default function DailyChecklist({
       const existingRequests = parseRequestResponses(
         firearm.admin_request || ""
       );
-      const newRequestObj: RequestResponse = {
-        id: Number(crypto.randomUUID().replace(/-/g, "")), // Convert UUID to number
-        message: newRequest,
-        timestamp: new Date().toISOString(),
-        authorUuid: userUuid || "Unknown",
-      };
       const updatedRequests = [...existingRequests, newRequestObj];
 
       const { error } = await supabase
@@ -343,88 +254,63 @@ export default function DailyChecklist({
 
       if (error) throw error;
 
-      setFirearms(
-        firearms.map((f) =>
-          f.id === id
-            ? {
-                ...f,
-                admin_request: JSON.stringify(updatedRequests),
-                has_new_request: true,
-              }
-            : f
-        )
-      );
-      setNewRequest("");
-      setActiveRequestFirearmId(null);
+      // Fetch gunsmith email and send notification
+      const { data: gunsmithData } = await supabase
+        .from("employees")
+        .select("contact_info")
+        .eq("role", "gunsmith")
+        .single();
+
+      if (gunsmithData?.contact_info) {
+        await fetch("/api/send_email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: gunsmithData.contact_info,
+            subject: "Requesting Update",
+            templateName: "GunsmithNewRequest",
+            templateData: {
+              firearmId: firearm.id,
+              firearmName: firearm.firearm_name,
+              requestedBy: userName || "Unknown",
+              requestMessage: request,
+            },
+          }),
+        });
+      }
+
+      return { id, updatedRequests };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
+      updateUIMutation.mutate({
+        newRequest: "",
+        activeRequestFirearmId: null,
+      });
       toast.success("Request submitted successfully");
-
-      // Fetch gunsmith email
-      const gunsmithEmail = await fetchGunsmithEmail();
-
-      if (!gunsmithEmail) {
-        throw new Error("Gunsmith email not found");
-      }
-
-      // Send email notification to gunsmith
-      const response = await fetch("/api/send_email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: gunsmithEmail,
-          subject: "Requesting Update",
-          templateName: "GunsmithNewRequest",
-          templateData: {
-            firearmId: firearm.id,
-            firearmName: firearm.firearm_name,
-            requestedBy: userName || "Unknown",
-            requestMessage: newRequest,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send email notification");
-      }
-    } catch (error) {
-      console.error("Error submitting request:", error);
+    },
+    onError: () => {
       toast.error("Failed to submit request");
-    }
-  };
+    },
+  });
 
-  const editAdminRequest = (id: number) => {
-    const firearm = firearms.find((f) => f.id === id);
-    if (firearm) {
-      setPendingRequests({
-        ...pendingRequests,
-        [id]: firearm.admin_request || "",
-      });
-      setEditingRequestId(id);
-    }
-  };
-
-  const handleGunsmithResponseChange = (id: number, response: string) => {
-    setFirearms(
-      firearms.map((f) =>
-        f.id === id
-          ? { ...f, gunsmith_response: response, has_new_request: false }
-          : f
-      )
-    );
-  };
-
-  const submitGunsmithResponse = async (
-    firearmId: number,
-    inquiryId: number
-  ) => {
-    try {
+  // Mutation for submitting gunsmith response
+  const submitResponseMutation = useMutation({
+    mutationFn: async ({
+      firearmId,
+      inquiryId,
+      response,
+    }: {
+      firearmId: number;
+      inquiryId: number;
+      response: string;
+    }) => {
       const firearm = firearms.find((f) => f.id === firearmId);
       if (!firearm) throw new Error("Firearm not found");
 
       const newResponseObj: RequestResponse = {
-        id: Math.floor(Math.random() * 1000000), // Generate a random ID
-        message: newResponse,
+        id: Math.floor(Math.random() * 1000000),
+        message: DOMPurify.sanitize(response),
         timestamp: new Date().toISOString(),
         authorUuid: userUuid || "Unknown",
         linkedInquiryId: inquiryId,
@@ -444,43 +330,33 @@ export default function DailyChecklist({
         .eq("id", firearmId);
 
       if (error) throw error;
-
-      setFirearms(
-        firearms.map((f) =>
-          f.id === firearmId
-            ? {
-                ...f,
-                gunsmith_response: JSON.stringify(updatedResponses),
-                has_new_request: false,
-              }
-            : f
-        )
-      );
-
-      setNewResponse("");
-      setActiveResponseFirearmId(null);
-      setSelectedInquiryId(null);
+      return { firearmId, updatedResponses };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
+      updateUIMutation.mutate({
+        newResponse: "",
+        activeResponseFirearmId: null,
+        selectedInquiryId: null,
+      });
       toast.success("Response submitted successfully");
-    } catch (error) {
-      console.error("Error submitting response:", error);
+    },
+    onError: () => {
       toast.error("Failed to submit response");
-    }
-  };
+    },
+  });
 
-  const toggleEditResponse = (id: number) => {
-    setEditingResponseId(editingResponseId === id ? null : id);
-  };
-
-  const toggleEditNote = (id: number) => {
-    setEditingNoteId(editingNoteId === id ? null : id);
-  };
-
-  const handleEditInquiry = async (
-    firearmId: number,
-    inquiryId: number,
-    newText: string
-  ) => {
-    try {
+  // Mutation for editing inquiry
+  const editInquiryMutation = useMutation({
+    mutationFn: async ({
+      firearmId,
+      inquiryId,
+      newText,
+    }: {
+      firearmId: number;
+      inquiryId: number;
+      newText: string;
+    }) => {
       const firearm = firearms.find((f) => f.id === firearmId);
       if (!firearm) throw new Error("Firearm not found");
 
@@ -488,7 +364,9 @@ export default function DailyChecklist({
         firearm.admin_request || ""
       );
       const updatedInquiries = existingInquiries.map((inquiry) =>
-        inquiry.id === inquiryId ? { ...inquiry, message: newText } : inquiry
+        inquiry.id === inquiryId
+          ? { ...inquiry, message: DOMPurify.sanitize(newText) }
+          : inquiry
       );
 
       const { error } = await supabase
@@ -497,29 +375,32 @@ export default function DailyChecklist({
         .eq("id", firearmId);
 
       if (error) throw error;
-
-      setFirearms(
-        firearms.map((f) =>
-          f.id === firearmId
-            ? { ...f, admin_request: JSON.stringify(updatedInquiries) }
-            : f
-        )
-      );
-      setEditingInquiryId(null);
-      setEditingInquiryText("");
+      return { firearmId, updatedInquiries };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
+      updateUIMutation.mutate({
+        editingInquiryId: null,
+        editingInquiryText: "",
+      });
       toast.success("Inquiry updated successfully");
-    } catch (error) {
-      console.error("Error updating inquiry:", error);
+    },
+    onError: () => {
       toast.error("Failed to update inquiry");
-    }
-  };
+    },
+  });
 
-  const handleEditResponse = async (
-    firearmId: number,
-    responseId: number,
-    newText: string
-  ) => {
-    try {
+  // Mutation for editing response
+  const editResponseMutation = useMutation({
+    mutationFn: async ({
+      firearmId,
+      responseId,
+      newText,
+    }: {
+      firearmId: number;
+      responseId: number;
+      newText: string;
+    }) => {
       const firearm = firearms.find((f) => f.id === firearmId);
       if (!firearm) throw new Error("Firearm not found");
 
@@ -528,7 +409,7 @@ export default function DailyChecklist({
       );
       const updatedResponses = existingResponses.map((response) =>
         response.id === responseId
-          ? { ...response, message: newText }
+          ? { ...response, message: DOMPurify.sanitize(newText) }
           : response
       );
 
@@ -538,25 +419,24 @@ export default function DailyChecklist({
         .eq("id", firearmId);
 
       if (error) throw error;
-
-      setFirearms(
-        firearms.map((f) =>
-          f.id === firearmId
-            ? { ...f, gunsmith_response: JSON.stringify(updatedResponses) }
-            : f
-        )
-      );
-      setEditingResponseId(null);
-      setEditingResponseText("");
+      return { firearmId, updatedResponses };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
+      updateUIMutation.mutate({
+        editingResponseId: null,
+        editingResponseText: "",
+      });
       toast.success("Response updated successfully");
-    } catch (error) {
-      console.error("Error updating response:", error);
+    },
+    onError: () => {
       toast.error("Failed to update response");
-    }
-  };
+    },
+  });
 
-  const handleSubmit = async () => {
-    try {
+  // Mutation for submitting daily checklist
+  const submitChecklistMutation = useMutation({
+    mutationFn: async () => {
       const updates = firearms.map((firearm) => {
         const { has_new_request, ...firearmData } = firearm;
         return {
@@ -570,28 +450,78 @@ export default function DailyChecklist({
         .upsert(updates, { onConflict: "id" });
 
       if (error) throw error;
-
+      return updates;
+    },
+    onSuccess: () => {
       localStorage.setItem(
         "lastDailyChecklistSubmission",
         new Date().toDateString()
       );
-
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
       toast.success(
         "Daily maintenance notes and requests updated successfully"
       );
-      await fetchFirearmsWithGunsmith();
       onSubmit();
-    } catch (error) {
-      console.error("Error in submission:", error);
+    },
+    onError: () => {
       toast.error("Failed to update maintenance notes and requests");
+    },
+  });
+
+  // Helper functions
+  const getEmployeeName = useCallback(
+    (uuid: string | null | undefined) => {
+      if (!uuid) return "Unknown";
+      const employee = employees?.find((e) => e.user_uuid === uuid);
+      return employee?.name || "Unknown";
+    },
+    [employees]
+  );
+
+  const handleHover = (
+    id: number,
+    authorUuid: string,
+    type: "inquiry" | "response"
+  ) => {
+    const isAdmin = ["admin", "super admin", "dev"].includes(userRole || "");
+    const canEdit =
+      (type === "response" &&
+        userRole === "gunsmith" &&
+        authorUuid === userUuid) ||
+      (type === "inquiry" && isAdmin && authorUuid === userUuid);
+
+    updateUIMutation.mutate({
+      hoverState: {
+        inquiryId: id,
+        canEdit,
+        type,
+      },
+    });
+  };
+
+  const handleLeave = () => {
+    if (!uiState?.editingInquiryId && !uiState?.editingResponseId) {
+      updateUIMutation.mutate({
+        hoverState: {
+          inquiryId: null,
+          canEdit: false,
+          type: null,
+        },
+      });
     }
   };
 
-  const filteredFirearms = showOnlyPendingRequests
+  const toggleEditNote = (id: number) => {
+    updateUIMutation.mutate({
+      editingNoteId: uiState?.editingNoteId === id ? null : id,
+    });
+  };
+
+  const filteredFirearms = uiState?.showOnlyPendingRequests
     ? firearms.filter((f) => f.has_new_request)
     : firearms;
 
-  if (loading) return <div></div>;
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -599,13 +529,18 @@ export default function DailyChecklist({
         <h2 className="text-xl font-semibold mb-4">Firearms With Gunsmith</h2>
         <Button
           variant="gooeyLeft"
-          onClick={() => setShowOnlyPendingRequests(!showOnlyPendingRequests)}
+          onClick={() =>
+            updateUIMutation.mutate({
+              showOnlyPendingRequests: !uiState?.showOnlyPendingRequests,
+            })
+          }
           className="mb-4"
         >
-          {showOnlyPendingRequests
+          {uiState?.showOnlyPendingRequests
             ? "Show All Firearms"
             : "Show Only Pending Requests"}
         </Button>
+
         {filteredFirearms.length === 0 ? (
           <p>No firearms currently with gunsmith.</p>
         ) : (
@@ -613,27 +548,34 @@ export default function DailyChecklist({
             {filteredFirearms.map((firearm) => (
               <div key={firearm.id} className="border p-4 rounded-md">
                 <h3 className="font-medium flex items-center">
-                  {firearm.firearm_name} ({firearm.firearm_type})
+                  {DOMPurify.sanitize(firearm.firearm_name)} (
+                  {DOMPurify.sanitize(firearm.firearm_type)})
                   {firearm.has_new_request && (
                     <Badge variant="destructive" className="ml-2">
                       New Status Update Request
                     </Badge>
                   )}
                 </h3>
-                <p>Status: {firearm.status || "N/A"}</p>
+                <p>Status: {DOMPurify.sanitize(firearm.status || "N/A")}</p>
                 <p>
-                  Last Maintenance: {firearm.last_maintenance_date || "N/A"}
+                  Last Maintenance:{" "}
+                  {formatDate(firearm.last_maintenance_date || "N/A")}
                 </p>
+
+                {/* Maintenance Notes Section */}
                 <div className="mt-2">
                   <p className="text-small font-small text-muted-foreground">
                     Maintenance Notes:
                   </p>
-                  {editingNoteId === firearm.id ? (
+                  {uiState?.editingNoteId === firearm.id ? (
                     <>
                       <Textarea
                         value={firearm.maintenance_notes || ""}
                         onChange={(e) =>
-                          handleNoteChange(firearm.id, e.target.value)
+                          updateNotesMutation.mutate({
+                            id: firearm.id,
+                            note: e.target.value,
+                          })
                         }
                         placeholder="Update daily note..."
                         className="mt-2"
@@ -649,11 +591,10 @@ export default function DailyChecklist({
                         <Button
                           variant="outline"
                           onClick={() => {
-                            // Reset the note to its original value
-                            handleNoteChange(
-                              firearm.id,
-                              firearm.maintenance_notes || ""
-                            );
+                            updateNotesMutation.mutate({
+                              id: firearm.id,
+                              note: firearm.maintenance_notes || "",
+                            });
                             toggleEditNote(firearm.id);
                           }}
                         >
@@ -664,7 +605,9 @@ export default function DailyChecklist({
                   ) : (
                     <>
                       <p className="text-medium font-medium text-foreground">
-                        {firearm.maintenance_notes || "No maintenance notes."}
+                        {DOMPurify.sanitize(
+                          firearm.maintenance_notes || "No maintenance notes."
+                        )}
                       </p>
                       <Button
                         variant="outline"
@@ -676,6 +619,8 @@ export default function DailyChecklist({
                     </>
                   )}
                 </div>
+
+                {/* Requests and Responses Section */}
                 <div className="mt-6">
                   <h4 className="font-medium">Requests and Responses:</h4>
                   {(() => {
@@ -697,7 +642,7 @@ export default function DailyChecklist({
                         key={`pair-${index}`}
                         className="mt-4 p-4 rounded-lg bg-muted/30 border border-border/50"
                       >
-                        {/* Inquiry section */}
+                        {/* Inquiry Section */}
                         <div className="relative group">
                           <div
                             className="p-2 -mx-2 rounded transition-colors hover:bg-muted/10"
@@ -722,20 +667,21 @@ export default function DailyChecklist({
                                   {formatDate(pair.request.timestamp)}
                                 </span>
                               </div>
-                              {hoverStates.inquiryId === pair.request.id &&
-                                hoverStates.type === "inquiry" &&
-                                hoverStates.canEdit && (
+                              {uiState?.hoverState.inquiryId ===
+                                pair.request.id &&
+                                uiState.hoverState.type === "inquiry" &&
+                                uiState.hoverState.canEdit && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => {
-                                      setEditingInquiryId(
-                                        pair.request.id.toString()
-                                      );
-                                      setEditingInquiryText(
-                                        pair.request.message
-                                      );
-                                    }}
+                                    onClick={() =>
+                                      updateUIMutation.mutate({
+                                        editingInquiryId:
+                                          pair.request.id.toString(),
+                                        editingInquiryText:
+                                          pair.request.message,
+                                      })
+                                    }
                                     className="opacity-0 group-hover:opacity-100 transition-opacity"
                                   >
                                     <Pencil1Icon className="h-4 w-4 mr-1" />
@@ -744,12 +690,15 @@ export default function DailyChecklist({
                                 )}
                             </div>
 
-                            {editingInquiryId === pair.request.id.toString() ? (
+                            {uiState?.editingInquiryId ===
+                            pair.request.id.toString() ? (
                               <div className="mt-2">
                                 <Textarea
-                                  value={editingInquiryText}
+                                  value={uiState.editingInquiryText}
                                   onChange={(e) =>
-                                    setEditingInquiryText(e.target.value)
+                                    updateUIMutation.mutate({
+                                      editingInquiryText: e.target.value,
+                                    })
                                   }
                                   className="min-h-[100px]"
                                 />
@@ -758,11 +707,11 @@ export default function DailyChecklist({
                                     variant="outline"
                                     size="sm"
                                     onClick={() =>
-                                      handleEditInquiry(
-                                        firearm.id,
-                                        pair.request.id,
-                                        editingInquiryText
-                                      )
+                                      editInquiryMutation.mutate({
+                                        firearmId: firearm.id,
+                                        inquiryId: pair.request.id,
+                                        newText: uiState.editingInquiryText,
+                                      })
                                     }
                                   >
                                     Save
@@ -770,7 +719,11 @@ export default function DailyChecklist({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setEditingInquiryId(null)}
+                                    onClick={() =>
+                                      updateUIMutation.mutate({
+                                        editingInquiryId: null,
+                                      })
+                                    }
                                   >
                                     Cancel
                                   </Button>
@@ -778,13 +731,12 @@ export default function DailyChecklist({
                               </div>
                             ) : (
                               <p className="mt-1 text-medium">
-                                {pair.request.message}
+                                {DOMPurify.sanitize(pair.request.message)}
                               </p>
                             )}
                           </div>
                         </div>
-
-                        {/* Response section */}
+                        {/* Response Section */}
                         <div className="mt-3">
                           {/* Gunsmith response button */}
                           {userRole === "gunsmith" &&
@@ -794,11 +746,15 @@ export default function DailyChecklist({
                               <div
                                 className="relative p-2 -mx-2 rounded hover:bg-muted/10 transition-colors cursor-pointer"
                                 onMouseEnter={() =>
-                                  setSelectedInquiryId(pair.request.id)
+                                  updateUIMutation.mutate({
+                                    selectedInquiryId: pair.request.id,
+                                  })
                                 }
                                 onMouseLeave={() => {
-                                  if (!activeResponseFirearmId) {
-                                    setSelectedInquiryId(null);
+                                  if (!uiState?.activeResponseFirearmId) {
+                                    updateUIMutation.mutate({
+                                      selectedInquiryId: null,
+                                    });
                                   }
                                 }}
                               >
@@ -807,10 +763,12 @@ export default function DailyChecklist({
                                     variant="outline"
                                     size="sm"
                                     className="bg-background"
-                                    onClick={() => {
-                                      setActiveResponseFirearmId(firearm.id);
-                                      setSelectedInquiryId(pair.request.id);
-                                    }}
+                                    onClick={() =>
+                                      updateUIMutation.mutate({
+                                        activeResponseFirearmId: firearm.id,
+                                        selectedInquiryId: pair.request.id,
+                                      })
+                                    }
                                   >
                                     Respond to Inquiry
                                   </Button>
@@ -857,18 +815,20 @@ export default function DailyChecklist({
                                       {formatDate(response.timestamp)}
                                     </span>
                                   </div>
-                                  {hoverStates.inquiryId === response.id &&
-                                    hoverStates.type === "response" &&
-                                    hoverStates.canEdit && (
+                                  {uiState?.hoverState.inquiryId ===
+                                    response.id &&
+                                    uiState.hoverState.type === "response" &&
+                                    uiState.hoverState.canEdit && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => {
-                                          setEditingResponseId(response.id);
-                                          setEditingResponseText(
-                                            response.message
-                                          );
-                                        }}
+                                        onClick={() =>
+                                          updateUIMutation.mutate({
+                                            editingResponseId: response.id,
+                                            editingResponseText:
+                                              response.message,
+                                          })
+                                        }
                                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
                                         <Pencil1Icon className="h-4 w-4 mr-1" />
@@ -876,13 +836,14 @@ export default function DailyChecklist({
                                       </Button>
                                     )}
                                 </div>
-
-                                {editingResponseId === response.id ? (
+                                {uiState?.editingResponseId === response.id ? (
                                   <div className="mt-2">
                                     <Textarea
-                                      value={editingResponseText}
+                                      value={uiState.editingResponseText}
                                       onChange={(e) =>
-                                        setEditingResponseText(e.target.value)
+                                        updateUIMutation.mutate({
+                                          editingResponseText: e.target.value,
+                                        })
                                       }
                                       className="min-h-[100px]"
                                     />
@@ -891,11 +852,12 @@ export default function DailyChecklist({
                                         variant="outline"
                                         size="sm"
                                         onClick={() =>
-                                          handleEditResponse(
-                                            firearm.id,
-                                            response.id,
-                                            editingResponseText
-                                          )
+                                          editResponseMutation.mutate({
+                                            firearmId: firearm.id,
+                                            responseId: response.id,
+                                            newText:
+                                              uiState.editingResponseText,
+                                          })
                                         }
                                       >
                                         Save
@@ -903,10 +865,12 @@ export default function DailyChecklist({
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => {
-                                          setEditingResponseId(null);
-                                          setEditingResponseText("");
-                                        }}
+                                        onClick={() =>
+                                          updateUIMutation.mutate({
+                                            editingResponseId: null,
+                                            editingResponseText: "",
+                                          })
+                                        }
                                       >
                                         Cancel
                                       </Button>
@@ -914,20 +878,22 @@ export default function DailyChecklist({
                                   </div>
                                 ) : (
                                   <p className="mt-1 text-medium">
-                                    {response.message}
+                                    {DOMPurify.sanitize(response.message)}
                                   </p>
                                 )}
                               </div>
                             ))}
 
                           {/* Response Form */}
-                          {activeResponseFirearmId === firearm.id &&
-                            selectedInquiryId === pair.request.id && (
+                          {uiState?.activeResponseFirearmId === firearm.id &&
+                            uiState?.selectedInquiryId === pair.request.id && (
                               <div className="mt-2">
                                 <Textarea
-                                  value={newResponse}
+                                  value={uiState?.newResponse || ""}
                                   onChange={(e) =>
-                                    setNewResponse(e.target.value)
+                                    updateUIMutation.mutate({
+                                      newResponse: e.target.value,
+                                    })
                                   }
                                   placeholder="Enter response..."
                                   className="min-h-[100px]"
@@ -936,21 +902,24 @@ export default function DailyChecklist({
                                   <Button
                                     variant="outline"
                                     onClick={() =>
-                                      submitGunsmithResponse(
-                                        firearm.id,
-                                        pair.request.id
-                                      )
+                                      submitResponseMutation.mutate({
+                                        firearmId: firearm.id,
+                                        inquiryId: pair.request.id,
+                                        response: uiState?.newResponse || "",
+                                      })
                                     }
-                                    disabled={!newResponse}
+                                    disabled={!uiState?.newResponse}
                                   >
                                     Submit
                                   </Button>
                                   <Button
                                     variant="ghost"
-                                    onClick={() => {
-                                      setActiveResponseFirearmId(null);
-                                      setSelectedInquiryId(null);
-                                    }}
+                                    onClick={() =>
+                                      updateUIMutation.mutate({
+                                        activeResponseFirearmId: null,
+                                        selectedInquiryId: null,
+                                      })
+                                    }
                                   >
                                     Cancel
                                   </Button>
@@ -967,28 +936,38 @@ export default function DailyChecklist({
                     userRole === "super admin" ||
                     userRole === "dev") && (
                     <div className="mt-4">
-                      {activeRequestFirearmId === firearm.id ? (
+                      {uiState?.activeRequestFirearmId === firearm.id ? (
                         <>
                           <Textarea
-                            value={newRequest}
-                            onChange={(e) => setNewRequest(e.target.value)}
+                            value={uiState?.newRequest || ""}
+                            onChange={(e) =>
+                              updateUIMutation.mutate({
+                                newRequest: e.target.value,
+                              })
+                            }
                             placeholder="Enter new inquiry..."
                             className="mt-2"
                           />
                           <Button
                             variant="outline"
-                            onClick={() => {
-                              submitAdminRequest(firearm.id);
-                              setActiveRequestFirearmId(null);
-                            }}
+                            onClick={() =>
+                              submitAdminRequestMutation.mutate({
+                                id: firearm.id,
+                                request: uiState?.newRequest || "",
+                              })
+                            }
                             className="mt-2 mr-2"
-                            disabled={!newRequest}
+                            disabled={!uiState?.newRequest}
                           >
                             Submit Request
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => setActiveRequestFirearmId(null)}
+                            onClick={() =>
+                              updateUIMutation.mutate({
+                                activeRequestFirearmId: null,
+                              })
+                            }
                             className="mt-2"
                           >
                             Cancel
@@ -997,7 +976,11 @@ export default function DailyChecklist({
                       ) : (
                         <Button
                           variant="outline"
-                          onClick={() => setActiveRequestFirearmId(firearm.id)}
+                          onClick={() =>
+                            updateUIMutation.mutate({
+                              activeRequestFirearmId: firearm.id,
+                            })
+                          }
                           className="mt-2"
                         >
                           New Inquiry
@@ -1005,34 +988,43 @@ export default function DailyChecklist({
                       )}
                     </div>
                   )}
+
                   {/* New Response Button (only for gunsmith role) */}
                   {userRole === "gunsmith" && (
                     <div className="mt-4">
-                      {activeResponseFirearmId === firearm.id ? (
+                      {uiState?.activeResponseFirearmId === firearm.id ? (
                         <>
                           <Textarea
-                            value={newResponse}
-                            onChange={(e) => setNewResponse(e.target.value)}
+                            value={uiState?.newResponse || ""}
+                            onChange={(e) =>
+                              updateUIMutation.mutate({
+                                newResponse: e.target.value,
+                              })
+                            }
                             placeholder="Enter new response..."
                             className="mt-2"
                           />
                           <Button
                             variant="outline"
-                            onClick={() => {
-                              submitGunsmithResponse(
-                                firearm.id,
-                                selectedInquiryId!
-                              );
-                              setActiveResponseFirearmId(null);
-                            }}
+                            onClick={() =>
+                              submitResponseMutation.mutate({
+                                firearmId: firearm.id,
+                                inquiryId: uiState?.selectedInquiryId!,
+                                response: uiState?.newResponse || "",
+                              })
+                            }
                             className="mt-2 mr-2"
-                            disabled={!newResponse}
+                            disabled={!uiState?.newResponse}
                           >
                             Submit Response
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => setActiveResponseFirearmId(null)}
+                            onClick={() =>
+                              updateUIMutation.mutate({
+                                activeResponseFirearmId: null,
+                              })
+                            }
                             className="mt-2"
                           >
                             Cancel
@@ -1041,7 +1033,11 @@ export default function DailyChecklist({
                       ) : (
                         <Button
                           variant="outline"
-                          onClick={() => setActiveResponseFirearmId(firearm.id)}
+                          onClick={() =>
+                            updateUIMutation.mutate({
+                              activeResponseFirearmId: firearm.id,
+                            })
+                          }
                           className="mt-2"
                         >
                           New Response
@@ -1058,7 +1054,7 @@ export default function DailyChecklist({
       <div className="mt-8">
         <Button
           variant="gooeyRight"
-          onClick={handleSubmit}
+          onClick={() => submitChecklistMutation.mutate()}
           disabled={firearms.length === 0}
           className="w-full"
         >
