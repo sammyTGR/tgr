@@ -1,18 +1,29 @@
 import React from "react";
 
-interface DataTableProps {
-  columns: { Header: string; accessor: string }[];
-  data: any[];
+interface ColumnDef {
+  Header: string;
+  accessor: string;
+  Cell?: (props: { value: any; row: { original: any } }) => JSX.Element;
 }
 
-const DataTableProfile: React.FC<DataTableProps> = ({ columns, data }) => {
+interface DataTableProps {
+  columns: ColumnDef[];
+  data: any[];
+  rowClassName?: (row: { original: { isDivider?: boolean } }) => string;
+}
+
+const DataTableProfile: React.FC<DataTableProps> = ({
+  columns,
+  data,
+  rowClassName = () => "",
+}) => {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full ">
+      <table className="min-w-full">
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.accessor} className="px-4 py-2 ">
+              <th key={column.accessor} className="px-4 py-2">
                 {column.Header}
               </th>
             ))}
@@ -20,10 +31,15 @@ const DataTableProfile: React.FC<DataTableProps> = ({ columns, data }) => {
         </thead>
         <tbody>
           {data.map((row, rowIndex) => (
-            <tr key={rowIndex}>
+            <tr key={rowIndex} className={rowClassName({ original: row })}>
               {columns.map((column) => (
-                <td key={column.accessor} className="px-4 py-2 ">
-                  {row[column.accessor]}
+                <td key={column.accessor} className="px-4 py-2">
+                  {column.Cell
+                    ? column.Cell({
+                        value: row[column.accessor],
+                        row: { original: row },
+                      })
+                    : row[column.accessor]}
                 </td>
               ))}
             </tr>

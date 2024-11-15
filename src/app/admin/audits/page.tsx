@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import SubmitAuditForm from "./submit/form";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import SupportNavMenu from "@/components/ui/SupportNavMenu";
 import { DataTable } from "@/components/ui/data-table";
 import { AuditData, createColumns } from "./review/columns";
@@ -40,12 +42,30 @@ type OptionType = {
   value: string;
 };
 
+type CellProps = {
+  value: any;
+  row: {
+    original: {
+      Qualified: boolean;
+      isDivider?: boolean;
+      [key: string]: any;
+    };
+  };
+};
+
+type ColumnDef = {
+  Header: string;
+  accessor: string;
+  Cell?: (props: CellProps) => JSX.Element;
+};
+
 interface DataRow {
   salesreps?: string;
 }
 
 interface Employee {
   lanid: string;
+  department?: string;
 }
 
 interface PointsCalculation {
@@ -129,6 +149,11 @@ export default function AuditsPage() {
       .split("T")[0];
 
     try {
+      // Add employees query to get department info
+      let employeesQuery = supabase
+        .from("employees")
+        .select("lanid, department");
+
       let salesQuery = supabase
         .from("sales_data")
         .select("*")
@@ -149,20 +174,26 @@ export default function AuditsPage() {
       }
 
       const [
+        { data: employeesData, error: employeesError },
         { data: salesData, error: salesError },
         { data: auditData, error: auditError },
-      ] = await Promise.all([salesQuery, auditQuery]);
+      ] = await Promise.all([employeesQuery, salesQuery, auditQuery]);
 
-      if (salesError || auditError) {
-        //console.(salesError || auditError);
+      if (salesError || auditError || employeesError) {
+        console.error(salesError || auditError || employeesError);
         return;
       }
 
       setAudits(auditData || []);
 
+      const employeeDepartments = new Map(
+        employeesData?.map((emp) => [emp.lanid, emp.department]) || []
+      );
+
       const lanids = showAllEmployees
         ? Array.from(new Set(salesData.map((sale) => sale.Lanid)))
         : [selectedLanid];
+
       let summary = lanids.map((lanid) => {
         const employeeSalesData = salesData.filter(
           (sale) => sale.Lanid === lanid
@@ -199,17 +230,39 @@ export default function AuditsPage() {
         });
 
         const totalPoints = 300 - pointsDeducted;
+        const errorRate =
+          totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
+        const department = employeeDepartments.get(lanid);
+        const isOperations = department?.toString() === "Operations";
+        const isQualified = !isOperations && totalDros >= 20;
 
         return {
           Lanid: lanid,
+          // Department: department || "Unknown",
           TotalDros: totalDros,
           PointsDeducted: pointsDeducted,
           TotalPoints: totalPoints,
+          ErrorRate: parseFloat(errorRate.toFixed(2)),
+          Qualified: isQualified,
+          DisqualificationReason: !isQualified
+            ? isOperations
+              ? "Not Qualified (Operations Department)"
+              : totalDros < 20
+              ? "Not Qualified (< 20 DROS)"
+              : "Not Qualified"
+            : "Qualified",
         };
       });
 
-      summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
-      setSummaryData(summary);
+      const qualifiedEmployees = summary
+        .filter((emp) => emp.Qualified)
+        .sort((a, b) => a.ErrorRate - b.ErrorRate);
+
+      const unqualifiedEmployees = summary
+        .filter((emp) => !emp.Qualified)
+        .sort((a, b) => a.ErrorRate - b.ErrorRate);
+
+      setSummaryData([...qualifiedEmployees, ...unqualifiedEmployees]);
     } catch (error) {
       //console.("Error fetching or calculating summary data:", error);
     }
@@ -236,6 +289,13 @@ export default function AuditsPage() {
 
     fetchEmployees();
   }, []);
+
+  const handleReset = () => {
+    setSelectedDate(null);
+    setSelectedLanid(null);
+    setShowAllEmployees(false);
+    setSummaryData([]);
+  };
 
   const updateOptions = (data: DataRow[]) => {
     const salesRepSet = new Set<OptionType>();
@@ -351,10 +411,7 @@ export default function AuditsPage() {
                 {loading ? (
                   <p></p>
                 ) : (
-                  <LazyDataTable
-                    columns={columns as any}
-                    data={data as any}
-                  />
+                  <LazyDataTable columns={columns as any} data={data as any} />
                 )}
               </CardContent>
             </Card>
@@ -399,15 +456,22 @@ export default function AuditsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="mt-4">
-                    <Button
-                      variant="linkHover1"
-                      onClick={() => setShowAllEmployees((prev) => !prev)}
-                    >
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Switch
+                      id="show-all"
+                      checked={showAllEmployees}
+                      onCheckedChange={(checked) => {
+                        setShowAllEmployees(checked);
+                        if (checked) {
+                          setSelectedLanid(null); // Clear the selected employee when switching to show all
+                        }
+                      }}
+                    />
+                    <Label htmlFor="show-all">
                       {showAllEmployees
-                        ? "Show Selected Employee"
-                        : "Show All Employees"}
-                    </Button>
+                        ? "Showing All Employees"
+                        : "Showing Selected Employee"}
+                    </Label>
                   </div>
                 </CardContent>
               </Card>
@@ -444,6 +508,25 @@ export default function AuditsPage() {
                 </CardContent>
               </Card>
 
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold">
+                    Reset Selections
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleReset}
+                  >
+                    Clear All Selections
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {!showAllEmployees && selectedLanid && (
                 <>
                   <Card className="mt-4">
@@ -459,6 +542,12 @@ export default function AuditsPage() {
                             {
                               Header: "Total DROS",
                               accessor: "TotalDros",
+                              Cell: ({
+                                value,
+                              }: {
+                                value: any;
+                                row: { original: any };
+                              }) => <div>{value}</div>,
                             },
                           ]}
                           data={summaryData.filter(
@@ -514,6 +603,35 @@ export default function AuditsPage() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle className="text-2xl font-bold">
+                        Error Rate
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="text-left">
+                        <DataTableProfile
+                          columns={[
+                            {
+                              Header: "Error Rate",
+                              accessor: "ErrorRate",
+                              Cell: ({
+                                value,
+                              }: {
+                                value: any;
+                                row: { original: any };
+                              }) => <div>{value}%</div>,
+                            },
+                          ]}
+                          data={summaryData.filter(
+                            (item) => item.Lanid === selectedLanid
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </div>
@@ -522,13 +640,120 @@ export default function AuditsPage() {
               <CardContent>
                 <div className="text-left">
                   <LazyDataTableProfile
-                    columns={[
-                      { Header: "Sales Rep", accessor: "Lanid" },
-                      { Header: "Total DROS", accessor: "TotalDros" },
-                      { Header: "Points Deducted", accessor: "PointsDeducted" },
-                      { Header: "Total Points", accessor: "TotalPoints" },
-                    ]}
-                    data={summaryData}
+                    columns={
+                      [
+                        {
+                          Header: "Sales Rep",
+                          accessor: "Lanid",
+                          Cell: ({ row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-gray-400 italic"
+                                  : ""
+                              }`}
+                            >
+                              {row.original.Lanid}
+                            </div>
+                          ),
+                        },
+                        {
+                          Header: "Total DROS",
+                          accessor: "TotalDros",
+                          Cell: ({ value, row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-gray-400 italic"
+                                  : ""
+                              }`}
+                            >
+                              {value}
+                            </div>
+                          ),
+                        },
+                        {
+                          Header: "Points Deducted",
+                          accessor: "PointsDeducted",
+                          Cell: ({ value, row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-gray-400 italic"
+                                  : ""
+                              }`}
+                            >
+                              {value}
+                            </div>
+                          ),
+                        },
+                        {
+                          Header: "Total Points",
+                          accessor: "TotalPoints",
+                          Cell: ({ value, row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-gray-400 italic"
+                                  : ""
+                              }`}
+                            >
+                              {value}
+                            </div>
+                          ),
+                        },
+                        {
+                          Header: "Error Rate",
+                          accessor: "ErrorRate",
+                          Cell: ({ value, row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-gray-400 italic"
+                                  : ""
+                              }`}
+                            >
+                              {row.original.isDivider ? "" : `${value}%`}
+                            </div>
+                          ),
+                        },
+                        {
+                          Header: "Status",
+                          accessor: "DisqualificationReason",
+                          Cell: ({ row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-red-500"
+                                  : "text-green-500"
+                              }`}
+                            >
+                              {row.original.DisqualificationReason}
+                            </div>
+                          ),
+                        },
+                      ] as ColumnDef[]
+                    }
+                    data={
+                      showAllEmployees
+                        ? [
+                            ...summaryData.filter((emp) => emp.Qualified),
+                            {
+                              Lanid: "",
+                              TotalDros: "",
+                              PointsDeducted: "",
+                              TotalPoints: "",
+                              isDivider: true,
+                            },
+                            ...summaryData.filter((emp) => !emp.Qualified),
+                          ]
+                        : summaryData.filter(
+                            (item) => item.Lanid === selectedLanid
+                          )
+                    }
+                    rowClassName={(row: {
+                      original: { isDivider?: boolean };
+                    }) => (row.original.isDivider ? "bg-muted" : "")}
                   />
                 </div>
               </CardContent>
