@@ -688,7 +688,7 @@ export default function AuditsPage() {
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-gray-400 italic"
+                                  ? "text-muted-foreground italic"
                                   : ""
                               }`}
                             >
@@ -703,7 +703,7 @@ export default function AuditsPage() {
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-gray-400 italic"
+                                  ? "text-muted-foreground italic"
                                   : ""
                               }`}
                             >
@@ -718,7 +718,7 @@ export default function AuditsPage() {
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-gray-400 italic"
+                                  ? "text-muted-foreground italic"
                                   : ""
                               }`}
                             >
@@ -733,7 +733,7 @@ export default function AuditsPage() {
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-gray-400 italic"
+                                  ? "text-muted-foreground italic"
                                   : ""
                               }`}
                             >
@@ -748,7 +748,7 @@ export default function AuditsPage() {
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-gray-400 italic"
+                                  ? "text-muted-foreground italic"
                                   : ""
                               }`}
                             >
@@ -763,7 +763,7 @@ export default function AuditsPage() {
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-gray-400 italic"
+                                  ? "text-muted-foreground italic"
                                   : ""
                               }`}
                             >

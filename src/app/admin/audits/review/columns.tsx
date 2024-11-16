@@ -28,10 +28,11 @@ export type AuditData = {
   error_notes?: string | null;
   dros_cancel: string | null;
   label?: string;
-
 };
 
-export const createColumns = (refreshData: () => void): ColumnDef<AuditData>[] => [
+export const createColumns = (
+  refreshData: () => void
+): ColumnDef<AuditData>[] => [
   {
     accessorKey: "dros_number",
     header: ({ column }) => (

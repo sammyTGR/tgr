@@ -130,7 +130,7 @@ export class WeightedScoringCalculator {
       Qualified: scores.isQualified,
       DisqualificationReason: !scores.isQualified
         ? this.isOperations
-          ? "Not Qualified (Operations Department)"
+          ? "Not Qualified (Ops Department)"
           : scores.totalDros < this.minimumDros
           ? "Not Qualified (< 20 DROS)"
           : "Not Qualified"
