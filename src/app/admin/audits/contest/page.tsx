@@ -6,33 +6,28 @@ import { CustomCalendar } from "@/components/ui/calendar";
 import { DataTable } from "./data-table";
 import { RenderDropdown } from "./dropdown";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button"; // Assuming you have a button component
+import { Button } from "@/components/ui/button";
+import {
+  WeightedScoringCalculator,
+  SalesData,
+  AuditData,
+  PointsCalculation,
+} from "./WeightedScoringCalculator";
 
 interface Employee {
   lanid: string;
 }
 
-interface SalesData {
-  id: number;
+interface SummaryData {
   Lanid: string;
-  subcategory_label: string;
-  dros_cancel: string | null;
-  // other fields
-}
-
-interface AuditInput {
-  id: string;
-  salesreps: string;
-  error_location: string;
-  audit_date: string; // Ensure this is included
-  dros_cancel: string | null;
-  // other fields
-}
-
-interface PointsCalculation {
-  category: string;
-  error_location: string;
-  points_deducted: number;
+  TotalDros: number;
+  MinorMistakes: number;
+  MajorMistakes: number;
+  CancelledDros: number;
+  WeightedErrorRate: number;
+  Qualified: boolean;
+  DisqualificationReason: string;
+  isDivider?: boolean;
 }
 
 const ContestPage = () => {
@@ -42,20 +37,19 @@ const ContestPage = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(
     undefined
   );
+  const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
   const [salesData, setSalesData] = useState<SalesData[]>([]);
-  const [auditData, setAuditData] = useState<AuditInput[]>([]);
+  const [auditData, setAuditData] = useState<AuditData[]>([]);
   const [pointsCalculation, setPointsCalculation] = useState<
     PointsCalculation[]
   >([]);
-  const [totalPoints, setTotalPoints] = useState<number>(300);
-  const [summaryData, setSummaryData] = useState<any[]>([]);
-  const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
+  const [summaryData, setSummaryData] = useState<SummaryData[]>([]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
       const { data, error } = await supabase.from("employees").select("lanid");
       if (error) {
-        //console.(error);
+        console.error(error);
       } else {
         setEmployees(data);
       }
@@ -66,7 +60,7 @@ const ContestPage = () => {
         .from("points_calculation")
         .select("*");
       if (error) {
-        //console.(error);
+        console.error(error);
       } else {
         setPointsCalculation(data);
       }
@@ -79,7 +73,6 @@ const ContestPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (selectedMonth) {
-        // Format the date to YYYY-MM-DD for the database query
         const startDate = new Date(
           selectedMonth.getFullYear(),
           selectedMonth.getMonth(),
@@ -103,7 +96,7 @@ const ContestPage = () => {
             .lte("audit_date", endDate);
 
           if (allAuditError) {
-            //console.(allAuditError);
+            console.error(allAuditError);
           } else {
             const lanids = Array.from(
               new Set(allAuditData.map((audit) => audit.salesreps))
@@ -118,7 +111,7 @@ const ContestPage = () => {
               .not("subcategory_label", "eq", "");
 
             if (allSalesError) {
-              //console.(allSalesError);
+              console.error(allSalesError);
             } else {
               setSalesData(allSalesData);
               setAuditData(allAuditData);
@@ -148,7 +141,7 @@ const ContestPage = () => {
             .lte("audit_date", endDate);
 
           if (salesError || auditError) {
-            //console.(salesError || auditError);
+            console.error(salesError || auditError);
           } else {
             setSalesData(salesData);
             setAuditData(auditData);
@@ -167,8 +160,7 @@ const ContestPage = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_data" },
-        (payload) => {
-          // console.log("Sales data changed:", payload);
+        () => {
           fetchData();
         }
       )
@@ -179,8 +171,7 @@ const ContestPage = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "Auditsinput" },
-        (payload) => {
-          // console.log("Audit data changed:", payload);
+        () => {
           fetchData();
         }
       )
@@ -194,7 +185,7 @@ const ContestPage = () => {
 
   const calculateSummary = (
     salesData: SalesData[],
-    auditData: AuditInput[],
+    auditData: AuditData[],
     selectedMonth: Date,
     lanids: string[]
   ) => {
@@ -206,58 +197,22 @@ const ContestPage = () => {
         (audit) => audit.salesreps === lanid
       );
 
-      const totalDros = employeeSalesData.filter(
-        (sale) => sale.subcategory_label
-      ).length;
-      let pointsDeducted = 0;
-
-      // console.log("Calculating points deducted...");
-      employeeSalesData.forEach((sale: SalesData) => {
-        if (sale.dros_cancel === "Yes") {
-          // console.log(
-          //   `DROS canceled for sale id ${sale.id}. Deducting 5 points.`
-          // );
-          pointsDeducted += 5;
-        }
+      const calculator = new WeightedScoringCalculator({
+        salesData: employeeSalesData,
+        auditData: employeeAuditData,
+        pointsCalculation,
+        isOperations: false,
+        minimumDros: 20,
       });
 
-      employeeAuditData.forEach((audit: AuditInput) => {
-        const auditDate = new Date(audit.audit_date);
-        if (auditDate <= selectedMonth) {
-          pointsCalculation.forEach((point: PointsCalculation) => {
-            if (audit.error_location === point.error_location) {
-              // console.log(
-              //   `Deducting ${point.points_deducted} points for error location ${audit.error_location} for audit id ${audit.id}.`
-              // );
-              pointsDeducted += point.points_deducted;
-            } else if (
-              point.error_location === "dros_cancel_field" &&
-              audit.dros_cancel === "Yes"
-            ) {
-              // console.log(
-              //   `Deducting ${point.points_deducted} points for DROS cancellation for audit id ${audit.id}.`
-              // );
-              pointsDeducted += point.points_deducted;
-            }
-          });
-        }
-      });
-
-      // console.log("Points deducted:", pointsDeducted);
-      const totalPoints = 300 - pointsDeducted;
-
-      return {
-        Lanid: lanid,
-        TotalDros: totalDros,
-        PointsDeducted: pointsDeducted,
-        TotalPoints: totalPoints,
-      };
+      return calculator.metrics;
     });
 
-    // Sort summary data by Total Points in descending order
-    summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
+    // Sort summary data by Weighted Error Rate in ascending order (lower is better)
+    summary.sort((a, b) => a.WeightedErrorRate - b.WeightedErrorRate);
     setSummaryData(summary);
   };
+
   return (
     <Card className="w-full max-w-6xl mx-auto p-4 my-8">
       <div className="flex space-x-4 mb-4">
@@ -274,7 +229,7 @@ const ContestPage = () => {
         <CustomCalendar
           selectedDate={selectedMonth}
           onDateChange={(date: Date | undefined) => setSelectedMonth(date)}
-          disabledDays={() => false} // Adjust this if needed
+          disabledDays={() => false}
         />
       </div>
       <div className="mb-4">
@@ -283,12 +238,99 @@ const ContestPage = () => {
         </Button>
       </div>
       <div className="text-left">
-        <DataTable
+        <DataTable<SummaryData>
           columns={[
-            { Header: "Sales Rep", accessor: "Lanid" },
-            { Header: "Total DROS", accessor: "TotalDros" },
-            { Header: "Points Deducted", accessor: "PointsDeducted" },
-            { Header: "Total Points", accessor: "TotalPoints" },
+            {
+              Header: "Sales Rep",
+              accessor: "Lanid",
+              Cell: ({ value, row }) => (
+                <div
+                  className={
+                    !row.original.Qualified ? "text-gray-400 italic" : ""
+                  }
+                >
+                  {value}
+                </div>
+              ),
+            },
+            {
+              Header: "Total DROS",
+              accessor: "TotalDros",
+              Cell: ({ value, row }) => (
+                <div
+                  className={
+                    !row.original.Qualified ? "text-gray-400 italic" : ""
+                  }
+                >
+                  {value}
+                </div>
+              ),
+            },
+            {
+              Header: "Minor Mistakes",
+              accessor: "MinorMistakes",
+              Cell: ({ value, row }) => (
+                <div
+                  className={
+                    !row.original.Qualified ? "text-gray-400 italic" : ""
+                  }
+                >
+                  {value}
+                </div>
+              ),
+            },
+            {
+              Header: "Major Mistakes",
+              accessor: "MajorMistakes",
+              Cell: ({ value, row }) => (
+                <div
+                  className={
+                    !row.original.Qualified ? "text-gray-400 italic" : ""
+                  }
+                >
+                  {value}
+                </div>
+              ),
+            },
+            {
+              Header: "Cancelled DROS",
+              accessor: "CancelledDros",
+              Cell: ({ value, row }) => (
+                <div
+                  className={
+                    !row.original.Qualified ? "text-gray-400 italic" : ""
+                  }
+                >
+                  {value}
+                </div>
+              ),
+            },
+            {
+              Header: "Error Rate",
+              accessor: "WeightedErrorRate",
+              Cell: ({ value, row }) => (
+                <div
+                  className={
+                    !row.original.Qualified ? "text-gray-400 italic" : ""
+                  }
+                >
+                  {row.original.isDivider ? "" : `${value}%`}
+                </div>
+              ),
+            },
+            {
+              Header: "Status",
+              accessor: "DisqualificationReason",
+              Cell: ({ row }) => (
+                <div
+                  className={
+                    row.original.Qualified ? "text-green-500" : "text-red-500"
+                  }
+                >
+                  {row.original.DisqualificationReason}
+                </div>
+              ),
+            },
           ]}
           data={summaryData}
         />
