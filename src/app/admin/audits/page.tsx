@@ -36,8 +36,6 @@ import { Input } from "@/components/ui/input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import dynamic from "next/dynamic";
-import { WeightedScoringCalculator } from "./contest/WeightedScoringCalculator";
-import * as XLSX from "xlsx";
 
 type OptionType = {
   label: string;
@@ -86,18 +84,6 @@ interface Audit {
   error_details: string;
   error_notes: string;
   dros_cancel: string;
-}
-
-interface SummaryRowData {
-  Lanid: string;
-  TotalDros: number | null;
-  MinorMistakes: number | null;
-  MajorMistakes: number | null;
-  CancelledDros: number | null;
-  WeightedErrorRate: number | null;
-  Qualified: boolean;
-  DisqualificationReason: string;
-  isDivider?: boolean;
 }
 
 const LazyDataTable = dynamic(
@@ -163,6 +149,7 @@ export default function AuditsPage() {
       .split("T")[0];
 
     try {
+      // Add employees query to get department info
       let employeesQuery = supabase
         .from("employees")
         .select("lanid, department");
@@ -190,18 +177,10 @@ export default function AuditsPage() {
         { data: employeesData, error: employeesError },
         { data: salesData, error: salesError },
         { data: auditData, error: auditError },
-        { data: pointsCalcData, error: pointsCalcError },
-      ] = await Promise.all([
-        employeesQuery,
-        salesQuery,
-        auditQuery,
-        supabase.from("points_calculation").select("*"),
-      ]);
+      ] = await Promise.all([employeesQuery, salesQuery, auditQuery]);
 
-      if (salesError || auditError || employeesError || pointsCalcError) {
-        console.error(
-          salesError || auditError || employeesError || pointsCalcError
-        );
+      if (salesError || auditError || employeesError) {
+        console.error(salesError || auditError || employeesError);
         return;
       }
 
@@ -223,34 +202,69 @@ export default function AuditsPage() {
           (audit) => audit.salesreps === lanid
         );
 
-        const department = employeeDepartments.get(lanid);
-        const isOperations = department?.toString() === "Operations";
+        const totalDros = employeeSalesData.filter(
+          (sale) => sale.subcategory_label
+        ).length;
+        let pointsDeducted = 0;
 
-        const calculator = new WeightedScoringCalculator({
-          salesData: employeeSalesData,
-          auditData: employeeAuditData,
-          pointsCalculation: pointsCalcData,
-          isOperations,
-          minimumDros: 20,
+        employeeSalesData.forEach((sale) => {
+          if (sale.dros_cancel === "Yes") {
+            pointsDeducted += 5;
+          }
         });
 
+        employeeAuditData.forEach((audit) => {
+          const auditDate = new Date(audit.audit_date);
+          if (auditDate <= date) {
+            pointsCalculation.forEach((point) => {
+              if (audit.error_location === point.error_location) {
+                pointsDeducted += point.points_deducted;
+              } else if (
+                point.error_location === "dros_cancel_field" &&
+                audit.dros_cancel === "Yes"
+              ) {
+                pointsDeducted += point.points_deducted;
+              }
+            });
+          }
+        });
+
+        const totalPoints = 300 - pointsDeducted;
+        const errorRate =
+          totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
+        const department = employeeDepartments.get(lanid);
+        const isOperations = department?.toString() === "Operations";
+        const isQualified = !isOperations && totalDros >= 20;
+
         return {
-          ...calculator.metrics,
-          Department: department || "Unknown",
+          Lanid: lanid,
+          // Department: department || "Unknown",
+          TotalDros: totalDros,
+          PointsDeducted: pointsDeducted,
+          TotalPoints: totalPoints,
+          ErrorRate: parseFloat(errorRate.toFixed(2)),
+          Qualified: isQualified,
+          DisqualificationReason: !isQualified
+            ? isOperations
+              ? "Not Qualified (Operations Department)"
+              : totalDros < 20
+              ? "Not Qualified (< 20 DROS)"
+              : "Not Qualified"
+            : "Qualified",
         };
       });
 
       const qualifiedEmployees = summary
         .filter((emp) => emp.Qualified)
-        .sort((a, b) => a.WeightedErrorRate - b.WeightedErrorRate);
+        .sort((a, b) => a.ErrorRate - b.ErrorRate);
 
       const unqualifiedEmployees = summary
         .filter((emp) => !emp.Qualified)
-        .sort((a, b) => a.WeightedErrorRate - b.WeightedErrorRate);
+        .sort((a, b) => a.ErrorRate - b.ErrorRate);
 
       setSummaryData([...qualifiedEmployees, ...unqualifiedEmployees]);
     } catch (error) {
-      console.error("Error fetching or calculating summary data:", error);
+      //console.("Error fetching or calculating summary data:", error);
     }
   };
 
@@ -275,40 +289,6 @@ export default function AuditsPage() {
 
     fetchEmployees();
   }, []);
-
-  const exportToExcel = (data: SummaryRowData[]) => {
-    const exportData = data
-      .filter((row) => !row.isDivider)
-      .map((row) => ({
-        "Sales Rep": row.Lanid,
-        "Total DROS": row.TotalDros ?? "",
-        "Minor Mistakes": row.MinorMistakes ?? "",
-        "Major Mistakes": row.MajorMistakes ?? "",
-        "Cancelled DROS": row.CancelledDros ?? "",
-        "Weighted Error Rate": row.WeightedErrorRate
-          ? `${row.WeightedErrorRate}%`
-          : "",
-        Status: row.DisqualificationReason,
-      }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sales Contest Results");
-
-    // Get the month and year
-    const dateStr = format(selectedDate || new Date(), "MMM_yyyy");
-
-    // Create filename with suffix based on export type
-    const suffix = showAllEmployees
-      ? "_all_employees"
-      : selectedLanid
-      ? `_${selectedLanid}`
-      : "";
-
-    const fileName = `Sales_Contest_Results_${dateStr}${suffix}.xlsx`;
-
-    XLSX.writeFile(wb, fileName);
-  };
 
   const handleReset = () => {
     setSelectedDate(null);
@@ -535,32 +515,13 @@ export default function AuditsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={handleReset}
-                    >
-                      Clear All Selections
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        exportToExcel(
-                          showAllEmployees
-                            ? [
-                                ...summaryData.filter((emp) => emp.Qualified),
-                                ...summaryData.filter((emp) => !emp.Qualified),
-                              ]
-                            : summaryData.filter(
-                                (item) => item.Lanid === selectedLanid
-                              )
-                        )
-                      }
-                      className="w-full"
-                    >
-                      Export to Excel
-                    </Button>
-                  </div>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleReset}
+                  >
+                    Clear All Selections
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -600,7 +561,7 @@ export default function AuditsPage() {
                   <Card className="mt-4">
                     <CardHeader>
                       <CardTitle className="text-2xl font-bold">
-                        Minor Mistakes
+                        Points Deducted
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4">
@@ -608,8 +569,8 @@ export default function AuditsPage() {
                         <DataTableProfile
                           columns={[
                             {
-                              Header: "Minor Mistakes",
-                              accessor: "MinorMistakes",
+                              Header: "Points Deducted",
+                              accessor: "PointsDeducted",
                             },
                           ]}
                           data={summaryData.filter(
@@ -623,7 +584,7 @@ export default function AuditsPage() {
                   <Card className="mt-4">
                     <CardHeader>
                       <CardTitle className="text-2xl font-bold">
-                        Major Mistakes
+                        Current Points
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4">
@@ -631,8 +592,8 @@ export default function AuditsPage() {
                         <DataTableProfile
                           columns={[
                             {
-                              Header: "Major Mistakes",
-                              accessor: "MajorMistakes",
+                              Header: "Total Points",
+                              accessor: "TotalPoints",
                             },
                           ]}
                           data={summaryData.filter(
@@ -655,7 +616,7 @@ export default function AuditsPage() {
                           columns={[
                             {
                               Header: "Error Rate",
-                              accessor: "WeightedErrorRate",
+                              accessor: "ErrorRate",
                               Cell: ({
                                 value,
                               }: {
@@ -678,17 +639,32 @@ export default function AuditsPage() {
             <Card>
               <CardContent>
                 <div className="text-left">
-                  <DataTableProfile
+                  <LazyDataTableProfile
                     columns={
                       [
                         {
                           Header: "Sales Rep",
                           accessor: "Lanid",
-                          Cell: ({ value, row }) => (
+                          Cell: ({ row }: CellProps) => (
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-muted-foreground italic"
+                                  ? "text-gray-400 italic"
+                                  : ""
+                              }`}
+                            >
+                              {row.original.Lanid}
+                            </div>
+                          ),
+                        },
+                        {
+                          Header: "Total DROS",
+                          accessor: "TotalDros",
+                          Cell: ({ value, row }: CellProps) => (
+                            <div
+                              className={`${
+                                !row.original.Qualified
+                                  ? "text-gray-400 italic"
                                   : ""
                               }`}
                             >
@@ -697,88 +673,54 @@ export default function AuditsPage() {
                           ),
                         },
                         {
-                          Header: "Total DROS",
-                          accessor: "TotalDros",
-                          Cell: ({ value, row }) => (
+                          Header: "Points Deducted",
+                          accessor: "PointsDeducted",
+                          Cell: ({ value, row }: CellProps) => (
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-muted-foreground italic"
+                                  ? "text-gray-400 italic"
                                   : ""
                               }`}
                             >
-                              {value === null ? "" : value}
+                              {value}
                             </div>
                           ),
                         },
                         {
-                          Header: "Minor Mistakes",
-                          accessor: "MinorMistakes",
-                          Cell: ({ value, row }) => (
+                          Header: "Total Points",
+                          accessor: "TotalPoints",
+                          Cell: ({ value, row }: CellProps) => (
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-muted-foreground italic"
+                                  ? "text-gray-400 italic"
                                   : ""
                               }`}
                             >
-                              {value === null ? "" : value}
+                              {value}
                             </div>
                           ),
                         },
                         {
-                          Header: "Major Mistakes",
-                          accessor: "MajorMistakes",
-                          Cell: ({ value, row }) => (
+                          Header: "Error Rate",
+                          accessor: "ErrorRate",
+                          Cell: ({ value, row }: CellProps) => (
                             <div
                               className={`${
                                 !row.original.Qualified
-                                  ? "text-muted-foreground italic"
+                                  ? "text-gray-400 italic"
                                   : ""
                               }`}
                             >
-                              {value === null ? "" : value}
-                            </div>
-                          ),
-                        },
-                        {
-                          Header: "Cancelled DROS",
-                          accessor: "CancelledDros",
-                          Cell: ({ value, row }) => (
-                            <div
-                              className={`${
-                                !row.original.Qualified
-                                  ? "text-muted-foreground italic"
-                                  : ""
-                              }`}
-                            >
-                              {value === null ? "" : value}
-                            </div>
-                          ),
-                        },
-                        {
-                          Header: "Weighted Error Rate",
-                          accessor: "WeightedErrorRate",
-                          Cell: ({ value, row }) => (
-                            <div
-                              className={`${
-                                !row.original.Qualified
-                                  ? "text-muted-foreground italic"
-                                  : ""
-                              }`}
-                            >
-                              {row.original.isDivider
-                                ? ""
-                                : value === null
-                                ? ""
-                                : `${value}%`}
+                              {row.original.isDivider ? "" : `${value}%`}
                             </div>
                           ),
                         },
                         {
                           Header: "Status",
                           accessor: "DisqualificationReason",
-                          Cell: ({ row }) => (
+                          Cell: ({ row }: CellProps) => (
                             <div
                               className={`${
                                 !row.original.Qualified
@@ -798,13 +740,9 @@ export default function AuditsPage() {
                             ...summaryData.filter((emp) => emp.Qualified),
                             {
                               Lanid: "",
-                              TotalDros: null,
-                              MinorMistakes: null,
-                              MajorMistakes: null,
-                              CancelledDros: null,
-                              WeightedErrorRate: null,
-                              Qualified: false,
-                              DisqualificationReason: "",
+                              TotalDros: "",
+                              PointsDeducted: "",
+                              TotalPoints: "",
                               isDivider: true,
                             },
                             ...summaryData.filter((emp) => !emp.Qualified),
@@ -813,9 +751,9 @@ export default function AuditsPage() {
                             (item) => item.Lanid === selectedLanid
                           )
                     }
-                    rowClassName={(row) =>
-                      row.original.isDivider ? "bg-muted" : ""
-                    }
+                    rowClassName={(row: {
+                      original: { isDivider?: boolean };
+                    }) => (row.original.isDivider ? "bg-muted" : "")}
                   />
                 </div>
               </CardContent>

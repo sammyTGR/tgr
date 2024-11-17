@@ -1,9 +1,7 @@
 // types.ts
 export interface Employee {
     lanid: string;
-    name?: string;
     department?: string;
-    email?: string;
   }
   
   export interface PointsCalculation {
@@ -29,15 +27,16 @@ export interface Employee {
   
   export interface SummaryData {
     Lanid: string;
+    Department: string;
     TotalDros: number | null;
     MinorMistakes: number | null;
     MajorMistakes: number | null;
     CancelledDros: number | null;
     WeightedErrorRate: number | null;
+    TotalWeightedMistakes: number | null;
     Qualified: boolean;
     DisqualificationReason: string;
     isDivider?: boolean;
-    Department?: string;
   }
   
   export interface CellProps {
