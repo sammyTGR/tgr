@@ -531,6 +531,44 @@ export default function AuditsPage() {
               <Card className="mt-4">
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold">
+                    Mistake Definitions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-primary mb-2">
+                      Minor Mistakes
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Correctable mistakes that can be resolved during pickup
+                      without requiring the customer to return.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold">
+                    Mistake Definitions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-primary mb-2">
+                      Major Mistakes
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Serious errors that require the customer to make an
+                      additional trip back after pickup to resolve the issue.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold">
                     Reset Selections
                   </CardTitle>
                 </CardHeader>
@@ -565,7 +603,7 @@ export default function AuditsPage() {
               </Card>
             </div>
 
-            <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
               {!showAllEmployees && selectedLanid && (
                 <>
                   <Card className="mt-4">
@@ -633,6 +671,29 @@ export default function AuditsPage() {
                             {
                               Header: "Major Mistakes",
                               accessor: "MajorMistakes",
+                            },
+                          ]}
+                          data={summaryData.filter(
+                            (item) => item.Lanid === selectedLanid
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle className="text-2xl font-bold">
+                        Cancelled DROS
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="text-left">
+                        <DataTableProfile
+                          columns={[
+                            {
+                              Header: "Cancelled DROS",
+                              accessor: "CancelledDros",
                             },
                           ]}
                           data={summaryData.filter(
