@@ -648,9 +648,16 @@ const summaryColumns: DataTableColumn[] = [
     Cell: ({ row: { original } }) => (
       <div
         className={`${!original.Qualified ? "text-red-500" : "text-green-500"}`}
-      >
-        {sanitizeHtml(original.DisqualificationReason)}
-      </div>
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(original.DisqualificationReason, {
+            ALLOWED_TAGS: [],
+            ALLOWED_ATTR: [],
+            ALLOW_ARIA_ATTR: false,
+            ALLOW_DATA_ATTR: false,
+            USE_PROFILES: { html: false },
+          }),
+        }}
+      />
     ),
   },
 ];
