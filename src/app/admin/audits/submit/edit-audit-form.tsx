@@ -87,7 +87,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
           salesreps: formData.salesRep,
           trans_date: formData.transDate.toISOString().split("T")[0], // Format as YYYY-MM-DD for date type
           audit_date: formData.auditDate.toISOString().split("T")[0], // Format as YYYY-MM-DD for date type
-          dros_cancel: formData.drosCancel ? "True" : "", // Convert boolean to string
+          dros_cancel: formData.drosCancel ? "Yes" : "", // Convert boolean to string
           audit_type: formData.audits[0].auditType,
           error_location: formData.audits[0].errorLocation,
           error_details: formData.audits[0].errorDetails,
@@ -160,7 +160,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
       salesRep: audit.salesreps || "", // Handle both possible field names
       transDate: new Date(audit.trans_date || ""),
       auditDate: new Date(audit.audit_date || ""),
-      drosCancel: audit.dros_cancel === "True",
+      drosCancel: audit.dros_cancel === "Yes",
       audits: [
         {
           auditType: audit.audit_type || "",

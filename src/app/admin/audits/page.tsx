@@ -803,7 +803,7 @@ const getAuditColumns = (
     cell: ({ row }) => {
       const value = row.original.dros_cancel;
       // Only show "True" if the value is explicitly "True", otherwise show empty string
-      return value === "True" ? "True" : "";
+      return value === "Yes" ? "Yes" : "";
     },
   },
   {

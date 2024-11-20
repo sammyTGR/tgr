@@ -240,7 +240,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
           error_location: errorLocation.join(", "),
           error_details: errorDetails.join(", "),
           error_notes: note.trim(),
-          dros_cancel: isFirstAudit && formData.drosCancel ? "True" : "",
+          dros_cancel: isFirstAudit && formData.drosCancel ? "Yes" : "",
         };
 
         isFirstAudit = false; // After processing the first audit, set this to false
