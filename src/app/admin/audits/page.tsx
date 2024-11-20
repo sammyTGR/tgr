@@ -9,6 +9,17 @@ import {
   useQueryClient,
   UseMutationResult,
 } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import DOMPurify from "dompurify";
 import dynamic from "next/dynamic";
@@ -47,6 +58,7 @@ import { WeightedScoringCalculator } from "./contest/WeightedScoringCalculator";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { useMemo } from "react";
+import { ModalStateProvider, useModalState } from "@/context/ModalStateContext";
 
 // Type definitions
 interface OptionType {
@@ -79,6 +91,11 @@ interface DataTableProps {
   }>;
   data: any[];
   styles?: Record<string, string>;
+}
+
+interface DeleteDialogState {
+  isOpen: boolean;
+  auditId: string | null;
 }
 
 interface DataRow {
@@ -172,13 +189,14 @@ interface TableMeta<T> {
   deleteMutation: UseMutationResult<any, Error, string>;
 }
 
-interface ModalState {
+export interface ModalState {
   isOpen: boolean;
   selectedAudit: Audit | null;
 }
 
-const MODAL_KEY = ['edit-modal-state'] as const;
-const AUDITS_KEY = ['audits'] as const;
+const MODAL_KEY = ["edit-modal-state"] as const;
+const AUDITS_KEY = ["audits"] as const;
+const DELETE_DIALOG_KEY = ["delete-dialog-state"] as const;
 
 // Create Query Client with configuration
 const queryClient = new QueryClient({
@@ -246,6 +264,13 @@ const api = {
     if (error) {
       throw new Error(`Error fetching audits: ${error.message}`);
     }
+    if (filters?.endDate) {
+      return (data || []).filter((audit) => {
+        const auditDate = new Date(audit.audit_date);
+        const endDate = new Date(filters.endDate!);
+        return auditDate <= endDate;
+      });
+    }
     return data || [];
   },
 
@@ -275,23 +300,22 @@ const api = {
       .not("subcategory_label", "is", null)
       .not("subcategory_label", "eq", "");
 
-    // Only apply lanid filter if not showing all employees and lanid is provided
     if (!showAllEmployees && lanid) {
       query = query.eq("Lanid", lanid);
     }
 
     const { data, error } = await query;
-    if (error) {
-      throw new Error(`Error fetching sales data: ${error.message}`);
-    }
+    if (error) throw new Error(`Error fetching sales data: ${error.message}`);
 
-    // If showing all employees, we want ALL data
-    if (showAllEmployees) {
-      return data || [];
-    }
+    // Filter out any data that doesn't match our date range
+    const filteredData = (data || []).filter((sale) => {
+      const saleDate = new Date(sale.Date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return saleDate >= start && saleDate <= end;
+    });
 
-    // If not showing all, filter for the selected employee
-    return (data || []).filter((sale) => (lanid ? sale.Lanid === lanid : true));
+    return filteredData;
   },
 
   updateAudit: async (
@@ -321,6 +345,25 @@ const api = {
       throw new Error(`Error deleting audit: ${error.message}`);
     }
   },
+};
+
+const useDeleteDialogState = () => {
+  const queryClient = useQueryClient();
+
+  const { data: deleteDialogState } = useQuery<DeleteDialogState>({
+    queryKey: ["delete-dialog-state"],
+    queryFn: () => ({ isOpen: false, auditId: null }),
+    staleTime: Infinity,
+  });
+
+  const setDeleteDialogState = (newState: DeleteDialogState) => {
+    queryClient.setQueryData(["delete-dialog-state"], newState);
+  };
+
+  return {
+    deleteDialogState: deleteDialogState || { isOpen: false, auditId: null },
+    setDeleteDialogState,
+  };
 };
 
 // Utility Functions
@@ -559,72 +602,95 @@ const handleEditAudit = async (
   }
 };
 
-
-
-
-
 // Summary Table Columns
-// Update the summaryColumns definition
-const summaryColumns: DataTableColumn[] = [
+const summaryColumns: ColumnDef<SummaryRowData>[] = [
   {
-    Header: "Sales Rep",
-    accessor: "Lanid",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+    header: "Sales Rep",
+    accessorKey: "Lanid",
+    cell: ({ row: { original } }) => (
+      <div
+        className={`text-left align-left ${
+          !original.Qualified ? "text-gray-400 italic" : ""
+        }`}
+      >
         {sanitizeHtml(original.Lanid)}
       </div>
     ),
   },
+  // {
+  //   header: "Department",
+  //   accessorKey: "Department",
+  //   cell: ({ row: { original } }) => (
+  //     <div
+  //       className={`text-left align-left ${
+  //         !original.Qualified ? "text-gray-400 italic" : ""
+  //       }`}
+  //     >
+  //       {sanitizeHtml(original.Department || "")}
+  //     </div>
+  //   ),
+  // },
   {
-    Header: "Department",
-    accessor: "Department",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
-        {sanitizeHtml(original.Department || "")}
-      </div>
-    ),
-  },
-  {
-    Header: "Total DROS",
-    accessor: "TotalDros",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+    header: "Total DROS",
+    accessorKey: "TotalDros",
+    cell: ({ row: { original } }) => (
+      <div
+        className={`text-left align-left ${
+          !original.Qualified ? "text-gray-400 italic" : ""
+        }`}
+      >
         {original.TotalDros === null ? "" : original.TotalDros}
       </div>
     ),
   },
   {
-    Header: "Minor Mistakes",
-    accessor: "MinorMistakes",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+    header: "Minor Mistakes",
+    accessorKey: "MinorMistakes",
+    cell: ({ row: { original } }) => (
+      <div
+        className={`text-left align-left ${
+          !original.Qualified ? "text-gray-400 italic" : ""
+        }`}
+      >
         {original.MinorMistakes === null ? "" : original.MinorMistakes}
       </div>
     ),
   },
   {
-    Header: "Major Mistakes",
-    accessor: "MajorMistakes",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+    header: "Major Mistakes",
+    accessorKey: "MajorMistakes",
+    cell: ({ row: { original } }) => (
+      <div
+        className={`text-left align-left ${
+          !original.Qualified ? "text-gray-400 italic" : ""
+        }`}
+      >
         {original.MajorMistakes === null ? "" : original.MajorMistakes}
       </div>
     ),
   },
   {
-    Header: "Cancelled DROS",
-    accessor: "CancelledDros",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+    header: "Cancelled DROS",
+    accessorKey: "CancelledDros",
+    cell: ({ row: { original } }) => (
+      <div
+        className={`text-left align-left ${
+          !original.Qualified ? "text-gray-400 italic" : ""
+        }`}
+      >
         {original.CancelledDros === null ? "" : original.CancelledDros}
       </div>
     ),
   },
   {
-    Header: "Weighted Error Rate",
-    accessor: "WeightedErrorRate",
-    Cell: ({ row: { original } }) => (
-      <div className={`${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+    header: "Weighted Error Rate",
+    accessorKey: "WeightedErrorRate",
+    cell: ({ row: { original } }) => (
+      <div
+        className={`text-left align-left ${
+          !original.Qualified ? "text-gray-400 italic" : ""
+        }`}
+      >
         {original.isDivider
           ? ""
           : original.WeightedErrorRate === null
@@ -634,11 +700,13 @@ const summaryColumns: DataTableColumn[] = [
     ),
   },
   {
-    Header: "Status",
-    accessor: "DisqualificationReason",
-    Cell: ({ row: { original } }) => (
+    header: "Status",
+    accessorKey: "DisqualificationReason",
+    cell: ({ row: { original } }) => (
       <div
-        className={`${!original.Qualified ? "text-red-500" : "text-green-500"}`}
+        className={`text-left align-left ${
+          !original.Qualified ? "text-red-500" : "text-green-500"
+        }`}
         dangerouslySetInnerHTML={{
           __html: DOMPurify.sanitize(original.DisqualificationReason, {
             ALLOWED_TAGS: [],
@@ -653,13 +721,13 @@ const summaryColumns: DataTableColumn[] = [
   },
 ];
 
-
-
-
-
 // Update to be a function that takes mutations as parameters
 const getAuditColumns = (
-  updateAuditMutation: UseMutationResult<any, Error, { auditId: string; data: Partial<Audit> }>,
+  updateAuditMutation: UseMutationResult<
+    any,
+    Error,
+    { auditId: string; data: Partial<Audit> }
+  >,
   deleteAuditMutation: UseMutationResult<any, Error, string>,
   handleDeleteAudit: (auditId: string) => Promise<void>, // Add this parameter
   setModalState: (state: ModalState) => void
@@ -729,29 +797,7 @@ const getAuditColumns = (
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setModalState({ isOpen: true, selectedAudit: row.original })}
-          className="h-8 w-8 p-0"
-        >
-          <span className="sr-only">Edit</span>
-          <Pencil1Icon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleDeleteAudit(row.original.audits_id)}
-          className="h-8 w-8 p-0"
-          disabled={deleteAuditMutation.isPending}
-        >
-          <span className="sr-only">Delete</span>
-          <TrashIcon className="h-4 w-4" />
-        </Button>
-      </div>
-    ),
+    cell: ({ row }) => <AuditActions row={row} />,
   },
 ];
 
@@ -837,7 +883,12 @@ const profileTableStyles = {
 } as const;
 // TanStack Query Hooks
 import { useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
 
 const usePageParams = () => {
@@ -898,80 +949,173 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     staleTime: Infinity,
   });
 
-  // Date-dependent queries
-  const dateRange = selectedDate ? getMonthDateRange(selectedDate) : null;
+  // Date range calculation
+  const dateRange = useMemo(() => {
+    if (!selectedDate) return null;
 
-  const auditsQuery = useQuery({
-    queryKey: ["audits"],
-    queryFn: () => api.fetchAudits(),
-    staleTime: 0, // Set to 0 to ensure fresh data on tab change
-  });
+    // Get first day of the selected month
+    const startDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      1
+    );
 
+    // Use the actual selected date for end date
+    const endDate = new Date(selectedDate);
+
+    // Ensure we're capturing the full day
+    endDate.setHours(23, 59, 59, 999);
+
+    return {
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+    };
+  }, [selectedDate]);
+
+  // Queries
   const salesDataQuery = useQuery({
     queryKey: [
       "salesData",
       dateRange?.startDate,
       dateRange?.endDate,
       selectedLanid,
-      showAllEmployees, // Add this to dependencies
+      showAllEmployees,
     ],
-    queryFn: () =>
-      dateRange
-        ? api.fetchSalesData(
-            dateRange.startDate,
-            dateRange.endDate,
-            selectedLanid || undefined,
-            showAllEmployees // Pass this explicitly
-          )
-        : Promise.resolve([]),
+    queryFn: async () => {
+      if (!dateRange) return [];
+      return api.fetchSalesData(
+        dateRange.startDate,
+        dateRange.endDate,
+        selectedLanid || undefined,
+        showAllEmployees
+      );
+    },
+    enabled: !!dateRange,
+  });
+
+  const auditsQuery = useQuery({
+    queryKey: [
+      "audits",
+      dateRange?.startDate,
+      dateRange?.endDate,
+      selectedLanid,
+    ],
+    queryFn: async () => {
+      if (!dateRange) return [];
+      return api.fetchAudits({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        lanid: selectedLanid || undefined,
+      });
+    },
     enabled: !!dateRange,
   });
 
   // Mutations
   const updateAuditMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       auditId,
       data,
     }: {
       auditId: string;
       data: Partial<Audit>;
-    }) => api.updateAudit(auditId, data),
+    }) => {
+      const { error } = await supabase
+        .from("Auditsinput")
+        .update(data)
+        .eq("audits_id", auditId);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audits"] });
       toast.success("Audit updated successfully");
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to update audit: ${error.message}`);
+    onError: (error) => {
+      toast.error(
+        `Failed to update audit: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     },
   });
 
   const deleteAuditMutation = useMutation({
-    mutationFn: async (auditId: string) => {
-      const { error } = await supabase
-        .from("Auditsinput")
-        .delete()
-        .eq("audits_id", auditId); // Change 'id' to 'audits_id'
-      
+    mutationFn: api.deleteAudit,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      toast.success("Audit deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(
+        `Error deleting audit: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    },
+  });
+
+  const salesDataMutation = useMutation({
+    mutationFn: async (data: SalesData) => {
+      const { error } = await supabase.from("sales_data").upsert(data);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Audit deleted successfully");
-      queryClient.invalidateQueries({ queryKey: AUDITS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["salesData"] });
+      toast.success("Sales data updated successfully");
     },
     onError: (error) => {
-      toast.error(`Error deleting audit: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      toast.error(
+        `Failed to update sales data: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    },
   });
 
+  const auditMutation = useMutation({
+    mutationFn: async (data: Audit) => {
+      const { error } = await supabase.from("Auditsinput").upsert(data);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      toast.success("Audit data updated successfully");
+    },
+    onError: (error) => {
+      toast.error(
+        `Failed to update audit data: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    },
+  });
+
+  const pointsCalculationMutation = useMutation({
+    mutationFn: async (data: PointsCalculation) => {
+      const { error } = await supabase.from("points_calculation").upsert(data);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pointsCalculation"] });
+      toast.success("Points calculation updated successfully");
+    },
+    onError: (error) => {
+      toast.error(
+        `Failed to update points calculation: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    },
+  });
+
+  // Handle delete audit
   const handleDeleteAudit = async (auditId: string) => {
     try {
       await deleteAuditMutation.mutateAsync(auditId);
     } catch (error) {
-      // Error is handled by the mutation's onError
-      console.error("Delete operation failed:", error);
+      // Error handled by mutation's onError
     }
-    };
-
+  };
 
   // Computed summary data
   const summaryData = useMemo(() => {
@@ -1004,10 +1148,23 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   // Event handlers that update URL params
   const handleDateChange = useCallback(
     (date: Date | undefined) => {
-      const formattedDate = date ? format(date, "yyyy-MM-dd") : null;
-      pageParams.setParams({ date: formattedDate || undefined });
+      if (!date) {
+        pageParams.setParams({ date: undefined });
+        return;
+      }
+
+      // Add one day to compensate for timezone offset
+      const adjustedDate = new Date(date);
+      adjustedDate.setDate(adjustedDate.getDate() + 1);
+      const formattedDate = format(adjustedDate, "yyyy-MM-dd");
+
+      pageParams.setParams({ date: formattedDate });
+
+      // Invalidate queries to force refresh
+      queryClient.invalidateQueries({ queryKey: ["salesData"] });
+      queryClient.invalidateQueries({ queryKey: ["audits"] });
     },
-    [pageParams.setParams]
+    [pageParams.setParams, queryClient]
   );
 
   const handleEmployeeChange = useCallback(
@@ -1191,23 +1348,116 @@ const useAuditsPage = () => {
   };
 };
 
-const useModalState = () => {
+const AuditActions = ({ row }: { row: { original: Audit } }) => {
+  const { setModalState } = useModalState();
   const queryClient = useQueryClient();
 
-  const { data: modalState } = useQuery<ModalState>({
-    queryKey: MODAL_KEY,
-    queryFn: () => ({ isOpen: false, selectedAudit: null }),
+  // Use query for delete dialog state
+  const { data: selectedAudit } = useQuery({
+    queryKey: DELETE_DIALOG_KEY,
+    queryFn: () => null as Audit | null,
     staleTime: Infinity,
   });
 
-  const setModalState = (newState: ModalState) => {
-    queryClient.setQueryData(MODAL_KEY, newState);
+  const setSelectedAudit = useCallback(
+    (audit: Audit | null) => {
+      queryClient.setQueryData(DELETE_DIALOG_KEY, audit);
+    },
+    [queryClient]
+  );
+
+  const deleteAuditMutation = useMutation({
+    mutationFn: api.deleteAudit,
+    onSuccess: () => {
+      toast.success("Audit deleted successfully");
+      queryClient.invalidateQueries({ queryKey: AUDITS_KEY });
+      setSelectedAudit(null); // Reset selected audit after deletion
+    },
+    onError: (error) => {
+      toast.error(
+        `Error deleting audit: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    },
+  });
+
+  const handleDelete = async () => {
+    if (selectedAudit?.audits_id) {
+      try {
+        await deleteAuditMutation.mutateAsync(selectedAudit.audits_id);
+      } catch (error) {
+        // Error is handled by mutation's onError
+      }
+    }
   };
 
-  return {
-    modalState: modalState || { isOpen: false, selectedAudit: null },
-    setModalState,
-  };
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() =>
+          setModalState({
+            isOpen: true,
+            selectedAudit: {
+              audits_id: row.original.audits_id,
+              dros_number: row.original.dros_number,
+              salesreps: row.original.salesreps,
+              trans_date: row.original.trans_date,
+              audit_date: row.original.audit_date,
+              dros_cancel: row.original.dros_cancel,
+              audit_type: row.original.audit_type,
+              error_location: row.original.error_location,
+              error_details: row.original.error_details,
+              error_notes: row.original.error_notes,
+            },
+          })
+        }
+        className="h-8 w-8 p-0"
+      >
+        <span className="sr-only">Edit</span>
+        <Pencil1Icon className="h-4 w-4" />
+      </Button>
+
+      <AlertDialog
+        open={!!selectedAudit}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSelectedAudit(null);
+          }
+        }}
+      >
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setSelectedAudit(row.original)}
+            disabled={deleteAuditMutation.isPending}
+          >
+            <span className="sr-only">Delete</span>
+            <TrashIcon className="h-4 w-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              audit record for DROS number: {selectedAudit?.dros_number}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedAudit(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 };
 
 // Main Component Implementation
@@ -1302,58 +1552,67 @@ function AuditsPage() {
           </TabsContent>
 
           <TabsContent value="review">
-        <Card>
-          <CardContent className="pt-6">
-            {auditsQuery.isLoading ? (
-              <LoadingIndicator />
-            ) : auditsQuery.data ? (
-              <>
-                <DataTable
-            columns={getAuditColumns(
-              updateAuditMutation,
-              deleteAuditMutation,
-              handleDeleteAudit, // Add this parameter
-              setModalState
-            )}
-            data={auditsQuery.data}
-          />
-                <Dialog 
-                  open={modalState.isOpen} 
-                  onOpenChange={(open) => 
-                    setModalState({ 
-                      isOpen: open, 
-                      selectedAudit: open ? modalState.selectedAudit : null 
-                    })
-                  }
-                >
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Audit</DialogTitle>
-                    </DialogHeader>
-                    {modalState.selectedAudit && (
-                      <EditAuditForm
-                        audit={{
-                          id: modalState.selectedAudit.audits_id,
-                          dros_number: modalState.selectedAudit.dros_number,
-                          sales_rep: modalState.selectedAudit.salesreps,
-                          trans_date: modalState.selectedAudit.trans_date,
-                          audit_date: modalState.selectedAudit.audit_date,
-                          dros_cancel: Boolean(modalState.selectedAudit.dros_cancel),
-                          audit_type: modalState.selectedAudit.audit_type,
-                          error_location: modalState.selectedAudit.error_location,
-                          error_details: modalState.selectedAudit.error_details,
-                          error_notes: modalState.selectedAudit.error_notes
-                        }}
-                        onClose={() => setModalState({ isOpen: false, selectedAudit: null })}
-                      />
-                    )}
-                  </DialogContent>
-                </Dialog>
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-      </TabsContent>
+            <Card>
+              <CardContent className="pt-6">
+                {auditsQuery.isLoading ? (
+                  <LoadingIndicator />
+                ) : auditsQuery.data ? (
+                  <>
+                    <DataTable
+                      columns={getAuditColumns(
+                        updateAuditMutation,
+                        deleteAuditMutation,
+                        handleDeleteAudit, // Add this parameter
+                        setModalState
+                      )}
+                      data={auditsQuery.data}
+                    />
+                    <Dialog
+                      open={modalState.isOpen}
+                      onOpenChange={(open) =>
+                        setModalState({
+                          isOpen: open,
+                          selectedAudit: open ? modalState.selectedAudit : null,
+                        })
+                      }
+                    >
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Audit</DialogTitle>
+                        </DialogHeader>
+                        {modalState.selectedAudit && (
+                          <EditAuditForm
+                            audit={{
+                              audits_id: modalState.selectedAudit.audits_id,
+                              dros_number: modalState.selectedAudit.dros_number,
+                              salesreps: modalState.selectedAudit.salesreps,
+                              trans_date: modalState.selectedAudit.trans_date,
+                              audit_date: modalState.selectedAudit.audit_date,
+                              dros_cancel: modalState.selectedAudit.dros_cancel
+                                ? "true"
+                                : "false",
+                              audit_type: modalState.selectedAudit.audit_type,
+                              error_location:
+                                modalState.selectedAudit.error_location,
+                              error_details:
+                                modalState.selectedAudit.error_details,
+                              error_notes: modalState.selectedAudit.error_notes,
+                            }}
+                            onClose={() =>
+                              setModalState({
+                                isOpen: false,
+                                selectedAudit: null,
+                              })
+                            }
+                          />
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                ) : null}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="contest">
             <h1 className="text-xl font-bold mb-2 ml-2">
@@ -1675,15 +1934,17 @@ function AuditsPage() {
             <Card>
               <CardContent>
                 {selectedDate && (
-                  <DataTableProfile
-                    columns={summaryColumns.map((col) => ({
-                      Header: col.Header as string,
-                      accessor: col.accessor as string,
-                      Cell: col.Cell as any,
-                    }))}
-                    data={summaryTableData}
-                    {...tableOptions}
-                  />
+                  <div className="text-left">
+                    <DataTableProfile
+                      columns={summaryColumns.map((col) => ({
+                        Header: col.header as string,
+                        accessor: col.id as string,
+                        Cell: col.cell as any,
+                      }))}
+                      data={summaryTableData}
+                      {...tableOptions}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1697,7 +1958,9 @@ function AuditsPage() {
 // Export with Query Client Provider
 const AuditsPageWithProvider = () => (
   <QueryClientProvider client={queryClient}>
-    <AuditsPage />
+    <ModalStateProvider>
+      <AuditsPage />
+    </ModalStateProvider>
   </QueryClientProvider>
 );
 
