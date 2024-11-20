@@ -172,6 +172,14 @@ interface TableMeta<T> {
   deleteMutation: UseMutationResult<any, Error, string>;
 }
 
+interface ModalState {
+  isOpen: boolean;
+  selectedAudit: Audit | null;
+}
+
+const MODAL_KEY = ['edit-modal-state'] as const;
+const AUDITS_KEY = ['audits'] as const;
+
 // Create Query Client with configuration
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -551,26 +559,9 @@ const handleEditAudit = async (
   }
 };
 
-const handleDeleteAudit = async (
-  auditId: string,
-  deleteMutation: any
-): Promise<void> => {
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this audit?"
-  );
-  if (confirmDelete) {
-    try {
-      await deleteMutation.mutateAsync(auditId);
-      toast.success("Audit deleted successfully");
-    } catch (error) {
-      toast.error(
-        `Failed to delete audit: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  }
-};
+
+
+
 
 // Summary Table Columns
 // Update the summaryColumns definition
@@ -662,15 +653,16 @@ const summaryColumns: DataTableColumn[] = [
   },
 ];
 
-// Audit Table Columns
+
+
+
+
 // Update to be a function that takes mutations as parameters
 const getAuditColumns = (
-  updateAuditMutation: UseMutationResult<
-    any,
-    Error,
-    { auditId: string; data: Partial<Audit> }
-  >,
-  deleteAuditMutation: UseMutationResult<any, Error, string>
+  updateAuditMutation: UseMutationResult<any, Error, { auditId: string; data: Partial<Audit> }>,
+  deleteAuditMutation: UseMutationResult<any, Error, string>,
+  handleDeleteAudit: (auditId: string) => Promise<void>, // Add this parameter
+  setModalState: (state: ModalState) => void
 ): ColumnDef<Audit>[] => [
   {
     id: "dros_number",
@@ -742,7 +734,7 @@ const getAuditColumns = (
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleEditAudit(row.original, updateAuditMutation)}
+          onClick={() => setModalState({ isOpen: true, selectedAudit: row.original })}
           className="h-8 w-8 p-0"
         >
           <span className="sr-only">Edit</span>
@@ -751,10 +743,9 @@ const getAuditColumns = (
         <Button
           variant="ghost"
           size="sm"
-          onClick={() =>
-            handleDeleteAudit(row.original.audits_id, deleteAuditMutation)
-          }
+          onClick={() => handleDeleteAudit(row.original.audits_id)}
           className="h-8 w-8 p-0"
+          disabled={deleteAuditMutation.isPending}
         >
           <span className="sr-only">Delete</span>
           <TrashIcon className="h-4 w-4" />
@@ -846,6 +837,8 @@ const profileTableStyles = {
 } as const;
 // TanStack Query Hooks
 import { useCallback } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
 
 const usePageParams = () => {
   const router = useRouter();
@@ -953,15 +946,32 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   });
 
   const deleteAuditMutation = useMutation({
-    mutationFn: (auditId: string) => api.deleteAudit(auditId),
+    mutationFn: async (auditId: string) => {
+      const { error } = await supabase
+        .from("Auditsinput")
+        .delete()
+        .eq("audits_id", auditId); // Change 'id' to 'audits_id'
+      
+      if (error) throw error;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["audits"] });
       toast.success("Audit deleted successfully");
+      queryClient.invalidateQueries({ queryKey: AUDITS_KEY });
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete audit: ${error.message}`);
-    },
+    onError: (error) => {
+      toast.error(`Error deleting audit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   });
+
+  const handleDeleteAudit = async (auditId: string) => {
+    try {
+      await deleteAuditMutation.mutateAsync(auditId);
+    } catch (error) {
+      // Error is handled by the mutation's onError
+      console.error("Delete operation failed:", error);
+    }
+    };
+
 
   // Computed summary data
   const summaryData = useMemo(() => {
@@ -1096,6 +1106,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     // Mutations
     updateAuditMutation,
     deleteAuditMutation,
+    handleDeleteAudit,
 
     // Computed data
     summaryData,
@@ -1180,8 +1191,28 @@ const useAuditsPage = () => {
   };
 };
 
+const useModalState = () => {
+  const queryClient = useQueryClient();
+
+  const { data: modalState } = useQuery<ModalState>({
+    queryKey: MODAL_KEY,
+    queryFn: () => ({ isOpen: false, selectedAudit: null }),
+    staleTime: Infinity,
+  });
+
+  const setModalState = (newState: ModalState) => {
+    queryClient.setQueryData(MODAL_KEY, newState);
+  };
+
+  return {
+    modalState: modalState || { isOpen: false, selectedAudit: null },
+    setModalState,
+  };
+};
+
 // Main Component Implementation
 function AuditsPage() {
+  const { modalState, setModalState } = useModalState();
   const {
     // URL Params
     tab,
@@ -1199,6 +1230,7 @@ function AuditsPage() {
     // Mutations
     updateAuditMutation,
     deleteAuditMutation,
+    handleDeleteAudit,
 
     // Computed data
     summaryData,
@@ -1270,22 +1302,58 @@ function AuditsPage() {
           </TabsContent>
 
           <TabsContent value="review">
-            <Card>
-              <CardContent className="pt-6">
-                {auditsQuery.isLoading ? (
-                  <LoadingIndicator />
-                ) : auditsQuery.data ? (
-                  <DataTable
-                    columns={getAuditColumns(
-                      updateAuditMutation,
-                      deleteAuditMutation
+        <Card>
+          <CardContent className="pt-6">
+            {auditsQuery.isLoading ? (
+              <LoadingIndicator />
+            ) : auditsQuery.data ? (
+              <>
+                <DataTable
+            columns={getAuditColumns(
+              updateAuditMutation,
+              deleteAuditMutation,
+              handleDeleteAudit, // Add this parameter
+              setModalState
+            )}
+            data={auditsQuery.data}
+          />
+                <Dialog 
+                  open={modalState.isOpen} 
+                  onOpenChange={(open) => 
+                    setModalState({ 
+                      isOpen: open, 
+                      selectedAudit: open ? modalState.selectedAudit : null 
+                    })
+                  }
+                >
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit Audit</DialogTitle>
+                    </DialogHeader>
+                    {modalState.selectedAudit && (
+                      <EditAuditForm
+                        audit={{
+                          id: modalState.selectedAudit.audits_id,
+                          dros_number: modalState.selectedAudit.dros_number,
+                          sales_rep: modalState.selectedAudit.salesreps,
+                          trans_date: modalState.selectedAudit.trans_date,
+                          audit_date: modalState.selectedAudit.audit_date,
+                          dros_cancel: Boolean(modalState.selectedAudit.dros_cancel),
+                          audit_type: modalState.selectedAudit.audit_type,
+                          error_location: modalState.selectedAudit.error_location,
+                          error_details: modalState.selectedAudit.error_details,
+                          error_notes: modalState.selectedAudit.error_notes
+                        }}
+                        onClose={() => setModalState({ isOpen: false, selectedAudit: null })}
+                      />
                     )}
-                    data={auditsQuery.data}
-                  />
-                ) : null}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </DialogContent>
+                </Dialog>
+              </>
+            ) : null}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
           <TabsContent value="contest">
             <h1 className="text-xl font-bold mb-2 ml-2">

@@ -2,14 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
-import {
-  Controller,
-  FormProvider,
-  useFieldArray,
-  useForm,
-} from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +29,7 @@ import { CustomCalendar } from "@/components/ui/calendar";
 import { supabase } from "@/utils/supabase/client";
 import { RenderDropdown, OptionType } from "./RenderDropdown";
 import { PopoverForm } from "./PopoverForm";
+import { useMemo } from "react";
 
 const formSchema = z.object({
   drosNumber: z.string().min(1, "DROS Number is required"),
@@ -52,7 +49,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-interface AuditData {
+export interface AuditData {
   id: string;
   dros_number: string;
   sales_rep: string;
@@ -63,6 +60,7 @@ interface AuditData {
   error_location: string;
   error_details: string;
   error_notes?: string;
+  salesreps?: string;
 }
 
 interface EditAuditFormProps {
@@ -70,77 +68,19 @@ interface EditAuditFormProps {
   onClose: () => void;
 }
 
+// Query keys
+const AUDIT_OPTIONS_KEY = ['audit-options'] as const;
+const EMPLOYEES_KEY = ['employees'] as const;
+
+
+
+
 export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
-  const [salesRepOptions, setSalesRepOptions] = useState<OptionType[]>([]);
-  const [auditTypeOptions, setAuditTypeOptions] = useState<OptionType[]>([]);
-  const [errorLocationOptions, setErrorLocationOptions] = useState<
-    OptionType[]
-  >([]);
-  const [errorDetailsOptions, setErrorDetailsOptions] = useState<OptionType[]>(
-    []
-  );
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchOptions();
-  }, []);
-
-  const fetchOptions = async () => {
-    const { data, error } = await supabase.from("Auditsinput").select("*");
-    if (error) {
-      //console.("Error fetching options:", error);
-      return;
-    }
-    updateOptions(data);
-  };
-
-  const updateOptions = (data: AuditData[]) => {
-    const salesRepSet = new Set<string>();
-    const auditTypeSet = new Set<string>();
-    const errorLocationSet = new Set<string>();
-    const errorDetailsSet = new Set<string>();
-
-    data.forEach((row) => {
-      if (row.sales_rep) salesRepSet.add(row.sales_rep);
-      if (row.audit_type) auditTypeSet.add(row.audit_type);
-      if (row.error_location) errorLocationSet.add(row.error_location);
-      if (row.error_details) errorDetailsSet.add(row.error_details);
-    });
-
-    setSalesRepOptions(
-      Array.from(salesRepSet).map((value) => ({ value, label: value }))
-    );
-    setAuditTypeOptions(
-      Array.from(auditTypeSet).map((value) => ({ value, label: value }))
-    );
-    setErrorLocationOptions(
-      Array.from(errorLocationSet).map((value) => ({ value, label: value }))
-    );
-    setErrorDetailsOptions(
-      Array.from(errorDetailsSet).map((value) => ({ value, label: value }))
-    );
-  };
-  const methods = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      drosNumber: audit.dros_number,
-      salesRep: audit.sales_rep,
-      transDate: new Date(audit.trans_date),
-      auditDate: new Date(audit.audit_date),
-      drosCancel: audit.dros_cancel,
-      audits: [
-        {
-          auditType: audit.audit_type,
-          errorLocation: audit.error_location,
-          errorDetails: audit.error_details,
-          errorNotes: audit.error_notes || "",
-        },
-      ],
-    },
-  });
-
-  const { control, handleSubmit } = methods;
-  const onSubmit = async (formData: FormData) => {
-    try {
+  // Update mutation
+  const updateAuditMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
       const { error } = await supabase
         .from("Auditsinput")
         .update({
@@ -157,30 +97,306 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
         .eq("id", audit.id);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Audit updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['audits'] }); // Invalidate audits list
       onClose();
-    } catch (error) {
-      //console.("Error updating audit:", error);
-    }
+    },
+    onError: (error) => {
+      toast.error(`Error updating audit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const { data: options } = useQuery({
+    queryKey: AUDIT_OPTIONS_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("Auditsinput").select("*");
+      if (error) throw error;
+      
+      const auditTypeSet = new Set<string>();
+      const errorLocationSet = new Set<string>();
+      const errorDetailsSet = new Set<string>();
+
+      // Add the existing audit values to ensure they're in the options
+      if (audit.audit_type) auditTypeSet.add(audit.audit_type);
+      if (audit.error_location) errorLocationSet.add(audit.error_location);
+      if (audit.error_details) errorDetailsSet.add(audit.error_details);
+
+      data.forEach((row: AuditData) => {
+        if (row.audit_type) auditTypeSet.add(row.audit_type);
+        if (row.error_location) errorLocationSet.add(row.error_location);
+        if (row.error_details) errorDetailsSet.add(row.error_details);
+      });
+
+      return {
+        auditTypeOptions: Array.from(auditTypeSet)
+          .filter(Boolean)
+          .map((value) => ({ value, label: value })),
+        errorLocationOptions: Array.from(errorLocationSet)
+          .filter(Boolean)
+          .map((value) => ({ value, label: value })),
+        errorDetailsOptions: Array.from(errorDetailsSet)
+          .filter(Boolean)
+          .map((value) => ({ value, label: value })),
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const methods = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      drosNumber: audit.dros_number,
+      salesRep: audit.salesreps || audit.sales_rep, // Handle both possible field names
+      transDate: new Date(audit.trans_date),
+      auditDate: new Date(audit.audit_date),
+      drosCancel: audit.dros_cancel,
+      audits: [
+        {
+          auditType: audit.audit_type,
+          errorLocation: audit.error_location,
+          errorDetails: audit.error_details,
+          errorNotes: audit.error_notes || "",
+        },
+      ],
+    },
+  });
+
+    // Fetch employees
+    const { data: employees } = useQuery({
+      queryKey: EMPLOYEES_KEY,
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("employees")
+          .select("*")
+          .order("lanid", { ascending: true });
+  
+        if (error) throw error;
+        return data || [];
+      },
+    });
+  
+    // Convert employees to options format
+    const salesRepOptions = useMemo(() => 
+      employees?.map(emp => ({
+        value: emp.lanid || '',
+        label: emp.lanid || '' // Ensure we always have a string
+      })).filter(option => option.value && option.label) ?? [], // Filter out any empty values
+      [employees]
+    );
+
+  const { control } = methods;
+
+  const onSubmit = (formData: FormData) => {
+    updateAuditMutation.mutate(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <FormField
-        control={control}
-        name="drosNumber"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>DROS Number</FormLabel>
-            <FormControl>
-              <Input {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      {/* Add similar FormField components for other fields */}
-      <Button type="submit">Update Audit</Button>
-    </form>
+    <FormProvider {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={control}
+          name="drosNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>DROS Number</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+<FormField
+          control={control}
+          name="salesRep"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sales Rep</FormLabel>
+              <FormControl>
+                <RenderDropdown
+                  field={field}
+                  options={salesRepOptions}
+                  placeholder="Select Sales Rep"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="transDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Transaction Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CustomCalendar
+                    selectedDate={field.value}
+                    onDateChange={field.onChange}
+                    disabledDays={() => false}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="auditDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Audit Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                <CustomCalendar
+                    selectedDate={field.value}
+                    onDateChange={field.onChange}
+                    disabledDays={() => false}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="drosCancel"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>DROS Cancel</FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="audits.0.auditType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Audit Type</FormLabel>
+              <FormControl>
+                <RenderDropdown
+                  field={field}
+                  options={options?.auditTypeOptions ?? []}
+                  placeholder="Select Audit Type"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="audits.0.errorLocation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Error Location</FormLabel>
+              <FormControl>
+                <RenderDropdown
+                  field={field}
+                  options={options?.errorLocationOptions ?? []}
+                  placeholder="Select Error Location"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="audits.0.errorDetails"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Error Details</FormLabel>
+              <FormControl>
+                <RenderDropdown
+                  field={field}
+                  options={options?.errorDetailsOptions ?? []}
+                  placeholder="Select Error Details"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="audits.0.errorNotes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit">Update Audit</Button>
+        </div>
+      </form>
+    </FormProvider>
   );
 }
 
