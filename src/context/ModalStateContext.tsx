@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AuditData } from "../app/admin/audits/submit/edit-audit-form"; // Make sure to import your Audit type
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { AuditData } from "../app/admin/audits/submit/edit-audit-form";
 
 export interface ModalState {
   isOpen: boolean;
@@ -24,23 +24,36 @@ export const ModalStateProvider = ({
 }) => {
   const queryClient = useQueryClient();
 
+  // Query for getting modal state
   const { data: modalState } = useQuery<ModalState>({
     queryKey: MODAL_KEY,
     queryFn: () => ({ isOpen: false, selectedAudit: null }),
     staleTime: Infinity,
+    gcTime: Infinity,
+    initialData: { isOpen: false, selectedAudit: null },
+  });
+
+  // Mutation for setting modal state
+  const setModalStateMutation = useMutation({
+    mutationFn: (newState: ModalState) => {
+      return Promise.resolve(newState);
+    },
+    onSuccess: (newState) => {
+      queryClient.setQueryData(MODAL_KEY, newState);
+    },
   });
 
   const setModalState = useCallback(
     (newState: ModalState) => {
-      queryClient.setQueryData(MODAL_KEY, newState);
+      setModalStateMutation.mutate(newState);
     },
-    [queryClient]
+    [setModalStateMutation]
   );
 
   return (
     <ModalStateContext.Provider
       value={{
-        modalState: modalState || { isOpen: false, selectedAudit: null },
+        modalState: modalState!,
         setModalState,
       }}
     >

@@ -325,9 +325,14 @@ const api = {
     auditId: string,
     updateData: Partial<Audit>
   ): Promise<Audit> => {
+    const normalizedData = {
+      ...updateData,
+      dros_cancel: updateData.dros_cancel ? "True" : "",
+    };
+
     const { data, error } = await supabase
       .from("Auditsinput")
-      .update(updateData)
+      .update(normalizedData)
       .eq("audits_id", auditId)
       .select()
       .single();
@@ -795,7 +800,11 @@ const getAuditColumns = (
     id: "dros_cancel",
     header: "DROS Cancel",
     accessorKey: "dros_cancel",
-    cell: ({ row }) => sanitizeHtml(row.original.dros_cancel),
+    cell: ({ row }) => {
+      const value = row.original.dros_cancel;
+      // Only show "True" if the value is explicitly "True", otherwise show empty string
+      return value === "True" ? "True" : "";
+    },
   },
   {
     id: "actions",
@@ -1441,7 +1450,8 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() =>
+        onClick={() => {
+          // Ensure all required fields are passed
           setModalState({
             isOpen: true,
             selectedAudit: {
@@ -1450,14 +1460,14 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
               salesreps: row.original.salesreps,
               trans_date: row.original.trans_date,
               audit_date: row.original.audit_date,
-              dros_cancel: row.original.dros_cancel,
+              dros_cancel: row.original.dros_cancel || "", // Ensure default empty string
               audit_type: row.original.audit_type,
-              error_location: row.original.error_location,
-              error_details: row.original.error_details,
-              error_notes: row.original.error_notes,
+              error_location: row.original.error_location || "",
+              error_details: row.original.error_details || "",
+              error_notes: row.original.error_notes || "",
             },
-          })
-        }
+          });
+        }}
         className="h-8 w-8 p-0"
       >
         <span className="sr-only">Edit</span>

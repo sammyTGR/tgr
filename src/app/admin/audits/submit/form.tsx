@@ -240,7 +240,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
           error_location: errorLocation.join(", "),
           error_details: errorDetails.join(", "),
           error_notes: note.trim(),
-          dros_cancel: isFirstAudit && formData.drosCancel ? "Yes" : null,
+          dros_cancel: isFirstAudit && formData.drosCancel ? "True" : "",
         };
 
         isFirstAudit = false; // After processing the first audit, set this to false
@@ -608,30 +608,33 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                 </Card>
 
                 <div className="md:col-span-2 lg:col-span-3 flex justify-end">
-                  <Button variant="linkHover2" onClick={() => remove(index)}>
-                    Remove Audit
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      onClick={() =>
+                        append({
+                          auditType: "",
+                          errorLocation: "",
+                          errorDetails: "",
+                          errorNotes: "",
+                        })
+                      }
+                    >
+                      Add Another Audit
+                    </Button>
+                    <Button variant="destructive" onClick={() => remove(index)}>
+                      Remove Audit
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
 
-            <div className="flex justify-between mt-4">
-              <Button
-                variant="linkHover2"
-                type="button"
-                onClick={() =>
-                  append({
-                    auditType: "",
-                    errorLocation: "",
-                    errorDetails: "",
-                    errorNotes: "",
-                  })
-                }
-              >
-                Add Another Audit
-              </Button>
-              <Button variant="linkHover1" type="submit">
-                Submit
+            {/* Single Submit button outside the map */}
+            <div className="flex justify-start mt-6">
+              <Button variant="gooeyLeft" type="submit">
+                Submit Audit
               </Button>
             </div>
           </form>

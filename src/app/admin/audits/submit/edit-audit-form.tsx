@@ -55,7 +55,7 @@ export interface AuditData {
   salesreps: string | null;
   trans_date: string | null;
   audit_date: string | null;
-  dros_cancel: string | null; // Changed to string to match DB
+  dros_cancel: string | ""; // Changed to string to match DB
   audit_type: string | null;
   error_location: string | null;
   error_details: string | null;
@@ -87,7 +87,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
           salesreps: formData.salesRep,
           trans_date: formData.transDate.toISOString().split("T")[0], // Format as YYYY-MM-DD for date type
           audit_date: formData.auditDate.toISOString().split("T")[0], // Format as YYYY-MM-DD for date type
-          dros_cancel: formData.drosCancel ? "true" : "false", // Convert boolean to string
+          dros_cancel: formData.drosCancel ? "True" : "", // Convert boolean to string
           audit_type: formData.audits[0].auditType,
           error_location: formData.audits[0].errorLocation,
           error_details: formData.audits[0].errorDetails,
@@ -160,7 +160,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
       salesRep: audit.salesreps || "", // Handle both possible field names
       transDate: new Date(audit.trans_date || ""),
       auditDate: new Date(audit.audit_date || ""),
-      drosCancel: audit.dros_cancel === "true",
+      drosCancel: audit.dros_cancel === "True",
       audits: [
         {
           auditType: audit.audit_type || "",
@@ -277,7 +277,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
           )}
         />
 
-        <FormField
+        {/* <FormField
           control={control}
           name="auditDate"
           render={({ field }) => (
@@ -313,7 +313,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
               <FormMessage />
             </FormItem>
           )}
-        />
+        /> */}
 
         <FormField
           control={control}
@@ -327,7 +327,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>DROS Cancel</FormLabel>
+                <FormLabel>Cancelled DROS</FormLabel>
               </div>
             </FormItem>
           )}
