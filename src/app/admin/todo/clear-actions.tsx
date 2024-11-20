@@ -18,20 +18,21 @@ export default function ClearActions() {
   });
 
   return (
-    <div className="flex items-center gap-2 border-t pt-2">
+    <div className="flex items-center border-t pt-2 justify-between space-x-2">
+      <Button
+        onClick={() => clearAllMutation.mutate()}
+        variant="destructive"
+        className="ml-auto"
+        size="sm"
+      >
+        Clear All Items
+      </Button>
       <Button
         onClick={() => clearCompletedMutation.mutate()}
         size="sm"
         variant="outline"
       >
         Clear Completed Items
-      </Button>
-      <Button
-        onClick={() => clearAllMutation.mutate()}
-        className="ml-auto"
-        size="sm"
-      >
-        Clear All Items
       </Button>
     </div>
   );
