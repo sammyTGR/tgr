@@ -108,7 +108,7 @@ interface DataRow {
   error_location?: string;
   error_details?: string;
   error_notes?: string;
-  dros_cancel?: string;
+  dros_cancel?: string | boolean;
 }
 
 interface Employee {
@@ -252,8 +252,8 @@ const api = {
       .select("*")
       .order("audit_date", { ascending: false });
 
-    // Only apply filters if they are provided (for the contest tab)
-    if (filters) {
+    // Only apply filters if they are provided AND we're in contest tab
+    if (filters && Object.keys(filters).length > 0) {
       if (filters.startDate) query = query.gte("audit_date", filters.startDate);
       if (filters.endDate) query = query.lte("audit_date", filters.endDate);
       if (filters.lanid) query = query.eq("salesreps", filters.lanid);
@@ -264,6 +264,8 @@ const api = {
     if (error) {
       throw new Error(`Error fetching audits: ${error.message}`);
     }
+
+    // Only filter by date range if filters are provided
     if (filters?.endDate) {
       return (data || []).filter((audit) => {
         const auditDate = new Date(audit.audit_date);
@@ -271,6 +273,7 @@ const api = {
         return auditDate <= endDate;
       });
     }
+
     return data || [];
   },
 
@@ -729,7 +732,7 @@ const getAuditColumns = (
     { auditId: string; data: Partial<Audit> }
   >,
   deleteAuditMutation: UseMutationResult<any, Error, string>,
-  handleDeleteAudit: (auditId: string) => Promise<void>, // Add this parameter
+  handleDeleteAudit: (auditId: string) => Promise<void>,
   setModalState: (state: ModalState) => void
 ): ColumnDef<Audit>[] => [
   {
@@ -936,6 +939,14 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const { selectedDate, selectedLanid, showAllEmployees } = pageParams;
   const queryClient = useQueryClient();
 
+  const reviewAuditsQuery = useQuery({
+    queryKey: ["audits", "review"],
+    queryFn: () => api.fetchAudits(),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    enabled: pageParams.tab === "review",
+  });
+
   // Base queries
   const employeesQuery = useQuery({
     queryKey: ["employees"],
@@ -993,9 +1004,28 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     enabled: !!dateRange,
   });
 
-  const auditsQuery = useQuery({
+  // const auditsQuery = useQuery({
+  //   queryKey: [
+  //     "audits",
+  //     dateRange?.startDate,
+  //     dateRange?.endDate,
+  //     selectedLanid,
+  //   ],
+  //   queryFn: async () => {
+  //     if (!dateRange) return [];
+  //     return api.fetchAudits({
+  //       startDate: dateRange.startDate,
+  //       endDate: dateRange.endDate,
+  //       lanid: selectedLanid || undefined,
+  //     });
+  //   },
+  //   enabled: !!dateRange,
+  // });
+
+  const contestAuditsQuery = useQuery({
     queryKey: [
       "audits",
+      "contest",
       dateRange?.startDate,
       dateRange?.endDate,
       selectedLanid,
@@ -1008,8 +1038,21 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         lanid: selectedLanid || undefined,
       });
     },
-    enabled: !!dateRange,
+    enabled: pageParams.tab === "contest" && !!dateRange, // Only run this query when on contest tab and dateRange exists
   });
+
+  const auditsData = useMemo(() => {
+    if (pageParams.tab === "review") {
+      return reviewAuditsQuery.data;
+    }
+    return contestAuditsQuery.data;
+  }, [pageParams.tab, reviewAuditsQuery.data, contestAuditsQuery.data]);
+
+  // Use this for loading states
+  const isLoadingAudits =
+    pageParams.tab === "review"
+      ? reviewAuditsQuery.isLoading
+      : contestAuditsQuery.isLoading;
 
   // Mutations
   const updateAuditMutation = useMutation({
@@ -1121,7 +1164,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const summaryData = useMemo(() => {
     if (
       !salesDataQuery.data ||
-      !auditsQuery.data ||
+      !contestAuditsQuery.data ||
       !pointsCalculationQuery.data ||
       !employeesQuery.data
     ) {
@@ -1130,7 +1173,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
 
     return calculateSummaryData(
       salesDataQuery.data,
-      auditsQuery.data,
+      contestAuditsQuery.data,
       pointsCalculationQuery.data,
       employeesQuery.data,
       showAllEmployees,
@@ -1138,7 +1181,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     );
   }, [
     salesDataQuery.data,
-    auditsQuery.data,
+    contestAuditsQuery.data,
     pointsCalculationQuery.data,
     employeesQuery.data,
     showAllEmployees, // Make sure this dependency is included
@@ -1257,7 +1300,8 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     // Queries
     employeesQuery,
     pointsCalculationQuery,
-    auditsQuery,
+    contestAuditsQuery,
+    reviewAuditsQuery,
     salesDataQuery,
 
     // Mutations
@@ -1273,19 +1317,19 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     isLoading:
       employeesQuery.isLoading ||
       pointsCalculationQuery.isLoading ||
-      auditsQuery.isLoading ||
+      contestAuditsQuery.isLoading ||
       salesDataQuery.isLoading,
 
     isError:
       employeesQuery.isError ||
       pointsCalculationQuery.isError ||
-      auditsQuery.isError ||
+      contestAuditsQuery.isError ||
       salesDataQuery.isError,
 
     error:
       employeesQuery.error ||
       pointsCalculationQuery.error ||
-      auditsQuery.error ||
+      contestAuditsQuery.error ||
       salesDataQuery.error,
 
     // Handlers
@@ -1474,8 +1518,9 @@ function AuditsPage() {
     // Queries
     employeesQuery,
     pointsCalculationQuery,
-    auditsQuery,
+    contestAuditsQuery,
     salesDataQuery,
+    reviewAuditsQuery,
 
     // Mutations
     updateAuditMutation,
@@ -1554,9 +1599,9 @@ function AuditsPage() {
           <TabsContent value="review">
             <Card>
               <CardContent className="pt-6">
-                {auditsQuery.isLoading ? (
+                {reviewAuditsQuery.isLoading ? (
                   <LoadingIndicator />
-                ) : auditsQuery.data ? (
+                ) : reviewAuditsQuery.data ? (
                   <>
                     <DataTable
                       columns={getAuditColumns(
@@ -1565,7 +1610,7 @@ function AuditsPage() {
                         handleDeleteAudit, // Add this parameter
                         setModalState
                       )}
-                      data={auditsQuery.data}
+                      data={reviewAuditsQuery.data}
                     />
                     <Dialog
                       open={modalState.isOpen}
@@ -1588,9 +1633,9 @@ function AuditsPage() {
                               salesreps: modalState.selectedAudit.salesreps,
                               trans_date: modalState.selectedAudit.trans_date,
                               audit_date: modalState.selectedAudit.audit_date,
-                              dros_cancel: modalState.selectedAudit.dros_cancel
-                                ? "true"
-                                : "false",
+                              dros_cancel:
+                                modalState.selectedAudit.dros_cancel?.toString() ||
+                                "",
                               audit_type: modalState.selectedAudit.audit_type,
                               error_location:
                                 modalState.selectedAudit.error_location,
