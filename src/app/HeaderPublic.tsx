@@ -43,6 +43,11 @@ const prodComps = [
     href: "/pricing",
     description: "You'll Find Something You Like!",
   },
+  {
+    title: "Newsletter",
+    href: "/public/subscribe",
+    description: "Sign Up For Insider Deals",
+  },
 ];
 
 const LazyNavigationMenu = dynamic(

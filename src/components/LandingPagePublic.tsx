@@ -37,11 +37,12 @@ const LandingPagePublic: React.FC = React.memo(() => {
           <div className="flex items-center justify-center py-6 md:py-6 lg:py-12">
             <div className="relative w-full max-w-xl">
               <Image
-                src="/TestBanner.png"
+                src="https://utfs.io/f/9jzftpblGSv7ROHHGs4fVP6o2eAaJrB1Rt9lE3Wk7wqnNhxD"
                 alt="Banner"
                 width={1000}
                 height={300}
                 priority
+                className="w-full h-auto object-contain"
               />
             </div>
           </div>

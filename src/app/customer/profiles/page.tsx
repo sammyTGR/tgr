@@ -66,7 +66,7 @@ export default function ProfilePage() {
     <Card className="w-full max-w-3xl my-8 mx-auto">
       <header className="bg-gray-200 dark:bg-gray-800 p-6 rounded-t-lg flex items-center gap-4">
         <Avatar className="h-12 w-12">
-          <AvatarImage src="/banner.png" />
+          <AvatarImage src="https://utfs.io/f/9jzftpblGSv7zWule6FCYeqvSEFOu6crDAy19t5KBU2kQ0jZ" />
           <AvatarFallback></AvatarFallback>
         </Avatar>
         <div>

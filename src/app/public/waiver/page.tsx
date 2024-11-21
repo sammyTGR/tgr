@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 const addressRegex = /^[0-9]+\s[A-Za-z0-9\s,.-]+$/;
@@ -84,31 +85,54 @@ const WaiverForm = () => {
     reset,
   } = methods;
 
+  // Add new mutation for newsletter subscription
+  const newsletterMutation = useMutation({
+    mutationFn: async (data: {
+      first_name: string;
+      last_name: string;
+      email: string;
+    }) => {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+      if (!response.ok) throw new Error(responseData.error);
+      return responseData;
+    },
+  });
+
   const onSubmit = async (data: FormData) => {
     if (data.felony === "yes") {
       toast.error("Felons are ineligible to shoot.");
       return;
     }
 
-    // Normalize the input data to uppercase for case-insensitive checking
-    const normalizedFirstName = data.first_name.toUpperCase();
-    const normalizedLastName = data.last_name.toUpperCase();
-    const normalizedEmail = data.email.toUpperCase();
-    const normalizedPhone = data.phone;
-    const normalizedStreet = data.street.toUpperCase();
-    const normalizedCity = data.city.toUpperCase();
-    const normalizedState = data.state.toUpperCase();
-    const normalizedSignature = data.signature.toUpperCase();
+    // Normalize the input data
+    const normalizedData = {
+      first_name: data.first_name.toUpperCase(),
+      last_name: data.last_name.toUpperCase(),
+      email: data.email.toUpperCase(),
+      phone: data.phone,
+      street: data.street.toUpperCase(),
+      city: data.city.toUpperCase(),
+      state: data.state.toUpperCase(),
+      signature: data.signature.toUpperCase(),
+    };
 
     try {
-      // Check for existing entries with the same normalized name, email, and phone number
+      // Check for existing entries
       const { data: existingEntries, error: fetchError } = await supabase
         .from("waiver")
         .select("id")
-        .eq("first_name", normalizedFirstName)
-        .eq("last_name", normalizedLastName)
-        .eq("email", normalizedEmail)
-        .eq("phone", normalizedPhone);
+        .eq("first_name", normalizedData.first_name)
+        .eq("last_name", normalizedData.last_name)
+        .eq("email", normalizedData.email)
+        .eq("phone", normalizedData.phone);
 
       if (fetchError) {
         console.error("Error checking for duplicate entries:", fetchError);
@@ -121,51 +145,67 @@ const WaiverForm = () => {
         return;
       }
 
-      // Proceed with form submission if no duplicates are found
+      // Submit waiver form
       const { error } = await supabase.from("waiver").insert({
         ...data,
-        first_name: normalizedFirstName,
-        last_name: normalizedLastName,
-        email: normalizedEmail,
-        phone: normalizedPhone,
-        street: normalizedStreet,
-        city: normalizedCity,
-        state: normalizedState,
-        signature: normalizedSignature,
+        ...normalizedData,
       });
 
       if (error) {
         console.error("Error submitting form:", error);
         toast.error("Error submitting form.");
+        return;
+      }
+
+      // If special_offers is checked, subscribe to newsletter
+      if (data.special_offers) {
+        try {
+          await newsletterMutation.mutateAsync({
+            first_name: data.first_name,
+            last_name: data.last_name,
+            email: data.email,
+          });
+          // Don't show success toast here as we'll show a combined success message
+        } catch (newsletterError) {
+          console.error("Newsletter subscription error:", newsletterError);
+          // Continue with form submission success even if newsletter fails
+        }
+      }
+
+      // Reset form and show success message
+      reset({
+        first_name: "",
+        last_name: "",
+        phone: "",
+        email: "",
+        street: "",
+        city: "",
+        state: "",
+        zip: "",
+        occupation: "",
+        company: "",
+        work_phone: "",
+        safety_rules: false,
+        information_accurate: false,
+        special_offers: false,
+        signature: "",
+        handgun_experience: "",
+        rifle_experience: "",
+        shotgun_experience: "",
+        mental_illness: "",
+        felony: "",
+        misdemeanor: "",
+        narcotics: "",
+        alcohol_abuse: "",
+      });
+
+      // Show appropriate success message
+      if (data.special_offers) {
+        toast.success(
+          "Waiver submitted and newsletter subscription completed!"
+        );
       } else {
-        // console.log("Form submitted successfully");
-        // Reset form fields
-        reset({
-          first_name: "",
-          last_name: "",
-          phone: "",
-          email: "",
-          street: "",
-          city: "",
-          state: "",
-          zip: "",
-          occupation: "",
-          company: "",
-          work_phone: "",
-          safety_rules: false,
-          information_accurate: false,
-          special_offers: false,
-          signature: "",
-          handgun_experience: "",
-          rifle_experience: "",
-          shotgun_experience: "",
-          mental_illness: "",
-          felony: "",
-          misdemeanor: "",
-          narcotics: "",
-          alcohol_abuse: "",
-        });
-        toast.success("Form submitted successfully!");
+        toast.success("Waiver submitted successfully!");
       }
     } catch (err) {
       console.error("Unexpected error:", err);

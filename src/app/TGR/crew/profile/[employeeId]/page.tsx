@@ -929,7 +929,10 @@ const EmployeeProfilePage = () => {
             <div className="flex items-center gap-4">
               <Avatar>
                 <img
-                  src={employee?.avatar_url || "/Banner.png"}
+                  src={
+                    employee?.avatar_url ||
+                    "https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh"
+                  }
                   alt="Employee Avatar"
                 />
                 <AvatarFallback>{employee?.name?.[0] || "?"}</AvatarFallback>

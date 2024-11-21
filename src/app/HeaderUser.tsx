@@ -64,16 +64,11 @@ const serviceComponents = [
     href: "/sales/orderreview/crew",
     description: "Check On Submitted Order Status",
   },
-  // {
-  //   title: "Safety Waiver",
-  //   href: "/public/waiver",
-  //   description: "Submit A Safety Waiver",
-  // },
-  // {
-  //   title: "Check Customers In",
-  //   href: "/sales/waiver/checkin",
-  //   description: "Check Customers In & Review Waivers",
-  // },
+  {
+    title: "Newsletter",
+    href: "/public/subscribe",
+    description: "Sign Up For Deals",
+  },
 ];
 
 const formComps = [
@@ -145,18 +140,18 @@ const HeaderUser = React.memo(() => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-const { isLoading } = useQuery({
-  queryKey: ["navigation", pathname, searchParams],
-  queryFn: () => {
-    return Promise.resolve(
-      new Promise((resolve) => {
-        setTimeout(() => resolve(null), 100);
-      })
-    );
-  },
-  staleTime: 0, // Always refetch on route change
-  refetchInterval: 0, // Disable automatic refetching
-});
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: () => {
+      return Promise.resolve(
+        new Promise((resolve) => {
+          setTimeout(() => resolve(null), 100);
+        })
+      );
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   useEffect(() => {
     const fetchUser = async () => {

@@ -240,15 +240,13 @@ export default function Pricing({ user, products, subscription }: Props) {
       <div className="sm:flex sm:flex-col sm:align-center">
         <div className="w-full mx-auto items-center justify-center max-w-3xl">
           <Image
-            src="/MembershipBanner.png"
+            src="https://utfs.io/f/9jzftpblGSv76VOWzBChTNu61XjtIdaxmyHDL2cV5f0WJsFE"
             alt="Banner"
-            layout="responsive"
             width={1211}
             height={386}
-            quality={100}
-            objectFit="contain"
+            priority
+            className="w-full h-auto object-contain"
           />
-
           <p className="max-w-2xl m-auto text-xl sm:text-center sm:text-2xl">
             Let&apos;s get you set up with a subscription and | or firearm
             that&apos;s a ... blast... and works best for your goals!
