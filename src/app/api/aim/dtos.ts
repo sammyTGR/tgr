@@ -1,212 +1,181 @@
+import * as ServiceStack from '@servicestack/client';
+
+// Base interfaces
 export interface IReturn<T> {
     createResponse(): T;
 }
 
-export class BaseResponse {
-    public Status?: BaseResponseResult;
-
-    constructor(init?: Partial<BaseResponse>) {
-        Object.assign(this, init);
-    }
+export interface BaseResponse {
+    Status?: ResponseStatus;
 }
 
-export class BaseRequest {
-    public ApiKey: string = '';
-    public OAuthToken?: string;
+export class GetEndpointRequest implements IReturn<GetEndpointResponse> {
+    ApiKey?: string;
+    AppId?: string;
+    Username?: string;
+    Password?: string;
 
-    constructor(init?: Partial<BaseRequest>) {
+    constructor(init?: Partial<GetEndpointRequest>) {
         Object.assign(this, init);
     }
+
+    createResponse() { return new GetEndpointResponse(); }
+    getTypeName() { return 'GetEndpointRequest'; }
+}
+
+// Response class
+export class GetEndpointResponse {
+    Domain?: string;
+    Token?: string;
+    Status?: ResponseStatus;
+}
+
+export class ResponseStatus {
+    ErrorCode?: string;
+    Message?: string;
+    StackTrace?: string;
+    StatusCode?: string;
+    ErrorMessage?: string;
+}
+
+// Base Request Classes
+export class BaseRequest {
+    ApiKey?: string;
+    OAuthToken?: string;
 }
 
 export class BaseSecureRequest extends BaseRequest {
-    public Token?: string;
-    public DeviceId?: string;
-    public AppId: string = '';
-
-    constructor(init?: Partial<BaseSecureRequest>) {
-        super(init);
-        Object.assign(this, init);
-    }
+    Token?: string;
+    DeviceId?: string;
+    AppId?: string;
 }
 
-
-export class InventoryDetailResponse extends BaseResponse {
-    public SadPk?: number;
-    public InvType?: string;
-    public Model?: string;
-    public Description?: string;
-    public Mfg?: string;
-    public Category?: number;
-    public CategoryDescription?: string;
-    public SubCategory?: number;
-    public SubCategoryDescription?: string;
-    public SelectionCode?: string;
-    public SelectionCodeDescription?: string;
-    public SellSerialsOnline?: boolean;
-    public Notes?: string;
-    public Images?: ImageInfo[];
-    public HasImages?: boolean;
-    public VariantDetails?: InventoryDetailByVariant[];
-    public AddOns?: AddOnDetail[];
-    public ActiveEInfo?: ActiveEInfo;
-    public Weight?: number;
-    public Unit?: string;
-    public ShipCharge?: number;
-
-    constructor(init?: Partial<InventoryDetailResponse>) {
-        super(init);
-        Object.assign(this, init);
-    }
-}
-
-
+// Inventory Detail DTOs
 export class InventoryDetailRequest extends BaseSecureRequest implements IReturn<InventoryDetailResponse> {
-    public Pk?: number;
-    public PkType?: string;
-    public Model?: string;
-    public SkipImages?: boolean;
-    public IncludeSerialInfo?: boolean;
-    public CustomerAcct?: number;
+    Model?: string;
+    SkipImages?: boolean;
+    IncludeSerialInfo?: boolean;
 
     constructor(init?: Partial<InventoryDetailRequest>) {
-        super(init);
+        super();
         Object.assign(this, init);
     }
-    public getTypeName() { return 'InventoryDetailRequest'; }
-    public getMethod() { return 'POST'; }
-    public createResponse() { return new InventoryDetailResponse(); }
+
+    createResponse() { return new InventoryDetailResponse(); }
+    getTypeName() { return 'InventoryDetailRequest'; }
 }
 
-// @DataContract
-export class InventoryLookupObj {
-    public ResultType?: string;
-    public Sku?: string;
-    public Serial?: string;
-    public Category?: number;
-    public SubCategory?: number;
-    public Description?: string;
-    public ComputerQty?: number;
-    public AvailableQty?: number;
-    public SadPk?: number;
-    public SkuPk?: number;
-    public SasPk?: number;
-    public InventoryType?: string;
-    public NicsPrice?: number;
-    public ADBookItem?: boolean;
-    public LocationCode?: string;
-
-    constructor(init?: Partial<InventoryLookupObj>) {
-        Object.assign(this, init);
-    }
+export class InventoryDetailResponse implements BaseResponse {
+    Item?: InventoryItem;
+    Status?: ResponseStatus;
 }
 
-// @DataContract
-export class InventoryLookupResponse extends BaseResponse {
-    public Results?: InventoryLookupObj[];
-
-    constructor(init?: Partial<InventoryLookupResponse>) {
-        super(init);
-        Object.assign(this, init);
-    }
-}
-
-// @DataContract
+// Inventory Lookup DTOs
 export class InventoryLookupRequest extends BaseSecureRequest implements IReturn<InventoryLookupResponse> {
-    public Item?: string;
-    public LocationCode?: string;
+    Item?: string;
+    LocationCode?: string;
 
     constructor(init?: Partial<InventoryLookupRequest>) {
-        super(init);
+        super();
         Object.assign(this, init);
     }
-    public getTypeName() { return 'InventoryLookupRequest'; }
-    public getMethod() { return 'GET'; }
-    public createResponse() { return new InventoryLookupResponse(); }
+
+    createResponse() { return new InventoryLookupResponse(); }
+    getTypeName() { return 'InventoryLookupRequest'; }
 }
 
-// Add BaseResponseResult if it's not defined elsewhere
-export class BaseResponseResult {
-    public StatusCode?: string;
-    public Login?: string;
-    public ErrorCode?: string;
-    public ErrorDisplayText?: string;
-    public ErrorMessage?: string;
-    public DomainName?: string;
-    public IpAddress?: string;
-
-    constructor(init?: Partial<BaseResponseResult>) {
-        Object.assign(this, init);
-    }
+export class InventoryLookupResponse implements BaseResponse {
+    Items?: InventoryItem[];
+    Status?: ResponseStatus;
 }
 
-// Additional classes that were referenced but not defined
-export class ImageInfo {
-    // Add properties for ImageInfo if needed
-    constructor(init?: Partial<ImageInfo>) {
-        Object.assign(this, init);
-    }
+export interface BaseResponseResult {
+    StatusCode?: string;
+    Login?: string;
+    ErrorCode?: string;
+    ErrorDisplayText?: string;
+    ErrorMessage?: string;
+    DomainName?: string;
+    IpAddress?: string;
 }
 
-export class InventoryDetailByVariant {
-    // Add properties as needed
-}
-
-export class AddOnDetail {
-    // Add properties as needed
-}
-
-export class ActiveEInfo {
-    // Add properties as needed
-}
-
-// Define or import InventoryDetail if it's defined elsewhere
-// For now, we'll define it as an interface with some sample properties
-export interface InventoryDetail {
-    // Add properties as needed
-    id: number;
-    name: string;
+// Search Inventory Types
+export interface SearchInventoryApiResult {
     Description?: string;
-    Mfg?: string;
     Model?: string;
+    Mfg?: string;
     CategoryDescription?: string;
     SubCategoryDescription?: string;
     Sku?: string;
+    CustomerPrice: number;
+    // Add other fields as needed
 }
 
 export class SearchInventoryRequest extends BaseSecureRequest implements IReturn<SearchInventoryResponse> {
-    public SearchStr?: string;
-    public StartOffset?: number;
-    public RecordCount?: number;
+    LocFk?: number;
+    MfgFk?: number;
+    CatFk?: number;
+    SubFk?: number;
+    SelFk?: number;
+    Cat?: number;
+    Sub?: number;
+    SelectionCode?: string;
+    Mfg?: string;
+    IncludeSerials?: boolean;
+    IncludeMedia?: boolean;
+    IncludeAccessories?: boolean;
+    IncludePackages?: boolean;
+    SearchStr?: string;
+    ExactModel?: boolean;
+    StartOffset?: number;
+    RecordCount?: number;
+    IncludeIconImage?: boolean;
+    CatIdList?: number[];
+    SubIdList?: number[];
+    MfgIdList?: number[];
+    SelIdList?: number[];
+    IncludeDeleted?: boolean;
+    ChangedDate?: Date;
+    IncludePackageLineItems?: boolean;
+    IncludeDetails?: boolean;
+    MinimumAvailableQuantity?: number;
 
     constructor(init?: Partial<SearchInventoryRequest>) {
-        super(init);
+        super();
         Object.assign(this, init);
     }
-    public getTypeName() { return 'SearchInventoryRequest'; }
-    public getMethod() { return 'POST'; }
-    public createResponse() { return new SearchInventoryResponse(); }
+
+    createResponse() { return new SearchInventoryResponse(); }
+    getTypeName() { return 'SearchInventoryRequest'; }
 }
 
-export class SearchInventoryResponse extends BaseResponse {
-    public StartOffset: number = 0;
-    public RecordCount: number = 0;
-    public RemainingRecords: number = 0;
-    public TotalRecords: number = 0;
-    public Records?: SearchInventoryApiResult[];
-
-    constructor(init?: Partial<SearchInventoryResponse>) {
-        super(init);
-        Object.assign(this, init);
-    }
+export class SearchInventoryResponse implements BaseResponse {
+    StartOffset: number = 0;
+    RecordCount: number = 0;
+    RemainingRecords: number = 0;
+    TotalRecords: number = 0;
+    Records?: SearchInventoryApiResult[];
+    Status?: BaseResponseResult;
 }
 
-export class SearchInventoryApiResult {
-    public Detail?: InventoryDetail;
-    public IconImage?: ImageInfo;
-    public CustomerPrice: number = 0;
-
-    constructor(init?: Partial<SearchInventoryApiResult>) {
-        Object.assign(this, init);
-    }
+// Common Types
+export class InventoryItem {
+    ItemFk?: number;
+    Model?: string;
+    Description?: string;
+    Quantity?: number;
+    Available?: number;
+    SerialNumber?: string;
+    Location?: string;
+    Category?: string;
+    Subcategory?: string;
+    Manufacturer?: string;
+    PurchaseDate?: string;
+    PurchasePrice?: number;
+    LastModified?: string;
+    IconImage?: string;
+    Details?: any; // You can create a more specific type if needed
+    Accessories?: any[]; // You can create a more specific type if needed
+    Media?: any[]; // You can create a more specific type if needed
+    Packages?: any[]; // You can create a more specific type if needed
 }

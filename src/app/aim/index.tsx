@@ -2,96 +2,223 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  getInventoryDetail,
-  searchInventory,
-} from "@/app/api/aim/servicestack-api";
-import { SearchInventoryResponse } from "@/app/api/aim/dtos";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { searchInventory } from "@/app/api/aim/servicestack-api";
+import {
+  SearchInventoryResponse,
+  SearchInventoryApiResult,
+} from "@/app/api/aim/dtos";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 export default function AimPage() {
-  const [searchStr, setSearchStr] = React.useState("");
+  const [searchParams, setSearchParams] = React.useState({
+    searchStr: "",
+    includeSerials: true,
+    includeMedia: true,
+    includeAccessories: true,
+    includePackages: true,
+    includeDetails: true,
+    includeIconImage: true,
+    exactModel: false,
+    startOffset: 0,
+    recordCount: 50,
+    locFk: undefined as number | undefined,
+    minimumAvailableQuantity: undefined as number | undefined,
+  });
 
-  const {
-    data: inventorySearch,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery<SearchInventoryResponse, Error>({
-    queryKey: ["inventorySearch", searchStr],
+  const searchQuery = useQuery<SearchInventoryResponse, Error>({
+    queryKey: ["inventorySearch", searchParams],
     queryFn: async () => {
-      return searchInventory(searchStr);
+      return searchInventory(searchParams.searchStr, {
+        includeSerials: searchParams.includeSerials,
+        includeMedia: searchParams.includeMedia,
+        includeAccessories: searchParams.includeAccessories,
+        includePackages: searchParams.includePackages,
+        includeDetails: searchParams.includeDetails,
+        includeIconImage: searchParams.includeIconImage,
+        exactModel: searchParams.exactModel,
+        startOffset: searchParams.startOffset,
+        recordCount: searchParams.recordCount,
+        locFk: searchParams.locFk,
+        minimumAvailableQuantity: searchParams.minimumAvailableQuantity,
+      });
     },
     enabled: false,
   });
 
-  const handleInventorySearch = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    refetch();
+    searchQuery.refetch();
   };
 
   return (
-    <div className="w-full p-4">
-      <h1 className="text-2xl font-bold mb-4">AIM Inventory Management</h1>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">AIM Inventory Search</h1>
 
-      <form onSubmit={handleInventorySearch} className="mb-4">
-        <h2 className="text-xl font-semibold mb-2">Inventory Search</h2>
-        <div className="flex gap-2">
-          <Input
-            className="max-w-md"
-            type="text"
-            value={searchStr}
-            onChange={(e) => setSearchStr(e.target.value)}
-            placeholder="Enter search string"
-          />
-          <Button type="submit" variant="linkHover1" disabled={isLoading}>
-            {isLoading ? "Searching..." : "Search Inventory"}
-          </Button>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Search Parameters</CardTitle>
+          <CardDescription>Configure your inventory search</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="searchStr">Search Term</Label>
+              <Input
+                id="searchStr"
+                value={searchParams.searchStr}
+                onChange={(e) =>
+                  setSearchParams((prev) => ({
+                    ...prev,
+                    searchStr: e.target.value,
+                  }))
+                }
+                placeholder="Enter search terms..."
+                className="max-w-md"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeSerials"
+                  checked={searchParams.includeSerials}
+                  onCheckedChange={(checked) =>
+                    setSearchParams((prev) => ({
+                      ...prev,
+                      includeSerials: checked as boolean,
+                    }))
+                  }
+                />
+                <Label htmlFor="includeSerials">Include Serials</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeMedia"
+                  checked={searchParams.includeMedia}
+                  onCheckedChange={(checked) =>
+                    setSearchParams((prev) => ({
+                      ...prev,
+                      includeMedia: checked as boolean,
+                    }))
+                  }
+                />
+                <Label htmlFor="includeMedia">Include Media</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeAccessories"
+                  checked={searchParams.includeAccessories}
+                  onCheckedChange={(checked) =>
+                    setSearchParams((prev) => ({
+                      ...prev,
+                      includeAccessories: checked as boolean,
+                    }))
+                  }
+                />
+                <Label htmlFor="includeAccessories">Include Accessories</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="exactModel"
+                  checked={searchParams.exactModel}
+                  onCheckedChange={(checked) =>
+                    setSearchParams((prev) => ({
+                      ...prev,
+                      exactModel: checked as boolean,
+                    }))
+                  }
+                />
+                <Label htmlFor="exactModel">Exact Model Match</Label>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={searchQuery.isFetching}
+              className="w-full md:w-auto"
+            >
+              {searchQuery.isFetching ? "Searching..." : "Search Inventory"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {searchQuery.isError && (
+        <div className="text-red-500 mb-4">
+          Error: {searchQuery.error.message}
         </div>
-      </form>
-
-      {isLoading && <p>Loading...</p>}
-
-      {error && <p className="text-red-500">{(error as Error).message}</p>}
-
-      {inventorySearch &&
-      inventorySearch.Records &&
-      inventorySearch.Records.length > 0 ? (
-        <div className="max-w-md">
-          <h3 className="text-lg font-semibold mb-2">
-            Inventory Search Result
-          </h3>
-          <ul className="space-y-4">
-            {inventorySearch.Records.map((item, index) => (
-              <li key={index} className="border p-4 rounded-md">
-                <p>
-                  <strong>Description:</strong> {item.Detail?.Description}
-                </p>
-                <p>
-                  <strong>Manufacturer:</strong> {item.Detail?.Mfg}
-                </p>
-                <p>
-                  <strong>Model:</strong> {item.Detail?.Model}
-                </p>
-                <p>
-                  <strong>Category:</strong> {item.Detail?.CategoryDescription}
-                </p>
-                <p>
-                  <strong>Subcategory:</strong>{" "}
-                  {item.Detail?.SubCategoryDescription}
-                </p>
-                <p>
-                  <strong>SKU:</strong> {item.Detail?.Sku}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        inventorySearch && <p>No results found.</p>
       )}
+
+      {searchQuery.isLoading && (
+        <div className="text-center py-4">
+          <p>Loading...</p>
+        </div>
+      )}
+
+      {searchQuery.data?.Records?.length === 0 && (
+        <div className="text-center py-4">
+          <p>No results found</p>
+        </div>
+      )}
+
+      {searchQuery.data?.Records && searchQuery.data.Records.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {searchQuery.data.Records.map(
+            (item: SearchInventoryApiResult, index: number) => (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle>{item.Description || "No Description"}</CardTitle>
+                  <CardDescription>{item.Model}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p>
+                      <span className="font-semibold">Manufacturer:</span>{" "}
+                      {item.Mfg || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Category:</span>{" "}
+                      {item.CategoryDescription || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Subcategory:</span>{" "}
+                      {item.SubCategoryDescription || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">SKU:</span>{" "}
+                      {item.Sku || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Price:</span> $
+                      {item.CustomerPrice?.toFixed(2) ?? "N/A"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
