@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { JsonServiceClient, IReturn } from '@servicestack/client';
 
 // Request DTOs
@@ -50,7 +51,7 @@ export interface AuthResult {
     token: string;
 }
 
-export async function getAuthenticatedClient(): Promise<AuthResult> {
+async function getAuthenticatedClient(): Promise<AuthResult> {
     const apiKey = process.env.API_KEY;
     const appId = process.env.APP_ID;
     const username = process.env.USERNAME;
@@ -117,3 +118,34 @@ export async function getAuthenticatedClient(): Promise<AuthResult> {
         throw error;
     }
 }
+
+// Add Next.js route handlers
+export async function GET() {
+    try {
+        const authResult = await getAuthenticatedClient();
+        return NextResponse.json(authResult);
+    } catch (error: any) {
+        console.error('Authentication error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Authentication failed' },
+            { status: 500 }
+        );
+    }
+}
+
+// If you need POST method as well
+export async function POST() {
+    try {
+        const authResult = await getAuthenticatedClient();
+        return NextResponse.json(authResult);
+    } catch (error: any) {
+        console.error('Authentication error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Authentication failed' },
+            { status: 500 }
+        );
+    }
+}
+
+// Export the getAuthenticatedClient function for use in other files
+export { getAuthenticatedClient };

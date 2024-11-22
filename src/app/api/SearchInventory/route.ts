@@ -14,7 +14,6 @@ export async function POST(request: Request) {
         });
 
         const response = await client.api(searchRequest);
-
         return NextResponse.json(response);
     } catch (error: any) {
         console.error('Search inventory error:', error);
