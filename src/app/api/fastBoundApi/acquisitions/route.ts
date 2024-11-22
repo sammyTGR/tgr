@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 const BASE_URL = 'https://cloud.fastbound.com'
 const API_KEY = process.env.FASTBOUND_API_KEY
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER
-const AUDIT_USER = 'samlee@thegunrange.biz' // Replace with the actual email of a valid FastBound account user
+const AUDIT_USER = 'sammy@thegunrange.biz' // Replace with the actual email of a valid FastBound account user
 
 if (!API_KEY || !ACCOUNT_NUMBER) {
   throw new Error('FastBound API key or account number is not set')

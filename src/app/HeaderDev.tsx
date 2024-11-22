@@ -206,12 +206,12 @@ const manageComps = [
     description: "Class Scheduling Page",
   },
   {
-    title: "Acquisitions",
+    title: "Fastbound Acquisitions",
     href: "/TGR/fastbound/acquisitions",
     description: "Acquisitions",
   },
   {
-    title: "Inventory",
+    title: "Fastbound Inventory",
     href: "/TGR/fastbound/inventory",
     description: "Inventory",
   },
@@ -219,6 +219,11 @@ const manageComps = [
     title: "Newsletter",
     href: "/public/subscribe",
     description: "Newsletter",
+  },
+  {
+    title: "AIM Inventory",
+    href: "/aim",
+    description: "Search Inventory",
   },
 ];
 
