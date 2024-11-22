@@ -11,7 +11,7 @@ export interface AuthResult {
 export async function getAuthenticatedClient(): Promise<AuthResult> {
     const apiKey = process.env.API_KEY;
     const appId = process.env.APP_ID;
-    const username = 'sxlee';
+    const username = process.env.USERNAME;
     const password = process.env.PASSWORD;
 
     if (!apiKey || !appId || !username || !password) {
