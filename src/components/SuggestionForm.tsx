@@ -90,28 +90,40 @@ const SuggestionForm: React.FC<SuggestionFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="submittedBy">Suggestion Submitted By:</Label>
-        <Input id="submittedBy" value={employeeName} disabled />
-      </div>
-      <div>
-        <Label htmlFor="suggestion">Your Suggestion:</Label>
-        <Textarea
-          id="suggestion"
-          name="suggestion"
-          placeholder="Enter your suggestion here..."
-          rows={4}
-        />
-      </div>
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={submitSuggestion.isPending}
-      >
-        {submitSuggestion.isPending ? "Submitting..." : "Submit Suggestion"}
-      </Button>
-    </form>
+    <div className="flex flex-col gap-4 space-y-4 p-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="submittedBy" className="text-sm font-medium">
+            Suggestion Submitted By:
+          </Label>
+          <Input
+            id="submittedBy"
+            value={employeeName}
+            disabled
+            className="mt-2"
+          />
+        </div>
+        <div>
+          <Label htmlFor="suggestion" className="text-sm font-medium">
+            Your Suggestion:
+          </Label>
+          <Textarea
+            className="mt-2"
+            id="suggestion"
+            name="suggestion"
+            placeholder="Enter your suggestion here..."
+            rows={4}
+          />
+        </div>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={submitSuggestion.isPending}
+        >
+          {submitSuggestion.isPending ? "Submitting..." : "Submit Suggestion"}
+        </Button>
+      </form>
+    </div>
   );
 };
 

@@ -1874,21 +1874,21 @@ const EmployeeProfile = () => {
                       <div className="p-6 space-y-4">
                         <div className="grid gap-1.5">
                           <Button
-                            variant="linkHover1"
+                            variant="outline"
                             onClick={handleAddReviewClick}
                           >
                             Add Review
                             <PlusIcon className="ml-2 size-icon" />
                           </Button>
                         </div>
-                        <div className="grid gap-4">
+                        <div className="flex flex-col gap-4">
                           {reviews.map((review) => (
                             <div
                               key={review.id}
                               className="flex justify-between items-start"
                             >
                               <div>
-                                <div className="text-sm font-medium">
+                                <div className="text-sm font-large">
                                   {review.review_quarter} {review.review_year}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -1898,23 +1898,22 @@ const EmployeeProfile = () => {
                                   ).toLocaleDateString()}
                                 </div>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex space-x-2">
                                 <Button
                                   variant="linkHover1"
-                                  size="icon"
                                   onClick={() => handleEditReview(review.id)}
                                 >
                                   <Pencil1Icon />
                                 </Button>
                                 <Button
-                                  variant="linkHover1"
+                                  variant="ghost"
                                   size="icon"
                                   onClick={() => handleDeleteReview(review.id)}
                                 >
                                   <TrashIcon />
                                 </Button>
                                 <Button
-                                  variant="linkHover1"
+                                  variant="ghost"
                                   size="icon"
                                   onClick={() => handleViewReview(review)}
                                 >
@@ -1922,8 +1921,7 @@ const EmployeeProfile = () => {
                                 </Button>
                                 {!review.published && (
                                   <Button
-                                    variant="linkHover1"
-                                    size="icon"
+                                    variant="outline"
                                     onClick={() =>
                                       handlePublishReview(review.id)
                                     }
@@ -2451,7 +2449,7 @@ const EmployeeProfile = () => {
                             </div>
                             <div className="flex justify-end mt-2 space-x-2">
                               <Button
-                                variant="linkHover1"
+                                variant="gooeyRight"
                                 onClick={() => setViewReviewDialog(false)}
                               >
                                 Close

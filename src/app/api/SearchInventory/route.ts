@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthenticatedClient } from '../Security/route';
+import { getAuthenticatedClient } from '@/lib/auth/service';
 import { SearchInventoryRequest } from '../aim/dtos';
 
 export async function POST(request: Request) {

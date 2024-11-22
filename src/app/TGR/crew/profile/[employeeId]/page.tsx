@@ -159,6 +159,11 @@ type TimeOffFormData = {
   otherReason?: string;
 };
 
+type ReviewDialogState = {
+  isOpen: boolean;
+  reviewId: string | null;
+};
+
 const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
 
 const schema = z.object({
@@ -249,11 +254,18 @@ const EmployeeProfilePage = () => {
         .from("employee_quarterly_reviews")
         .select("*")
         .eq("employee_id", employeeId)
-        .eq("published", true);
+        .eq("published", true)
+        .order("created_at", { ascending: false }); // Add ordering to show newest first
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching reviews:", error);
+        throw error;
+      }
+
+      if (!data) return [];
       return data as Review[];
     },
+    enabled: !!employeeId, // Only run query when employeeId is available
   });
 
   const { data: weeklySummary } = useQuery({
@@ -909,6 +921,25 @@ const EmployeeProfilePage = () => {
     updateProfileMutation.mutate(data);
   };
 
+  // Query for dialog state
+  const { data: dialogState } = useQuery<ReviewDialogState>({
+    queryKey: ["reviewDialog"],
+    queryFn: () => ({ isOpen: false, reviewId: null }),
+    initialData: { isOpen: false, reviewId: null },
+  });
+
+  // Query for selected review
+  const { data: selectedReview } = useQuery({
+    queryKey: ["selectedReview", dialogState?.reviewId],
+    queryFn: async () => {
+      if (!dialogState?.reviewId) return null;
+      return (
+        reviews?.find((r) => r.id === Number(dialogState.reviewId)) || null
+      );
+    },
+    enabled: !!dialogState?.reviewId,
+  });
+
   if (employee === undefined)
     return <ProgressBar value={100} showAnimation={true} />;
 
@@ -1352,8 +1383,8 @@ const EmployeeProfilePage = () => {
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button
-                                    variant="linkHover1"
-                                    className="w-full pl-3 text-left font-normal"
+                                    variant="outline"
+                                    className="w-full pl-3 text-center font-normal"
                                   >
                                     {field.value && field.value.length > 0 ? (
                                       <>
@@ -1604,34 +1635,199 @@ const EmployeeProfilePage = () => {
                       <TextGenerateEffect words="Your Reviews" />
                     </h1>
                     <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                      {reviews?.map((review) => (
-                        <Card key={review.id} className="mt-4">
-                          <CardHeader className="flex flex-col items-start justify-between space-y-2 pb-2">
-                            <CardTitle className="text-2xl font-bold">
-                              {DOMPurify.sanitize(review.review_quarter)}{" "}
-                              {review.review_year}
-                            </CardTitle>
-                            <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
-                              - {DOMPurify.sanitize(review.created_by)} on{" "}
-                              {new Date(review.created_at).toLocaleDateString()}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="p-4">
-                            <Button
-                              variant="outline"
-                              className="w-full text-left font-normal"
-                              onClick={() => {
-                                // Implementation of review dialog
-                                // This could be a separate component or a modal
-                                // console.log("View Review:", review);
-                              }}
-                            >
-                              View Review
-                            </Button>
+                      {reviews?.length === 0 ? (
+                        <Card className="mt-4 col-span-full">
+                          <CardContent className="p-4 text-center text-muted-foreground">
+                            No reviews available yet.
                           </CardContent>
                         </Card>
-                      ))}
+                      ) : (
+                        reviews?.map((review) => (
+                          <Card key={review.id} className="mt-4">
+                            <CardHeader className="flex flex-col items-start justify-between space-y-2 pb-2">
+                              <CardTitle className="text-2xl font-bold">
+                                {DOMPurify.sanitize(review.review_quarter)}{" "}
+                                {review.review_year}
+                              </CardTitle>
+                              <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
+                                - {DOMPurify.sanitize(review.created_by)} on{" "}
+                                {new Date(
+                                  review.created_at
+                                ).toLocaleDateString()}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                              <Button
+                                variant="outline"
+                                className="w-full text-left font-normal"
+                                onClick={() => {
+                                  queryClient.setQueryData(["reviewDialog"], {
+                                    isOpen: true,
+                                    reviewId: review.id,
+                                  });
+                                }}
+                              >
+                                View Review
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
                     </div>
+
+                    {/* Review Dialog */}
+                    <Dialog
+                      open={dialogState?.isOpen}
+                      onOpenChange={(open) => {
+                        queryClient.setQueryData(["reviewDialog"], {
+                          isOpen: open,
+                          reviewId: open ? dialogState?.reviewId : null,
+                        });
+                      }}
+                    >
+                      <DialogOverlay className="fixed inset-0 z-50" />
+                      <DialogContent className="fixed inset-0 flex items-center justify-center mb-4 bg-muted dark:bg-muted z-50 view-review-dialog">
+                        <div className="bg-white dark:bg-black p-6 rounded-lg shadow-lg max-w-3xl w-full space-y-4 overflow-y-auto max-h-screen">
+                          {selectedReview && (
+                            <>
+                              <DialogTitle className="font-size: 1.35rem font-bold">
+                                Employee Review
+                              </DialogTitle>
+                              <DialogDescription>
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Review
+                                  </Label>
+                                  <p>{selectedReview.review_quarter}</p>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Year
+                                  </Label>
+                                  <p>{selectedReview.review_year}</p>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Overview of Performance
+                                  </Label>
+                                  <p>{selectedReview.overview_performance}</p>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Achievements and Contributions
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.achievements_contributions.map(
+                                      (achievement, index) => (
+                                        <li key={index}>{achievement}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Attendance and Reliability
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.attendance_reliability.map(
+                                      (attendance, index) => (
+                                        <li key={index}>{attendance}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Quality of Work
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.quality_work.map(
+                                      (quality, index) => (
+                                        <li key={index}>{quality}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Communication & Collaboration
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.communication_collaboration.map(
+                                      (communication, index) => (
+                                        <li key={index}>{communication}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Strengths & Accomplishments
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.strengths_accomplishments.map(
+                                      (strength, index) => (
+                                        <li key={index}>{strength}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Areas for Growth and Development
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.areas_growth.map(
+                                      (area, index) => (
+                                        <li key={index}>{area}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="grid gap-1.5 mb-2">
+                                  <Label className="text-md font-bold">
+                                    Recognition
+                                  </Label>
+                                  <ul className="list-disc pl-5">
+                                    {selectedReview.recognition.map(
+                                      (rec, index) => (
+                                        <li key={index}>{rec}</li>
+                                      )
+                                    )}
+                                  </ul>
+                                </div>
+
+                                <div className="flex justify-end mt-2 space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      queryClient.setQueryData(
+                                        ["reviewDialog"],
+                                        {
+                                          isOpen: false,
+                                          reviewId: null,
+                                        }
+                                      );
+                                    }}
+                                  >
+                                    Close
+                                  </Button>
+                                </div>
+                              </DialogDescription>
+                            </>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </TabsContent>
 
                   {/* Manage Profile */}

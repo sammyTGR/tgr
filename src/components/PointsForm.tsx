@@ -274,7 +274,7 @@ const PointsForm = () => {
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="linkHover1" className="ml-auto" type="submit">
+        <Button variant="outline" className="ml-auto" type="submit">
           Submit Points
         </Button>
       </CardFooter>
