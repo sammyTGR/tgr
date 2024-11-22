@@ -22,21 +22,47 @@ export async function POST(request: Request) {
             RecordCount: searchParams.RecordCount || 50
         });
 
-        console.log('Search request:', JSON.stringify(searchRequest, null, 2));
-        const response: ApiResult<SearchInventoryResponse> = await client.api(searchRequest);
-        console.log('Search response:', JSON.stringify(response, null, 2));
+        // First request to get auth token and new endpoint
+        console.log('Initial request:', JSON.stringify(searchRequest, null, 2));
+        const initialResponse: ApiResult<SearchInventoryResponse> = await client.api(searchRequest);
+        console.log('Initial response:', JSON.stringify(initialResponse, null, 2));
 
-        if (response.error) {
-            console.error('API error:', response.error);
-            return NextResponse.json({
-                Status: {
-                    StatusCode: 'Error',
-                    ErrorMessage: response.error.message
-                }
-            }, { status: 500 });
+        if (!initialResponse?.response?.NewEndpoint || !initialResponse?.response?.OAuthToken) {
+            throw new Error('Failed to get authentication token or endpoint');
         }
 
-        return NextResponse.json(response.response);
+        // Make the second request with native fetch
+        const searchRequest2 = {
+            ...searchRequest,
+            OAuthToken: initialResponse.response.OAuthToken
+        };
+
+        console.log('Search request:', JSON.stringify(searchRequest2, null, 2));
+        
+        const response = await fetch(initialResponse.response.NewEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${initialResponse.response.OAuthToken}`,
+                'ApiKey': process.env.API_KEY!,
+                'AppId': process.env.APP_ID!
+            },
+            body: JSON.stringify(searchRequest2),
+            // Add this if you're getting SSL certificate errors
+            next: { 
+                revalidate: 0
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const searchResponse = await response.json();
+        console.log('Search response:', JSON.stringify(searchResponse, null, 2));
+
+        return NextResponse.json(searchResponse);
     } catch (error) {
         console.error('Search error:', error);
         return NextResponse.json({ 
