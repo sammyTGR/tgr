@@ -1,35 +1,36 @@
+import { JsonServiceClient, ApiResult } from '@servicestack/client';
 import { SearchInventoryRequest, SearchInventoryResponse } from './dtos';
 
-export async function searchInventory(params: Partial<SearchInventoryRequest>): Promise<SearchInventoryResponse> {
-    try {
-        const response = await fetch('/api/SearchInventory', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ...params,
-                IncludeDetails: true,
-                IncludeSerials: true,
-                IncludeMedia: true,
-                IncludeAccessories: true,
-                IncludePackages: true,
-                IncludeIconImage: true,
-                StartOffset: params.StartOffset || 0,
-                RecordCount: params.RecordCount || 50
-            })
-        });
+const baseUrl = process.env.AIM_API_URL || 'https://active-ewebservice.biz/aeServices30/api';
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.Status?.ErrorMessage || `HTTP error! status: ${response.status}`);
-        }
+export const searchInventory = async (searchParams: Partial<SearchInventoryRequest>) => {
+    const client = new JsonServiceClient(baseUrl);
+    
+    const searchRequest = new SearchInventoryRequest({
+        ApiKey: process.env.API_KEY,
+        AppId: process.env.APP_ID,
+        IncludeDetails: true,
+        IncludeSerials: true,
+        IncludeMedia: true,
+        IncludeAccessories: true,
+        IncludePackages: true,
+        IncludeIconImage: true,
+        StartOffset: searchParams.StartOffset || 0,
+        RecordCount: searchParams.RecordCount || 50,
+        ...searchParams
+    });
 
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Search error:', error);
-        throw error;
-    }
-}
+    return client.api(searchRequest);
+};
+
+// If you need these functions, implement them following the same pattern
+export const getInventoryDetail = async (inventoryId: string) => {
+    // Implement according to API documentation
+    throw new Error('Not implemented');
+};
+
+export const lookupInventory = async (query: string) => {
+    // Implement according to API documentation
+    throw new Error('Not implemented');
+};
 

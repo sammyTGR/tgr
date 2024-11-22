@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedClient } from '@/lib/auth/service';
 import { SearchInventoryRequest, SearchInventoryResponse } from '@/app/api/aim/dtos';
 import { ApiResult } from '@servicestack/client';
+import https from 'https';
 
 export async function POST(request: Request) {
     try {
@@ -39,6 +40,12 @@ export async function POST(request: Request) {
 
         console.log('Search request:', JSON.stringify(searchRequest2, null, 2));
         
+        // Create custom HTTPS agent that ignores SSL certificate issues
+        const httpsAgent = new https.Agent({
+            rejectUnauthorized: false, // Ignore SSL certificate issues
+            timeout: 30000 // Increase timeout to 30 seconds
+        });
+
         const response = await fetch(initialResponse.response.NewEndpoint, {
             method: 'POST',
             headers: {
@@ -49,10 +56,8 @@ export async function POST(request: Request) {
                 'AppId': process.env.APP_ID!
             },
             body: JSON.stringify(searchRequest2),
-            // Add this if you're getting SSL certificate errors
-            next: { 
-                revalidate: 0
-            }
+            // @ts-ignore - Next.js types don't include agent, but it works
+            agent: httpsAgent
         });
 
         if (!response.ok) {

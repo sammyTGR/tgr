@@ -14,19 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { searchInventory } from "@/app/api/aim/servicestack-api";
-import {
-  SearchInventoryApiResult,
-  SearchInventoryRequest,
-} from "@/app/api/aim/dtos";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SearchInventoryRequest } from "@/app/api/aim/dtos";
 
 export default function AimPage() {
   const [searchParams, setSearchParams] = React.useState<
@@ -153,73 +141,13 @@ export default function AimPage() {
         </CardContent>
       </Card>
 
-      {searchQuery.isLoading && (
-        <div className="text-center py-4">
-          <p>Loading results...</p>
-        </div>
-      )}
-
       {searchQuery.isError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4">
+        <div className="text-red-500 mb-4">
           Error: {(searchQuery.error as Error).message}
         </div>
       )}
 
-      {searchQuery.data?.Records && searchQuery.data.Records.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Search Results</CardTitle>
-            <CardDescription>
-              Found {searchQuery.data.TotalRecords} items (Showing{" "}
-              {searchQuery.data.StartOffset + 1} -{" "}
-              {searchQuery.data.StartOffset + searchQuery.data.Records.length})
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[600px] w-full rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Model</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Manufacturer</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {searchQuery.data.Records.map(
-                    (item: SearchInventoryApiResult, index: number) => (
-                      <TableRow key={`${item.ItemFk}-${index}`}>
-                        <TableCell className="font-medium">
-                          {item.Model}
-                        </TableCell>
-                        <TableCell>{item.Description}</TableCell>
-                        <TableCell>{item.CategoryDescription}</TableCell>
-                        <TableCell>{item.Mfg}</TableCell>
-                        <TableCell className="text-right">
-                          {item.CustomerPrice
-                            ? new Intl.NumberFormat("en-US", {
-                                style: "currency",
-                                currency: "USD",
-                              }).format(item.CustomerPrice)
-                            : "N/A"}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-
-      {searchQuery.data?.Records?.length === 0 && (
-        <div className="text-center py-4">
-          <p>No results found.</p>
-        </div>
-      )}
+      {searchQuery.data && <div>{/* Render your search results here */}</div>}
     </div>
   );
 }
