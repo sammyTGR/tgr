@@ -101,52 +101,77 @@ export interface BaseResponseResult {
 
 // Search Inventory Types
 export interface SearchInventoryApiResult {
-    Description?: string;
+    ItemFk?: number;
     Model?: string;
-    Mfg?: string;
+    Description?: string;
     CategoryDescription?: string;
     SubCategoryDescription?: string;
-    Sku?: string;
-    CustomerPrice: number;
-    // Add other fields as needed
+    Mfg?: string;
+    CustomerPrice?: number;
+    IconImage?: string;
+    Quantity?: number;
+    Available?: number;
+    SerialNumber?: string;
+    Location?: string;
+    Category?: string;
+    Subcategory?: string;
+    PurchaseDate?: string;
+    PurchasePrice?: number;
+    LastModified?: string;
+    Details?: any;
+    Accessories?: any[];
+    Media?: any[];
+    Packages?: any[];
 }
 
 export class SearchInventoryRequest extends BaseSecureRequest implements IReturn<SearchInventoryResponse> {
-    LocFk?: number;
-    MfgFk?: number;
-    CatFk?: number;
-    SubFk?: number;
-    SelFk?: number;
-    Cat?: number;
-    Sub?: number;
-    SelectionCode?: string;
-    Mfg?: string;
-    IncludeSerials?: boolean;
-    IncludeMedia?: boolean;
-    IncludeAccessories?: boolean;
-    IncludePackages?: boolean;
-    SearchStr?: string;
-    ExactModel?: boolean;
-    StartOffset?: number;
-    RecordCount?: number;
-    IncludeIconImage?: boolean;
-    CatIdList?: number[];
-    SubIdList?: number[];
-    MfgIdList?: number[];
-    SelIdList?: number[];
-    IncludeDeleted?: boolean;
-    ChangedDate?: Date;
-    IncludePackageLineItems?: boolean;
-    IncludeDetails?: boolean;
-    MinimumAvailableQuantity?: number;
+    public LocFk?: number;
+    public MfgFk?: number;
+    public CatFk?: number;
+    public SubFk?: number;
+    public SelFk?: number;
+    public Cat?: number;
+    public Sub?: number;
+    public SelectionCode?: string;
+    public Mfg?: string;
+    public IncludeSerials?: boolean;
+    public IncludeMedia?: boolean;
+    public IncludeAccessories?: boolean;
+    public IncludePackages?: boolean;
+    public SearchStr?: string;
+    public ExactModel?: boolean;
+    public StartOffset?: number;
+    public RecordCount?: number;
+    public IncludeIconImage?: boolean;
+    public CatIdList?: number[];
+    public SubIdList?: number[];
+    public MfgIdList?: number[];
+    public SelIdList?: number[];
+    public IncludeDeleted?: boolean;
+    public ChangedDate?: string;
+    public IncludePackageLineItems?: boolean;
+    public IncludeDetails?: boolean;
+    public MinimumAvailableQuantity?: number;
 
     constructor(init?: Partial<SearchInventoryRequest>) {
         super();
-        Object.assign(this, init);
+        this.IncludeSerials = true;
+        this.IncludeMedia = true;
+        this.IncludeAccessories = true;
+        this.IncludePackages = true;
+        this.IncludeDetails = true;
+        this.IncludeIconImage = true;
+        this.StartOffset = 0;
+        this.RecordCount = 50;
+        
+        if (init) {
+            Object.assign(this, init);
+        }
     }
 
-    createResponse() { return new SearchInventoryResponse(); }
-    getTypeName() { return 'SearchInventoryRequest'; }
+    public getTypeName() { return 'SearchInventoryRequest'; }
+    public getMethod() { return 'POST'; }
+    public createResponse() { return new SearchInventoryResponse(); }
 }
 
 export class SearchInventoryResponse implements BaseResponse {
@@ -155,7 +180,10 @@ export class SearchInventoryResponse implements BaseResponse {
     RemainingRecords: number = 0;
     TotalRecords: number = 0;
     Records?: SearchInventoryApiResult[];
-    Status?: BaseResponseResult;
+    Status?: ResponseStatus;
+    NewEndpoint?: string;
+    NewEndpointDomain?: string;
+    OAuthToken?: string;
 }
 
 // Common Types
@@ -178,4 +206,11 @@ export class InventoryItem {
     Accessories?: any[]; // You can create a more specific type if needed
     Media?: any[]; // You can create a more specific type if needed
     Packages?: any[]; // You can create a more specific type if needed
+}
+
+// Add this new interface for the endpoint response
+export interface EndpointResponse {
+    NewEndpoint: string;
+    NewEndpointDomain: string;
+    OAuthToken: string;
 }

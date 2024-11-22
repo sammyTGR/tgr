@@ -6,18 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { searchInventory } from "@/app/api/aim/servicestack-api";
-import {
-  SearchInventoryResponse,
-  SearchInventoryApiResult,
-} from "@/app/api/aim/dtos";
-import {
   Card,
   CardContent,
   CardDescription,
@@ -25,41 +13,43 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { searchInventory } from "@/app/api/aim/servicestack-api";
+import {
+  SearchInventoryApiResult,
+  SearchInventoryRequest,
+} from "@/app/api/aim/dtos";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function AimPage() {
-  const [searchParams, setSearchParams] = React.useState({
-    searchStr: "",
-    includeSerials: true,
-    includeMedia: true,
-    includeAccessories: true,
-    includePackages: true,
-    includeDetails: true,
-    includeIconImage: true,
-    exactModel: false,
-    startOffset: 0,
-    recordCount: 50,
-    locFk: undefined as number | undefined,
-    minimumAvailableQuantity: undefined as number | undefined,
+  const [searchParams, setSearchParams] = React.useState<
+    Partial<SearchInventoryRequest>
+  >({
+    SearchStr: "",
+    IncludeSerials: true,
+    IncludeMedia: true,
+    IncludeAccessories: true,
+    IncludePackages: true,
+    IncludeDetails: true,
+    IncludeIconImage: true,
+    ExactModel: false,
+    StartOffset: 0,
+    RecordCount: 50,
+    LocFk: undefined,
+    MinimumAvailableQuantity: undefined,
   });
 
-  const searchQuery = useQuery<SearchInventoryResponse, Error>({
+  const searchQuery = useQuery({
     queryKey: ["inventorySearch", searchParams],
-    queryFn: async () => {
-      return searchInventory(searchParams.searchStr, {
-        includeSerials: searchParams.includeSerials,
-        includeMedia: searchParams.includeMedia,
-        includeAccessories: searchParams.includeAccessories,
-        includePackages: searchParams.includePackages,
-        includeDetails: searchParams.includeDetails,
-        includeIconImage: searchParams.includeIconImage,
-        exactModel: searchParams.exactModel,
-        startOffset: searchParams.startOffset,
-        recordCount: searchParams.recordCount,
-        locFk: searchParams.locFk,
-        minimumAvailableQuantity: searchParams.minimumAvailableQuantity,
-      });
-    },
-    enabled: false,
+    queryFn: () => searchInventory(searchParams as SearchInventoryRequest),
+    enabled: Boolean(searchParams.SearchStr), // Only run when there's a search string
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,14 +69,14 @@ export default function AimPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="searchStr">Search Term</Label>
+              <Label htmlFor="SearchStr">Search Term</Label>
               <Input
-                id="searchStr"
-                value={searchParams.searchStr}
+                id="SearchStr"
+                value={searchParams.SearchStr}
                 onChange={(e) =>
                   setSearchParams((prev) => ({
                     ...prev,
-                    searchStr: e.target.value,
+                    SearchStr: e.target.value,
                   }))
                 }
                 placeholder="Enter search terms..."
@@ -97,58 +87,58 @@ export default function AimPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="includeSerials"
-                  checked={searchParams.includeSerials}
+                  id="IncludeSerials"
+                  checked={searchParams.IncludeSerials}
                   onCheckedChange={(checked) =>
                     setSearchParams((prev) => ({
                       ...prev,
-                      includeSerials: checked as boolean,
+                      IncludeSerials: checked as boolean,
                     }))
                   }
                 />
-                <Label htmlFor="includeSerials">Include Serials</Label>
+                <Label htmlFor="IncludeSerials">Include Serials</Label>
               </div>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="includeMedia"
-                  checked={searchParams.includeMedia}
+                  id="IncludeMedia"
+                  checked={searchParams.IncludeMedia}
                   onCheckedChange={(checked) =>
                     setSearchParams((prev) => ({
                       ...prev,
-                      includeMedia: checked as boolean,
+                      IncludeMedia: checked as boolean,
                     }))
                   }
                 />
-                <Label htmlFor="includeMedia">Include Media</Label>
+                <Label htmlFor="IncludeMedia">Include Media</Label>
               </div>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="includeAccessories"
-                  checked={searchParams.includeAccessories}
+                  id="IncludeAccessories"
+                  checked={searchParams.IncludeAccessories}
                   onCheckedChange={(checked) =>
                     setSearchParams((prev) => ({
                       ...prev,
-                      includeAccessories: checked as boolean,
+                      IncludeAccessories: checked as boolean,
                     }))
                   }
                 />
-                <Label htmlFor="includeAccessories">Include Accessories</Label>
+                <Label htmlFor="IncludeAccessories">Include Accessories</Label>
               </div>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="exactModel"
-                  checked={searchParams.exactModel}
+                  id="ExactModel"
+                  checked={searchParams.ExactModel}
                   onCheckedChange={(checked) =>
                     setSearchParams((prev) => ({
                       ...prev,
-                      exactModel: checked as boolean,
+                      ExactModel: checked as boolean,
                     }))
                   }
                 />
-                <Label htmlFor="exactModel">Exact Model Match</Label>
+                <Label htmlFor="ExactModel">Exact Model Match</Label>
               </div>
             </div>
 
@@ -163,62 +153,73 @@ export default function AimPage() {
         </CardContent>
       </Card>
 
-      {searchQuery.isError && (
-        <div className="text-red-500 mb-4">
-          Error: {searchQuery.error.message}
+      {searchQuery.isLoading && (
+        <div className="text-center py-4">
+          <p>Loading results...</p>
         </div>
       )}
 
-      {searchQuery.isLoading && (
-        <div className="text-center py-4">
-          <p>Loading...</p>
+      {searchQuery.isError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4">
+          Error: {(searchQuery.error as Error).message}
         </div>
+      )}
+
+      {searchQuery.data?.Records && searchQuery.data.Records.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Search Results</CardTitle>
+            <CardDescription>
+              Found {searchQuery.data.TotalRecords} items (Showing{" "}
+              {searchQuery.data.StartOffset + 1} -{" "}
+              {searchQuery.data.StartOffset + searchQuery.data.Records.length})
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[600px] w-full rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Manufacturer</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {searchQuery.data.Records.map(
+                    (item: SearchInventoryApiResult, index: number) => (
+                      <TableRow key={`${item.ItemFk}-${index}`}>
+                        <TableCell className="font-medium">
+                          {item.Model}
+                        </TableCell>
+                        <TableCell>{item.Description}</TableCell>
+                        <TableCell>{item.CategoryDescription}</TableCell>
+                        <TableCell>{item.Mfg}</TableCell>
+                        <TableCell className="text-right">
+                          {item.CustomerPrice
+                            ? new Intl.NumberFormat("en-US", {
+                                style: "currency",
+                                currency: "USD",
+                              }).format(item.CustomerPrice)
+                            : "N/A"}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       )}
 
       {searchQuery.data?.Records?.length === 0 && (
         <div className="text-center py-4">
-          <p>No results found</p>
+          <p>No results found.</p>
         </div>
       )}
-
-      {searchQuery.data?.Records && searchQuery.data.Records.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {searchQuery.data.Records.map(
-            (item: SearchInventoryApiResult, index: number) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle>{item.Description || "No Description"}</CardTitle>
-                  <CardDescription>{item.Model}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-semibold">Manufacturer:</span>{" "}
-                      {item.Mfg || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Category:</span>{" "}
-                      {item.CategoryDescription || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Subcategory:</span>{" "}
-                      {item.SubCategoryDescription || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-semibold">SKU:</span>{" "}
-                      {item.Sku || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Price:</span> $
-                      {item.CustomerPrice?.toFixed(2) ?? "N/A"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          )}
-        </div>
-      ) : null}
     </div>
   );
 }
