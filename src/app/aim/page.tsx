@@ -2,153 +2,96 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { searchInventory } from "@/app/api/aim/servicestack-api";
-import { SearchInventoryRequest } from "@/app/api/aim/dtos";
+  getInventoryDetail,
+  searchInventory,
+} from "@/app/api/aim/servicestack-api";
+import { SearchInventoryResponse } from "@/app/api/aim/dtos";
 
 export default function AimPage() {
-  const [searchTrigger, setSearchTrigger] = React.useState(0);
-  const [searchParams, setSearchParams] = React.useState<
-    Partial<SearchInventoryRequest>
-  >({
-    SearchStr: "",
-    IncludeSerials: true,
-    IncludeMedia: true,
-    IncludeAccessories: true,
-    IncludePackages: true,
-    IncludeDetails: true,
-    IncludeIconImage: true,
-    ExactModel: false,
-    StartOffset: 0,
-    RecordCount: 50,
-    LocFk: undefined,
-    MinimumAvailableQuantity: undefined,
+  const [searchStr, setSearchStr] = React.useState("");
+
+  const {
+    data: inventorySearch,
+    error,
+    isLoading,
+    refetch,
+  } = useQuery<SearchInventoryResponse, Error>({
+    queryKey: ["inventorySearch", searchStr],
+    queryFn: async () => {
+      return searchInventory(searchStr);
+    },
+    enabled: false,
   });
 
-  const searchQuery = useQuery({
-    queryKey: ["inventorySearch", searchParams, searchTrigger],
-    queryFn: () => searchInventory(searchParams as SearchInventoryRequest),
-    enabled: Boolean(searchParams.SearchStr && searchTrigger > 0), // Only run when triggered
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInventorySearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearchTrigger(prev => prev + 1); // Increment trigger to force new search
+    refetch();
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">AIM Inventory Search</h1>
+    <div className="w-full p-4">
+      <h1 className="text-2xl font-bold mb-4">AIM Inventory Management</h1>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Search Parameters</CardTitle>
-          <CardDescription>Configure your inventory search</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="SearchStr">Search Term</Label>
-              <Input
-                id="SearchStr"
-                value={searchParams.SearchStr}
-                onChange={(e) =>
-                  setSearchParams((prev) => ({
-                    ...prev,
-                    SearchStr: e.target.value,
-                  }))
-                }
-                placeholder="Enter search terms..."
-                className="max-w-md"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="IncludeSerials"
-                  checked={searchParams.IncludeSerials}
-                  onCheckedChange={(checked) =>
-                    setSearchParams((prev) => ({
-                      ...prev,
-                      IncludeSerials: checked as boolean,
-                    }))
-                  }
-                />
-                <Label htmlFor="IncludeSerials">Include Serials</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="IncludeMedia"
-                  checked={searchParams.IncludeMedia}
-                  onCheckedChange={(checked) =>
-                    setSearchParams((prev) => ({
-                      ...prev,
-                      IncludeMedia: checked as boolean,
-                    }))
-                  }
-                />
-                <Label htmlFor="IncludeMedia">Include Media</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="IncludeAccessories"
-                  checked={searchParams.IncludeAccessories}
-                  onCheckedChange={(checked) =>
-                    setSearchParams((prev) => ({
-                      ...prev,
-                      IncludeAccessories: checked as boolean,
-                    }))
-                  }
-                />
-                <Label htmlFor="IncludeAccessories">Include Accessories</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="ExactModel"
-                  checked={searchParams.ExactModel}
-                  onCheckedChange={(checked) =>
-                    setSearchParams((prev) => ({
-                      ...prev,
-                      ExactModel: checked as boolean,
-                    }))
-                  }
-                />
-                <Label htmlFor="ExactModel">Exact Model Match</Label>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={searchQuery.isFetching}
-              className="w-full md:w-auto"
-            >
-              {searchQuery.isFetching ? "Searching..." : "Search Inventory"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {searchQuery.isError && (
-        <div className="text-red-500 mb-4">
-          Error: {(searchQuery.error as Error).message}
+      <form onSubmit={handleInventorySearch} className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">Inventory Search</h2>
+        <div className="flex gap-2">
+          <Input
+            className="max-w-md"
+            type="text"
+            value={searchStr}
+            onChange={(e) => setSearchStr(e.target.value)}
+            placeholder="Enter search string"
+          />
+          <Button type="submit" variant="linkHover1" disabled={isLoading}>
+            {isLoading ? "Searching..." : "Search Inventory"}
+          </Button>
         </div>
-      )}
+      </form>
 
-      {searchQuery.data && <div>{/* Render your search results here */}</div>}
+      {isLoading && <p>Loading...</p>}
+
+      {error && <p className="text-red-500">{(error as Error).message}</p>}
+
+      {inventorySearch &&
+      inventorySearch.Records &&
+      inventorySearch.Records.length > 0 ? (
+        <div className="max-w-md">
+          <h3 className="text-lg font-semibold mb-2">
+            Inventory Search Result
+          </h3>
+          <ul className="space-y-4">
+            {inventorySearch.Records.map((item, index) => (
+              <li key={index} className="border p-4 rounded-md">
+                <p>
+                  <strong>Description:</strong> {item.Detail?.Description}
+                </p>
+                <p>
+                  <strong>Manufacturer:</strong> {item.Detail?.Mfg}
+                </p>
+                <p>
+                  <strong>Model:</strong> {item.Detail?.Model}
+                </p>
+                <p>
+                  <strong>Category:</strong> {item.Detail?.CategoryDescription}
+                </p>
+                <p>
+                  <strong>Subcategory:</strong>{" "}
+                  {item.Detail?.SubCategoryDescription}
+                </p>
+                <p>
+                  <strong>SKU:</strong> {item.Detail?.Sku}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        inventorySearch && <p>No results found.</p>
+      )}
     </div>
   );
 }
