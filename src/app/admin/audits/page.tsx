@@ -232,6 +232,7 @@ const LazyDataTableProfile = dynamic<any>(
     ssr: false,
   }
 );
+
 // API Functions
 const api = {
   fetchEmployees: async (): Promise<Employee[]> => {

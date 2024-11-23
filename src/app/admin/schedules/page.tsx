@@ -258,12 +258,21 @@ const ManageSchedules = () => {
   };
 
   const fetchTimesheets = async () => {
+    // Get the current date
+    const today = new Date();
+    // Get date 30 days ago
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
     const { data: timesheets, error: timesheetsError } = await supabase
       .from("employee_clock_events")
-      .select("*");
+      .select("*")
+      .gte("event_date", thirtyDaysAgo.toISOString().split("T")[0])
+      .lte("event_date", today.toISOString().split("T")[0])
+      .order("event_date", { ascending: false });
 
     if (timesheetsError) {
-      //console.("Error fetching timesheets:", timesheetsError);
+      toast.error("Error fetching timesheets");
       return;
     }
 

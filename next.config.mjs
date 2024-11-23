@@ -10,8 +10,12 @@ const nextConfig = {
             protocol: 'https',
             hostname: 'utfs.io',
             pathname: '/f/**',
+            port: '',
           },
         ],
+    },
+    experimental: {
+      dynamicIO: true,
     },
     // async headers() {
     //   return [
