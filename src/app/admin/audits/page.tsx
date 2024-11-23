@@ -26,7 +26,7 @@ import dynamic from "next/dynamic";
 import * as XLSX from "xlsx";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DataTableProfile } from "./contest/data-table-profile";
-
+import { unstable_cache } from "next/cache";
 // Component imports
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -197,6 +197,12 @@ export interface ModalState {
 const MODAL_KEY = ["edit-modal-state"] as const;
 const AUDITS_KEY = ["audits"] as const;
 const DELETE_DIALOG_KEY = ["delete-dialog-state"] as const;
+const CACHE_TAGS = {
+  EMPLOYEES: "employees",
+  AUDITS: "audits",
+  POINTS_CALCULATION: "points-calculation",
+  SALES_DATA: "sales-data",
+} as const;
 
 // Create Query Client with configuration
 const queryClient = new QueryClient({
