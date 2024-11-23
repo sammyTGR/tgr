@@ -1,73 +1,52 @@
 import { NextResponse } from 'next/server';
-import { getAuthenticatedClient } from '@/lib/auth/service';
-import { SearchInventoryRequest, SearchInventoryResponse } from '@/app/api/aim/dtos';
-import { ApiResult } from '@servicestack/client';
-import https from 'https';
+import { JsonServiceClient } from '@servicestack/client';
+import { SearchInventoryRequest } from '../aim/dtos';
 
 export async function POST(request: Request) {
     try {
-        const { client } = await getAuthenticatedClient();
+        // Validate required environment variables
+        if (!process.env.API_KEY || !process.env.APP_ID) {
+            throw new Error('Missing required API credentials');
+        }
+
+        // Create client with exact base URL from documentation
+        const client = new JsonServiceClient('https://active-ewebservice.biz/aeServices30/api');
+
         const searchParams = await request.json();
-        
+
+        // Create request using documented pattern
         const searchRequest = new SearchInventoryRequest({
-            ...searchParams,
-            ApiKey: process.env.API_KEY,
-            AppId: process.env.APP_ID,
-            IncludeDetails: true,
+            SearchStr: searchParams.SearchStr || '',
             IncludeSerials: true,
             IncludeMedia: true,
             IncludeAccessories: true,
             IncludePackages: true,
+            IncludeDetails: true,
             IncludeIconImage: true,
+            ExactModel: false,
             StartOffset: searchParams.StartOffset || 0,
-            RecordCount: searchParams.RecordCount || 50
+            RecordCount: searchParams.RecordCount || 50,
+            // Required credentials from documentation
+            ApiKey: process.env.API_KEY,
+            AppId: process.env.APP_ID,
         });
 
-        // First request to get auth token and new endpoint
-        console.log('Initial request:', JSON.stringify(searchRequest, null, 2));
-        const initialResponse: ApiResult<SearchInventoryResponse> = await client.api(searchRequest);
-        console.log('Initial response:', JSON.stringify(initialResponse, null, 2));
+        console.log('Making API request with:', {
+            baseUrl: client.baseUrl,
+            hasApiKey: !!process.env.API_KEY,
+            hasAppId: !!process.env.APP_ID,
+            searchStr: searchRequest.SearchStr
+        });
 
-        if (!initialResponse?.response?.NewEndpoint || !initialResponse?.response?.OAuthToken) {
-            throw new Error('Failed to get authentication token or endpoint');
+        // Make request using documented pattern
+        const api = await client.api(searchRequest);
+
+        if (api.response?.Status?.StatusCode === 'Error') {
+            console.error('API Error:', api.response.Status);
+            return NextResponse.json(api.response, { status: 500 });
         }
 
-        // Make the second request with native fetch
-        const searchRequest2 = {
-            ...searchRequest,
-            OAuthToken: initialResponse.response.OAuthToken
-        };
-
-        console.log('Search request:', JSON.stringify(searchRequest2, null, 2));
-        
-        // Create custom HTTPS agent that ignores SSL certificate issues
-        const httpsAgent = new https.Agent({
-            rejectUnauthorized: false, // Ignore SSL certificate issues
-            timeout: 30000 // Increase timeout to 30 seconds
-        });
-
-        const response = await fetch(initialResponse.response.NewEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${initialResponse.response.OAuthToken}`,
-                'ApiKey': process.env.API_KEY!,
-                'AppId': process.env.APP_ID!
-            },
-            body: JSON.stringify(searchRequest2),
-            // @ts-ignore - Next.js types don't include agent, but it works
-            agent: httpsAgent
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const searchResponse = await response.json();
-        console.log('Search response:', JSON.stringify(searchResponse, null, 2));
-
-        return NextResponse.json(searchResponse);
+        return NextResponse.json(api.response);
     } catch (error) {
         console.error('Search error:', error);
         return NextResponse.json({ 
