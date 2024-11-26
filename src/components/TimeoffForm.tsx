@@ -318,45 +318,49 @@ export default function TimeoffForm({
     queryClient.setQueryData(["date"], dates?.[0]);
   };
 
-  const sendNotificationToAdmins = (
+  const sendNotificationToAdmins = async (
     timeOffData: any,
     selectedDates: Date[]
   ) => {
-    // Get the earliest and latest dates from the selection
-    const firstDate = new Date(
-      Math.min(...selectedDates.map((date) => date.getTime()))
-    );
-    const lastDate = new Date(
-      Math.max(...selectedDates.map((date) => date.getTime()))
-    );
+    try {
+      // Get the earliest and latest dates from the selection
+      const firstDate = new Date(
+        Math.min(...selectedDates.map((date) => date.getTime()))
+      );
+      const lastDate = new Date(
+        Math.max(...selectedDates.map((date) => date.getTime()))
+      );
 
-    // Format dates consistently using date-fns-tz
-    const timeZone = "America/Los_Angeles";
-    const startDate = formatTZ(
-      toZonedTime(firstDate, timeZone),
-      "EEEE, MMMM d, yyyy"
-    );
-    const endDate = formatTZ(
-      toZonedTime(lastDate, timeZone),
-      "EEEE, MMMM d, yyyy"
-    );
+      // Format dates consistently using date-fns-tz
+      const timeZone = "America/Los_Angeles";
+      const startDate = formatTZ(
+        toZonedTime(firstDate, timeZone),
+        "EEEE, MMMM d, yyyy"
+      );
+      const endDate = formatTZ(
+        toZonedTime(lastDate, timeZone),
+        "EEEE, MMMM d, yyyy"
+      );
 
-    return Promise.resolve(
-      supabase
+      // Fetch admin emails from Supabase
+      const { data: employees, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim", "Sam"])
-    )
-      .then(({ data: employees, error: employeesError }) => {
-        if (employeesError) throw employeesError;
-        if (!employees || employees.length === 0) {
-          console.warn("No super admin emails found");
-          return;
-        }
+        .in("name", ["Sammy", "Russ", "Slim Jim", "Sam"]);
 
-        const recipientEmails = employees.map((emp) => emp.contact_info);
+      if (employeesError) throw employeesError;
+      if (!employees || employees.length === 0) {
+        console.warn("No super admin emails found");
+        return;
+      }
 
-        return sendNotificationMutation.mutateAsync({
+      const recipientEmails = employees.map((emp) => emp.contact_info);
+
+      // Send email notification
+      const response = await fetch("/api/send_email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           email: recipientEmails,
           subject: "New Time Off Request Submitted",
           templateName: "TimeOffRequest",
@@ -367,11 +371,18 @@ export default function TimeoffForm({
             reason: timeOffData.reason,
             other_reason: timeOffData.other_reason || "",
           },
-        });
-      })
-      .catch((error) => {
-        console.error("Failed to send notification email:", error);
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to send notification email");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to send notification email:", error);
+      throw error;
+    }
   };
 
   const { data: isSubmitting = false } = useQuery({

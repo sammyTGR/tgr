@@ -14,9 +14,7 @@ const nextConfig = {
           },
         ],
     },
-    experimental: {
-      dynamicIO: true,
-    },
+
     // async headers() {
     //   return [
     //     {

@@ -395,14 +395,17 @@ const EmployeeProfilePage = () => {
     },
   });
 
-  const { control: timeOffControl, handleSubmit: handleSubmitTimeOff } =
-    useForm<TimeOffFormData>({
-      defaultValues: {
-        selectedDates: [],
-        reason: "",
-        otherReason: "",
-      },
-    });
+  const {
+    control: timeOffControl,
+    handleSubmit: handleSubmitTimeOff,
+    reset: timeOffReset,
+  } = useForm<TimeOffFormData>({
+    defaultValues: {
+      selectedDates: [],
+      reason: "",
+      otherReason: "",
+    },
+  });
 
   // For the employee profile form
   const { register: profileRegister, handleSubmit: handleSubmitProfile } =
@@ -862,59 +865,108 @@ const EmployeeProfilePage = () => {
     timeOffData: any,
     selectedDates: Date[]
   ) => {
-    const startDate = format(selectedDates[0], "yyyy-MM-dd");
-    const endDate = format(
-      selectedDates[selectedDates.length - 1],
-      "yyyy-MM-dd"
-    );
-
     try {
-      const { data: employees, error: employeesError } = await supabase
+      // Get admin emails from Supabase
+      const { data: admins, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim"]);
+        .in("name", ["Sammy", "Russ", "Slim Jim", "Sam"]);
 
       if (employeesError) throw employeesError;
 
-      const recipientEmails = employees.map((emp) => emp.contact_info);
-
-      if (recipientEmails.length === 0) {
-        console.warn("No super admin emails found");
+      if (!admins || admins.length === 0) {
+        console.warn("No admin emails found");
         return;
       }
 
+      const adminEmails = admins.map((admin) => admin.contact_info);
+
+      // Format dates consistently
+      const timeZone = "America/Los_Angeles";
+      const startDate = formatTZ(
+        toZonedTime(selectedDates[0], timeZone),
+        "EEEE, MMMM d, yyyy",
+        { timeZone }
+      );
+      const endDate = formatTZ(
+        toZonedTime(selectedDates[selectedDates.length - 1], timeZone),
+        "EEEE, MMMM d, yyyy",
+        { timeZone }
+      );
+
+      // Send email using the API route
       const response = await fetch("/api/send_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: recipientEmails,
+          email: adminEmails,
           subject: "New Time Off Request Submitted",
           templateName: "TimeOffRequest",
           templateData: {
-            employeeName: timeOffData.employee_name,
+            employeeName: timeOffData.name,
             startDate,
             endDate,
             reason: timeOffData.reason,
-            other_reason: timeOffData.other_reason,
+            other_reason: timeOffData.other_reason || "",
           },
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send email");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send notification email");
       }
+
+      return await response.json();
     } catch (error) {
       console.error("Failed to send notification email:", error);
+      throw error;
     }
   };
 
   // For the time off request form
-  const onSubmitTimeOff = (data: TimeOffFormData) => {
-    // Handle time off request submission
-    // console.log("Time off request data:", data);
-    // Add your submission logic here
+  const onSubmitTimeOff = async (data: TimeOffFormData) => {
+    try {
+      if (!data.selectedDates || data.selectedDates.length === 0) {
+        toast.error("Please select at least one date");
+        return;
+      }
+
+      if (!data.reason) {
+        toast.error("Please select a reason for your time off request");
+        return;
+      }
+
+      // If reason requires additional explanation but none provided
+      if (
+        (data.reason === "Swapping Schedules" || data.reason === "Other") &&
+        !data.otherReason
+      ) {
+        toast.error("Please provide additional details for your request");
+        return;
+      }
+
+      // Submit time off request
+      await timeOffRequestMutation.mutateAsync({
+        selectedDates: data.selectedDates,
+        reason: data.reason,
+        otherReason: data.otherReason || "",
+      });
+
+      // Reset form after successful submission using the correct reset method
+      timeOffReset({
+        selectedDates: [],
+        reason: "",
+        otherReason: "",
+      });
+
+      toast.success("Time off request submitted successfully!");
+    } catch (error) {
+      console.error("Error submitting time off request:", error);
+      toast.error("Failed to submit time off request. Please try again.");
+    }
   };
 
   const onSubmitProfile = (data: EmployeeProfileData) => {
@@ -2461,48 +2513,64 @@ const sendNotificationToAdmins = async (
   timeOffData: any,
   selectedDates: Date[]
 ) => {
-  const startDate = format(selectedDates[0], "yyyy-MM-dd");
-  const endDate = format(selectedDates[selectedDates.length - 1], "yyyy-MM-dd");
-
   try {
-    const { data: employees, error: employeesError } = await supabase
+    // Get admin emails from Supabase
+    const { data: admins, error: employeesError } = await supabase
       .from("employees")
       .select("contact_info, name")
       .in("name", ["Sammy", "Russ", "Slim Jim"]);
 
     if (employeesError) throw employeesError;
 
-    const recipientEmails = employees.map((emp) => emp.contact_info);
-
-    if (recipientEmails.length === 0) {
-      console.warn("No super admin emails found");
+    if (!admins || admins.length === 0) {
+      console.warn("No admin emails found");
       return;
     }
 
+    const adminEmails = admins.map((admin) => admin.contact_info);
+
+    // Format dates consistently
+    const timeZone = "America/Los_Angeles";
+    const startDate = formatTZ(
+      toZonedTime(selectedDates[0], timeZone),
+      "EEEE, MMMM d, yyyy",
+      { timeZone }
+    );
+    const endDate = formatTZ(
+      toZonedTime(selectedDates[selectedDates.length - 1], timeZone),
+      "EEEE, MMMM d, yyyy",
+      { timeZone }
+    );
+
+    // Send email using the API route
     const response = await fetch("/api/send_email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email: recipientEmails,
+        email: adminEmails,
         subject: "New Time Off Request Submitted",
         templateName: "TimeOffRequest",
         templateData: {
-          employeeName: timeOffData.employee_name,
+          employeeName: timeOffData.name,
           startDate,
           endDate,
           reason: timeOffData.reason,
-          other_reason: timeOffData.other_reason,
+          other_reason: timeOffData.other_reason || "",
         },
       }),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to send email");
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to send notification email");
     }
+
+    return await response.json();
   } catch (error) {
     console.error("Failed to send notification email:", error);
+    throw error;
   }
 };
 
