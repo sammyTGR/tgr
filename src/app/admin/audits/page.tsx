@@ -242,15 +242,20 @@ const LazyDataTableProfile = dynamic<any>(
 // API Functions
 const api = {
   fetchEmployees: async (): Promise<Employee[]> => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .order("lanid", { ascending: true });
+    const searchParams = new URLSearchParams({
+      select: "lanid,department,role,status",
+      status: "active",
+      order: "lanid.asc",
+    });
 
-    if (error) {
+    const response = await fetch(`/api/fetchEmployees?${searchParams}`);
+
+    if (!response.ok) {
+      const error = await response.json();
       throw new Error(`Error fetching employees: ${error.message}`);
     }
-    return data || [];
+
+    return response.json();
   },
 
   fetchAudits: async (filters?: AuditFilters): Promise<Audit[]> => {

@@ -170,6 +170,28 @@ const isSameDayOfYear = (date1: Date, date2: Date) => {
   );
 };
 
+const fetchEmployeeData = async (employee_id: number) => {
+  const searchParams = new URLSearchParams({
+    select: "name,contact_info",
+    equals: `employee_id:${employee_id}`,
+    single: "true",
+  });
+
+  const response = await fetch(`/api/fetchEmployees?${searchParams}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch employee data");
+  }
+
+  const employeeData = await response.json();
+
+  if (!employeeData) {
+    throw new Error("Failed to fetch employee data");
+  }
+
+  return employeeData;
+};
+
 // API functions
 const fetchCalendarData = (currentDate: Date): Promise<EmployeeCalendar[]> => {
   const startOfWeekDate = toZonedTime(getStartOfWeek(currentDate), TIME_ZONE);
@@ -883,13 +905,8 @@ export default function Component() {
     }) => {
       try {
         // First, get employee data for email
-        const { data: employeeData, error: employeeError } = await supabase
-          .from("employees")
-          .select("name, contact_info")
-          .eq("employee_id", employee_id)
-          .single();
-
-        if (employeeError || !employeeData) {
+        const employeeData = await fetchEmployeeData(employee_id);
+        if (!employeeData) {
           throw new Error("Failed to fetch employee data");
         }
 
