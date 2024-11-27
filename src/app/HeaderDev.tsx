@@ -49,9 +49,15 @@ import dynamic from "next/dynamic";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useSearchParams } from "next/navigation";
+import { Session, User } from "@supabase/supabase-js";
 
 interface HeaderDev {
   totalUnreadCount: number;
+}
+
+interface UserData {
+  user: User | null;
+  error?: string;
 }
 
 export interface ChatMessage {
@@ -63,6 +69,14 @@ export interface ChatMessage {
   created_at: string;
   is_read?: boolean;
   read_by?: string[];
+}
+
+interface UnreadOrdersResponse {
+  unreadOrderCount: number;
+}
+
+interface UnreadTimeOffResponse {
+  unreadTimeOffCount: number;
 }
 
 const LazyNavigationMenu = dynamic(
@@ -289,146 +303,144 @@ const comboComps = [
 ];
 
 const HeaderDev = React.memo(() => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(undefined);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
-  const router = useRouter();
-  const { setTheme } = useTheme();
-  // const { totalUnreadCount, resetUnreadCounts } = useUnreadCounts();
   const [unreadOrderCount, setUnreadOrderCount] = useState(0);
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
+  const router = useRouter();
+  const { setTheme } = useTheme();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
-    queryFn: () => {
-      return Promise.resolve(
-        new Promise((resolve) => {
-          setTimeout(() => resolve(null), 100);
-        })
-      );
-    },
-    staleTime: 0, // Always refetch on route change
-    refetchInterval: 0, // Disable automatic refetching
-  });
-
-  const fetchUnreadOrders = async () => {
-    try {
-      const response = await fetch("/api/useUnreadOrders");
-      const data = await response.json();
-      setUnreadOrderCount(data.unreadOrderCount);
-    } catch (error) {
-      console.error("Error fetching unread orders:", error);
-    }
-  };
-
-  const fetchUnreadTimeOffRequests = async () => {
-    try {
-      const response = await fetch("/api/useUnreadTimeOffRequests");
-      const data = await response.json();
-      setUnreadTimeOffCount(data.unreadTimeOffCount);
-    } catch (error) {
-      console.error("Error fetching unread time-off requests:", error);
-    }
-  };
-
-  const fetchUserAndEmployee = useCallback(async () => {
-    try {
-      // Get user and role data
-      const roleResponse = await fetch('/api/getUserRole');
-      if (!roleResponse.ok) {
-        const error = await roleResponse.json();
-        throw new Error(error.error || 'Failed to fetch user role');
-      }
-      const userData = await roleResponse.json();
-      
-      if (userData?.user) {
-        setUser(userData.user);
-        
-        // Get employee data
-        const employeeResponse = await fetch(
-          `/api/fetchEmployees?select=employee_id&equals=user_uuid:${userData.user.id}&single=true`
-        );
-        
-        if (!employeeResponse.ok) {
-          const error = await employeeResponse.json();
-          throw new Error(error.error || 'Failed to fetch employee data');
-        }
-        
-        const employeeData = await employeeResponse.json();
-        if (employeeData?.employee_id) {
-          setEmployeeId(employeeData.employee_id);
-        }
-      } else {
-        setUser(null);
-        setEmployeeId(null);
-      }
-    } catch (error) {
-      console.error("Error in fetchUserAndEmployee:", error);
-      setUser(null);
-      setEmployeeId(null);
-    }
+  // Memoize state setters
+  const updateUser = useCallback((newUser: any) => {
+    setUser(newUser);
   }, []);
 
-  useEffect(() => {
-    fetchUserAndEmployee();
+  const updateEmployeeId = useCallback((newId: number | null) => {
+    setEmployeeId(newId);
+  }, []);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN") {
-          await fetchUserAndEmployee();
-          // Invalidate and refetch relevant queries
-          queryClient.invalidateQueries({ queryKey: ['userRole'] });
-          queryClient.invalidateQueries({ queryKey: ['employeeId'] });
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setEmployeeId(null);
-          // Clear relevant queries from cache
-          queryClient.removeQueries({ queryKey: ['userRole'] });
-          queryClient.removeQueries({ queryKey: ['employeeId'] });
-        }
+  // Navigation query
+  const { isLoading: isNavigating } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: () => Promise.resolve(new Promise(resolve => setTimeout(() => resolve(null), 100))),
+    staleTime: 0,
+    refetchInterval: 0,
+  });
+
+  // Session query
+  const { data: sessionData } = useQuery({
+    queryKey: ['authSession'],
+    queryFn: async () => {
+      const response = await fetch('/api/check-session');
+      if (!response.ok) throw new Error('Failed to check session');
+      const data = await response.json();
+      if (data.authenticated) {
+        updateUser(data.user);
+      } else {
+        updateUser(null);
       }
-    );
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+    refetchOnWindowFocus: false
+  });
 
+  // User role query
+  const { data: userData, refetch: refetchUserRole } = useQuery<UserData>({
+    queryKey: ['userRole'],
+    queryFn: async () => {
+      const response = await fetch('/api/getUserRole');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch user role');
+      }
+      return response.json();
+    },
+    enabled: !!user,
+    staleTime: Infinity,
+    retry: false,
+    gcTime: Infinity
+  });
+
+  // Employee query
+  const { data: employeeData, refetch: refetchEmployee } = useQuery({
+    queryKey: ['employee', userData?.user?.id],
+    queryFn: async () => {
+      if (!userData?.user?.id) return null;
+      const response = await fetch(
+        `/api/fetchEmployees?select=employee_id&equals=user_uuid:${userData.user.id}&single=true`
+      );
+      if (!response.ok) throw new Error('Failed to fetch employee data');
+      const data = await response.json();
+      if (data?.employee_id) {
+        updateEmployeeId(data.employee_id);
+      }
+      return data;
+    },
+    enabled: false,
+    staleTime: Infinity,
+    retry: false,
+  });
+
+  // Memoize auth change handler
+  const handleAuthChange = useCallback(async (event: string, session: Session | null) => {
+    if (event === "SIGNED_IN") {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['authSession'] }),
+        queryClient.invalidateQueries({ queryKey: ['userRole'] })
+      ]);
+    } else if (event === "SIGNED_OUT") {
+      updateUser(null);
+      updateEmployeeId(null);
+      queryClient.removeQueries({ queryKey: ['authSession'] });
+      queryClient.removeQueries({ queryKey: ['userRole'] });
+      window.location.href = "/";
+    }
+  }, [queryClient, updateUser, updateEmployeeId]);
+
+  // Auth listener effect
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(handleAuthChange);
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchUserAndEmployee, queryClient]);
+  }, [handleAuthChange]);
 
-  useEffect(() => {
-    if (user) {
-      fetchUnreadOrders();
-      fetchUnreadTimeOffRequests();
+  // Unread counts queries
+  const { data: unreadOrdersData } = useQuery<UnreadOrdersResponse>({
+    queryKey: ['unreadOrders'],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadOrders");
+      if (!response.ok) throw new Error('Failed to fetch unread orders');
+      const data = await response.json();
+      setUnreadOrderCount(data.unreadOrderCount || 0);
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 30000 // Refetch every 30 seconds
+  });
 
-      const ordersSubscription = supabase
-        .channel("orders")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "orders" },
-          fetchUnreadOrders
-        )
-        .subscribe();
-
-      const timeOffSubscription = supabase
-        .channel("time_off_requests")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "time_off_requests" },
-          fetchUnreadTimeOffRequests
-        )
-        .subscribe();
-
-      return () => {
-        ordersSubscription.unsubscribe();
-        timeOffSubscription.unsubscribe();
-      };
-    }
-  }, [user]);
+  const { data: unreadTimeOffData } = useQuery<UnreadTimeOffResponse>({
+    queryKey: ['unreadTimeOff'],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadTimeOffRequests");
+      if (!response.ok) throw new Error('Failed to fetch unread time-off requests');
+      const data = await response.json();
+      setUnreadTimeOffCount(data.unreadTimeOffCount || 0);
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 30000
+  });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
+    updateUser(null);
+    updateEmployeeId(null);
     window.location.href = "/";
   };
 
@@ -454,9 +466,44 @@ const HeaderDev = React.memo(() => {
     }
   };
 
+  useEffect(() => {
+    if (!user) return;
+
+    const ordersSubscription = supabase
+      .channel("orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['unreadOrders'] });
+        }
+      )
+      .subscribe();
+
+    const timeOffSubscription = supabase
+      .channel("time_off_requests")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "time_off_requests" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['unreadTimeOff'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      ordersSubscription.unsubscribe();
+      timeOffSubscription.unsubscribe();
+    };
+  }, [user, queryClient]);
+
+  const handleHomeClick = () => {
+    router.push('/');
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["dev"]}>
-      {isLoading && <LoadingIndicator />}
+      {isNavigating && <LoadingIndicator />}
       <header className="flex justify-between items-center p-1">
         <Suspense fallback={<div>Loading navigation...</div>}>
           <LazyNavigationMenu>
@@ -577,116 +624,109 @@ const HeaderDev = React.memo(() => {
           </LazyNavigationMenu>
         </Suspense>
         <div className="flex items-center -space-x-2">
-          {unreadOrderCount > 0 && (
-            <Link href="/sales/orderreview" className="mr-1">
-              <Button variant="ghost" size="icon">
-                <FileTextIcon />
-                <span className="badge">{unreadOrderCount}</span>
+          {user && (
+            <>
+              <Link href="/sales/orderreview" className="mr-1">
+                <Button variant="ghost" size="icon" className="relative">
+                  <FileTextIcon />
+                  {unreadOrderCount > 0 && (
+                    <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
+                      {unreadOrderCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              
+              <Link href="/admin/timeoffreview" className="mr-1">
+                <Button variant="ghost" size="icon" className="relative">
+                  <CalendarIcon />
+                  {unreadTimeOffCount > 0 && (
+                    <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
+                      {unreadTimeOffCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              
+              <Button variant="ghost" size="icon" onClick={handleHomeClick}>
+                <HomeIcon />
               </Button>
-            </Link>
+
+              <div className="flex items-center space-x-1">
+                <Suspense fallback={<div>Loading menu...</div>}>
+                  <LazyDropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="mr-2 relative">
+                        <PersonIcon />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 mr-2">
+                      <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (employeeId) {
+                            router.push(`/TGR/crew/profile/${employeeId}`);
+                          }
+                        }}
+                      >
+                        <PersonIcon className="mr-2 h-4 w-4" />
+                        <span>Your Profile Page</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => handleLinkClick("/admin/domains")}
+                      >
+                        <Pencil2Icon className="mr-2 h-4 w-4" />
+                        <span>Manage Domains</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          handleLinkClick("/admin/reports/dashboard")
+                        }
+                      >
+                        <DashboardIcon className="mr-2 h-4 w-4" />
+                        <span>Admin Dashboard</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem onClick={handleChatClick}>
+                        <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                        <span>Messages</span>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <ShadowIcon className="mr-2 h-4 w-4" />
+                          <span>Change Theme</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => setTheme("light")}>
+                              <SunIcon className="mr-2 h-4 w-4" />
+                              <span>Light</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setTheme("dark")}>
+                              <MoonIcon className="mr-2 h-4 w-4" />
+                              <span>Dark</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </LazyDropdownMenu>
+                </Suspense>
+              </div>
+            </>
           )}
-          {unreadTimeOffCount > 0 && (
-            <Link href="/admin/timeoffreview" className="mr-1">
-              <Button variant="ghost" size="icon">
-                <CalendarIcon />
-                <span className="badge">{unreadTimeOffCount}</span>
-              </Button>
-            </Link>
-          )}
-          <Link href="/" className="mr-1">
-            <Button variant="ghost" size="icon">
-              <HomeIcon />
-            </Button>
-          </Link>
-
-          {user ? (
-            <div className="flex items-center space-x-1">
-              <Suspense fallback={<div>Loading menu...</div>}>
-                <LazyDropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mr-2 relative"
-                    >
-                      <PersonIcon />
-                      {/* {totalUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
-                        {totalUnreadCount}
-                      </span>
-                    )} */}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 mr-2">
-                    <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleProfileClick}>
-                      <PersonIcon className="mr-2 h-4 w-4" />
-                      <span>Your Profile Page</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => handleLinkClick("/admin/domains")}
-                    >
-                      <Pencil2Icon className="mr-2 h-4 w-4" />
-                      <span>Manage Domains</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        handleLinkClick("/admin/reports/dashboard")
-                      }
-                    >
-                      <DashboardIcon className="mr-2 h-4 w-4" />
-                      <span>Admin Dashboard</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-
-                    <DropdownMenuItem onClick={handleChatClick}>
-                      <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                      <span>Messages</span>
-                      {/* {totalUnreadCount > 0 && (
-                      <span className="ml-auto text-red-500 font-bold">
-                        {totalUnreadCount}
-                      </span>
-                    )} */}
-                    </DropdownMenuItem>
-
-                    <DropdownMenuSeparator />
-
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <ShadowIcon className="mr-2 h-4 w-4" />
-                        <span>Change Theme</span>
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={() => setTheme("light")}>
-                            <SunIcon className="mr-2 h-4 w-4" />
-                            <span>Light</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setTheme("dark")}>
-                            <MoonIcon className="mr-2 h-4 w-4" />
-                            <span>Dark</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    {/* <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setTheme("light")}>
-                    Light
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    Dark
-                  </DropdownMenuItem> */}
-                    <DropdownMenuSeparator />
-
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </LazyDropdownMenu>
-              </Suspense>
-            </div>
-          ) : (
+          
+          {!user && (
             <Link href="/sign-in">
               <Button variant="linkHover2">Sign In</Button>
             </Link>
