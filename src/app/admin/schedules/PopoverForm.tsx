@@ -210,7 +210,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="linkHover2">{buttonText}</Button>
+        <Button variant="outline">{buttonText}</Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="p-4">
         <div>
@@ -308,7 +308,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               )}
             </>
           )}
-          <Button variant="linkHover1" className="mt-2" onClick={handleSubmit}>
+          <Button variant="ghost" className="mt-2" onClick={handleSubmit}>
             Submit
           </Button>
         </div>

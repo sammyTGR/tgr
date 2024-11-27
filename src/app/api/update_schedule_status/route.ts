@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 import { format, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
 const timeZone = "America/Los_Angeles";
+
+// Create server-side Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   const { employee_id, schedule_date, status } = await request.json();
@@ -21,7 +27,7 @@ export async function POST(request: Request) {
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", schedule_date);
+      .eq("schedule_date", formattedScheduleDate);
 
     if (scheduleFetchError) {
       console.error(
@@ -41,7 +47,8 @@ export async function POST(request: Request) {
         .insert({
           employee_id,
           schedule_date: formattedScheduleDate,
-          status
+          status,
+          day_of_week: format(pacificDate, 'EEEE')
         });
 
       if (scheduleInsertError) {
@@ -60,7 +67,7 @@ export async function POST(request: Request) {
         .from("schedules")
         .update({ status })
         .eq("employee_id", employee_id)
-        .eq("schedule_date", schedule_date);
+        .eq("schedule_date", formattedScheduleDate);
 
       if (scheduleUpdateError) {
         console.error(

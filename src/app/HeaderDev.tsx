@@ -325,116 +325,113 @@ const HeaderDev = React.memo(() => {
   // Navigation query
   const { isLoading: isNavigating } = useQuery({
     queryKey: ["navigation", pathname, searchParams],
-    queryFn: () => Promise.resolve(new Promise(resolve => setTimeout(() => resolve(null), 100))),
+    queryFn: () =>
+      Promise.resolve(
+        new Promise((resolve) => setTimeout(() => resolve(null), 100))
+      ),
     staleTime: 0,
     refetchInterval: 0,
   });
 
   // Session query
-  const { data: sessionData } = useQuery({
-    queryKey: ['authSession'],
+  const { data: authData, isLoading: isAuthLoading } = useQuery({
+    queryKey: ["authSession"],
     queryFn: async () => {
-      const response = await fetch('/api/check-session');
-      if (!response.ok) throw new Error('Failed to check session');
-      const data = await response.json();
-      if (data.authenticated) {
-        updateUser(data.user);
-      } else {
-        updateUser(null);
-      }
-      return data;
+      const response = await fetch("/api/check-session");
+      if (!response.ok) throw new Error("Failed to check session");
+      return response.json();
     },
-    staleTime: 1000 * 60 * 5,
-    retry: false,
-    refetchOnWindowFocus: false
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: true,
   });
 
   // User role query
   const { data: userData, refetch: refetchUserRole } = useQuery<UserData>({
-    queryKey: ['userRole'],
+    queryKey: ["userRole"],
     queryFn: async () => {
-      const response = await fetch('/api/getUserRole');
+      const response = await fetch("/api/getUserRole");
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch user role');
+        throw new Error(error.error || "Failed to fetch user role");
       }
       return response.json();
     },
     enabled: !!user,
     staleTime: Infinity,
     retry: false,
-    gcTime: Infinity
+    gcTime: Infinity,
   });
 
   // Employee query
-  const { data: employeeData, refetch: refetchEmployee } = useQuery({
-    queryKey: ['employee', userData?.user?.id],
+  const { data: employeeData } = useQuery({
+    queryKey: ["employee", authData?.user?.id],
     queryFn: async () => {
-      if (!userData?.user?.id) return null;
       const response = await fetch(
-        `/api/fetchEmployees?select=employee_id&equals=user_uuid:${userData.user.id}&single=true`
+        `/api/fetchEmployees?select=employee_id&equals=user_uuid:${authData.user.id}&single=true`
       );
-      if (!response.ok) throw new Error('Failed to fetch employee data');
-      const data = await response.json();
-      if (data?.employee_id) {
-        updateEmployeeId(data.employee_id);
-      }
-      return data;
+      if (!response.ok) throw new Error("Failed to fetch employee data");
+      return response.json();
     },
-    enabled: false,
+    enabled: !!authData?.user?.id,
     staleTime: Infinity,
-    retry: false,
   });
 
   // Memoize auth change handler
-  const handleAuthChange = useCallback(async (event: string, session: Session | null) => {
-    if (event === "SIGNED_IN") {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['authSession'] }),
-        queryClient.invalidateQueries({ queryKey: ['userRole'] })
-      ]);
-    } else if (event === "SIGNED_OUT") {
-      updateUser(null);
-      updateEmployeeId(null);
-      queryClient.removeQueries({ queryKey: ['authSession'] });
-      queryClient.removeQueries({ queryKey: ['userRole'] });
-      window.location.href = "/";
-    }
-  }, [queryClient, updateUser, updateEmployeeId]);
+  const handleAuthChange = useCallback(
+    async (event: string, session: Session | null) => {
+      if (event === "SIGNED_IN") {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["authSession"] }),
+          queryClient.invalidateQueries({ queryKey: ["userRole"] }),
+        ]);
+      } else if (event === "SIGNED_OUT") {
+        updateUser(null);
+        updateEmployeeId(null);
+        queryClient.removeQueries({ queryKey: ["authSession"] });
+        queryClient.removeQueries({ queryKey: ["userRole"] });
+        window.location.href = "/";
+      }
+    },
+    [queryClient, updateUser, updateEmployeeId]
+  );
 
   // Auth listener effect
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(handleAuthChange);
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [handleAuthChange]);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN") {
+          queryClient.invalidateQueries({ queryKey: ["authSession"] });
+        } else if (event === "SIGNED_OUT") {
+          queryClient.clear();
+          window.location.href = "/";
+        }
+      }
+    );
+    return () => authListener.subscription.unsubscribe();
+  }, [queryClient]);
 
   // Unread counts queries
-  const { data: unreadOrdersData } = useQuery<UnreadOrdersResponse>({
-    queryKey: ['unreadOrders'],
+  const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
+    queryKey: ["unreadOrders"],
     queryFn: async () => {
       const response = await fetch("/api/useUnreadOrders");
-      if (!response.ok) throw new Error('Failed to fetch unread orders');
-      const data = await response.json();
-      setUnreadOrderCount(data.unreadOrderCount || 0);
-      return data;
+      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      return response.json();
     },
-    enabled: !!user,
-    refetchInterval: 30000 // Refetch every 30 seconds
+    enabled: !!authData?.user,
+    refetchInterval: 30000,
   });
 
-  const { data: unreadTimeOffData } = useQuery<UnreadTimeOffResponse>({
-    queryKey: ['unreadTimeOff'],
+  const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
+    queryKey: ["unreadTimeOff"],
     queryFn: async () => {
       const response = await fetch("/api/useUnreadTimeOffRequests");
-      if (!response.ok) throw new Error('Failed to fetch unread time-off requests');
-      const data = await response.json();
-      setUnreadTimeOffCount(data.unreadTimeOffCount || 0);
-      return data;
+      if (!response.ok)
+        throw new Error("Failed to fetch unread time-off requests");
+      return response.json();
     },
-    enabled: !!user,
-    refetchInterval: 30000
+    enabled: !!authData?.user,
+    refetchInterval: 30000,
   });
 
   const handleSignOut = async () => {
@@ -475,7 +472,7 @@ const HeaderDev = React.memo(() => {
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['unreadOrders'] });
+          queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
         }
       )
       .subscribe();
@@ -486,7 +483,7 @@ const HeaderDev = React.memo(() => {
         "postgres_changes",
         { event: "*", schema: "public", table: "time_off_requests" },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['unreadTimeOff'] });
+          queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
         }
       )
       .subscribe();
@@ -498,7 +495,7 @@ const HeaderDev = React.memo(() => {
   }, [user, queryClient]);
 
   const handleHomeClick = () => {
-    router.push('/');
+    router.push("/");
   };
 
   return (
@@ -624,49 +621,57 @@ const HeaderDev = React.memo(() => {
           </LazyNavigationMenu>
         </Suspense>
         <div className="flex items-center -space-x-2">
-          {user && (
+          {authData?.user ? (
             <>
               <Link href="/sales/orderreview" className="mr-1">
                 <Button variant="ghost" size="icon" className="relative">
                   <FileTextIcon />
-                  {unreadOrderCount > 0 && (
+                  {unreadOrdersData.unreadOrderCount > 0 && (
                     <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
-                      {unreadOrderCount}
+                      {unreadOrdersData.unreadOrderCount}
                     </span>
                   )}
                 </Button>
               </Link>
-              
+
               <Link href="/admin/timeoffreview" className="mr-1">
                 <Button variant="ghost" size="icon" className="relative">
                   <CalendarIcon />
-                  {unreadTimeOffCount > 0 && (
+                  {unreadTimeOffData.unreadTimeOffCount > 0 && (
                     <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
-                      {unreadTimeOffCount}
+                      {unreadTimeOffData.unreadTimeOffCount}
                     </span>
                   )}
                 </Button>
               </Link>
-              
-              <Button variant="ghost" size="icon" onClick={handleHomeClick}>
-                <HomeIcon />
-              </Button>
+
+              <Link href="/admin/reports/dashboard">
+                <Button variant="ghost" size="icon">
+                  <HomeIcon />
+                </Button>
+              </Link>
 
               <div className="flex items-center space-x-1">
-                <Suspense fallback={<div>Loading menu...</div>}>
+                <Suspense fallback={<LoadingIndicator />}>
                   <LazyDropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="mr-2 relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="mr-2 relative"
+                      >
                         <PersonIcon />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 mr-2">
                       <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => {
-                          if (employeeId) {
-                            router.push(`/TGR/crew/profile/${employeeId}`);
+                          if (employeeData?.employee_id) {
+                            router.push(
+                              `/TGR/crew/profile/${employeeData.employee_id}`
+                            );
                           }
                         }}
                       >
@@ -724,9 +729,7 @@ const HeaderDev = React.memo(() => {
                 </Suspense>
               </div>
             </>
-          )}
-          
-          {!user && (
+          ) : (
             <Link href="/sign-in">
               <Button variant="linkHover2">Sign In</Button>
             </Link>

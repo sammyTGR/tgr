@@ -57,7 +57,7 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="linkHover2">Add Timesheet Entry</Button>
+        <Button variant="outline">Add Timesheet Entry</Button>
       </PopoverTrigger>
       <PopoverContent className="w-80">
         <div className="space-y-4">

@@ -692,7 +692,7 @@ const HeaderAdmin = React.memo(() => {
               </Button>
             </Link>
           )}
-          <Link href="/">
+          <Link href="/admin/reports/dashboard">
             <Button variant="linkHover2" size="icon">
               <HomeIcon />
             </Button>

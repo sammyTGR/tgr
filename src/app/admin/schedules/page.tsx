@@ -23,6 +23,7 @@ import { TimesheetPagination } from "./TimesheetPagination";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import AddTimesheetForm from "./AddTimesheetForm";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface ScheduleData {
   id: number;
@@ -46,6 +47,40 @@ interface TimesheetData {
   employee_name: string | null;
   event_date: string | null;
 }
+
+interface Schedule {
+  employee_id: number;
+  start_time: string | null;
+  end_time: string | null;
+  // Add other fields as necessary
+}
+
+interface Employee {
+  employee_id: number;
+  name: string;
+}
+
+interface ReferenceScheduleResponse {
+  schedules: any[];
+  employees: Employee[];
+}
+
+interface ActualScheduleResponse {
+  schedules: any[];
+  employees: Employee[];
+}
+
+interface ScheduleGenerationResponse {
+  schedules_created: number;
+  employees_processed: number;
+}
+
+interface GenerateSchedulesResponse {
+  schedules_created: number;
+  employees_processed: number;
+}
+
+type PopoverState = boolean;
 
 const timeZone = "America/Los_Angeles"; // Define the timezone
 
@@ -121,15 +156,9 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
 ];
 
 const ManageSchedules = () => {
-  const [actualSchedules, setActualSchedules] = useState<ScheduleData[]>([]);
+  const queryClient = useQueryClient();
   const { user } = useRole();
-  const [referenceSchedules, setReferenceSchedules] = useState<ScheduleData[]>(
-    []
-  );
-  const [employees, setEmployees] = useState<
-    { employee_id: number; name: string }[]
-  >([]);
-  const [timesheets, setTimesheets] = useState<TimesheetData[]>([]);
+
   const [addSchedulePopoverOpen, setAddSchedulePopoverOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "day_of_week", desc: false },
@@ -138,32 +167,150 @@ const ManageSchedules = () => {
     useState(false);
 
   useEffect(() => {
-    fetchReferenceSchedules();
     fetchActualSchedules();
     fetchEmployees();
     fetchTimesheets();
   }, []);
 
+  const popoverQuery = useQuery({
+    queryKey: ["popoverState"],
+    queryFn: () => false, // default closed
+    staleTime: Infinity, // Prevent automatic refetching
+  });
+
+  // Add the useQuery hook
+  const { data: actualSchedules = [] } = useQuery({
+    queryKey: ["actualSchedules"],
+    queryFn: async () => {
+      const [schedulesResponse, employeesResponse] = await Promise.all([
+        fetch("/api/fetchSchedules?type=actual"),
+        fetch("/api/fetchEmployees"),
+      ]);
+
+      if (!schedulesResponse.ok || !employeesResponse.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const schedules = await schedulesResponse.json();
+      const employees = await employeesResponse.json();
+
+      return schedules.map((schedule: any) => {
+        const employee = employees.find(
+          (emp: Employee) => emp.employee_id === schedule.employee_id
+        );
+
+        return {
+          id: schedule.id,
+          employee_id: schedule.employee_id,
+          employee_name: employee ? employee.name : "Unknown",
+          day_of_week: schedule.day_of_week || "",
+          user_uuid: schedule.user_uuid || "",
+          start_time: schedule.start_time
+            ? formatTime(schedule.start_time)
+            : "",
+          end_time: schedule.end_time ? formatTime(schedule.end_time) : "",
+        };
+      });
+    },
+    // Add stale time and cache time for better performance
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+  const { data: referenceSchedules = [] } = useQuery({
+    queryKey: ["referenceSchedules"],
+    queryFn: async () => {
+      const response = await fetch("/api/fetchReferenceSchedules");
+      if (!response.ok) {
+        throw new Error("Failed to fetch reference schedules");
+      }
+
+      const { schedules, employees }: ReferenceScheduleResponse =
+        await response.json();
+
+      return schedules.map((schedule: any) => {
+        const employee = employees.find(
+          (emp: Employee) => emp.employee_id === schedule.employee_id
+        );
+
+        return {
+          id: schedule.schedule_id || schedule.id,
+          employee_id: schedule.employee_id,
+          employee_name: employee ? employee.name : "Unknown",
+          day_of_week: schedule.day_of_week || "",
+          user_uuid: schedule.user_uuid || "",
+          start_time: schedule.start_time
+            ? formatTZ(
+                toZonedTime(
+                  new Date(`1970-01-01T${schedule.start_time}`),
+                  timeZone
+                ),
+                "hh:mma",
+                { timeZone }
+              )
+            : "",
+          end_time: schedule.end_time
+            ? formatTZ(
+                toZonedTime(
+                  new Date(`1970-01-01T${schedule.end_time}`),
+                  timeZone
+                ),
+                "hh:mma",
+                { timeZone }
+              )
+            : "",
+        };
+      });
+    },
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const response = await fetch("/api/fetchEmployees");
+      if (!response.ok) {
+        throw new Error("Failed to fetch employees");
+      }
+      return response.json();
+    },
+  });
+
+  const { data: timesheets = [] } = useQuery({
+    queryKey: ["timesheets"],
+    queryFn: async () => {
+      const response = await fetch("/api/fetchTimesheets");
+      if (!response.ok) {
+        throw new Error("Failed to fetch timesheets");
+      }
+      return response.json();
+    },
+  });
+
+  const scheduleQuery = useQuery({
+    queryKey: ["schedules"],
+    queryFn: async () => {
+      const response = await fetch("/api/fetchSchedules");
+      if (!response.ok) {
+        throw new Error("Failed to fetch schedules");
+      }
+      return response.json();
+    },
+  });
+
+  // Keep fetchActualSchedules as a function that triggers a refetch
   const fetchActualSchedules = async () => {
-    const { data: schedules, error: schedulesError } = await supabase
-      .from("schedules")
-      .select("*")
-      .or("status.eq.scheduled,status.eq.added_day");
+    await queryClient.invalidateQueries({ queryKey: ["actualSchedules"] });
+  };
 
-    if (schedulesError) {
-      //console.("Error fetching actual schedules:", schedulesError);
-      return;
-    }
-
-    const formattedSchedules = formatSchedules(schedules);
-    setActualSchedules(formattedSchedules);
+  const fetchReferenceSchedules = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["referenceSchedules"] });
   };
 
   // Helper function to format schedules (used for both reference and actual schedules)
   const formatSchedules = (schedules: any) => {
     return schedules.map((schedule: any) => {
       const employee = employees.find(
-        (emp) => emp.employee_id === schedule.employee_id
+        (emp: Employee) => emp.employee_id === schedule.employee_id
       );
 
       return {
@@ -187,179 +334,266 @@ const ManageSchedules = () => {
     }
   };
 
-  const fetchReferenceSchedules = async () => {
-    const { data: schedules, error: schedulesError } = await supabase
-      .from("reference_schedules")
-      .select("*");
-    if (schedulesError) {
-      //console.("Error fetching reference schedules:", schedulesError);
-      return;
-    }
-
-    const { data: employees, error: employeesError } = await supabase
-      .from("employees")
-      .select("employee_id, name");
-    if (employeesError) {
-      //console.("Error fetching employees:", employeesError);
-      return;
-    }
-
-    const schedulesWithNames = schedules.map((schedule) => {
-      const employee = employees.find(
-        (emp) => emp.employee_id === schedule.employee_id
-      );
-
-      const startTimeValid =
-        schedule.start_time &&
-        !isNaN(Date.parse(`1970-01-01T${schedule.start_time}`));
-      const endTimeValid =
-        schedule.end_time &&
-        !isNaN(Date.parse(`1970-01-01T${schedule.end_time}`));
-
-      return {
-        ...schedule,
-        employee_name: employee ? employee.name : "Unknown",
-        start_time: startTimeValid
-          ? formatTZ(
-              toZonedTime(
-                new Date(`1970-01-01T${schedule.start_time}`),
-                timeZone
-              ),
-              "hh:mma",
-              { timeZone }
-            )
-          : "",
-        end_time: endTimeValid
-          ? formatTZ(
-              toZonedTime(
-                new Date(`1970-01-01T${schedule.end_time}`),
-                timeZone
-              ),
-              "hh:mma",
-              { timeZone }
-            )
-          : "",
-      };
-    });
-
-    setReferenceSchedules(schedulesWithNames);
-  };
-
   const fetchEmployees = async () => {
-    const { data: employees, error: employeesError } = await supabase
-      .from("employees")
-      .select("employee_id, name, status")
-      .eq("status", "active");
-    if (employeesError) {
-      //console.("Error fetching employees:", employeesError);
-      return;
-    }
-    setEmployees(employees);
+    await queryClient.invalidateQueries({ queryKey: ["employees"] });
   };
 
   const fetchTimesheets = async () => {
-    // Get the current date
-    const today = new Date();
-    // Get date 30 days ago
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-
-    const { data: timesheets, error: timesheetsError } = await supabase
-      .from("employee_clock_events")
-      .select("*")
-      .gte("event_date", thirtyDaysAgo.toISOString().split("T")[0])
-      .lte("event_date", today.toISOString().split("T")[0])
-      .order("event_date", { ascending: false });
-
-    if (timesheetsError) {
-      toast.error("Error fetching timesheets");
-      return;
-    }
-
-    const formattedTimesheets = timesheets.map((timesheet) => {
-      // No timezone conversion is needed, just format the time
-      const startTime = timesheet.start_time
-        ? new Date(`1970-01-01T${timesheet.start_time}`).toLocaleTimeString(
-            "en-US",
-            { hour: "2-digit", minute: "2-digit" }
-          )
-        : "";
-
-      const endTime = timesheet.end_time
-        ? new Date(`1970-01-01T${timesheet.end_time}`).toLocaleTimeString(
-            "en-US",
-            { hour: "2-digit", minute: "2-digit" }
-          )
-        : "";
-
-      const lunchStart = timesheet.lunch_start
-        ? new Date(`1970-01-01T${timesheet.lunch_start}`).toLocaleTimeString(
-            "en-US",
-            { hour: "2-digit", minute: "2-digit" }
-          )
-        : "";
-
-      const lunchEnd = timesheet.lunch_end
-        ? new Date(`1970-01-01T${timesheet.lunch_end}`).toLocaleTimeString(
-            "en-US",
-            { hour: "2-digit", minute: "2-digit" }
-          )
-        : "";
-
-      let totalHours = null;
-      if (timesheet.start_time && timesheet.end_time) {
-        const start = new Date(`1970-01-01T${timesheet.start_time}`).getTime();
-        const end = new Date(`1970-01-01T${timesheet.end_time}`).getTime();
-        const lunchStart = timesheet.lunch_start
-          ? new Date(`1970-01-01T${timesheet.lunch_start}`).getTime()
-          : 0;
-        const lunchEnd = timesheet.lunch_end
-          ? new Date(`1970-01-01T${timesheet.lunch_end}`).getTime()
-          : 0;
-
-        let duration = (end - start) / 1000 / 3600;
-        if (lunchStart && lunchEnd) {
-          duration -= (lunchEnd - lunchStart) / 1000 / 3600;
-        }
-        totalHours = duration.toFixed(2);
-      }
-
-      return {
-        ...timesheet,
-        start_time: startTime,
-        lunch_start: lunchStart,
-        lunch_end: lunchEnd,
-        end_time: endTime,
-        total_hours: totalHours ? `${totalHours} hours` : "",
-      };
-    });
-
-    setTimesheets(formattedTimesheets);
+    await queryClient.invalidateQueries({ queryKey: ["timesheets"] });
   };
 
-  const handleEditTimesheet = async (
+  // Define mutations for data modifications
+  const editTimesheetMutation = useMutation({
+    mutationFn: async ({
+      id,
+      lunch_start,
+      lunch_end,
+    }: {
+      id: number;
+      lunch_start: string | null;
+      lunch_end: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("employee_clock_events")
+        .update({ lunch_start, lunch_end })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: fetchTimesheets,
+  });
+
+  const addTimesheetMutation = useMutation({
+    mutationFn: async (data: {
+      employeeId: number;
+      date: string;
+      startTime: string;
+      lunchStart: string | null;
+      lunchEnd: string | null;
+      endTime: string | null;
+    }) => {
+      const employee = employees.find(
+        (emp: Employee) => emp.employee_id === data.employeeId
+      );
+      if (!employee) throw new Error("Employee not found");
+
+      const formattedDate = format(parseISO(data.date), "yyyy-MM-dd");
+      const formatTime = (time: string | null): string | null => {
+        if (!time) return null;
+        return time.length === 5 ? `${time}:00` : time;
+      };
+
+      const timesheetData = {
+        employee_id: data.employeeId,
+        employee_name: employee.name,
+        event_date: formattedDate,
+        start_time: formatTime(data.startTime),
+        lunch_start: formatTime(data.lunchStart),
+        lunch_end: formatTime(data.lunchEnd),
+        end_time: formatTime(data.endTime),
+      };
+
+      const { data: existingEntry } = await supabase
+        .from("employee_clock_events")
+        .select()
+        .match({
+          employee_id: data.employeeId,
+          event_date: formattedDate,
+        })
+        .single();
+
+      if (existingEntry) {
+        return supabase
+          .from("employee_clock_events")
+          .update(timesheetData)
+          .match({ id: existingEntry.id });
+      }
+      return supabase.from("employee_clock_events").insert(timesheetData);
+    },
+    onSuccess: fetchTimesheets,
+    onError: (error) => {
+      toast.error(error.message || "Failed to add/update timesheet entry");
+    },
+  });
+
+  const clearScheduleMutation = useMutation({
+    mutationFn: async (employeeName: string) => {
+      const response = await fetch("/api/clearSchedules", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ employeeName }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to clear schedule");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["referenceSchedules"] });
+      toast.success("Schedule cleared successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const generateSchedulesMutation = useMutation({
+    mutationFn: async (weeks: string | undefined) => {
+      const response = await fetch("/api/generateSchedules", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ weeks: parseInt(weeks || "0", 10) }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to generate schedules");
+      }
+
+      const data = await response.json();
+
+      return {
+        schedulesGenerated: data.schedules_created,
+        employeesProcessed: data.employees_processed,
+      };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["referenceSchedules"] });
+      queryClient.invalidateQueries({ queryKey: ["actualSchedules"] });
+      toast.success(
+        `Successfully generated ${data.schedulesGenerated} schedules for ${data.employeesProcessed} employees`
+      );
+    },
+    onError: (error: Error) => {
+      console.error("Generation Error:", error);
+      toast.error(`Failed to generate schedules: ${error.message}`);
+    },
+  });
+
+  const addScheduleMutation = useMutation({
+    mutationFn: async ({
+      employeeName,
+      date,
+      startTime,
+      endTime,
+    }: {
+      employeeName: string;
+      date: string;
+      startTime: string;
+      endTime: string;
+    }) => {
+      const response = await fetch("/api/addSchedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeName,
+          date,
+          startTime,
+          endTime,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add schedule");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["actualSchedules"] });
+      queryClient.setQueryData(["popoverState"], false); // Close popover
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateScheduleMutation = useMutation({
+    mutationFn: async ({
+      employeeId,
+      date,
+      startTime,
+      endTime,
+    }: {
+      employeeId: number;
+      date: string;
+      startTime: string;
+      endTime: string;
+    }) => {
+      const response = await fetch("/api/updateSchedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeId,
+          date,
+          startTime,
+          endTime,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update schedule");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["referenceSchedules"] });
+      setUpdateSchedulePopoverOpen(false);
+      toast.success("Schedule updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update schedule");
+    },
+  });
+
+  // Update the handlers to use mutations
+  const handleEditTimesheet = (
     id: number,
     lunch_start: string | null,
     lunch_end: string | null
   ) => {
-    const { error } = await supabase
-      .from("employee_clock_events")
-      .update({ lunch_start, lunch_end })
-      .eq("id", id);
+    editTimesheetMutation.mutate({ id, lunch_start, lunch_end });
+  };
 
-    if (error) {
-      //console.("Error updating timesheet:", error);
-    } else {
-      // console.log("Timesheet updated successfully.");
-      fetchTimesheets();
-    }
+  const handleAddTimeSheetEntry = (
+    employeeId: number,
+    date: string,
+    startTime: string,
+    lunchStart: string | null,
+    lunchEnd: string | null,
+    endTime: string | null
+  ) => {
+    addTimesheetMutation.mutate({
+      employeeId,
+      date,
+      startTime,
+      lunchStart,
+      lunchEnd,
+      endTime,
+    });
   };
 
   const handleGenerateSingleSchedule = async (
     employeeName: string,
     weeks?: string
   ) => {
-    const employee = employees.find((emp) => emp.name === employeeName);
+    const employee = employees.find(
+      (emp: Employee) => emp.name === employeeName
+    );
     if (!employee) {
       //console.("Employee not found:", employeeName);
       return;
@@ -393,305 +627,109 @@ const ManageSchedules = () => {
     }
   };
 
-  const handleClearSchedule = async (employeeName: string, weeks?: string) => {
-    const { data: employees, error: employeeError } = await supabase
-      .from("employees")
-      .select("employee_id, name, status")
-      .ilike("name", `%${employeeName}%`)
-      .eq("status", "active");
+  const handleGenerateAllSchedules = (weeks?: string) => {
+    // Default to 1 week if no value is provided
+    const parsedWeeks = parseInt(weeks || "1", 10);
 
-    if (employeeError) {
-      //console.("Error fetching employee ID:", employeeError);
+    // Validate the input
+    if (isNaN(parsedWeeks) || parsedWeeks < 1) {
+      toast.error("Please enter a valid number of weeks (minimum 1)");
       return;
     }
 
-    if (employees.length === 0) {
-      alert("No employee found with that name.");
-      return;
-    }
+    toast.loading("Generating schedules...", { id: "generating-schedules" });
 
-    const employeeId = employees[0].employee_id;
-
-    const { error } = await supabase
-      .from("schedules")
-      .delete()
-      .eq("employee_id", employeeId)
-      .eq("status", "scheduled");
-
-    if (error) {
-      //console.("Error clearing schedules:", error);
-    } else {
-      // console.log("Schedules cleared for employee:", employeeName);
-      fetchReferenceSchedules();
-    }
+    generateSchedulesMutation.mutate(parsedWeeks.toString(), {
+      // Pass parsedWeeks as a string
+      onSuccess: () => {
+        toast.dismiss("generating-schedules");
+      },
+      onError: () => {
+        toast.dismiss("generating-schedules");
+      },
+    });
   };
 
-  const handleGenerateAllSchedules = async (weeks?: string) => {
-    const parsedWeeks = parseInt(weeks || "0", 10);
-    if (isNaN(parsedWeeks)) {
-      //console.("Invalid number of weeks:", weeks);
+  const handleClearSchedule = (employeeName: string) => {
+    clearScheduleMutation.mutate(employeeName);
+  };
+
+  const handleAddSchedule = (
+    employeeName: string,
+    _: string | undefined,
+    date?: string,
+    startTime?: string,
+    endTime?: string
+  ) => {
+    if (!date || !startTime || !endTime) {
+      toast.error("Date, Start Time, and End Time are required");
       return;
     }
 
-    const { data: schedules, error } = await supabase.rpc(
-      "generate_schedules_for_all_employees",
-      {
-        weeks: parsedWeeks,
-      }
+    addScheduleMutation.mutate({
+      employeeName,
+      date,
+      startTime,
+      endTime,
+    });
+  };
+
+  const handleUpdateSchedule = (
+    employeeName: string,
+    _: string | undefined,
+    date?: string,
+    startTime?: string,
+    endTime?: string
+  ) => {
+    const employee = employees.find(
+      (emp: Employee) => emp.name === employeeName
     );
-
-    if (error) {
-      //console.("Error generating schedules:", error);
-      return;
-    }
-
-    if (schedules && schedules.length > 0) {
-      for (const schedule of schedules) {
-        const employee = employees.find(
-          (emp) => emp.employee_id === schedule.employee_id
-        );
-        if (employee) {
-          await supabase
-            .from("schedules")
-            .update({ name: employee.name })
-            .eq("schedule_id", schedule.schedule_id);
-        }
-      }
-
-      // console.log("Schedules generated for all employees.");
-      fetchReferenceSchedules();
-    } else {
-      // console.log("No schedules found or generated.");
-    }
-  };
-
-  const handleAddTimeSheetEntry = async (
-    employeeId: number,
-    date: string,
-    startTime: string,
-    lunchStart: string | null,
-    lunchEnd: string | null,
-    endTime: string | null
-  ) => {
-    const employee = employees.find((emp) => emp.employee_id === employeeId);
-    if (!employee) {
-      //console.("Employee not found:", employeeId);
-      toast.error("Employee not found");
-      return;
-    }
-
-    if (date && startTime) {
-      const formatTime = (time: string | null): string | null => {
-        if (!time) return null;
-        return time.length === 5 ? `${time}:00` : time;
-      };
-
-      // Format the date to ensure it's in YYYY-MM-DD format
-      const formattedDate = format(parseISO(date), "yyyy-MM-dd");
-
-      const timesheetData = {
-        employee_id: employeeId,
-        employee_name: employee.name,
-        event_date: formattedDate,
-        start_time: formatTime(startTime),
-        lunch_start: formatTime(lunchStart),
-        lunch_end: formatTime(lunchEnd),
-        end_time: formatTime(endTime),
-      };
-
-      // Check if a timesheet entry already exists for this employee and date
-      const { data: existingEntry, error: fetchError } = await supabase
-        .from("employee_clock_events")
-        .select()
-        .match({ employee_id: employeeId, event_date: formattedDate })
-        .single();
-
-      if (fetchError && fetchError.code !== "PGRST116") {
-        //console.("Error fetching existing timesheet entry:", fetchError);
-        toast.error("Failed to check existing timesheet entry");
-        return;
-      }
-
-      let result;
-      if (existingEntry) {
-        // Update existing timesheet entry
-        result = await supabase
-          .from("employee_clock_events")
-          .update(timesheetData)
-          .match({ id: existingEntry.id })
-          .select();
-      } else {
-        // Insert new timesheet entry
-        result = await supabase
-          .from("employee_clock_events")
-          .insert(timesheetData)
-          .select();
-      }
-
-      if (result.error) {
-        //console.("Error adding/updating timesheet entry:", result.error);
-        toast.error("Failed to add/update timesheet entry");
-      } else {
-        // console.log("Timesheet entry added/updated successfully:", result.data);
-        fetchTimesheets();
-        toast.success("Timesheet entry added/updated successfully");
-      }
-    } else {
-      console.error(
-        "Date and Start Time are required to add a timesheet entry."
-      );
-      toast.error("Missing required information");
-    }
-  };
-
-  const handleAddSchedule = async (
-    employeeName: string,
-    _: string | undefined,
-    date?: string,
-    startTime?: string,
-    endTime?: string
-  ) => {
-    const employee = employees.find((emp) => emp.name === employeeName);
-    if (!employee) {
-      //console.("Employee not found:", employeeName);
-      toast.error("Employee not found");
-      return;
-    }
-
-    if (date && startTime && endTime) {
-      const daysOfWeek = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-      const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
-
-      const formattedStartTime =
-        startTime.length === 5 ? `${startTime}:00` : startTime;
-      const formattedEndTime = endTime.length === 5 ? `${endTime}:00` : endTime;
-
-      const scheduleData = {
-        employee_id: employee.employee_id,
-        schedule_date: date,
-        start_time: formattedStartTime,
-        end_time: formattedEndTime,
-        day_of_week: dayOfWeek,
-        status: "added_day",
-        name: employeeName,
-      };
-
-      // Check if a schedule already exists for this employee and date
-      const { data: existingSchedule, error: fetchError } = await supabase
-        .from("schedules")
-        .select()
-        .match({ employee_id: employee.employee_id, schedule_date: date })
-        .single();
-
-      if (fetchError && fetchError.code !== "PGRST116") {
-        //console.("Error fetching existing schedule:", fetchError);
-        toast.error("Failed to check existing schedule");
-        return;
-      }
-
-      let result;
-      if (existingSchedule) {
-        // Update existing schedule
-        result = await supabase
-          .from("schedules")
-          .update(scheduleData)
-          .match({ schedule_id: existingSchedule.schedule_id })
-          .select();
-      } else {
-        // Insert new schedule
-        result = await supabase.from("schedules").insert(scheduleData).select();
-      }
-
-      if (result.error) {
-        //console.("Error adding/updating schedule:", result.error);
-        toast.error("Failed to add/update schedule");
-      } else {
-        fetchActualSchedules();
-        // toast.success("Schedule added/updated successfully");
-        setAddSchedulePopoverOpen(false); // Close the popover
-      }
-    } else {
-      console.error(
-        "Date, Start Time, and End Time are required to add a schedule."
-      );
-      toast.error("Missing required information");
-    }
-  };
-
-  const handleUpdateSchedule = async (
-    employeeName: string,
-    _: string | undefined,
-    date?: string,
-    startTime?: string,
-    endTime?: string
-  ) => {
-    const employee = employees.find((emp) => emp.name === employeeName);
     if (!employee || !date || !startTime || !endTime) {
-      console.error("Missing required information for updating schedule");
+      toast.error("Missing required information for updating schedule");
       return;
     }
 
-    // Format the date
     const formattedDate = format(parseISO(date), "yyyy-MM-dd");
 
-    const { error } = await supabase
-      .from("schedules")
-      .update({
-        start_time: startTime,
-        end_time: endTime,
-        schedule_date: formattedDate, // Use the formatted date here
-      })
-      .eq("employee_id", employee.employee_id)
-      .eq("schedule_date", formattedDate); // Use the formatted date here as well
-
-    if (error) {
-      console.error("Error updating schedule:", error);
-      toast.error("Failed to update schedule");
-    } else {
-      toast.success(`Updated schedule for ${employeeName} on ${formattedDate}`);
-      fetchReferenceSchedules();
-      setUpdateSchedulePopoverOpen(false);
-    }
+    updateScheduleMutation.mutate({
+      employeeId: employee.employee_id,
+      date: formattedDate,
+      startTime,
+      endTime,
+    });
   };
 
   const fetchSchedule = async (employeeId: number, date: string) => {
-    const { data, error } = await supabase
-      .from("schedules")
-      .select("start_time, end_time")
-      .eq("employee_id", employeeId)
-      .eq("schedule_date", date)
-      .single();
-
-    if (error) {
+    try {
+      const response = await fetch(
+        `/api/fetchScheduleByDate?employeeId=${employeeId}&date=${date}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch schedule");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
       console.error("Error fetching schedule:", error);
       return null;
     }
-    return data;
   };
 
-  const table = useReactTable({
-    data: referenceSchedules,
-    columns: scheduleColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
+  // const table = useReactTable({
+  //   data: referenceSchedules,
+  //   columns: scheduleColumns,
+  //   getCoreRowModel: getCoreRowModel(),
+  //   getPaginationRowModel: getPaginationRowModel(),
+  //   getFilteredRowModel: getFilteredRowModel(),
+  // });
 
-  const timesheetTable = useReactTable({
-    data: timesheets,
-    columns: timesheetColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
+  // const timesheetTable = useReactTable({
+  //   data: timesheets,
+  //   columns: timesheetColumns,
+  //   getCoreRowModel: getCoreRowModel(),
+  //   getPaginationRowModel: getPaginationRowModel(),
+  //   getFilteredRowModel: getFilteredRowModel(),
+  // });
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
@@ -713,8 +751,8 @@ const ManageSchedules = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
-                    onSubmit={(employeeName: string, weeks?: string) =>
-                      handleClearSchedule(employeeName, weeks)
+                    onSubmit={(employeeName: string) =>
+                      handleClearSchedule(employeeName)
                     }
                     buttonText="Select Employee"
                     placeholder="Enter employee name"
@@ -747,9 +785,9 @@ const ManageSchedules = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
-                    onSubmit={(_, weeks?: string) =>
-                      handleGenerateAllSchedules(weeks)
-                    }
+                    onSubmit={(_, weeks?: string) => {
+                      generateSchedulesMutation.mutate(weeks || "1");
+                    }}
                     buttonText="Select # Of Weeks"
                     placeholder="Enter number of weeks"
                     formType="generateAll"
@@ -764,12 +802,17 @@ const ManageSchedules = () => {
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
                     onSubmit={handleAddSchedule}
-                    buttonText="Add An Unscheduled Shift"
+                    buttonText="Add Unscheduled Shift"
                     placeholder="Enter employee name and details"
                     formType="addSchedule"
                     employees={employees}
-                    open={addSchedulePopoverOpen}
-                    onOpenChange={setAddSchedulePopoverOpen}
+                    open={popoverQuery.data ?? false} // Add fallback value
+                    onOpenChange={(open) => {
+                      queryClient.setQueryData<PopoverState>(
+                        ["popoverState"],
+                        open
+                      );
+                    }}
                   />
                 </CardContent>
               </Card>
@@ -808,7 +851,7 @@ const ManageSchedules = () => {
 
           <TabsContent value="timesheets">
             <CardContent>
-              <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader>
                     <h2 className="text-lg font-bold">Add Timesheet Entry</h2>
