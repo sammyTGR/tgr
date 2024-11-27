@@ -678,23 +678,35 @@ export default function Component() {
   });
 
   const insertBreakRoomDutyMutation = useMutation({
-    mutationFn: (data: {
+    mutationFn: async (data: {
       week_start: string;
       employee_id: number;
       duty_date: string;
     }) => {
-      return Promise.resolve(
-        supabase
-          .from("break_room_duty")
-          .insert(data)
-          .then(({ error }) => {
-            if (error) throw error;
-            return data;
-          })
-      );
+      const response = await fetch('/api/break_room_duty', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          checkSchedule: true // Add this flag to ensure schedule validation
+        }),
+      });
+  
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create break room duty');
+      }
+  
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["breakRoomDuty"] });
+    },
+    onError: (error) => {
+      console.error("Failed to insert break room duty:", error);
+      // You might want to add toast notification here
     },
   });
 

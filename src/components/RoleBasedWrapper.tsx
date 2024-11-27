@@ -1,6 +1,6 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { ProgressBar } from "@/components/ProgressBar";
 
 interface RoleBasedWrapperProps {
@@ -10,90 +10,59 @@ interface RoleBasedWrapperProps {
 
 function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
   const router = useRouter();
-  const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
 
-  useEffect(() => {
-    const fetchRole = async () => {
-      setProgress(10); // Initial progress
-
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['userRole'],
+    queryFn: async () => {
+      // First check cookie
       const roleHeader = document.cookie
         .split("; ")
         .find((row) => row.startsWith("X-User-Role="))
         ?.split("=")[1];
+
       if (roleHeader) {
-        setRole(roleHeader);
-        setLoading(false);
-        setProgress(100); // Final progress
-      } else {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError) {
-          console.error("Error fetching user:", userError.message);
-          setLoading(false);
-          setProgress(100); // Final progress
-          return;
-        }
-
-        const user = userData.user;
-        setProgress(40); // Update progress
-
-        // Check the employees table
-        const { data: roleData, error: roleError } = await supabase
-          .from("employees")
-          .select("role")
-          .eq("user_uuid", user?.id)
-          .single();
-
-        setProgress(70); // Update progress
-
-        if (roleError || !roleData) {
-          // Check the customer table if not found in employees table
-          const { data: customerData, error: customerError } = await supabase
-            .from("customers")
-            .select("role")
-            .eq("email", user?.email)
-            .single();
-
-          if (customerError || !customerData) {
-            console.error(
-              "Error fetching role:",
-              roleError?.message || customerError?.message
-            );
-            setLoading(false);
-            setProgress(100); // Final progress
-            return;
-          }
-
-          setRole(customerData.role);
-        } else {
-          setRole(roleData.role);
-        }
-
-        setLoading(false);
-        setProgress(100); // Final progress
+        return { role: roleHeader };
       }
-    };
 
-    fetchRole();
-  }, []);
+      // If no cookie, fetch from API
+      const response = await fetch('/api/getUserRole');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch user role');
+      }
+      
+      const userData = await response.json();
+      
+      // Set cookie for future use
+      if (userData.role) {
+        document.cookie = `X-User-Role=${userData.role}; path=/; max-age=3600`; // 1 hour expiry
+      }
+      
+      return userData;
+    },
+    retry: false,
 
-  useEffect(() => {
-    if (!loading && role && !allowedRoles.includes(role)) {
-      router.push("/");
-    }
-  }, [role, loading, router, allowedRoles]);
+  });
 
-  if (loading) {
+  // Handle loading state
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full w-full">
-        {/* <ProgressBar value={progress} showAnimation={true} /> */}
+        <ProgressBar value={50} showAnimation={true} />
       </div>
-    ); // Show progress bar while loading
+    );
   }
 
-  if (!role || !allowedRoles.includes(role)) {
+  // Handle error state
+  if (error) {
+    console.error("Error fetching role:", error);
+    router.push("/");
+    return null;
+  }
+
+  // Handle unauthorized access
+  if (!data?.role || !allowedRoles.includes(data.role)) {
+    router.push("/");
     return null;
   }
 

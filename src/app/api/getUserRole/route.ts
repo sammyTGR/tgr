@@ -1,60 +1,83 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { corsHeaders } from "@/utils/cors";
-
-// Initialize Supabase client (make sure to use server-side initialization)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from '@/utils/supabase/server';
 
 export async function GET(request: Request) {
-  // Handle CORS
-  if (request.method === "OPTIONS") {
-    return new NextResponse("ok", { headers: corsHeaders });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const email = searchParams.get("email");
-
-  if (!email) {
-    return NextResponse.json(
-      { error: "Email parameter is required" },
-      { status: 400 }
-    );
-  }
+  const supabase = createClient();
 
   try {
-    const { data, error } = await supabase
+    // Get current user first
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({
+        error: 'Not authenticated',
+        details: userError?.message
+      }, { status: 401 });
+    }
+
+    const email = user.email;
+    if (!email) {
+      return NextResponse.json({
+        error: 'No email found in user'
+      }, { status: 400 });
+    }
+
+    // Check employees table first
+    let { data: employeeData, error: employeeError } = await supabase
       .from("employees")
       .select("role")
-      .ilike("contact_info", email.toLowerCase())
-      .maybeSingle();
+      .eq("contact_info", email.toLowerCase())
+      .single();
 
-    if (error) {
-      console.error("Error fetching user role:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (employeeError && employeeError.code !== "PGRST116") {
+      console.error("Error fetching role from employees:", employeeError.message);
     }
 
-    if (!data) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (employeeData) {
+      return NextResponse.json({
+        role: employeeData.role,
+        user
+      });
     }
 
-    return NextResponse.json({ role: data.role }, { headers: corsHeaders });
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    // If not found in employees, check customers table
+    const { data: customerData, error: customerError } = await supabase
+      .from("customers")
+      .select("role")
+      .eq("email", email.toLowerCase())
+      .single();
+
+    if (customerError && customerError.code !== "PGRST116") {
+      console.error("Error fetching role from customers:", customerError.message);
+    }
+
+    if (customerData) {
+      return NextResponse.json({
+        role: customerData.role || "customer",
+        user
+      });
+    }
+
+    // If no role found in either table
+    return NextResponse.json({
+      role: null,
+      user
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching user role:', error);
+    return NextResponse.json({ 
+      error: error.message || "Failed to fetch user role" 
+    }, { status: 500 });
   }
 }
 
 export async function OPTIONS() {
   return new NextResponse(null, {
+    status: 200,
     headers: {
-      ...corsHeaders,
+      "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

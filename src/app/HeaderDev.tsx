@@ -298,6 +298,7 @@ const HeaderDev = React.memo(() => {
   const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const { isLoading } = useQuery({
     queryKey: ["navigation", pathname, searchParams],
@@ -333,20 +334,38 @@ const HeaderDev = React.memo(() => {
   };
 
   const fetchUserAndEmployee = useCallback(async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData && userData.user) {
-      setUser(userData.user);
-      const { data: employeeData, error } = await supabase
-        .from("employees")
-        .select("employee_id")
-        .eq("user_uuid", userData.user.id)
-        .single();
-      if (error) {
-        console.error("Error fetching employee data:", error.message);
-      } else {
-        setEmployeeId(employeeData.employee_id);
+    try {
+      // Get user and role data
+      const roleResponse = await fetch('/api/getUserRole');
+      if (!roleResponse.ok) {
+        const error = await roleResponse.json();
+        throw new Error(error.error || 'Failed to fetch user role');
       }
-    } else {
+      const userData = await roleResponse.json();
+      
+      if (userData?.user) {
+        setUser(userData.user);
+        
+        // Get employee data
+        const employeeResponse = await fetch(
+          `/api/fetchEmployees?select=employee_id&equals=user_uuid:${userData.user.id}&single=true`
+        );
+        
+        if (!employeeResponse.ok) {
+          const error = await employeeResponse.json();
+          throw new Error(error.error || 'Failed to fetch employee data');
+        }
+        
+        const employeeData = await employeeResponse.json();
+        if (employeeData?.employee_id) {
+          setEmployeeId(employeeData.employee_id);
+        }
+      } else {
+        setUser(null);
+        setEmployeeId(null);
+      }
+    } catch (error) {
+      console.error("Error in fetchUserAndEmployee:", error);
       setUser(null);
       setEmployeeId(null);
     }
@@ -356,12 +375,18 @@ const HeaderDev = React.memo(() => {
     fetchUserAndEmployee();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (event === "SIGNED_IN") {
-          fetchUserAndEmployee();
+          await fetchUserAndEmployee();
+          // Invalidate and refetch relevant queries
+          queryClient.invalidateQueries({ queryKey: ['userRole'] });
+          queryClient.invalidateQueries({ queryKey: ['employeeId'] });
         } else if (event === "SIGNED_OUT") {
           setUser(null);
           setEmployeeId(null);
+          // Clear relevant queries from cache
+          queryClient.removeQueries({ queryKey: ['userRole'] });
+          queryClient.removeQueries({ queryKey: ['employeeId'] });
         }
       }
     );
@@ -369,7 +394,7 @@ const HeaderDev = React.memo(() => {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchUserAndEmployee]);
+  }, [fetchUserAndEmployee, queryClient]);
 
   useEffect(() => {
     if (user) {

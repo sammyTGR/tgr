@@ -4,12 +4,23 @@ import { format, addDays } from "date-fns";
 
 export async function GET(request: Request) {
   const supabase = createClient();
+
+  // Get current user first
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({
+      error: 'Not authenticated'
+    }, { status: 401 });
+  }
+
   const url = new URL(request.url);
   const weekStart = url.searchParams.get('weekStart');
   const getLastAssignment = url.searchParams.get('getLastAssignment') === 'true';
 
   if (!weekStart && !getLastAssignment) {
-    return NextResponse.json({ error: 'Week start date is required' }, { status: 400 });
+    return NextResponse.json({ 
+      error: 'Week start date is required' 
+    }, { status: 400 });
   }
 
   try {
@@ -32,15 +43,33 @@ export async function GET(request: Request) {
     if (error) throw error;
     return NextResponse.json(data);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message 
+    }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   const supabase = createClient();
 
+  // Get current user first
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({
+      error: 'Not authenticated'
+    }, { status: 401 });
+  }
+
   try {
     const { week_start, employee_id, duty_date, checkSchedule = false } = await request.json();
+
+    // Validate required fields
+    if (!week_start || !employee_id || !duty_date) {
+      return NextResponse.json({
+        error: 'Missing required fields',
+        details: { week_start, employee_id, duty_date }
+      }, { status: 400 });
+    }
 
     if (checkSchedule) {
       // Check if employee is scheduled for the duty date
@@ -63,7 +92,13 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('break_room_duty')
-      .insert({ week_start, employee_id, duty_date })
+      .insert({ 
+        week_start, 
+        employee_id, 
+        duty_date,
+        created_by: user.id,  // Track who created the duty
+        created_at: new Date().toISOString()
+      })
       .select()
       .single();
 
@@ -71,6 +106,20 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Break room duty error:', error);
+    return NextResponse.json({ 
+      error: error.message 
+    }, { status: 500 });
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
 }

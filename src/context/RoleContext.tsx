@@ -2,96 +2,60 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
   ReactNode,
 } from "react";
-import { supabase } from "@/utils/supabase/client";
+import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 interface RoleContextType {
   role: string | null;
   loading: boolean;
-  user: any; // Add user to context
+  user: any;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-export const RoleProvider = ({ children }: { children: ReactNode }) => {
-  const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+// Create a client
+const queryClient = new QueryClient();
 
-  useEffect(() => {
-    const fetchRole = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) {
-        console.error(
-          "Error fetching user or no active session found:",
-          error?.message
-        );
-        setLoading(false);
-        return;
+// Create the inner provider that uses the query
+const RoleProviderInner = ({ children }: { children: ReactNode }) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['userRole'],
+    queryFn: async () => {
+      const response = await fetch('/api/getUserRole');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch user role');
       }
+      return response.json();
+    },
+    retry: false,
 
-      setUser(user); // Set the user
-      const email = user.email;
-      if (!email) {
-        console.error("No email found in user.");
-        setLoading(false);
-        return;
-      }
+  });
 
-      let { data: employeeData, error: employeeError } = await supabase
-        .from("employees")
-        .select("role")
-        .eq("contact_info", email.toLowerCase())
-        .single();
-
-      if (employeeError && employeeError.code !== "PGRST116") {
-        console.error(
-          "Error fetching role from employees:",
-          employeeError.message
-        );
-      }
-
-      if (employeeData) {
-        setRole(employeeData.role);
-        // console.log("Role from employees:", employeeData.role);
-      } else {
-        const { data: customerData, error: customerError } = await supabase
-          .from("customers")
-          .select("role")
-          .eq("email", email.toLowerCase())
-          .single();
-
-        if (customerError && customerError.code !== "PGRST116") {
-          console.error(
-            "Error fetching role from customers:",
-            customerError.message
-          );
-        }
-
-        if (customerData) {
-          setRole(customerData.role || "customer");
-          // console.log("Role from customers:", customerData.role || "customer");
-        } else {
-          setRole(null);
-        }
-      }
-
-      setLoading(false);
-    };
-
-    fetchRole();
-  }, []);
+  if (error) {
+    console.error("Error fetching user role:", error);
+  }
 
   return (
-    <RoleContext.Provider value={{ role, loading, user }}>
+    <RoleContext.Provider 
+      value={{ 
+        role: data?.role ?? null, 
+        loading: isLoading, 
+        user: data?.user ?? null 
+      }}
+    >
       {children}
     </RoleContext.Provider>
+  );
+};
+
+// Create the outer provider that provides the QueryClient
+export const RoleProvider = ({ children }: { children: ReactNode }) => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RoleProviderInner>{children}</RoleProviderInner>
+    </QueryClientProvider>
   );
 };
 
