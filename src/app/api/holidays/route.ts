@@ -4,9 +4,14 @@ import { parseISO } from "date-fns";
 import { format, toZonedTime } from "date-fns-tz";
 
 const timeZone = "America/Los_Angeles";
-const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// Define the schedule data type
+interface HolidayRequest {
+  name: string;
+  date: string;
+  is_full_day: boolean;
+  repeat_yearly: boolean;
+}
+
 interface ScheduleData {
   employee_id: number;
   schedule_date: string;
@@ -22,22 +27,25 @@ export async function POST(request: Request) {
   const supabase = createClient();
 
   try {
-    const { name, date, is_full_day, repeat_yearly } = await request.json();
-
-    if (!name || !date) {
-      return NextResponse.json({
-        error: 'Missing required fields',
-        details: { name, date }
-      }, { status: 400 });
-    }
-
-    // Get current user
+    // Get current user first
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({
         error: 'Not authenticated',
         details: userError
       }, { status: 401 });
+    }
+
+    const body = await request.json();
+    
+    // Validate required fields
+    const { name, date, is_full_day, repeat_yearly } = body as HolidayRequest;
+
+    if (!name?.trim() || !date?.trim()) {
+      return NextResponse.json({
+        error: 'Name and date are required fields',
+        details: { name, date }
+      }, { status: 400 });
     }
 
     // Format date and get day of week
@@ -51,10 +59,10 @@ export async function POST(request: Request) {
       .from('holidays')
       .upsert(
         {
-          name,
+          name: name.trim(),
           date: formattedDate,
-          is_full_day,
-          repeat_yearly,
+          is_full_day: Boolean(is_full_day),
+          repeat_yearly: Boolean(repeat_yearly),
           created_by: user.id,
           updated_at: new Date().toISOString()
         },
@@ -64,13 +72,14 @@ export async function POST(request: Request) {
       .single();
 
     if (holidayError) {
+      console.error('Holiday creation error:', holidayError);
       return NextResponse.json({
         error: 'Failed to save holiday',
         details: holidayError
       }, { status: 500 });
     }
 
-    // Step 2: Get all reference schedules for this day (including those with null times)
+    // Step 2: Get all reference schedules for this day
     const { data: referenceSchedules, error: refScheduleError } = await supabase
       .from('reference_schedules')
       .select('employee_id, start_time, end_time')
@@ -82,12 +91,25 @@ export async function POST(request: Request) {
     }
 
     if (referenceSchedules && referenceSchedules.length > 0) {
+      // Filter out any null employee_ids before querying
+      const validEmployeeIds = referenceSchedules
+        .map(s => s.employee_id)
+        .filter((id): id is number => id != null);
+
+      if (validEmployeeIds.length === 0) {
+        console.log('No valid employee IDs found in reference schedules');
+        return NextResponse.json({
+          message: 'Holiday saved successfully',
+          data: holiday
+        });
+      }
+
       // Get all active employees with their rank information
       const { data: activeEmployees, error: employeesError } = await supabase
         .from('employees')
         .select('employee_id, rank')
         .eq('status', 'active')
-        .in('employee_id', referenceSchedules.map(s => s.employee_id));
+        .in('employee_id', validEmployeeIds);
 
       if (employeesError) {
         console.error('Error fetching active employees:', employeesError);
@@ -102,7 +124,6 @@ export async function POST(request: Request) {
 
         if (!refSchedule) continue;
 
-        // Create schedule data object with proper typing
         const scheduleData: ScheduleData = {
           employee_id: emp.employee_id,
           schedule_date: formattedDate,
@@ -110,27 +131,23 @@ export async function POST(request: Request) {
           start_time: refSchedule.start_time,
           end_time: refSchedule.end_time,
           holiday_id: holiday.id,
-          status: undefined,  // Initialize these as undefined
+          status: undefined,
           notes: undefined
         };
 
-        // Check if employee has valid times and rank
         const hasValidTimes = refSchedule.start_time && 
                             refSchedule.end_time && 
                             refSchedule.start_time.trim() !== '' && 
                             refSchedule.end_time.trim() !== '';
                             
         if (hasValidTimes && emp.rank !== null && emp.rank !== undefined) {
-          // Employee has valid times and rank - set holiday status
-          scheduleData.status = `Custom: Closed For ${name}`;
-          scheduleData.notes = `Closed For ${name}`;
+          scheduleData.status = `Custom: Closed For ${name.trim()}`;
+          scheduleData.notes = `Closed For ${name.trim()}`;
         } else {
-          // Employee either has no valid times or no rank - set to not scheduled
           scheduleData.status = 'not scheduled';
           scheduleData.notes = null;
         }
 
-        // Upsert the schedule
         const { error: scheduleError } = await supabase
           .from('schedules')
           .upsert(scheduleData, {

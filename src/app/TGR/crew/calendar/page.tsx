@@ -93,6 +93,7 @@ interface CalendarEvent {
   employee_id: number;
   birthday?: string;
   notes?: string;
+  holiday_id?: number | null;
 }
 
 interface EmployeeCalendar {
@@ -119,6 +120,17 @@ interface EmailPayload {
     startTime?: string;
     status?: string;
   };
+}
+
+interface Holiday {
+  id: number;
+  name: string;
+  date: string;
+  is_full_day: boolean;
+  repeat_yearly: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 type BreakRoomDuty = {
@@ -193,67 +205,54 @@ const fetchEmployeeData = async (employee_id: number) => {
 };
 
 // API functions
-const fetchCalendarData = (currentDate: Date): Promise<EmployeeCalendar[]> => {
+const fetchCalendarData = async (currentDate: Date): Promise<EmployeeCalendar[]> => {
   const startOfWeekDate = toZonedTime(getStartOfWeek(currentDate), TIME_ZONE);
   const endOfWeek = new Date(startOfWeekDate);
   endOfWeek.setDate(startOfWeekDate.getDate() + 6);
 
-  return Promise.resolve(
-    supabase
-      .from("schedules")
-      .select(
-        `
-      schedule_date,
-      start_time,
-      end_time,
-      day_of_week,
-      status,
-      employee_id,
-      employees:employee_id (name, birthday, department, rank, hire_date)
-    `
-      )
-      .gte(
-        "schedule_date",
-        formatTZ(startOfWeekDate, "yyyy-MM-dd", { timeZone: TIME_ZONE })
-      )
-      .lte(
-        "schedule_date",
-        formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone: TIME_ZONE })
-      )
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Failed to fetch calendar data:", error.message);
-          return [];
-        }
+  const startDate = formatTZ(startOfWeekDate, "yyyy-MM-dd", { timeZone: TIME_ZONE });
+  const endDate = formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone: TIME_ZONE });
 
-        const groupedData: { [key: number]: EmployeeCalendar } = {};
+  try {
+    const response = await fetch(
+      `/api/schedules?startDate=${startDate}&endDate=${endDate}`
+    );
 
-        data.forEach((item: any) => {
-          if (!groupedData[item.employee_id]) {
-            groupedData[item.employee_id] = {
-              employee_id: item.employee_id,
-              name: item.employees.name,
-              department: item.employees.department,
-              rank: item.employees.rank,
-              hire_date: item.employees.hire_date,
-              events: [],
-            };
-          }
+    if (!response.ok) {
+      throw new Error('Failed to fetch calendar data');
+    }
 
-          groupedData[item.employee_id].events.push({
-            day_of_week: item.day_of_week,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            schedule_date: item.schedule_date,
-            status: item.status,
-            employee_id: item.employee_id,
-            birthday: item.employees.birthday,
-          });
-        });
+    const data = await response.json();
+    const groupedData: { [key: number]: EmployeeCalendar } = {};
 
-        return Object.values(groupedData);
-      })
-  );
+    data.forEach((item: any) => {
+      if (!groupedData[item.employee_id]) {
+        groupedData[item.employee_id] = {
+          employee_id: item.employee_id,
+          name: item.employees.name,
+          department: item.employees.department,
+          rank: item.employees.rank,
+          hire_date: item.employees.hire_date,
+          events: [],
+        };
+      }
+
+      groupedData[item.employee_id].events.push({
+        day_of_week: item.day_of_week,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        schedule_date: item.schedule_date,
+        status: item.status,
+        employee_id: item.employee_id,
+        birthday: item.employees.birthday,
+      });
+    });
+
+    return Object.values(groupedData);
+  } catch (error) {
+    console.error("Failed to fetch calendar data:", error);
+    return [];
+  }
 };
 
 // Add this to your existing calendar fetching logic:
@@ -262,154 +261,118 @@ const fetchCalendarDataWithHolidays = async (currentDate: Date) => {
   const endOfWeek = new Date(startOfWeekDate);
   endOfWeek.setDate(startOfWeekDate.getDate() + 6);
 
-  // Format dates for query
   const startDateStr = formatTZ(startOfWeekDate, "yyyy-MM-dd", {
     timeZone: TIME_ZONE,
   });
-  const endDateStr = formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone: TIME_ZONE });
-
-  // First get your calendar data
-  const calendarData = await fetchCalendarData(currentDate);
-
-  // Fetch holidays for this week
-  const { data: holidays, error: holidaysError } = await supabase
-    .from("holidays")
-    .select("*")
-    .gte("date", startDateStr)
-    .lte("date", endDateStr);
-
-  if (holidaysError) {
-    console.error("Error fetching holidays:", holidaysError);
-    return calendarData;
-  }
-
-  // Add logging to debug holiday dates
-  // console.log("Holiday processing:", {
-  //   weekStart: startDateStr,
-  //   weekEnd: endDateStr,
-  //   holidays: holidays?.map((h) => ({
-  //     name: h.name,
-  //     date: h.date,
-  //     formattedDate: formatTZ(
-  //       toZonedTime(parseISO(h.date), TIME_ZONE),
-  //       "yyyy-MM-dd",
-  //       { timeZone: TIME_ZONE }
-  //     ),
-  //   })),
-  // });
-
-  // Mark holiday closures in the calendar data
-  holidays?.forEach((holiday) => {
-    // Get the holiday date in Pacific Time
-    const holidayDate = parseISO(holiday.date);
-    const formattedHolidayDate = formatTZ(holidayDate, "yyyy-MM-dd", {
-      timeZone: TIME_ZONE,
-    });
-
-    calendarData.forEach((employee) => {
-      const eventIndex = employee.events.findIndex(
-        (event) => event.schedule_date === formattedHolidayDate
-      );
-
-      if (eventIndex >= 0) {
-        employee.events[eventIndex].status = "holiday";
-        employee.events[eventIndex].notes = `Closed for ${holiday.name}`;
-        // Remove holiday_id since it's not part of the CalendarEvent type
-      }
-    });
+  const endDateStr = formatTZ(endOfWeek, "yyyy-MM-dd", { 
+    timeZone: TIME_ZONE 
   });
 
-  return calendarData;
+  try {
+    const response = await fetch(
+      `/api/fetchCalendarDataWithHolidays?startDate=${startDateStr}&endDate=${endDateStr}`
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch calendar data');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch calendar data:", error);
+    return [];
+  }
 };
 
-const getBreakRoomDutyEmployee = (
+const getBreakRoomDutyEmployee = async (
   employees: EmployeeCalendar[],
   currentWeekStart: Date
-): Promise<BreakRoomDuty> => {
+): Promise<BreakRoomDuty | undefined> => {
   const formattedWeekStart = format(currentWeekStart, "yyyy-MM-dd");
 
-  return Promise.resolve(
-    Promise.resolve(
-      supabase
-        .from("break_room_duty")
-        .select("*")
-        .eq("week_start", formattedWeekStart)
-    )
-      .then(({ data: existingDuty, error: existingDutyError }) => {
-        if (existingDutyError) throw existingDutyError;
+  try {
+    // Check for existing duty
+    const existingDutyResponse = await fetch(
+      `/api/break_room_duty?weekStart=${formattedWeekStart}`
+    );
 
-        if (existingDuty && existingDuty.length > 0) {
-          const employee = employees.find(
-            (emp) => emp.employee_id === existingDuty[0].employee_id
-          );
-          return employee
-            ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
-            : null;
-        }
+    if (!existingDutyResponse.ok) {
+      throw new Error('Failed to fetch break room duty');
+    }
 
-        const salesEmployees = employees
-          .filter((emp) => emp.department === "Sales")
-          .sort((a, b) => a.rank - b.rank);
+    const existingDuty = await existingDutyResponse.json();
 
-        if (salesEmployees.length === 0) return null;
+    if (existingDuty && existingDuty.length > 0) {
+      const employee = employees.find(
+        (emp) => emp.employee_id === existingDuty[0].employee_id
+      );
+      return employee
+        ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
+        : null;
+    }
 
-        return Promise.resolve(
-          supabase
-            .from("break_room_duty")
-            .select("employee_id")
-            .order("week_start", { ascending: false })
-            .limit(1)
-        ).then(({ data: lastAssignment, error: lastAssignmentError }) => {
-          if (lastAssignmentError) throw lastAssignmentError;
+    // Filter and sort sales employees
+    const salesEmployees = employees
+      .filter((emp) => emp.department === "Sales")
+      .sort((a, b) => a.rank - b.rank);
 
-          let nextEmployeeIndex = 0;
-          if (lastAssignment && lastAssignment.length > 0) {
-            const lastIndex = salesEmployees.findIndex(
-              (emp) => emp.employee_id === lastAssignment[0].employee_id
-            );
-            nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
-          }
+    if (salesEmployees.length === 0) return null;
 
-          const selectedEmployee = salesEmployees[nextEmployeeIndex];
-          const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
-          const checkDate = addDays(currentWeekStart, dayIndex);
-          const formattedDate = format(checkDate, "yyyy-MM-dd");
+    // Get last assignment
+    const lastAssignmentResponse = await fetch(
+      `/api/break_room_duty?getLastAssignment=true`
+    );
 
-          return Promise.resolve(
-            supabase
-              .from("schedules")
-              .select("*")
-              .eq("employee_id", selectedEmployee.employee_id)
-              .eq("schedule_date", formattedDate)
-              .in("status", ["scheduled", "added_day"])
-          ).then(({ data: schedules, error }) => {
-            if (error) throw error;
+    if (!lastAssignmentResponse.ok) {
+      throw new Error('Failed to fetch last assignment');
+    }
 
-            if (schedules && schedules.length > 0) {
-              return Promise.resolve(
-                supabase.from("break_room_duty").insert({
-                  week_start: formattedWeekStart,
-                  employee_id: selectedEmployee.employee_id,
-                  duty_date: format(checkDate, "yyyy-MM-dd"),
-                })
-              ).then(({ error: insertError }) => {
-                if (insertError) throw insertError;
-                return { employee: selectedEmployee, dutyDate: checkDate };
-              });
-            }
+    const lastAssignment = await lastAssignmentResponse.json();
 
-            console.error(
-              "No scheduled work day found for the selected employee on Friday this week"
-            );
-            return null;
-          });
-        });
-      })
-      .catch((error) => {
-        console.error("Error in getBreakRoomDutyEmployee:", error);
+    // Calculate next employee index
+    let nextEmployeeIndex = 0;
+    if (lastAssignment && lastAssignment.length > 0) {
+      const lastIndex = salesEmployees.findIndex(
+        (emp) => emp.employee_id === lastAssignment[0].employee_id
+      );
+      nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+    }
+
+    const selectedEmployee = salesEmployees[nextEmployeeIndex];
+    const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
+    const checkDate = addDays(currentWeekStart, dayIndex);
+    const formattedDate = format(checkDate, "yyyy-MM-dd");
+
+    // Create new duty assignment
+    const response = await fetch('/api/break_room_duty', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        week_start: formattedWeekStart,
+        employee_id: selectedEmployee.employee_id,
+        duty_date: formattedDate,
+        checkSchedule: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (error.error === 'Employee not scheduled for duty date') {
+        console.error("No scheduled work day found for the selected employee on Friday this week");
         return null;
-      })
-  );
+      }
+      throw new Error('Failed to create break room duty');
+    }
+
+    return { employee: selectedEmployee, dutyDate: checkDate };
+
+  } catch (error) {
+    console.error("Error in getBreakRoomDutyEmployee:", error);
+    return null;
+  }
 };
 
 // Component
@@ -540,90 +503,94 @@ export default function Component() {
         ? format(startOfWeek(currentDateQuery.data), "yyyy-MM-dd")
         : "invalid",
     ],
-    queryFn: () => {
+    queryFn: async () => {
       if (!currentDateQuery.data || !(currentDateQuery.data instanceof Date)) {
-        return Promise.resolve(null);
+        return null;
       }
-
+  
       const formattedWeekStart = format(
         startOfWeek(currentDateQuery.data),
         "yyyy-MM-dd"
       );
-
-      return Promise.resolve(
-        supabase
-          .from("break_room_duty")
-          .select("*")
-          .eq("week_start", formattedWeekStart)
-          .then(({ data: existingDuty, error: existingDutyError }) => {
-            if (existingDutyError) throw existingDutyError;
-
-            if (existingDuty && existingDuty.length > 0) {
-              const employee = calendarDataQuery.data?.find(
-                (emp) => emp.employee_id === existingDuty[0].employee_id
-              );
-              return employee
-                ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
-                : null;
-            }
-
-            const salesEmployees = (calendarDataQuery.data || [])
-              .filter((emp) => emp.department === "Sales")
-              .sort((a, b) => a.rank - b.rank);
-
-            if (salesEmployees.length === 0) return null;
-
-            return supabase
-              .from("break_room_duty")
-              .select("employee_id")
-              .order("week_start", { ascending: false })
-              .limit(1)
-              .then(({ data: lastAssignment, error: lastAssignmentError }) => {
-                if (lastAssignmentError) throw lastAssignmentError;
-
-                let nextEmployeeIndex = 0;
-                if (lastAssignment && lastAssignment.length > 0) {
-                  const lastIndex = salesEmployees.findIndex(
-                    (emp) => emp.employee_id === lastAssignment[0].employee_id
-                  );
-                  nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
-                }
-
-                const selectedEmployee = salesEmployees[nextEmployeeIndex];
-                const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
-                const checkDate = addDays(
-                  startOfWeek(currentDateQuery.data!),
-                  dayIndex
-                );
-                const formattedDate = format(checkDate, "yyyy-MM-dd");
-
-                return supabase
-                  .from("schedules")
-                  .select("*")
-                  .eq("employee_id", selectedEmployee.employee_id)
-                  .eq("schedule_date", formattedDate)
-                  .in("status", ["scheduled", "added_day"])
-                  .then(({ data: schedules, error }) => {
-                    if (error) throw error;
-
-                    if (schedules && schedules.length > 0) {
-                      return insertBreakRoomDutyMutation
-                        .mutateAsync({
-                          week_start: formattedWeekStart,
-                          employee_id: selectedEmployee.employee_id,
-                          duty_date: format(checkDate, "yyyy-MM-dd"),
-                        })
-                        .then(() => ({
-                          employee: selectedEmployee,
-                          dutyDate: checkDate,
-                        }));
-                    }
-
-                    return null;
-                  });
-              });
-          })
+  
+      // First check for existing duty
+      const existingDutyResponse = await fetch(
+        `/api/break_room_duty?weekStart=${formattedWeekStart}`
       );
+  
+      if (!existingDutyResponse.ok) {
+        const error = await existingDutyResponse.json();
+        throw new Error(error.error || 'Failed to fetch break room duty');
+      }
+  
+      const existingDuty = await existingDutyResponse.json();
+  
+      if (existingDuty && existingDuty.length > 0) {
+        const employee = calendarDataQuery.data?.find(
+          (emp) => emp.employee_id === existingDuty[0].employee_id
+        );
+        return employee
+          ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
+          : null;
+      }
+  
+      // If no existing duty, process sales employees
+      const salesEmployees = (calendarDataQuery.data || [])
+        .filter((emp) => emp.department === "Sales")
+        .sort((a, b) => a.rank - b.rank);
+  
+      if (salesEmployees.length === 0) return null;
+  
+      // Get last assignment
+      const lastAssignmentResponse = await fetch(
+        `/api/break_room_duty?getLastAssignment=true`
+      );
+  
+      if (!lastAssignmentResponse.ok) {
+        const error = await lastAssignmentResponse.json();
+        throw new Error(error.error || 'Failed to fetch last assignment');
+      }
+  
+      const lastAssignment = await lastAssignmentResponse.json();
+  
+      // Calculate next employee index
+      let nextEmployeeIndex = 0;
+      if (lastAssignment && lastAssignment.length > 0) {
+        const lastIndex = salesEmployees.findIndex(
+          (emp) => emp.employee_id === lastAssignment[0].employee_id
+        );
+        nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
+      }
+  
+      const selectedEmployee = salesEmployees[nextEmployeeIndex];
+      const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
+      const checkDate = addDays(startOfWeek(currentDateQuery.data), dayIndex);
+      const formattedDate = format(checkDate, "yyyy-MM-dd");
+  
+      // Create new duty assignment
+      const response = await fetch('/api/break_room_duty', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          week_start: formattedWeekStart,
+          employee_id: selectedEmployee.employee_id,
+          duty_date: formattedDate,
+          checkSchedule: true,
+        }),
+      });
+  
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.error === 'Employee not scheduled for duty date') {
+          console.error("No scheduled work day found for the selected employee on Friday this week");
+          return null;
+        }
+        throw new Error(error.error || 'Failed to create break room duty');
+      }
+  
+      return { employee: selectedEmployee, dutyDate: checkDate };
     },
     enabled:
       !!calendarDataQuery.data &&

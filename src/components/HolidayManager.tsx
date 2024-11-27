@@ -75,24 +75,31 @@ export function HolidayManager() {
 
   const { mutate: addHoliday, isPending } = useMutation({
     mutationFn: async (values: HolidayFormValues) => {
+      if (!values.date) {
+        throw new Error("Date is required");
+      }
+
+      const formattedData = {
+        name: values.name.trim(),
+        date: format(values.date, "yyyy-MM-dd"),
+        is_full_day: values.is_full_day,
+        repeat_yearly: values.repeat_yearly,
+      };
+
+      console.log('Sending data:', formattedData);
+
       const response = await fetch("/api/holidays", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: values.name,
-          date: format(values.date, "yyyy-MM-dd"),
-          is_full_day: values.is_full_day,
-          repeat_yearly: values.repeat_yearly,
-        }),
+        body: JSON.stringify(formattedData),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to add holiday");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add holiday");
       }
 
-      return data;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["holidays"] });
@@ -107,6 +114,10 @@ export function HolidayManager() {
   });
 
   function onSubmit(values: HolidayFormValues) {
+    if (!values.date) {
+      toast.error("Please select a date");
+      return;
+    }
     addHoliday(values);
   }
 
@@ -158,6 +169,7 @@ export function HolidayManager() {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
+                      disabled={(date) => date < new Date()}
                       initialFocus
                     />
                   </FormControl>
