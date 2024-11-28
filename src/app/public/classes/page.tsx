@@ -381,7 +381,7 @@ export default function Component() {
               <p>Select a date to see class details</p>
             )}
             {selectedEvent && filterEvents(selectedEvent)?.length === 0 && (
-              <p>No classes found matching "{searchQuery}"</p>
+              <p>No classes found matching &quot;{searchQuery}&quot;</p>
             )}
           </div>
         </div>
