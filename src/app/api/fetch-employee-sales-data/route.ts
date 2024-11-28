@@ -1,52 +1,82 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from '@supabase/supabase-js';
+
+// Create server-side Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
-  const { employeeId, pageIndex, pageSize, filters, sorting } =
-    await request.json();
+  const { employeeId } = await request.json();
 
   try {
+    // First get the employee's lanid
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
       .select("lanid")
       .eq("employee_id", employeeId)
       .single();
 
-    if (employeeError) throw employeeError;
+    if (employeeError) {
+      console.error("Employee lookup error:", employeeError);
+      return NextResponse.json({ error: employeeError.message }, { status: 400 });
+    }
+
+    if (!employeeData) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
 
     const lanid = employeeData.lanid;
+    console.log("Found LANID:", lanid); // Debug log
 
-    const currentDate = new Date();
-    const startDate = new Date(currentDate.setMonth(currentDate.getMonth() - 3))
-      .toISOString()
-      .split("T")[0];
-    const endDate = new Date().toISOString().split("T")[0];
-
-    let query = supabase
+    // Get sales data
+    const { data: salesData, error: salesError } = await supabase
       .from("sales_data")
-      .select("*, total_gross, total_net", { count: "exact" })
+      .select(`
+        id,
+        "Lanid",
+        "Invoice",
+        "Sku",
+        "Desc",
+        "SoldPrice",
+        "SoldQty",
+        "Cost",
+        "Date",
+        "Type",
+        category_label,
+        subcategory_label,
+        total_gross,
+        total_net
+      `)
       .eq("Lanid", lanid)
-      .gte("Date", startDate)
-      .lte("Date", endDate)
-      .range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
+      .order("Date", { ascending: false });
 
-    filters.forEach((filter: any) => {
-      query = query.ilike(filter.id, `%${filter.value}%`);
+    if (salesError) {
+      console.error("Sales data lookup error:", salesError);
+      throw salesError;
+    }
+
+    // console.log("Sales data count:", salesData?.length); // Debug log
+    // console.log("First few sales records:", salesData?.slice(0, 3)); // Debug log
+
+    return NextResponse.json({ 
+      data: salesData,
+      count: salesData?.length ?? 0,
+      debug: {
+        employeeId,
+        lanid,
+        recordsFound: salesData?.length ?? 0
+      }
     });
 
-    sorting.forEach((sort: any) => {
-      query = query.order(sort.id, { ascending: !sort.desc });
-    });
-
-    const { data, count, error } = await query;
-
-    if (error) throw error;
-
-    return NextResponse.json({ data, count });
   } catch (error) {
     console.error("Failed to fetch employee sales data:", error);
     return NextResponse.json(
-      { error: "Failed to fetch employee sales data" },
+      { 
+        error: "Failed to fetch employee sales data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 }
     );
   }

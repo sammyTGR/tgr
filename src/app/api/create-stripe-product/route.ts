@@ -6,31 +6,42 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function POST(req: Request) {
   try {
-    const { name, description, price, start_time, end_time } = await req.json();
-    // console.log("Received data:", {
-    //   name,
-    //   description,
-    //   price,
-    //   start_time,
-    //   end_time,
-    // });
+    const body = await req.json();
+    console.log("Received request body:", body); // Debug log
+
+    const { name, title, description, price, start_time, end_time } = body;
+
+    // Validate required fields
+    if (!name && !title) {
+      return NextResponse.json(
+        { error: "Product name is required" },
+        { status: 400 }
+      );
+    }
+
+    const productName = name || title; // Use either name or title
 
     // Create Stripe product with metadata
     let product;
     try {
       product = await stripe.products.create({
-        name,
-        description,
+        name: productName.trim(),
+        description: description?.trim(),
         metadata: {
           product_type: "training",
           training: "true",
+          start_time: start_time?.toString(),
+          end_time: end_time?.toString(),
         },
       });
-      // console.log("Stripe product created:", product);
     } catch (stripeError) {
       console.error("Error creating Stripe product:", stripeError);
       return NextResponse.json(
-        { error: "Error creating Stripe product", details: stripeError },
+        { 
+          error: "Error creating Stripe product", 
+          details: stripeError,
+          requestData: body // Log the full request data
+        },
         { status: 500 }
       );
     }
@@ -60,7 +71,7 @@ export async function POST(req: Request) {
       const result = await supabase
         .from("class_schedules")
         .insert({
-          title: name, // Use 'title' instead of 'name' to match the table structure
+          title: productName, // Use 'title' instead of 'name' to match the table structure
           description,
           price,
           start_time,

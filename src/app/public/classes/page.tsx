@@ -54,6 +54,7 @@ export default function Component() {
   const [selectedEvent, setSelectedEvent] = useState<ClassSchedule[] | null>(
     null
   );
+  const [searchQuery, setSearchQuery] = useState("");
   const { role } = useRole();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -74,27 +75,6 @@ export default function Component() {
 
       if (error) throw error;
       return data as ClassSchedule[];
-    },
-  });
-
-  const addClassMutation = useMutation({
-    mutationFn: async (newClass: Partial<ClassSchedule>) => {
-      const response = await fetch("/api/create-stripe-product", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newClass),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add class");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classSchedules"] });
     },
   });
 
@@ -176,16 +156,12 @@ export default function Component() {
     },
   });
 
-  const handleAddClass = async (
-    id: string,
-    newClass: Partial<ClassSchedule>
-  ) => {
+  const handleAddClass = async (id: string, newClass: Partial<ClassSchedule>) => {
     try {
-      await addClassMutation.mutateAsync(newClass);
-      toast.success("Class added successfully");
+      // Just invalidate the query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["classSchedules"] });
     } catch (error) {
-      console.error("Error adding class:", error);
-      // toast.error("Failed to add class");
+      console.error("Error refreshing classes:", error);
     }
   };
 
@@ -246,6 +222,15 @@ export default function Component() {
       classes += " text-gray-400";
     }
     return classes;
+  };
+
+  const filterEvents = (events: ClassSchedule[] | null) => {
+    if (!events) return null;
+    if (!searchQuery.trim()) return events;
+
+    return events.filter((event) =>
+      event.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   if (isLoading) return <div></div>;
@@ -326,13 +311,15 @@ export default function Component() {
                 className="pr-10"
                 placeholder="Search by class name"
                 type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
               <MagnifyingGlassIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5" />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4">
             {selectedEvent ? (
-              selectedEvent.map((event) => (
+              filterEvents(selectedEvent)?.map((event) => (
                 <div
                   key={event.id}
                   className="rounded-lg p-4 flex justify-between items-center"
@@ -392,6 +379,9 @@ export default function Component() {
               ))
             ) : (
               <p>Select a date to see class details</p>
+            )}
+            {selectedEvent && filterEvents(selectedEvent)?.length === 0 && (
+              <p>No classes found matching "{searchQuery}"</p>
             )}
           </div>
         </div>

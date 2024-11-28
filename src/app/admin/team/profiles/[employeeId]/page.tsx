@@ -61,6 +61,8 @@ import {
 } from "@/components/ui/select";
 import { toZonedTime, format as formatTZ, formatInTimeZone } from "date-fns-tz";
 import { SortingState } from "@tanstack/react-table";
+import { WeightedScoringCalculator } from "../../../audits/contest/WeightedScoringCalculator";
+import { toast } from "sonner";
 interface Note {
   id: number;
   profile_employee_id: number;
@@ -601,82 +603,95 @@ const EmployeeProfile = () => {
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1)
       .toISOString()
       .split("T")[0];
-    const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+    
+    const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
       .toISOString()
       .split("T")[0];
 
     try {
+      // Get employee department
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("lanid, department")
+        .eq("employee_id", employeeId)
+        .single();
+
+      if (employeeError) throw employeeError;
+
+      // Fetch sales data with subcategory label filter
       const { data: salesData, error: salesError } = await supabase
         .from("sales_data")
         .select("*")
-        .eq("Lanid", employee.lanid)
+        .eq("Lanid", employeeData.lanid)
         .gte("Date", startDate)
         .lte("Date", endDate)
         .not("subcategory_label", "is", null)
         .not("subcategory_label", "eq", "");
 
+      // Fetch audit data
       const { data: auditData, error: auditError } = await supabase
         .from("Auditsinput")
         .select("*")
-        .eq("salesreps", employee.lanid)
+        .eq("salesreps", employeeData.lanid)
         .gte("audit_date", startDate)
         .lte("audit_date", endDate);
 
-      if (salesError || auditError) {
-        //console.(salesError || auditError);
-        return;
-      }
+      // Fetch points calculation
+      const { data: pointsCalculation, error: pointsError } = await supabase
+        .from("points_calculation")
+        .select("*");
 
-      const lanids = [employee.lanid];
-      let summary = lanids.map((lanid) => {
-        const employeeSalesData = salesData.filter(
-          (sale) => sale.Lanid === lanid
-        );
-        const employeeAuditData = auditData.filter(
-          (audit) => audit.salesreps === lanid
-        );
+      if (salesError || auditError || pointsError) throw new Error("Data fetch error");
 
-        const totalDros = employeeSalesData.filter(
-          (sale) => sale.subcategory_label
-        ).length;
-        let pointsDeducted = 0;
+      const isOperations = employeeData.department?.toString() === "Operations";
 
-        employeeSalesData.forEach((sale) => {
-          if (sale.dros_cancel === "Yes") {
-            pointsDeducted += 5;
-          }
-        });
-
-        employeeAuditData.forEach((audit) => {
-          const auditDate = new Date(audit.audit_date);
-          if (auditDate <= date) {
-            pointsCalculation.forEach((point) => {
-              if (audit.error_location === point.error_location) {
-                pointsDeducted += point.points_deducted;
-              } else if (
-                point.error_location === "dros_cancel_field" &&
-                audit.dros_cancel === "Yes"
-              ) {
-                pointsDeducted += point.points_deducted;
-              }
-            });
-          }
-        });
-
-        const totalPoints = 300 - pointsDeducted;
-
-        return {
-          Lanid: lanid,
-          TotalDros: totalDros,
-          PointsDeducted: pointsDeducted,
-          TotalPoints: totalPoints,
-        };
+      // Filter sales data to only include records up to selected date
+      const validSalesData = (salesData || []).filter(sale => {
+        const saleDate = new Date(sale.Date);
+        return saleDate <= date && sale.subcategory_label;
       });
 
-      summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
-      setSummaryData(summary);
+      // Filter audit data to only include records up to selected date
+      const validAuditData = (auditData || []).filter(audit => {
+        const auditDate = new Date(audit.audit_date);
+        return auditDate <= date;
+      });
+
+      // Use WeightedScoringCalculator with filtered data
+      const calculator = new WeightedScoringCalculator({
+        salesData: validSalesData.map(sale => ({
+          ...sale,
+          dros_cancel: sale.cancelled_dros !== undefined && sale.cancelled_dros !== null
+            ? sale.cancelled_dros.toString()
+            : "0"
+        })),
+        auditData: validAuditData.map(audit => ({
+          ...audit,
+          id: audit.audits_id
+        })),
+        pointsCalculation: pointsCalculation || [],
+        isOperations,
+        minimumDros: 20
+      });
+
+      const metrics = calculator.metrics;
+
+      setSummaryData([{
+        Lanid: employeeData.lanid,
+        Department: employeeData.department || "Unknown",
+        TotalDros: validSalesData.length, // Using the filtered sales data length for total DROs
+        MinorMistakes: metrics.MinorMistakes,
+        MajorMistakes: metrics.MajorMistakes,
+        CancelledDros: metrics.CancelledDros,
+        WeightedErrorRate: metrics.WeightedErrorRate,
+        TotalWeightedMistakes: metrics.TotalWeightedMistakes,
+        Qualified: metrics.Qualified,
+        DisqualificationReason: metrics.DisqualificationReason
+      }]);
+
     } catch (error) {
-      //console.("Error fetching or calculating summary data:", error);
+      console.error("Error calculating summary:", error);
+      toast.error("Failed to calculate performance metrics");
     }
   };
 
@@ -2590,7 +2605,7 @@ const EmployeeProfile = () => {
                         <Card className="mt-4">
                           <CardHeader>
                             <CardTitle className="text-2xl font-bold">
-                              Points Deducted
+                              Major Mistakes
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="p-4">
@@ -2598,8 +2613,8 @@ const EmployeeProfile = () => {
                               <DataTableProfile
                                 columns={[
                                   {
-                                    Header: "Points Deducted",
-                                    accessor: "PointsDeducted",
+                                    Header: "Major Mistakes",
+                                    accessor: "MajorMistakes",
                                   },
                                 ]}
                                 data={summaryData}
@@ -2607,10 +2622,11 @@ const EmployeeProfile = () => {
                             </div>
                           </CardContent>
                         </Card>
+
                         <Card className="mt-4">
                           <CardHeader>
                             <CardTitle className="text-2xl font-bold">
-                              Current Points
+                              Error Rate
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="p-4">
@@ -2618,8 +2634,15 @@ const EmployeeProfile = () => {
                               <DataTableProfile
                                 columns={[
                                   {
-                                    Header: "Total Points",
-                                    accessor: "TotalPoints",
+                                    Header: "Error Rate",
+                                    accessor: "WeightedErrorRate",
+                                    Cell: ({ value }: { value: number | null }) => (
+                                      <div className="text-center font-semibold text-lg">
+                                        {value !== null && value !== undefined 
+                                          ? `${value.toFixed(2)}%` 
+                                          : '0.00%'}
+                                      </div>
+                                    ),
                                   },
                                 ]}
                                 data={summaryData}

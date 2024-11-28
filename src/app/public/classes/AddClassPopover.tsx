@@ -20,7 +20,7 @@ interface PopoverFormProps {
 
 interface ClassScheduleData {
   id: number;
-  name: string;
+  title: string;
   description: string;
   start_time: string;
   end_time: string;
@@ -104,17 +104,15 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
         { timeZone }
       );
 
-      const newClass: Partial<ClassScheduleData> = {
-        name,
-        description,
+      const newClass = {
+        name: name.trim(),
+        title: name.trim(),
+        description: description.trim(),
         price: parseFloat(parseFloat(price).toFixed(2)),
         start_time: startTimeZoned,
         end_time: endTimeZoned,
       };
 
-      // console.log("Sending data to API:", newClass);
-
-      // Call the API to create Stripe product and class
       const response = await fetch("/api/create-stripe-product", {
         method: "POST",
         headers: {
@@ -124,13 +122,11 @@ export const AddClassPopover: React.FC<PopoverFormProps> = ({
       });
 
       const responseData = await response.json();
-      // console.log("API response:", responseData);
-
+      
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to create class");
       }
 
-      // Call onSubmit with the data returned from the API
       await onSubmit("", responseData.classData);
 
       toast.success("Class added successfully");

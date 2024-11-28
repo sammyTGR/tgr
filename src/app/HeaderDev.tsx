@@ -239,6 +239,11 @@ const manageComps = [
     href: "/aim",
     description: "Search Inventory",
   },
+  {
+    title: "Franchising",
+    href: "/franchise/about",
+    description: "Joining TGR",
+  },
 ];
 
 const fbComps = [
