@@ -1,35 +1,32 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { format, parseISO } from "date-fns";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { createClient } from "@/utils/supabase/server";
 
 const timeZone = "America/Los_Angeles";
 
-// Create server-side Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: Request) {
+  const supabase = createClient();
   const { employee_id, schedule_date, status } = await request.json();
 
   try {
-    // Parse the incoming date and handle timezone conversion properly
+    // Parse the incoming date and convert to Pacific Time
     const parsedDate = parseISO(schedule_date);
-    
-    // Convert to Pacific Time using toZonedTime
     const pacificDate = toZonedTime(parsedDate, timeZone);
     
-    // Format for database using formatTZ to ensure consistent timezone handling
-    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", { timeZone });
+    // Format the date for database storage - no need for additional adjustments
+    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", { 
+      timeZone // Use Pacific timezone consistently
+    });
 
-    console.log('Incoming schedule_date:', schedule_date);
-    console.log('Parsed date:', parsedDate);
-    console.log('Pacific date:', pacificDate);
-    console.log('Formatted schedule date:', formattedScheduleDate);
+    console.log('Debug date conversion:', {
+      incoming_date: schedule_date,
+      parsed_date: parsedDate.toISOString(),
+      pacific_date: pacificDate.toISOString(),
+      final_formatted: formattedScheduleDate
+    });
 
-    // Check if the date exists in the schedules table
+    // Rest of the code remains the same...
     const { data: scheduleData, error: scheduleFetchError } = await supabase
       .from("schedules")
       .select("*")
@@ -93,7 +90,11 @@ export async function POST(request: Request) {
       data: {
         employee_id,
         schedule_date: formattedScheduleDate,
-        status
+        status,
+        debug_dates: {
+          incoming: schedule_date,
+          formatted: formattedScheduleDate
+        }
       }
     });
 
