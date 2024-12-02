@@ -4,19 +4,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SickTimeTable } from "./SickTimeTable"; // Import the SickTimeTable component
 import { TimesheetTable } from "./TimesheetTable"; // Import the TimesheetTable component
+import { VacationTimeTable } from "./VacationTimeTable";
 import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Button } from "@/components/ui/button";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 interface SickTimeReport {
   employee_id: number;
-  name: string; // Change this from employee_name to name
+  name: string;
   available_sick_time: number;
   used_sick_time: number;
   used_dates: string[];
+  hours_per_date: number[];
 }
 
 interface TimesheetReport {
@@ -40,9 +43,21 @@ interface TimesheetReport {
   total_hours_with_sick?: number;
 }
 
+interface VacationTimeReport {
+  employee_id: number;
+  name: string;
+  available_vacation_time: number;
+  used_vacation_time: number;
+  used_dates: string[];
+  hours_per_date: number[];
+}
+
+const TIME_ZONE = 'America/Los_Angeles';
+
 const AdminReportsPage = () => {
   const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
   const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
+  const [vacationTimeData, setVacationTimeData] = useState<VacationTimeReport[]>([]);
   const [activeTab, setActiveTab] = useState("timesheet");
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(
@@ -75,8 +90,20 @@ const AdminReportsPage = () => {
       }
     };
 
+    const fetchVacationTimeData = async () => {
+      const { data, error } = await supabase.rpc(
+        "get_all_employee_vacation_time_usage"
+      );
+      if (error) {
+        console.error("Error fetching vacation time data:", error.message);
+      } else {
+        setVacationTimeData(data as VacationTimeReport[]);
+      }
+    };
+
     fetchSickTimeData();
     fetchTimesheetData();
+    fetchVacationTimeData();
   }, []);
 
   const handleTimesheetDataUpdate = (
@@ -98,18 +125,35 @@ const AdminReportsPage = () => {
     let fileName = "";
 
     if (activeTab === "sick-time") {
-      dataToExport = sickTimeData.map((row) => ({
-        Employee: row.name,
-        "Available Sick Time": row.available_sick_time,
-        "Used Sick Time": row.used_sick_time,
-        "Used Dates": row.used_dates.join(", "),
-      }));
+      sickTimeData.forEach((row) => {
+        // Add a row for the employee's summary
+        dataToExport.push({
+          "Employee Name": row.name,
+          "Employee ID": row.employee_id,
+          "Total Available Hours": row.available_sick_time,
+          "Total Used Hours": row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
+          "Remaining Hours": row.available_sick_time - row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
+        });
+
+        // Add rows for each usage entry
+        row.used_dates.forEach((date, index) => {
+          const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
+          dataToExport.push({
+            "Usage Date": formatTZ(zonedDate, "M-dd-yyyy", { timeZone: TIME_ZONE }),
+            "Usage Hours": row.hours_per_date[index],
+          });
+        });
+
+        // Add an empty row for separation
+        dataToExport.push({});
+      });
+
       fileName = "sick_time_report.xlsx";
     } else if (activeTab === "timesheet") {
       dataToExport = filteredTimesheetData.map((row) => ({
         Employee: row.name,
         Date: row.event_date
-          ? format(new Date(row.event_date), "M-dd-yyyy")
+          ? formatTZ(toZonedTime(new Date(row.event_date), TIME_ZONE), "M-dd-yyyy", { timeZone: TIME_ZONE })
           : "N/A",
         "Start Time": row.start_time,
         "End Time": row.end_time,
@@ -123,6 +167,28 @@ const AdminReportsPage = () => {
         "Total Hours With Sick": row.total_hours_with_sick?.toFixed(2) || "N/A",
       }));
       fileName = "timesheet_report.xlsx";
+    } else if (activeTab === "vacation-time") {
+      vacationTimeData.forEach((row) => {
+        dataToExport.push({
+          "Employee Name": row.name,
+          "Employee ID": row.employee_id,
+          "Total Available Hours": row.available_vacation_time,
+          "Total Used Hours": row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
+          "Remaining Hours": row.available_vacation_time - row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
+        });
+
+        row.used_dates.forEach((date, index) => {
+          const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
+          dataToExport.push({
+            "Usage Date": formatTZ(zonedDate, "M-dd-yyyy", { timeZone: TIME_ZONE }),
+            "Usage Hours": row.hours_per_date[index],
+          });
+        });
+
+        dataToExport.push({});
+      });
+
+      fileName = "vacation_time_report.xlsx";
     }
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -161,6 +227,7 @@ const AdminReportsPage = () => {
           <TabsList>
             <TabsTrigger value="timesheet">Timesheet Report</TabsTrigger>
             <TabsTrigger value="sick-time">Sick Time Report</TabsTrigger>
+            <TabsTrigger value="vacation-time">Vacation Time Report</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sick-time">
@@ -191,6 +258,22 @@ const AdminReportsPage = () => {
               ) : (
                 <p>No timesheet data available.</p>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vacation-time">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Vacation Time Report</CardTitle>
+                <Button variant="linkHover1" onClick={handleExpandCollapseAll}>
+                  {isAllExpanded ? "Collapse All" : "Expand All"}
+                </Button>
+              </CardHeader>
+              <VacationTimeTable
+                data={vacationTimeData}
+                isAllExpanded={isAllExpanded}
+                onExpandCollapseAll={handleExpandCollapseAll}
+              />
             </Card>
           </TabsContent>
         </Tabs>

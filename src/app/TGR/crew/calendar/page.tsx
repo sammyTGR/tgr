@@ -883,19 +883,22 @@ export default function Component() {
       status: string;
     }) => {
       try {
+        // Ensure the schedule_date is in the correct timezone
+        const formattedDate = formatDateForDB(schedule_date);
+
         // First, get employee data for email
         const employeeData = await fetchEmployeeData(employee_id);
         if (!employeeData) {
           throw new Error("Failed to fetch employee data");
         }
 
-        // Update schedule status
+        // Update schedule status with the corrected date
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date,
+            schedule_date: formattedDate, // Use the formatted date
             status,
           }),
         });
@@ -904,14 +907,14 @@ export default function Component() {
           throw new Error("Failed to update schedule status");
         }
 
-        // Prepare email payload
+        // Prepare email payload with the correct date
         let emailPayload: EmailPayload = {
           email: employeeData.contact_info,
           subject: "",
           templateName: "",
           templateData: {
             name: employeeData.name,
-            date: formatDateWithDay(schedule_date),
+            date: formatDateWithDay(formattedDate), // Use the formatted date
           },
         };
 
@@ -973,7 +976,6 @@ export default function Component() {
     },
     onError: (error) => {
       console.error("Failed to update status and send email:", error);
-      // Handle error appropriately
     },
   });
 
