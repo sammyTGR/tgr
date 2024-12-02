@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { format, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
 const timeZone = "America/Los_Angeles";
 
@@ -15,12 +15,19 @@ export async function POST(request: Request) {
   const { employee_id, schedule_date, status } = await request.json();
 
   try {
-    // Single timezone conversion for database
-    const utcDate = parseISO(schedule_date);
-    const pacificDate = toZonedTime(utcDate, timeZone);
+    // Parse the incoming date and handle timezone conversion properly
+    const parsedDate = parseISO(schedule_date);
     
-    // Format for database
-    const formattedScheduleDate = format(pacificDate, "yyyy-MM-dd");
+    // Convert to Pacific Time using toZonedTime
+    const pacificDate = toZonedTime(parsedDate, timeZone);
+    
+    // Format for database using formatTZ to ensure consistent timezone handling
+    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", { timeZone });
+
+    console.log('Incoming schedule_date:', schedule_date);
+    console.log('Parsed date:', parsedDate);
+    console.log('Pacific date:', pacificDate);
+    console.log('Formatted schedule date:', formattedScheduleDate);
 
     // Check if the date exists in the schedules table
     const { data: scheduleData, error: scheduleFetchError } = await supabase
@@ -48,7 +55,7 @@ export async function POST(request: Request) {
           employee_id,
           schedule_date: formattedScheduleDate,
           status,
-          day_of_week: format(pacificDate, 'EEEE')
+          day_of_week: formatTZ(pacificDate, 'EEEE', { timeZone })
         });
 
       if (scheduleInsertError) {
