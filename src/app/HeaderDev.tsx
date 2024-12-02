@@ -27,9 +27,6 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/utils/supabase/client";
-// import useUnreadMessages from "@/app/api/fetch-unread/route";
-// import useUnreadOrders from "@/app/api/useUnreadOrders";
-// import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useRouter } from "next/navigation";
 import {
@@ -308,24 +305,23 @@ const comboComps = [
 ];
 
 const HeaderDev = React.memo(() => {
-  const [user, setUser] = useState<any>(undefined);
-  const [employeeId, setEmployeeId] = useState<number | null>(null);
-  const [unreadOrderCount, setUnreadOrderCount] = useState(0);
-  const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
   const router = useRouter();
   const { setTheme } = useTheme();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Memoize state setters
-  const updateUser = useCallback((newUser: any) => {
-    setUser(newUser);
-  }, []);
-
-  const updateEmployeeId = useCallback((newId: number | null) => {
-    setEmployeeId(newId);
-  }, []);
+  // Add new queries to replace the state
+  const { data: currentUser, refetch: refetchUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
+    staleTime: Infinity,
+  });
 
   // Navigation query
   const { isLoading: isNavigating } = useQuery({
@@ -361,7 +357,7 @@ const HeaderDev = React.memo(() => {
       }
       return response.json();
     },
-    enabled: !!user,
+    enabled: !!currentUser,
     staleTime: Infinity,
     retry: false,
     gcTime: Infinity,
@@ -381,23 +377,23 @@ const HeaderDev = React.memo(() => {
     staleTime: Infinity,
   });
 
-  // Memoize auth change handler
+  // Replace handleAuthChange callback
   const handleAuthChange = useCallback(
     async (event: string, session: Session | null) => {
       if (event === "SIGNED_IN") {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["authSession"] }),
           queryClient.invalidateQueries({ queryKey: ["userRole"] }),
+          queryClient.invalidateQueries({ queryKey: ["currentUser"] }),
         ]);
       } else if (event === "SIGNED_OUT") {
-        updateUser(null);
-        updateEmployeeId(null);
         queryClient.removeQueries({ queryKey: ["authSession"] });
         queryClient.removeQueries({ queryKey: ["userRole"] });
+        queryClient.removeQueries({ queryKey: ["currentUser"] });
         window.location.href = "/";
       }
     },
-    [queryClient, updateUser, updateEmployeeId]
+    [queryClient]
   );
 
   // Auth listener effect
@@ -439,10 +435,10 @@ const HeaderDev = React.memo(() => {
     refetchInterval: 30000,
   });
 
+  // Update handleSignOut
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    updateUser(null);
-    updateEmployeeId(null);
+    queryClient.removeQueries({ queryKey: ["currentUser"] });
     window.location.href = "/";
   };
 
@@ -463,13 +459,14 @@ const HeaderDev = React.memo(() => {
   };
 
   const handleProfileClick = () => {
-    if (employeeId) {
-      router.push(`/TGR/crew/profile/${employeeId}`);
+    if (currentUser?.id) {
+      router.push(`/TGR/crew/profile/${currentUser.id}`);
     }
   };
 
+  // Update the real-time subscription useEffect
   useEffect(() => {
-    if (!user) return;
+    if (!currentUser) return;
 
     const ordersSubscription = supabase
       .channel("orders")
@@ -497,7 +494,7 @@ const HeaderDev = React.memo(() => {
       ordersSubscription.unsubscribe();
       timeOffSubscription.unsubscribe();
     };
-  }, [user, queryClient]);
+  }, [currentUser, queryClient]);
 
   const handleHomeClick = () => {
     router.push("/");
