@@ -205,12 +205,16 @@ const fetchEmployeeData = async (employee_id: number) => {
 };
 
 // API functions
-const fetchCalendarData = async (currentDate: Date): Promise<EmployeeCalendar[]> => {
+const fetchCalendarData = async (
+  currentDate: Date
+): Promise<EmployeeCalendar[]> => {
   const startOfWeekDate = toZonedTime(getStartOfWeek(currentDate), TIME_ZONE);
   const endOfWeek = new Date(startOfWeekDate);
   endOfWeek.setDate(startOfWeekDate.getDate() + 6);
 
-  const startDate = formatTZ(startOfWeekDate, "yyyy-MM-dd", { timeZone: TIME_ZONE });
+  const startDate = formatTZ(startOfWeekDate, "yyyy-MM-dd", {
+    timeZone: TIME_ZONE,
+  });
   const endDate = formatTZ(endOfWeek, "yyyy-MM-dd", { timeZone: TIME_ZONE });
 
   try {
@@ -219,7 +223,7 @@ const fetchCalendarData = async (currentDate: Date): Promise<EmployeeCalendar[]>
     );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch calendar data');
+      throw new Error("Failed to fetch calendar data");
     }
 
     const data = await response.json();
@@ -264,8 +268,8 @@ const fetchCalendarDataWithHolidays = async (currentDate: Date) => {
   const startDateStr = formatTZ(startOfWeekDate, "yyyy-MM-dd", {
     timeZone: TIME_ZONE,
   });
-  const endDateStr = formatTZ(endOfWeek, "yyyy-MM-dd", { 
-    timeZone: TIME_ZONE 
+  const endDateStr = formatTZ(endOfWeek, "yyyy-MM-dd", {
+    timeZone: TIME_ZONE,
   });
 
   try {
@@ -275,7 +279,7 @@ const fetchCalendarDataWithHolidays = async (currentDate: Date) => {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch calendar data');
+      throw new Error(error.error || "Failed to fetch calendar data");
     }
 
     return await response.json();
@@ -298,7 +302,7 @@ const getBreakRoomDutyEmployee = async (
     );
 
     if (!existingDutyResponse.ok) {
-      throw new Error('Failed to fetch break room duty');
+      throw new Error("Failed to fetch break room duty");
     }
 
     const existingDuty = await existingDutyResponse.json();
@@ -325,7 +329,7 @@ const getBreakRoomDutyEmployee = async (
     );
 
     if (!lastAssignmentResponse.ok) {
-      throw new Error('Failed to fetch last assignment');
+      throw new Error("Failed to fetch last assignment");
     }
 
     const lastAssignment = await lastAssignmentResponse.json();
@@ -345,10 +349,10 @@ const getBreakRoomDutyEmployee = async (
     const formattedDate = format(checkDate, "yyyy-MM-dd");
 
     // Create new duty assignment
-    const response = await fetch('/api/break_room_duty', {
-      method: 'POST',
+    const response = await fetch("/api/break_room_duty", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         week_start: formattedWeekStart,
@@ -360,15 +364,16 @@ const getBreakRoomDutyEmployee = async (
 
     if (!response.ok) {
       const error = await response.json();
-      if (error.error === 'Employee not scheduled for duty date') {
-        console.error("No scheduled work day found for the selected employee on Friday this week");
+      if (error.error === "Employee not scheduled for duty date") {
+        console.error(
+          "No scheduled work day found for the selected employee on Friday this week"
+        );
         return null;
       }
-      throw new Error('Failed to create break room duty');
+      throw new Error("Failed to create break room duty");
     }
 
     return { employee: selectedEmployee, dutyDate: checkDate };
-
   } catch (error) {
     console.error("Error in getBreakRoomDutyEmployee:", error);
     return null;
@@ -507,24 +512,24 @@ export default function Component() {
       if (!currentDateQuery.data || !(currentDateQuery.data instanceof Date)) {
         return null;
       }
-  
+
       const formattedWeekStart = format(
         startOfWeek(currentDateQuery.data),
         "yyyy-MM-dd"
       );
-  
+
       // First check for existing duty
       const existingDutyResponse = await fetch(
         `/api/break_room_duty?weekStart=${formattedWeekStart}`
       );
-  
+
       if (!existingDutyResponse.ok) {
         const error = await existingDutyResponse.json();
-        throw new Error(error.error || 'Failed to fetch break room duty');
+        throw new Error(error.error || "Failed to fetch break room duty");
       }
-  
+
       const existingDuty = await existingDutyResponse.json();
-  
+
       if (existingDuty && existingDuty.length > 0) {
         const employee = calendarDataQuery.data?.find(
           (emp) => emp.employee_id === existingDuty[0].employee_id
@@ -533,26 +538,26 @@ export default function Component() {
           ? { employee, dutyDate: parseISO(existingDuty[0].duty_date) }
           : null;
       }
-  
+
       // If no existing duty, process sales employees
       const salesEmployees = (calendarDataQuery.data || [])
         .filter((emp) => emp.department === "Sales")
         .sort((a, b) => a.rank - b.rank);
-  
+
       if (salesEmployees.length === 0) return null;
-  
+
       // Get last assignment
       const lastAssignmentResponse = await fetch(
         `/api/break_room_duty?getLastAssignment=true`
       );
-  
+
       if (!lastAssignmentResponse.ok) {
         const error = await lastAssignmentResponse.json();
-        throw new Error(error.error || 'Failed to fetch last assignment');
+        throw new Error(error.error || "Failed to fetch last assignment");
       }
-  
+
       const lastAssignment = await lastAssignmentResponse.json();
-  
+
       // Calculate next employee index
       let nextEmployeeIndex = 0;
       if (lastAssignment && lastAssignment.length > 0) {
@@ -561,17 +566,17 @@ export default function Component() {
         );
         nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
       }
-  
+
       const selectedEmployee = salesEmployees[nextEmployeeIndex];
       const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
       const checkDate = addDays(startOfWeek(currentDateQuery.data), dayIndex);
       const formattedDate = format(checkDate, "yyyy-MM-dd");
-  
+
       // Create new duty assignment
-      const response = await fetch('/api/break_room_duty', {
-        method: 'POST',
+      const response = await fetch("/api/break_room_duty", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           week_start: formattedWeekStart,
@@ -580,16 +585,18 @@ export default function Component() {
           checkSchedule: true,
         }),
       });
-  
+
       if (!response.ok) {
         const error = await response.json();
-        if (error.error === 'Employee not scheduled for duty date') {
-          console.error("No scheduled work day found for the selected employee on Friday this week");
+        if (error.error === "Employee not scheduled for duty date") {
+          console.error(
+            "No scheduled work day found for the selected employee on Friday this week"
+          );
           return null;
         }
-        throw new Error(error.error || 'Failed to create break room duty');
+        throw new Error(error.error || "Failed to create break room duty");
       }
-  
+
       return { employee: selectedEmployee, dutyDate: checkDate };
     },
     enabled:
@@ -683,22 +690,22 @@ export default function Component() {
       employee_id: number;
       duty_date: string;
     }) => {
-      const response = await fetch('/api/break_room_duty', {
-        method: 'POST',
+      const response = await fetch("/api/break_room_duty", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...data,
-          checkSchedule: true // Add this flag to ensure schedule validation
+          checkSchedule: true, // Add this flag to ensure schedule validation
         }),
       });
-  
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create break room duty');
+        throw new Error(error.error || "Failed to create break room duty");
       }
-  
+
       return response.json();
     },
     onSuccess: () => {
