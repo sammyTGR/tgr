@@ -1,57 +1,86 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
 
 export async function POST(request: Request) {
-  const { employee_name, start_date, end_date, reason, other_reason } =
-    await request.json();
-
   try {
-    // Fetch employee_id and contact_info based on employee_name
+    // Initialize server-side Supabase client
+    const cookieStore = cookies()
+    const supabase = createClient()
+
+    // Get current user session
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { employee_name, start_date, end_date, reason, other_reason } =
+      await request.json();
+
+    // Validate required fields
+    if (!employee_name || !start_date || !end_date || !reason) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch employee data
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
-      .select("employee_id, contact_info")
+      .select("employee_id, contact_info, user_uuid")
       .eq("name", employee_name)
       .single();
 
-    if (employeeError || !employeeData) {
-      console.error("Error fetching employee:", employeeError?.message);
+    if (employeeError) {
+      console.error("Error fetching employee:", employeeError);
       return NextResponse.json(
-        { error: "Employee not found" },
+        { error: employeeError.message },
         { status: 500 }
       );
     }
 
-    const { employee_id, contact_info } = employeeData;
-    const email = contact_info; // Assuming contact_info is the plain text email
+    if (!employeeData) {
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 }
+      );
+    }
 
-    // Insert the time off request
+    // Insert time off request
     const { data, error } = await supabase
       .from("time_off_requests")
       .insert([
         {
-          employee_id,
+          employee_id: employeeData.employee_id,
           name: employee_name,
           start_date,
           end_date,
           reason,
-          other_reason,
+          other_reason: other_reason || null,
           status: "pending",
-          email,
+          email: employeeData.contact_info,
           sick_time_year: new Date().getFullYear(),
+          user_uuid: employeeData.user_uuid,
         },
       ])
       .select();
 
     if (error) {
-      console.error("Error inserting time off request:", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Error inserting time off request:", error);
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, data });
+
   } catch (err) {
-    console.error("Unexpected error handling time off request:", err);
+    console.error("API error:", err);
     return NextResponse.json(
-      { error: "Unexpected error handling time off request" },
+      { error: err instanceof Error ? err.message : "An unexpected error occurred" },
       { status: 500 }
     );
   }

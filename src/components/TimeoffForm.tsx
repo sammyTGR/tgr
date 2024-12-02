@@ -189,18 +189,60 @@ export default function TimeoffForm({
 
   const submitTimeOffMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const response = await fetch("/api/time_off", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // console.log("Submitting payload:", payload);
+
+      try {
+        const response = await fetch("/api/time_off", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        // Log the raw response text first
+        const rawResponse = await response.text();
+        // console.log("Raw server response:", rawResponse);
+
+        // If the response is empty, throw an error
+        if (!rawResponse) {
+          throw new Error("Empty response from server");
+        }
+
+        try {
+          const data = JSON.parse(rawResponse);
+
+          if (!response.ok) {
+            throw new Error(
+              data.error || `HTTP error! status: ${response.status}`
+            );
+          }
+
+          return data;
+        } catch (parseError) {
+          console.error("Parse error:", parseError);
+          console.error("Raw response that failed to parse:", rawResponse);
+          throw new Error(`Failed to parse server response: ${rawResponse}`);
+        }
+      } catch (error) {
+        console.error("Full error:", error);
+        throw error;
       }
-      return response.json();
     },
-    onError: (error) => {
-      toast.error("Failed to submit time off request. Please try again.");
+    onError: (error: Error) => {
+      console.error("Time off submission error:", {
+        message: error.message,
+        stack: error.stack,
+      });
+      toast.error(`Failed to submit time off request: ${error.message}`, {
+        description:
+          "Please try again or contact support if the issue persists.",
+      });
+    },
+    onSuccess: (data) => {
+      // console.log("Submission successful:", data);
+      toast.success("Time off request submitted successfully");
     },
   });
 
@@ -410,7 +452,7 @@ export default function TimeoffForm({
     queryClient.setQueryData(["showAlertDialog"], true);
   };
 
-  const submitForm = () => {
+  const submitForm = async () => {
     if (!formData) {
       toast.error("No form data available");
       return;
@@ -420,6 +462,16 @@ export default function TimeoffForm({
 
     if (selectedDates.length < 1) {
       toast.error("Please select at least one date.");
+      return;
+    }
+
+    if (!formData.employee_name) {
+      toast.error("Please select an employee name.");
+      return;
+    }
+
+    if (!formData.reason) {
+      toast.error("Please select a reason for time off.");
       return;
     }
 
@@ -439,53 +491,46 @@ export default function TimeoffForm({
       "yyyy-MM-dd"
     );
 
-    const payload = {
-      ...formData,
-      start_date,
-      end_date,
-    };
+    try {
+      const payload = {
+        ...formData,
+        start_date,
+        end_date,
+      };
 
-    submitTimeOffMutation
-      .mutateAsync(payload)
-      .then(() => {
-        return sendNotificationToAdmins(payload, selectedDates);
-      })
-      .then(() => {
-        // Reset form and query data
-        queryClient.setQueryData(["selectedDates"], []);
-        queryClient.setQueryData(["showOtherTextarea"], false);
-        queryClient.setQueryData(["reason"], null);
-        queryClient.setQueryData(["employee_name"], null);
-        queryClient.setQueryData(["formData"], null);
-        queryClient.setQueryData(["showAlertDialog"], false);
+      await submitTimeOffMutation.mutateAsync(payload);
+      await sendNotificationToAdmins(payload, selectedDates);
 
-        // Force a re-render of the Calendar component
-        queryClient.invalidateQueries({ queryKey: ["selectedDates"] });
+      // Reset form and query data
+      queryClient.setQueryData(["selectedDates"], []);
+      queryClient.setQueryData(["showOtherTextarea"], false);
+      queryClient.setQueryData(["reason"], null);
+      queryClient.setQueryData(["employee_name"], null);
+      queryClient.setQueryData(["formData"], null);
+      queryClient.setQueryData(["showAlertDialog"], false);
+      queryClient.invalidateQueries({ queryKey: ["selectedDates"] });
 
-        // Reset the Calendar component
-        const calendarElement = document.querySelector(
-          ".react-calendar"
-        ) as HTMLElement;
-        if (calendarElement) {
-          const selectedElements = calendarElement.querySelectorAll(
-            '[aria-pressed="true"]'
-          );
-          selectedElements.forEach((el) =>
-            el.setAttribute("aria-pressed", "false")
-          );
-        }
+      // Reset the Calendar component
+      const calendarElement = document.querySelector(
+        ".react-calendar"
+      ) as HTMLElement;
+      if (calendarElement) {
+        const selectedElements = calendarElement.querySelectorAll(
+          '[aria-pressed="true"]'
+        );
+        selectedElements.forEach((el) =>
+          el.setAttribute("aria-pressed", "false")
+        );
+      }
 
-        // Show success toast after everything is reset
-        toast.success("Your Request Has Been Submitted", {
-          position: "bottom-right",
-        });
-        onSubmitSuccess?.();
-      })
-      .catch((error) => {
-        console.error("Failed to submit time off request:", error);
-        toast.error("Failed to submit time off request. Please try again.");
-        updateIsSubmitting.mutate(false);
+      toast.success("Your Request Has Been Submitted", {
+        position: "bottom-right",
       });
+      onSubmitSuccess?.();
+    } catch (error) {
+      console.error("Failed to submit time off request:", error);
+      updateIsSubmitting.mutate(false);
+    }
   };
 
   const updateShowAlertDialog = useMutation({
