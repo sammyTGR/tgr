@@ -11,6 +11,12 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent,
+  type ChartConfig 
+} from "@/components/ui/chart"
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,6 +34,13 @@ interface MetricData {
   metric: string;
   value: string;
 }
+
+const chartConfig = {
+  revenue: {
+    label: "Net Revenue",
+    color: "hsl(var(--chart-1))"
+  }
+} satisfies ChartConfig
 
 const columnHelper = createColumnHelper<MetricData>();
 
@@ -91,57 +104,36 @@ const FranchisePresentation = () => {
         </TabsList>
 
         <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Net Revenue</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                {isLoading ? (
-                  <BarChart data={[]}>
-                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                      Loading...
-                    </text>
-                  </BarChart>
-                ) : error ? (
-                  <BarChart data={[]}>
-                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fill="red">
-                      Error loading revenue data
-                    </text>
-                  </BarChart>
-                ) : revenueData ? (
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="month"
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis 
-                      tickFormatter={(value) => currencyFormatter.format(value)}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip 
-                      formatter={(value: number) => [
-                        currencyFormatter.format(value),
-                        "Net Revenue"
-                      ]}
-                    />
-                    <Bar 
-                      dataKey="revenue" 
-                      fill="#8884d8"
-                      name="Net Revenue"
-                    />
-                  </BarChart>
-                ) : (
-                  <BarChart data={[]}>
-                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                      No data available
-                    </text>
-                  </BarChart>
-                )}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <Card>
+      <CardHeader>
+        <CardTitle>Monthly Net Revenue</CardTitle>
+      </CardHeader>
+      <CardContent className="h-[400px]">
+        <ChartContainer config={chartConfig}>
+          <BarChart data={revenueData}>
+            <CartesianGrid vertical={false} />
+            <XAxis 
+              dataKey="month"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+            />
+            <YAxis 
+              tickFormatter={(value) => currencyFormatter.format(value)}
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar 
+              dataKey="revenue" 
+              fill="var(--color-revenue)"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
 
           <div className="grid grid-cols-3 gap-4 mt-4">
             <FeatureCard 
