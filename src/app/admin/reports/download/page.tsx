@@ -124,7 +124,52 @@ const AdminReportsPage = () => {
     let dataToExport: any[] = [];
     let fileName = "";
 
-    if (activeTab === "sick-time") {
+    if (activeTab === "vacation-time") {
+      vacationTimeData.forEach((row) => {
+        // Calculate total used hours correctly
+        const totalUsedHours = row.used_vacation_time;
+        
+        // Add a row for the employee's summary
+        dataToExport.push({
+          "Employee Name": row.name,
+          "Employee ID": row.employee_id,
+          "Total Available Hours": row.available_vacation_time,
+          "Total Used Hours": totalUsedHours,
+        });
+
+        // Add rows for each usage entry
+        row.used_dates.forEach((date, index) => {
+          const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
+          dataToExport.push({
+            "Usage Date": formatTZ(zonedDate, "M-dd-yyyy", { timeZone: TIME_ZONE }),
+            "Usage Hours": row.hours_per_date[index],
+          });
+        });
+
+        // Add an empty row for separation
+        dataToExport.push({});
+      });
+
+      fileName = "vacation_time_report.xlsx";
+    } else if (activeTab === "timesheet") {
+      dataToExport = filteredTimesheetData.map((row) => ({
+        Employee: row.name,
+        Date: row.event_date
+          ? formatTZ(toZonedTime(new Date(row.event_date), TIME_ZONE), "M-dd-yyyy", { timeZone: TIME_ZONE })
+          : "N/A",
+        "Start Time": row.start_time,
+        "End Time": row.end_time,
+        "Total Hours Logged": row.calculated_total_hours || "N/A",
+        "Scheduled Hours": row.scheduled_hours?.toFixed(2),
+        "Sick Time Usage": row.sick_time_usage?.toFixed(2) || "N/A",
+        "Vacation Time Usage": row.vacation_time_usage?.toFixed(2) || "N/A",
+        "Regular Time": row.regular_time.toFixed(2),
+        Overtime: row.overtime.toFixed(2),
+        "Available Sick Time": row.available_sick_time?.toFixed(2) || "N/A",
+        "Total Hours With Sick": row.total_hours_with_sick?.toFixed(2) || "N/A",
+      }));
+      fileName = "timesheet_report.xlsx";
+    } else if (activeTab === "sick-time") {
       sickTimeData.forEach((row) => {
         // Add a row for the employee's summary
         dataToExport.push({
@@ -149,46 +194,6 @@ const AdminReportsPage = () => {
       });
 
       fileName = "sick_time_report.xlsx";
-    } else if (activeTab === "timesheet") {
-      dataToExport = filteredTimesheetData.map((row) => ({
-        Employee: row.name,
-        Date: row.event_date
-          ? formatTZ(toZonedTime(new Date(row.event_date), TIME_ZONE), "M-dd-yyyy", { timeZone: TIME_ZONE })
-          : "N/A",
-        "Start Time": row.start_time,
-        "End Time": row.end_time,
-        "Total Hours Logged": row.calculated_total_hours || "N/A",
-        "Scheduled Hours": row.scheduled_hours?.toFixed(2),
-        "Sick Time Usage": row.sick_time_usage?.toFixed(2) || "N/A",
-        "Vacation Time Usage": row.vacation_time_usage?.toFixed(2) || "N/A",
-        "Regular Time": row.regular_time.toFixed(2),
-        Overtime: row.overtime.toFixed(2),
-        "Available Sick Time": row.available_sick_time?.toFixed(2) || "N/A",
-        "Total Hours With Sick": row.total_hours_with_sick?.toFixed(2) || "N/A",
-      }));
-      fileName = "timesheet_report.xlsx";
-    } else if (activeTab === "vacation-time") {
-      vacationTimeData.forEach((row) => {
-        dataToExport.push({
-          "Employee Name": row.name,
-          "Employee ID": row.employee_id,
-          "Total Available Hours": row.available_vacation_time,
-          "Total Used Hours": row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
-          "Remaining Hours": row.available_vacation_time - row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
-        });
-
-        row.used_dates.forEach((date, index) => {
-          const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
-          dataToExport.push({
-            "Usage Date": formatTZ(zonedDate, "M-dd-yyyy", { timeZone: TIME_ZONE }),
-            "Usage Hours": row.hours_per_date[index],
-          });
-        });
-
-        dataToExport.push({});
-      });
-
-      fileName = "vacation_time_report.xlsx";
     }
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);

@@ -17,17 +17,19 @@ import {
   flexRender,
   createColumnHelper,
 } from '@tanstack/react-table';
+import { useQuery } from '@tanstack/react-query';
 
-const mockRevenueData = [
-  { month: 'Jan', revenue: 85000 },
-  { month: 'Feb', revenue: 92000 },
-  { month: 'Mar', revenue: 98000 },
-  { month: 'Apr', revenue: 105000 },
-  { month: 'May', revenue: 115000 },
-  { month: 'Jun', revenue: 125000 }
-];
+interface RevenueData {
+  month: string;
+  revenue: number;
+}
 
-const columnHelper = createColumnHelper();
+interface MetricData {
+  metric: string;
+  value: string;
+}
+
+const columnHelper = createColumnHelper<MetricData>();
 
 const columns = [
   columnHelper.accessor('metric', {
@@ -47,10 +49,28 @@ const metricsData = [
   { metric: 'Staff Satisfaction Score', value: '4.8/5' },
 ];
 
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
+
 const FranchisePresentation = () => {
-  const table = useReactTable<typeof metricsData[0]>({
+  const { data: revenueData, isLoading, error } = useQuery<RevenueData[]>({
+    queryKey: ['revenue'],
+    queryFn: async () => {
+      const response = await fetch('/api/revenue');
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      return data;
+    },
+    refetchInterval: 300000, // Refetch every 5 minutes
+  });
+
+  const table = useReactTable({
     data: metricsData,
-    columns: columns as any,
+    columns,
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -73,17 +93,52 @@ const FranchisePresentation = () => {
         <TabsContent value="overview">
           <Card>
             <CardHeader>
-              <CardTitle>Revenue Growth</CardTitle>
+              <CardTitle>Monthly Net Revenue</CardTitle>
             </CardHeader>
             <CardContent className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockRevenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="revenue" fill="#8884d8" />
-                </BarChart>
+                {isLoading ? (
+                  <BarChart data={[]}>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                      Loading...
+                    </text>
+                  </BarChart>
+                ) : error ? (
+                  <BarChart data={[]}>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fill="red">
+                      Error loading revenue data
+                    </text>
+                  </BarChart>
+                ) : revenueData ? (
+                  <BarChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="month"
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => currencyFormatter.format(value)}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [
+                        currencyFormatter.format(value),
+                        "Net Revenue"
+                      ]}
+                    />
+                    <Bar 
+                      dataKey="revenue" 
+                      fill="#8884d8"
+                      name="Net Revenue"
+                    />
+                  </BarChart>
+                ) : (
+                  <BarChart data={[]}>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                      No data available
+                    </text>
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>
