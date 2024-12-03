@@ -1,15 +1,17 @@
-import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   try {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { searchParams } = new URL(request.url);
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
 
     let query = supabase.from("schedules").select("*");
 
@@ -26,10 +28,10 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     return NextResponse.json(data || []);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in fetchSchedules:', error);
     return NextResponse.json(
-      { error: "Internal Server Error" }, 
+      { error: "Internal Server Error", details: error.message }, 
       { status: 500 }
     );
   }
@@ -37,10 +39,10 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -61,10 +63,10 @@ export async function PUT(request: Request) {
     if (error) throw error;
 
     return NextResponse.json(data || []);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in updateSchedule:', error);
     return NextResponse.json(
-      { error: "Internal Server Error" }, 
+      { error: "Internal Server Error", details: error.message }, 
       { status: 500 }
     );
   }

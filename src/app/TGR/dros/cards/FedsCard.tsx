@@ -23,13 +23,20 @@ function FedsCard({ className }: { className?: string }) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Federal Limits Apply</CardTitle>
-          <CardDescription>
-            If The Purchaser&apos;s VALID CA DL | CA ID States{" "}
-            <span className="text-blue-500">
-              &quot;Federal Limits Apply&quot;{" "}
-            </span>
-            In The Top Right Corner, We Need One Of The Docs Below
-          </CardDescription>
+          <div className="space-y-1">
+            <p>
+              If The Purchaser&apos;s VALID CA DL | CA ID States{" "}
+              <span className="text-blue-500">
+                &quot;Federal Limits Apply&quot;{" "}
+              </span>
+              In The Top Right Corner, We Need One Of The Docs Below
+            </p>
+            <p className="text-red-500">
+              If There Is A Suffix On One Of The Docs Below, It Must Be Included
+              On The DL | ID, Otherwise They Are Required To Get An Interim DL |
+              ID To Match
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">

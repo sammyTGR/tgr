@@ -747,7 +747,8 @@ const ManageSchedules = () => {
             <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-5">
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-bold">Clear A Schedule</h2>
+                  <h2 className="text-lg font-bold">Clear</h2>
+                  <h2 className="text-lg font-bold">A Schedule</h2>
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
@@ -764,7 +765,8 @@ const ManageSchedules = () => {
 
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-bold">Publish A Schedule</h2>
+                  <h2 className="text-lg font-bold">Publish</h2>
+                  <h2 className="text-lg font-bold">A Schedule</h2>
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
@@ -781,7 +783,8 @@ const ManageSchedules = () => {
 
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-bold">Generate All Schedules</h2>
+                  <h2 className="text-lg font-bold">Generate</h2>
+                  <h2 className="text-lg font-bold">All Schedule</h2>
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
@@ -797,7 +800,8 @@ const ManageSchedules = () => {
 
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-bold">Add A Shift</h2>
+                  <h2 className="text-lg font-bold">Add</h2>
+                  <h2 className="text-lg font-bold">A Shift</h2>
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm
@@ -819,7 +823,8 @@ const ManageSchedules = () => {
 
               <Card>
                 <CardHeader>
-                  <h2 className="text-lg font-bold">Update A Shift</h2>
+                  <h2 className="text-lg font-bold">Update</h2>
+                  <h2 className="text-lg font-bold">Existing Shift</h2>
                 </CardHeader>
                 <CardContent className="flex flex-col mx-auto">
                   <PopoverForm

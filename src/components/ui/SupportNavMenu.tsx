@@ -7,6 +7,9 @@ import { Button } from "./button";
 import RoleBasedWrapper from "../RoleBasedWrapper";
 
 // Verify and update the paths here
+const DeptId = dynamic(() => import("../../app/TGR/dros/cards/DeptId"), {
+  ssr: false,
+});
 const IDsCard = dynamic(() => import("../../app/TGR/dros/cards/IDsCard"), {
   ssr: false,
 });
@@ -209,6 +212,7 @@ type MenuItem = {
 
 const dialogContentComponents = {
   IDsCard: <IDsCard />,
+  DeptId: <DeptId />,
   FedsCard: <FedsCard />,
   FedLimits: <FedLimits />,
   FedLimsName: <FedLimsName />,

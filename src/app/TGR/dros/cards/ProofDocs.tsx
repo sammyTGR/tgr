@@ -19,15 +19,17 @@ function ProofDocs({ className }: { className?: string }) {
           <CardTitle style={{ color: "#1583B3" }}>
             Accepted Proof Of Residence Docs
           </CardTitle>
-          <CardDescription>
-            <span className="text-amber-500">
+          <div className="space-y-1">
+            <p className="text-amber-500">
               CA DL | IDs With P.O. Boxes Are{" "}
               <span className="text-red-500">NOT ACCEPTABLE</span> As An
-              Address, Even If It Is A REAL ID. The Customer Must Also Present
-              An Acceptable Address Correction Doc, IN ADDITION TO One Of The
-              Docs Below:
-            </span>
-          </CardDescription>
+              Address, Even If It Is A REAL ID.
+            </p>
+            <p className="text-blue-500">
+              All Docs Must Have The Full First & Last Names, Middle Names &
+              Suffixes Are Not Always Printed
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">

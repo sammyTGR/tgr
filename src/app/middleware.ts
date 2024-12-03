@@ -1,56 +1,51 @@
-
-
-import { createClient } from "@/utils/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
-import { protectedPaths } from "@/lib/constant";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse, type NextRequest } from 'next/server'
+import { protectedPaths } from '@/lib/constant'
 
 export async function middleware(request: NextRequest) {
-  const supabase = createClient();
-  const url = new URL(request.url);
+  const response = NextResponse.next()
+  const supabase = createMiddlewareClient({ req: request, res: response })
 
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (error || !user || !user.email) {
     console.error(
       "No user or email found:",
       error || "User or email undefined"
-    );
-    if (protectedPaths.includes(url.pathname)) {
+    )
+    if (protectedPaths.includes(new URL(request.url).pathname)) {
       return NextResponse.redirect(
-        new URL("/auth?next=" + url.pathname, request.url)
-      );
+        new URL("/auth?next=" + new URL(request.url).pathname, request.url)
+      )
     }
-    return NextResponse.next();
+    return response
   }
 
   // Extract first name from the full name or email (before the '@')
   const firstName =
-    user.user_metadata?.full_name?.split(" ")[0] || user.email.split("@")[0];
-  const lastName = user.user_metadata?.full_name?.split(" ")[1] || "";
+    user.user_metadata?.full_name?.split(" ")[0] || user.email.split("@")[0]
+  const lastName = user.user_metadata?.full_name?.split(" ")[1] || ""
 
   // Check if the user exists in the employees table
   const { data: employeeData, error: employeeError } = await supabase
     .from("employees")
     .select("role, employee_id")
     .eq("user_uuid", user.id)
-    .maybeSingle(); // Use maybeSingle to handle cases where no rows are returned
+    .maybeSingle()
 
   if (employeeError) {
-    //console.("Error fetching employee role:", employeeError.message);
+    console.error("Error fetching employee role:", employeeError.message)
   } else if (!employeeData) {
-    // Insert logic in the OAuth callback, not here.
-    // console.log("No employee data found, handling this in OAuth callback");
+    console.log("No employee data found, handling this in OAuth callback")
   } else {
-    const userRole = employeeData.role;
-    const employeeId = employeeData.employee_id;
-
-    // console.log("User is an employee, redirecting:", user.email);
+    const userRole = employeeData.role
+    const employeeId = employeeData.employee_id
 
     // Redirect to the correct profile page based on role
-    if (url.pathname === "/auth" || url.pathname === "/") {
+    if (new URL(request.url).pathname === "/auth" || new URL(request.url).pathname === "/") {
       if (
         userRole === "admin" ||
         userRole === "super admin" ||
@@ -58,16 +53,16 @@ export async function middleware(request: NextRequest) {
       ) {
         return NextResponse.redirect(
           new URL("/admin/reports/dashboard", request.url)
-        );
+        )
       } else {
         return NextResponse.redirect(
           new URL(`/TGR/crew/profile/${employeeId}`, request.url)
-        );
+        )
       }
     }
   }
 
-  return NextResponse.next();
+  return response
 }
 
 export const config = {
@@ -78,4 +73,4 @@ export const config = {
     "/sales(.*)",
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
-};
+}

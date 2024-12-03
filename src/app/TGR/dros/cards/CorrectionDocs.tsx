@@ -23,10 +23,16 @@ function CorrectionDocs({ className }: { className?: string }) {
       <Card className="flex flex-col w-full">
         <CardHeader>
           <CardTitle>Accepted Address Correction Docs</CardTitle>
-          <CardDescription>
-            Utilize This List If Their CA DL | CA ID Doesn&apos;t Have Their
-            Current Physical Address
-          </CardDescription>
+          <div className="space-y-1">
+            <p>
+              Utilize This List If Their CA DL | CA ID Doesn&apos;t Have Their
+              Current Physical Address
+            </p>
+            <p className="text-blue-500">
+              All Docs Must Have The Full First & Last Names, Middle Names &
+              Suffixes Are Not Always Printed
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">

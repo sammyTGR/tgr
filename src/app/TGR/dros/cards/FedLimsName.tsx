@@ -23,15 +23,21 @@ function FedLimsName({ className }: { className?: string }) {
       <Card className="flex flex-col w-full">
         <CardHeader>
           <CardTitle>Federal Limits Apply With Name Change</CardTitle>
-          <CardDescription>
-            If The CA DL | CA ID States{" "}
-            <span className="text-blue-500">
-              &quot;Federal Limits Apply&quot;
-            </span>{" "}
-            <span className="text-red-500">AND </span>
-            Their Name Doesn&apos;t Match The Proof Document, We Need One Of The
-            Docs Below
-          </CardDescription>
+          <div className="space-y-1">
+            <p>
+              If The CA DL | CA ID States{" "}
+              <span className="text-blue-500">
+                &quot;Federal Limits Apply&quot;
+              </span>{" "}
+              <span className="text-red-500">AND </span>
+              Their Name Doesn&apos;t Match The Proof Document
+            </p>
+            <p className="text-red-500">
+              If There Is A Suffix On One Of The Docs Below, It Must Be Included
+              On The DL | ID, Otherwise They Are Required To Get An Interim DL |
+              ID To Match
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
