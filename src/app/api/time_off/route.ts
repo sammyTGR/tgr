@@ -61,7 +61,7 @@ export async function POST(request: Request) {
           other_reason: other_reason || null,
           status: "pending",
           email: employeeData.contact_info,
-          sick_time_year: new Date().getFullYear(),
+          sick_time_year: new Date(start_date).getFullYear(),
           user_uuid: employeeData.user_uuid,
         },
       ])

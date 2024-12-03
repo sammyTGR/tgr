@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from "react";
+import React, { FC, useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -8,7 +8,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { ChevronDown, ChevronRight } from "lucide-react";
+
+const TIME_ZONE = "America/Los_Angeles";
 
 interface VacationTimeReport {
   employee_id: number;
@@ -32,9 +35,14 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
 }) => {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
 
+  const filteredData = useMemo(
+    () => data.filter((row) => row.used_vacation_time > 0),
+    [data]
+  );
+
   useEffect(() => {
     if (isAllExpanded) {
-      const expandAll = data.reduce((acc, row) => {
+      const expandAll = filteredData.reduce((acc, row) => {
         acc[row.employee_id] = true;
         return acc;
       }, {} as Record<number, boolean>);
@@ -42,13 +50,23 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
     } else {
       setExpandedRows({});
     }
-  }, [isAllExpanded, data]);
+  }, [isAllExpanded, filteredData]);
 
   const toggleExpand = (employee_id: number) => {
     setExpandedRows((prev) => ({
       ...prev,
       [employee_id]: !prev[employee_id],
     }));
+  };
+
+  const formatDate = (dateString: string) => {
+    // Parse the date and add one day to compensate for UTC conversion
+    const date = new Date(dateString);
+    date.setDate(date.getDate() + 1);
+
+    // Convert to zoned time and format
+    const zonedDate = toZonedTime(date, TIME_ZONE);
+    return formatInTimeZone(zonedDate, TIME_ZONE, "MM/dd/yyyy");
   };
 
   return (
@@ -64,10 +82,9 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row) => (
-            <>
+          {filteredData.map((row) => (
+            <React.Fragment key={row.employee_id}>
               <TableRow
-                key={row.employee_id}
                 className="cursor-pointer"
                 onClick={() => toggleExpand(row.employee_id)}
               >
@@ -97,12 +114,10 @@ export const VacationTimeTable: FC<VacationTimeTableProps> = ({
                     <TableCell>
                       {row.hours_per_date[index].toFixed(2)} hours
                     </TableCell>
-                    <TableCell>
-                      {format(new Date(date), "MM/dd/yyyy")}
-                    </TableCell>
+                    <TableCell>{formatDate(date)}</TableCell>
                   </TableRow>
                 ))}
-            </>
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>
