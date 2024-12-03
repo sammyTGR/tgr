@@ -264,7 +264,7 @@ const EmployeeProfile = () => {
       .filter((schedule) => schedule.employee_id === employeeId)
       .map((schedule) => {
         if (!schedule.schedule_date) {
-          console.warn("Schedule missing schedule_date:", schedule);
+          // console.warn("Schedule missing schedule_date:", schedule);
           return schedule;
         }
 
@@ -603,8 +603,12 @@ const EmployeeProfile = () => {
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1)
       .toISOString()
       .split("T")[0];
-    
-    const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+    const endDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    )
       .toISOString()
       .split("T")[0];
 
@@ -641,54 +645,57 @@ const EmployeeProfile = () => {
         .from("points_calculation")
         .select("*");
 
-      if (salesError || auditError || pointsError) throw new Error("Data fetch error");
+      if (salesError || auditError || pointsError)
+        throw new Error("Data fetch error");
 
       const isOperations = employeeData.department?.toString() === "Operations";
 
       // Filter sales data to only include records up to selected date
-      const validSalesData = (salesData || []).filter(sale => {
+      const validSalesData = (salesData || []).filter((sale) => {
         const saleDate = new Date(sale.Date);
         return saleDate <= date && sale.subcategory_label;
       });
 
       // Filter audit data to only include records up to selected date
-      const validAuditData = (auditData || []).filter(audit => {
+      const validAuditData = (auditData || []).filter((audit) => {
         const auditDate = new Date(audit.audit_date);
         return auditDate <= date;
       });
 
       // Use WeightedScoringCalculator with filtered data
       const calculator = new WeightedScoringCalculator({
-        salesData: validSalesData.map(sale => ({
+        salesData: validSalesData.map((sale) => ({
           ...sale,
-          dros_cancel: sale.cancelled_dros !== undefined && sale.cancelled_dros !== null
-            ? sale.cancelled_dros.toString()
-            : "0"
+          dros_cancel:
+            sale.cancelled_dros !== undefined && sale.cancelled_dros !== null
+              ? sale.cancelled_dros.toString()
+              : "0",
         })),
-        auditData: validAuditData.map(audit => ({
+        auditData: validAuditData.map((audit) => ({
           ...audit,
-          id: audit.audits_id
+          id: audit.audits_id,
         })),
         pointsCalculation: pointsCalculation || [],
         isOperations,
-        minimumDros: 20
+        minimumDros: 20,
       });
 
       const metrics = calculator.metrics;
 
-      setSummaryData([{
-        Lanid: employeeData.lanid,
-        Department: employeeData.department || "Unknown",
-        TotalDros: validSalesData.length, // Using the filtered sales data length for total DROs
-        MinorMistakes: metrics.MinorMistakes,
-        MajorMistakes: metrics.MajorMistakes,
-        CancelledDros: metrics.CancelledDros,
-        WeightedErrorRate: metrics.WeightedErrorRate,
-        TotalWeightedMistakes: metrics.TotalWeightedMistakes,
-        Qualified: metrics.Qualified,
-        DisqualificationReason: metrics.DisqualificationReason
-      }]);
-
+      setSummaryData([
+        {
+          Lanid: employeeData.lanid,
+          Department: employeeData.department || "Unknown",
+          TotalDros: validSalesData.length, // Using the filtered sales data length for total DROs
+          MinorMistakes: metrics.MinorMistakes,
+          MajorMistakes: metrics.MajorMistakes,
+          CancelledDros: metrics.CancelledDros,
+          WeightedErrorRate: metrics.WeightedErrorRate,
+          TotalWeightedMistakes: metrics.TotalWeightedMistakes,
+          Qualified: metrics.Qualified,
+          DisqualificationReason: metrics.DisqualificationReason,
+        },
+      ]);
     } catch (error) {
       console.error("Error calculating summary:", error);
       toast.error("Failed to calculate performance metrics");
@@ -2636,11 +2643,15 @@ const EmployeeProfile = () => {
                                   {
                                     Header: "Error Rate",
                                     accessor: "WeightedErrorRate",
-                                    Cell: ({ value }: { value: number | null }) => (
+                                    Cell: ({
+                                      value,
+                                    }: {
+                                      value: number | null;
+                                    }) => (
                                       <div className="text-center font-semibold text-lg">
-                                        {value !== null && value !== undefined 
-                                          ? `${value.toFixed(2)}%` 
-                                          : '0.00%'}
+                                        {value !== null && value !== undefined
+                                          ? `${value.toFixed(2)}%`
+                                          : "0.00%"}
                                       </div>
                                     ),
                                   },

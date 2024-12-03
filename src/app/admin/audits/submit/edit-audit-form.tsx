@@ -65,16 +65,21 @@ export interface AuditData {
   employee_lanid?: string | null;
 }
 
-interface EditAuditFormProps {
+export interface EditAuditFormProps {
   audit: AuditData;
-  onClose: () => void;
+  handleSubmit: (data: Partial<AuditData>) => void;
+  handleClose: () => void;
 }
 
 // Query keys
 const AUDIT_OPTIONS_KEY = ["audit-options"] as const;
 const EMPLOYEES_KEY = ["employees"] as const;
 
-export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
+export function EditAuditForm({
+  audit,
+  handleSubmit,
+  handleClose,
+}: EditAuditFormProps) {
   const queryClient = useQueryClient();
 
   // Update mutation
@@ -105,7 +110,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
     onSuccess: () => {
       toast.success("Audit updated successfully");
       queryClient.invalidateQueries({ queryKey: ["audits"] });
-      onClose();
+      handleClose();
     },
     onError: (error) => {
       console.error("Update error:", error); // Add this for debugging
@@ -402,7 +407,7 @@ export function EditAuditForm({ audit, onClose }: EditAuditFormProps) {
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button type="submit">Update Audit</Button>

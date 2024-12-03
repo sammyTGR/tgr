@@ -460,7 +460,7 @@ const HeaderDev = React.memo(() => {
 
   const handleProfileClick = () => {
     if (currentUser?.id) {
-      router.push(`/TGR/crew/profile/${currentUser.id}`);
+      router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
     }
   };
 
@@ -622,7 +622,8 @@ const HeaderDev = React.memo(() => {
             </LazyNavigationMenuList>
           </LazyNavigationMenu>
         </Suspense>
-        <div className="flex items-center -space-x-2">
+        {/* Unread notifications */}
+        <div className="flex items-center space-x-0">
           {authData?.user ? (
             <>
               <Link href="/sales/orderreview" className="mr-1">
@@ -668,15 +669,7 @@ const HeaderDev = React.memo(() => {
                     <DropdownMenuContent className="w-56 mr-2">
                       <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (employeeData?.employee_id) {
-                            router.push(
-                              `/TGR/crew/profile/${employeeData.employee_id}`
-                            );
-                          }
-                        }}
-                      >
+                      <DropdownMenuItem onSelect={handleProfileClick}>
                         <PersonIcon className="mr-2 h-4 w-4" />
                         <span>Your Profile Page</span>
                       </DropdownMenuItem>

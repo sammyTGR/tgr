@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -48,6 +48,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { User } from "@supabase/supabase-js";
 
 export interface ChatMessage {
   id: string;
@@ -58,6 +59,11 @@ export interface ChatMessage {
   created_at: string;
   is_read?: boolean;
   read_by?: string[];
+}
+
+interface UserData {
+  user: User | null;
+  error?: string;
 }
 
 const auditComponents = [
@@ -251,15 +257,16 @@ const comboComps = [
     href: "/TGR/crew/range",
     description: "Submit Range Walks & Repairs",
   },
-  {
-    title: "Submit Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Daily Deposits",
-  },
+
   {
     title: "Submit Claimed Points",
     href: "/TGR/crew/points",
     description: "Report All Submitted Points",
+  },
+  {
+    title: "Submit Daily Deposits",
+    href: "/TGR/deposits",
+    description: "Daily Deposits",
   },
   {
     title: "Submit Special Orders",
@@ -314,281 +321,191 @@ const LazyDropdownMenu = dynamic(
 );
 
 const HeaderAdmin = React.memo(() => {
-  const [user, setUser] = useState<any>(null);
-  const [employeeId, setEmployeeId] = useState<number | null>(null);
-  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
-  const router = useRouter(); // Instantiate useRouter
+  const router = useRouter();
   const { setTheme } = useTheme();
-  const [isChatActive, setIsChatActive] = useState(false);
-  const [unreadOrderCount, setUnreadOrderCount] = useState(0);
-  const [unreadTimeOffCount, setUnreadTimeOffCount] = useState(0);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
-  const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
-    queryFn: () => {
-      return Promise.resolve(
-        new Promise((resolve) => {
-          setTimeout(() => resolve(null), 100);
-        })
-      );
+  // Current user query
+  const { data: currentUser, refetch: refetchUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
     },
-    staleTime: 0, // Always refetch on route change
-    refetchInterval: 0, // Disable automatic refetching
+    staleTime: Infinity,
   });
 
-  const fetchUnreadOrders = async () => {
-    try {
-      const response = await fetch("/api/useUnreadOrders");
-      const data = await response.json();
-      setUnreadOrderCount(data.unreadOrderCount);
-    } catch (error) {
-      //console.("Error fetching unread orders:", error);
-    }
-  };
+  // Add session query
+  const { data: authData, isLoading: isAuthLoading } = useQuery({
+    queryKey: ["authSession"],
+    queryFn: async () => {
+      const response = await fetch("/api/check-session");
+      if (!response.ok) throw new Error("Failed to check session");
+      return response.json();
+    },
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: true,
+  });
 
-  const fetchUnreadTimeOffRequests = async () => {
-    try {
-      const response = await fetch("/api/useUnreadTimeOffRequests");
-      const data = await response.json();
-      setUnreadTimeOffCount(data.unreadTimeOffCount);
-    } catch (error) {
-      //console.("Error fetching unread time-off requests:", error);
-    }
-  };
-
-  const fetchUserAndEmployee = useCallback(async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData && userData.user) {
-      setUser(userData.user);
-      const { data: employeeData, error } = await supabase
-        .from("employees")
-        .select("employee_id")
-        .eq("user_uuid", userData.user.id)
-        .single();
-      if (error) {
-        //console.("Error fetching employee data:", error.message);
-      } else {
-        setEmployeeId(employeeData.employee_id);
+  // Add user role query
+  const { data: userData, refetch: refetchUserRole } = useQuery<UserData>({
+    queryKey: ["userRole"],
+    queryFn: async () => {
+      const response = await fetch("/api/getUserRole");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch user role");
       }
-    } else {
-      setUser(null);
-      setEmployeeId(null);
-    }
-  }, []);
+      return response.json();
+    },
+    enabled: !!currentUser,
+    staleTime: Infinity,
+    retry: false,
+    gcTime: Infinity,
+  });
 
-  const fetchUnreadCounts = useCallback(async () => {
-    if (!user) return;
-
-    const { data: dmData, error: dmError } = await supabase
-      .from("direct_messages")
-      .select("id")
-      .eq("receiver_id", user.id)
-      .eq("is_read", false);
-
-    const { data: groupData, error: groupError } = await supabase
-      .from("group_chat_messages")
-      .select("id")
-      .not("read_by", "cs", `{${user.id}}`);
-
-    if (dmError) console.error("Error fetching unread DMs:", dmError.message);
-    if (groupError)
-      console.error(
-        "Error fetching unread group messages:",
-        groupError.message
+  // Update employee query to use authData
+  const { data: employeeData } = useQuery({
+    queryKey: ["employee", authData?.user?.id],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/fetchEmployees?select=employee_id&equals=user_uuid:${authData.user.id}&single=true`
       );
+      if (!response.ok) throw new Error("Failed to fetch employee data");
+      return response.json();
+    },
+    enabled: !!authData?.user?.id,
+    staleTime: Infinity,
+  });
 
-    const totalUnread = (dmData?.length || 0) + (groupData?.length || 0);
-    setTotalUnreadCount(totalUnread);
-  }, [user]);
+  // Navigation loading state
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: () =>
+      Promise.resolve(
+        new Promise((resolve) => setTimeout(() => resolve(null), 100))
+      ),
+    staleTime: 0,
+    refetchInterval: 0,
+  });
 
+  // Unread messages query
+  const { data: unreadMessagesData = { totalUnreadCount: 0 } } = useQuery({
+    queryKey: ["unreadMessages", currentUser?.id],
+    queryFn: async () => {
+      const [dmResult, groupResult] = await Promise.all([
+        supabase
+          .from("direct_messages")
+          .select("id")
+          .eq("receiver_id", currentUser?.id)
+          .eq("is_read", false),
+        supabase
+          .from("group_chat_messages")
+          .select("id")
+          .not("read_by", "cs", `{${currentUser?.id}}`),
+      ]);
+
+      const totalUnreadCount =
+        (dmResult.data?.length || 0) + (groupResult.data?.length || 0);
+      return { totalUnreadCount };
+    },
+    enabled: !!currentUser?.id,
+    refetchInterval: 30000,
+  });
+
+  // Unread orders query
+  const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
+    queryKey: ["unreadOrders"],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadOrders");
+      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      return response.json();
+    },
+    enabled: !!currentUser,
+    refetchInterval: 30000,
+  });
+
+  // Unread time-off requests query
+  const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
+    queryKey: ["unreadTimeOff"],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadTimeOffRequests");
+      if (!response.ok)
+        throw new Error("Failed to fetch unread time-off requests");
+      return response.json();
+    },
+    enabled: !!currentUser,
+    refetchInterval: 30000,
+  });
+
+  // Real-time subscriptions
   useEffect(() => {
-    fetchUserAndEmployee();
+    if (!currentUser?.id) return;
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "SIGNED_IN") {
-          fetchUserAndEmployee();
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setEmployeeId(null);
-          setTotalUnreadCount(0);
-        }
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [fetchUserAndEmployee]);
-
-  useEffect(() => {
-    const checkChatActive = () => {
-      const isActive = localStorage.getItem("isChatActive") === "true";
-      setIsChatActive(isActive);
-    };
-
-    checkChatActive(); // Check initially
-    window.addEventListener("chatActiveChange", checkChatActive);
-
-    return () => {
-      window.removeEventListener("chatActiveChange", checkChatActive);
-    };
-  }, []);
-
-  const handleProfileClick = () => {
-    if (employeeId) {
-      router.push(`/TGR/crew/profile/${employeeId}`);
-    }
-  };
-
-  useEffect(() => {
-    if (user && !isChatActive) {
-      fetchUnreadCounts();
-      fetchUnreadOrders();
-      fetchUnreadTimeOffRequests();
-
-      const groupChatMessageSubscription = supabase
-        .channel("group-chat-changes")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "group_chat_messages" },
-          (payload) => {
-            if (!isChatActive) {
-              const newMessage = payload.new as ChatMessage;
-              if (
-                newMessage.sender_id !== user.id &&
-                (!newMessage.read_by || !newMessage.read_by.includes(user.id))
-              ) {
-                setTotalUnreadCount((prev) => prev + 1);
-              }
-            }
-          }
-        )
-        .subscribe();
-
-      const directMessageSubscription = supabase
-        .channel("direct-message-changes")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "direct_messages" },
-          (payload) => {
-            if (!isChatActive) {
-              const newMessage = payload.new as ChatMessage;
-              if (newMessage.receiver_id === user.id && !newMessage.is_read) {
-                setTotalUnreadCount((prev) => prev + 1);
-              }
-            }
-          }
-        )
-        .subscribe();
-
-      const ordersSubscription = supabase
+    const channels = [
+      supabase
         .channel("orders")
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "orders" },
-          fetchUnreadOrders
+          () => queryClient.invalidateQueries({ queryKey: ["unreadOrders"] })
         )
-        .subscribe();
+        .subscribe(),
 
-      const timeOffSubscription = supabase
+      supabase
         .channel("time_off_requests")
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "time_off_requests" },
-          fetchUnreadTimeOffRequests
+          () => queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] })
         )
-        .subscribe();
+        .subscribe(),
 
-      return () => {
-        ordersSubscription.unsubscribe();
-        timeOffSubscription.unsubscribe();
-        groupChatMessageSubscription.unsubscribe();
-        directMessageSubscription.unsubscribe();
-      };
-    }
-  }, [user, fetchUnreadCounts, isChatActive]);
+      supabase
+        .channel("messages")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "direct_messages" },
+          () => queryClient.invalidateQueries({ queryKey: ["unreadMessages"] })
+        )
+        .subscribe(),
+    ];
 
-  // useEffect(() => {
-  //   setTotalUnreadCount(globalUnreadCount);
-  // }, [globalUnreadCount]);
+    return () => {
+      channels.forEach((channel) => channel.unsubscribe());
+    };
+  }, [currentUser?.id, queryClient]);
 
-  // useEffect(() => {
-  //   const handleUnreadCountsChanged = () => {
-  //     setTotalUnreadCount(globalUnreadCount);
-  //   };
-
-  //   window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
-
-  //   return () => {
-  //     window.removeEventListener(
-  //       "unreadCountsChanged",
-  //       handleUnreadCountsChanged
-  //     );
-  //   };
-  // }, [globalUnreadCount]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    window.location.href = "/"; // Redirect to sign-in page after sign-out
-  };
-
-  const handleChatClick = async () => {
-    if (user) {
-      // Mark all messages as read in the database
-      const { data: messagesToUpdate, error: fetchError } = await supabase
-        .from("direct_messages")
-        .select("id, read_by")
-        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
-
-      if (fetchError) {
-        //console.("Error fetching messages to update:", fetchError.message);
-        return;
-      }
-
-      const messageIdsToUpdate = messagesToUpdate
-        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
-        .map((msg) => msg.id);
-
-      if (messageIdsToUpdate.length > 0) {
-        for (const messageId of messageIdsToUpdate) {
-          const { error: updateError } = await supabase
-            .from("direct_messages")
-            .update({
-              read_by: [
-                ...(messagesToUpdate.find((msg) => msg.id === messageId)
-                  ?.read_by || []),
-                user.id,
-              ],
-            })
-            .eq("id", messageId);
-
-          if (updateError) {
-            console.error(
-              "Error updating messages as read:",
-              updateError.message
-            );
-          }
-        }
-      }
-
-      // Reset the unread count using the context
-      // resetUnreadCounts();
-
-      // Navigate to the chat page
-      router.push("/TGR/crew/chat");
-    }
-  };
-
+  // Handler functions
   const handleLinkClick = (href: string) => {
     router.push(href);
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    queryClient.clear();
+    window.location.href = "/";
+  };
+
+  const handleChatClick = async () => {
+    if (currentUser?.id) {
+      await queryClient.invalidateQueries({ queryKey: ["unreadMessages"] });
+      router.push("/TGR/crew/chat");
+    }
+  };
+
+  const handleProfileClick = () => {
+    if (employeeData?.employee_id) {
+      router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
+    }
+  };
+
   return (
-    <RoleBasedWrapper allowedRoles={["admin"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "dev"]}>
       {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
         <LazyNavigationMenu>
@@ -675,102 +592,116 @@ const HeaderAdmin = React.memo(() => {
             </NavigationMenuItem>
           </LazyNavigationMenuList>
         </LazyNavigationMenu>
-        <div className="flex items-center">
-          {unreadOrderCount > 0 && (
-            <Link href="/sales/orderreview">
-              <Button variant="linkHover1" size="icon">
-                <FileTextIcon />
-                <span className="badge">{unreadOrderCount}</span>
-              </Button>
-            </Link>
-          )}
-          {unreadTimeOffCount > 0 && (
-            <Link href="/admin/timeoffreview">
-              <Button variant="linkHover1" size="icon">
-                <CalendarIcon />
-                <span className="badge">{unreadTimeOffCount}</span>
-              </Button>
-            </Link>
-          )}
-          <Link href="/admin/reports/dashboard">
-            <Button variant="linkHover2" size="icon">
-              <HomeIcon />
-            </Button>
-          </Link>
 
-          {user ? (
+        {/* Unread notifications */}
+        <div className="flex items-center space-x-0">
+          {authData?.user ? (
             <>
-              <LazyDropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="linkHover2"
-                    size="icon"
-                    className="mr-2 relative"
-                  >
-                    <PersonIcon />
-                    {totalUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
-                        {totalUnreadCount}
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 mr-2">
-                  <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={handleProfileClick}>
-                    <PersonIcon className="mr-2 h-4 w-4" />
-                    <span>Your Profile Page</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => handleLinkClick("/admin/reports/dashboard")}
-                  >
-                    <DashboardIcon className="mr-2 h-4 w-4" />
-                    <span>Admin Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+              <Link href="/sales/orderreview" className="mr-1">
+                <Button variant="ghost" size="icon" className="relative">
+                  <FileTextIcon />
+                  {unreadOrdersData.unreadOrderCount > 0 && (
+                    <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
+                      {unreadOrdersData.unreadOrderCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
 
-                  <DropdownMenuItem onClick={handleChatClick}>
-                    <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                    <span>Messages</span>
-                    {totalUnreadCount > 0 && (
-                      <span className="ml-auto text-red-500 font-bold">
-                        {totalUnreadCount}
-                      </span>
-                    )}
-                  </DropdownMenuItem>
+              <Link href="/admin/timeoffreview" className="mr-1">
+                <Button variant="ghost" size="icon" className="relative">
+                  <CalendarIcon />
+                  {unreadTimeOffData.unreadTimeOffCount > 0 && (
+                    <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
+                      {unreadTimeOffData.unreadTimeOffCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
 
-                  <DropdownMenuSeparator />
+              <Link href="/admin/reports/dashboard">
+                <Button variant="ghost" size="icon">
+                  <HomeIcon />
+                </Button>
+              </Link>
 
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <ShadowIcon className="mr-2 h-4 w-4" />
-                      <span>Change Theme</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>
-                          <SunIcon className="mr-2 h-4 w-4" />
-                          <span>Light</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>
-                          <MoonIcon className="mr-2 h-4 w-4" />
-                          <span>Dark</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
-                  <DropdownMenuSeparator />
+              <div className="flex items-center space-x-1">
+                <Suspense fallback={<LoadingIndicator />}>
+                  <LazyDropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="mr-2 relative"
+                      >
+                        <PersonIcon />
+                        {unreadMessagesData.totalUnreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 text-red-500 text-xs font-bold">
+                            {unreadMessagesData.totalUnreadCount}
+                          </span>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 mr-2">
+                      <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={handleProfileClick}>
+                        <PersonIcon className="mr-2 h-4 w-4" />
+                        <span>Your Profile Page</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          handleLinkClick("/admin/reports/dashboard")
+                        }
+                      >
+                        <DashboardIcon className="mr-2 h-4 w-4" />
+                        <span>Admin Dashboard</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </LazyDropdownMenu>
+                      {/* <DropdownMenuItem onClick={handleChatClick}>
+                        <ChatBubbleIcon className="mr-2 h-4 w-4" />
+                        <span>Messages</span>
+                        {unreadMessagesData.totalUnreadCount > 0 && (
+                          <span className="ml-auto text-red-500 font-bold">
+                            {unreadMessagesData.totalUnreadCount}
+                          </span>
+                        )}
+                      </DropdownMenuItem> */}
+
+                      {/* <DropdownMenuSeparator /> */}
+
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <ShadowIcon className="mr-2 h-4 w-4" />
+                          <span>Change Theme</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => setTheme("light")}>
+                              <SunIcon className="mr-2 h-4 w-4" />
+                              <span>Light</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setTheme("dark")}>
+                              <MoonIcon className="mr-2 h-4 w-4" />
+                              <span>Dark</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </LazyDropdownMenu>
+                </Suspense>
+              </div>
             </>
           ) : (
             <Link href="/sign-in">
-              <Button variant="linkHover2">Sign In</Button>
+              <Button variant="ghost">Sign In</Button>
             </Link>
           )}
         </div>

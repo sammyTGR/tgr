@@ -214,14 +214,24 @@ export default function ApproveRequestsPage() {
       useSickTime: boolean;
       useVacationTime: boolean;
     }) => {
+      console.log("Mutation payload:", {
+        requestId,
+        useSickTime,
+        useVacationTime,
+      });
+
       // Get current request state
       const currentRequest = requests.find(
         (req: TimeOffRequest) => req.request_id === requestId
       );
 
+      console.log("Current request state:", currentRequest);
+
       // Only set should_reverse when switching from true to false
       const should_reverse =
         currentRequest?.use_vacation_time && !useVacationTime;
+
+      console.log("Should reverse:", should_reverse);
 
       const response = await fetch("/api/approve_request", {
         method: "POST",
@@ -236,13 +246,21 @@ export default function ApproveRequestsPage() {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
         throw new Error("Failed to update time usage");
       }
 
-      return response.json();
+      const responseData = await response.json();
+      console.log("API Response:", responseData);
+      return responseData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Mutation succeeded:", data);
       queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
     },
   });
 
@@ -292,58 +310,97 @@ export default function ApproveRequestsPage() {
     const request = requests.find(
       (req: TimeOffRequest) => req.request_id === requestId
     );
-    if (!request) return;
+    if (!request) {
+      console.error("Request not found:", requestId);
+      return;
+    }
 
-    timeUsageMutation.mutate({
+    console.log("Handling time usage change:", {
       requestId,
-      useSickTime: type === "sick" ? checked : false,
-      useVacationTime: type === "vacation" ? checked : false,
+      type,
+      checked,
+      currentState: {
+        useSickTime: request.use_sick_time,
+        useVacationTime: request.use_vacation_time,
+      },
     });
+
+    timeUsageMutation.mutate(
+      {
+        requestId,
+        useSickTime: type === "sick" ? checked : false,
+        useVacationTime: type === "vacation" ? checked : false,
+      },
+      {
+        onSuccess: () => {
+          console.log("Switch update successful");
+        },
+        onError: (error) => {
+          console.error("Switch update failed:", error);
+        },
+      }
+    );
   };
 
   // Update the JSX for the switches
-  const renderTimeUsageSwitches = (request: TimeOffRequest) => (
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <p>
-          <strong>Available Sick Time:</strong> {request.available_sick_time}{" "}
-          Hours
-        </p>
-        <div className="flex items-center space-x-2 mt-2">
-          <Switch
-            checked={request.use_sick_time}
-            onCheckedChange={(checked) =>
-              handleTimeUsageChange(request.request_id, "sick", checked)
-            }
-            disabled={request.use_vacation_time}
-          />
-          <span>Use Sick Time</span>
-        </div>
-      </div>
-      <div>
-        <p>
-          <strong>Available Vacation Time:</strong> {request.vacation_time}{" "}
-          Hours
-        </p>
-        {request.pay_type?.toLowerCase() === "salary" ? (
+  const renderTimeUsageSwitches = (request: TimeOffRequest) => {
+    console.log(`Request ID: ${request.request_id}`, {
+      useSickTime: request.use_sick_time,
+      useVacationTime: request.use_vacation_time,
+      payType: request.pay_type,
+    });
+
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p>
+            <strong>Available Sick Time:</strong> {request.available_sick_time}{" "}
+            Hours
+          </p>
           <div className="flex items-center space-x-2 mt-2">
             <Switch
-              checked={request.use_vacation_time}
+              checked={request.use_sick_time}
               onCheckedChange={(checked) =>
-                handleTimeUsageChange(request.request_id, "vacation", checked)
+                timeUsageMutation.mutate({
+                  requestId: request.request_id,
+                  useSickTime: checked,
+                  useVacationTime: false,
+                })
               }
-              disabled={request.use_sick_time}
+              disabled={request.use_vacation_time}
             />
-            <span>Use Vacation Time</span>
+            <span>Use Sick Time</span>
           </div>
-        ) : (
-          <p className="text-sm mt-2">
-            Not applicable for non-salaried employees
+        </div>
+        <div>
+          <p>
+            <strong>Available Vacation Time:</strong> {request.vacation_time}{" "}
+            Hours
           </p>
-        )}
+          {request.pay_type?.toLowerCase() === "salary" ? (
+            <div className="flex items-center space-x-2 mt-2">
+              <Switch
+                checked={request.use_vacation_time}
+                onCheckedChange={(checked) =>
+                  timeUsageMutation.mutate({
+                    requestId: request.request_id,
+                    useSickTime: false,
+                    useVacationTime: checked,
+                  })
+                }
+                disabled={request.use_sick_time}
+              />
+              <span>Use Vacation Time</span>
+            </div>
+          ) : (
+            <p className="text-sm mt-2">
+              Not applicable for non-salaried employees
+            </p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Update the dialog JSX
   const renderCustomApprovalDialog = () => (

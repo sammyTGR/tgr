@@ -158,6 +158,73 @@ export async function POST(request: Request) {
       }
     }
 
+    // Handle vacation time toggle
+    if (typeof use_vacation_time !== 'undefined' && use_vacation_time !== timeOffData.use_vacation_time) {
+      // console.log('Attempting to update vacation time usage:', {
+      //   use_vacation_time,
+      //   employee_id: timeOffData.employee_id,
+      //   start_date: timeOffData.start_date,
+      //   end_date: timeOffData.end_date
+      // });
+
+      try {
+        // First update the time_off_requests table directly
+        const { error: updateError } = await supabase
+          .from("time_off_requests")
+          .update({
+            use_vacation_time
+          })
+          .eq("request_id", request_id);
+
+        if (updateError) {
+          console.error('Error updating time off request:', updateError);
+          return NextResponse.json({ 
+            error: "Failed to update time off request", 
+            details: updateError.message 
+          }, { 
+            status: 500, 
+            headers: corsHeaders 
+          });
+        }
+
+        // Then if enabling vacation time, calculate the hours
+        if (use_vacation_time) {
+          const { error: vacationTimeError } = await supabase.rpc('deduct_vacation_time', {
+            p_emp_id: timeOffData.employee_id,
+            p_start_date: timeOffData.start_date,
+            p_end_date: timeOffData.end_date,
+            p_use_vacation_time: use_vacation_time
+          });
+
+          if (vacationTimeError) {
+            console.error('Error in deduct_vacation_time:', vacationTimeError);
+            // Rollback the update if the function call failed
+            await supabase
+              .from("time_off_requests")
+              .update({ use_vacation_time: false })
+              .eq("request_id", request_id);
+
+            return NextResponse.json({ 
+              error: "Failed to deduct vacation time", 
+              details: vacationTimeError.message 
+            }, { 
+              status: 500, 
+              headers: corsHeaders 
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error in vacation time handling:', err);
+        return NextResponse.json({ 
+          error: "Error processing vacation time", 
+          details: err instanceof Error ? err.message : 'Unknown error occurred'
+        }, { 
+          status: 500, 
+          headers: corsHeaders 
+        });
+      }
+    }
+
     // Get final state of the request
     const { data: finalState, error: finalError } = await supabase
       .from("time_off_requests")

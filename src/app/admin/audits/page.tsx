@@ -116,6 +116,7 @@ interface Employee {
   department?: string;
   role?: string;
   status?: string;
+  contact_info?: string;
 }
 
 interface PointsCalculation {
@@ -137,8 +138,8 @@ interface Audit {
   error_details: string;
   error_notes: string;
   dros_cancel: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface SummaryRowData {
@@ -243,7 +244,7 @@ const LazyDataTableProfile = dynamic<any>(
 const api = {
   fetchEmployees: async (): Promise<Employee[]> => {
     const searchParams = new URLSearchParams({
-      select: "lanid,department,role,status",
+      select: "lanid,department,role,status,contact_info",
       status: "active",
       order: "lanid.asc",
     });
@@ -1417,45 +1418,67 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
   const { setModalState } = useModalState();
   const queryClient = useQueryClient();
 
-  // Use query for delete dialog state
-  const { data: selectedAudit } = useQuery({
-    queryKey: DELETE_DIALOG_KEY,
-    queryFn: () => null as Audit | null,
-    staleTime: Infinity,
+  // Get the current user
+  const { data: user } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
   });
 
-  const setSelectedAudit = useCallback(
-    (audit: Audit | null) => {
-      queryClient.setQueryData(DELETE_DIALOG_KEY, audit);
-    },
-    [queryClient]
-  );
+  // Use the fetchEmployees API and handle role checking
+  const { data: employee, isLoading } = useQuery({
+    queryKey: ["employee"],
+    queryFn: async () => {
+      const employees = await api.fetchEmployees();
+      if (!user?.email) return null;
 
-  const deleteAuditMutation = useMutation({
-    mutationFn: api.deleteAudit,
-    onSuccess: () => {
-      toast.success("Audit deleted successfully");
-      queryClient.invalidateQueries({ queryKey: AUDITS_KEY });
-      setSelectedAudit(null); // Reset selected audit after deletion
-    },
-    onError: (error) => {
-      toast.error(
-        `Error deleting audit: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+      // Match against contact_info instead of lanid
+      return employees.find(
+        (emp) => emp.contact_info?.toLowerCase() === user.email?.toLowerCase()
       );
     },
+    enabled: !!user?.email,
   });
 
-  const handleDelete = async () => {
-    if (selectedAudit?.audits_id) {
-      try {
-        await deleteAuditMutation.mutateAsync(selectedAudit.audits_id);
-      } catch (error) {
-        // Error is handled by mutation's onError
-      }
-    }
-  };
+  const deleteMutation = useMutation({
+    mutationFn: api.deleteAudit,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      toast.success("Audit deleted successfully");
+    },
+  });
+
+  // Debug logs
+  // console.log("Auth User:", user?.email);
+  // console.log("Employee Record:", employee);
+
+  const canEditRoles = ["auditor", "admin", "super admin", "dev"];
+  const userCanEdit =
+    employee?.role && canEditRoles.includes(employee.role.toLowerCase());
+
+  // console.log("Role Check:", {
+  //   userRole: employee?.role,
+  //   canEdit: userCanEdit,
+  //   allowedRoles: canEditRoles,
+  // });
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2">
+        <LoadingIndicator />
+      </div>
+    );
+  }
+
+  // Only render actions if user has permission
+  if (!userCanEdit) {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -1463,62 +1486,36 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
         variant="ghost"
         size="sm"
         onClick={() => {
-          // Ensure all required fields are passed
           setModalState({
             isOpen: true,
-            selectedAudit: {
-              audits_id: row.original.audits_id,
-              dros_number: row.original.dros_number,
-              salesreps: row.original.salesreps,
-              trans_date: row.original.trans_date,
-              audit_date: row.original.audit_date,
-              dros_cancel: row.original.dros_cancel || "", // Ensure default empty string
-              audit_type: row.original.audit_type,
-              error_location: row.original.error_location || "",
-              error_details: row.original.error_details || "",
-              error_notes: row.original.error_notes || "",
-            },
+            selectedAudit: row.original,
           });
         }}
-        className="h-8 w-8 p-0"
       >
-        <span className="sr-only">Edit</span>
         <Pencil1Icon className="h-4 w-4" />
       </Button>
 
-      <AlertDialog
-        open={!!selectedAudit}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setSelectedAudit(null);
-          }
-        }}
-      >
+      <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setSelectedAudit(row.original)}
-            disabled={deleteAuditMutation.isPending}
-          >
-            <span className="sr-only">Delete</span>
+          <Button variant="ghost" size="sm" disabled={deleteMutation.isPending}>
             <TrashIcon className="h-4 w-4" />
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Audit</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              audit record for DROS number: {selectedAudit?.dros_number}.
+              Are you sure you want to delete this audit? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedAudit(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(row.original.audits_id)}
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1568,6 +1565,24 @@ function AuditsPage() {
       handleSearchChange,
     },
   } = useAuditsPage();
+
+  // Add edit mutation
+  const editMutation = useMutation({
+    mutationFn: async ({
+      auditId,
+      data,
+    }: {
+      auditId: string;
+      data: Partial<Audit>;
+    }) => {
+      return api.updateAudit(auditId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audits"] });
+      setModalState({ isOpen: false, selectedAudit: null });
+      toast.success("Audit updated successfully");
+    },
+  });
 
   // Error boundary
   if (isError) {
@@ -1649,23 +1664,26 @@ function AuditsPage() {
                         </DialogHeader>
                         {modalState.selectedAudit && (
                           <EditAuditForm
-                            audit={{
-                              audits_id: modalState.selectedAudit.audits_id,
-                              dros_number: modalState.selectedAudit.dros_number,
-                              salesreps: modalState.selectedAudit.salesreps,
-                              trans_date: modalState.selectedAudit.trans_date,
-                              audit_date: modalState.selectedAudit.audit_date,
-                              dros_cancel:
-                                modalState.selectedAudit.dros_cancel?.toString() ||
-                                "",
-                              audit_type: modalState.selectedAudit.audit_type,
-                              error_location:
-                                modalState.selectedAudit.error_location,
-                              error_details:
-                                modalState.selectedAudit.error_details,
-                              error_notes: modalState.selectedAudit.error_notes,
+                            audit={modalState.selectedAudit}
+                            handleSubmit={(data: Partial<AuditData>) => {
+                              const auditData: Partial<Audit> = {
+                                dros_number: data.dros_number || "",
+                                salesreps: data.salesreps || "",
+                                trans_date: data.trans_date || "",
+                                audit_date: data.audit_date || "",
+                                dros_cancel: data.dros_cancel || "",
+                                audit_type: data.audit_type || "",
+                                error_location: data.error_location || "",
+                                error_details: data.error_details || "",
+                                error_notes: data.error_notes || "",
+                              };
+
+                              editMutation.mutate({
+                                auditId: modalState.selectedAudit!.audits_id,
+                                data: auditData,
+                              });
                             }}
-                            onClose={() =>
+                            handleClose={() =>
                               setModalState({
                                 isOpen: false,
                                 selectedAudit: null,
@@ -1732,8 +1750,8 @@ function AuditsPage() {
                     />
                     <Label htmlFor="show-all">
                       {showAllEmployees
-                        ? "Showing All Employees"
-                        : "Showing Selected Employee"}
+                        ? "Show Individual Employee"
+                        : "Show All Employees"}
                     </Label>
                   </div>
                 </CardContent>
