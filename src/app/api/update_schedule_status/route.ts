@@ -1,6 +1,7 @@
+// src/app/api/update_schedule_status/route.ts
 import { NextResponse } from "next/server";
 import { parseISO } from "date-fns";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone } from "date-fns-tz";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -11,82 +12,64 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    console.log("API received date:", schedule_date);
+    console.log("Received date:", schedule_date);
 
-    // Parse the date and explicitly convert to Pacific Time
+    // Parse the input date and format it directly in Pacific time
     const parsedDate = parseISO(schedule_date);
-    const pacificDate = toZonedTime(parsedDate, TIME_ZONE);
+    const formattedDate = formatInTimeZone(parsedDate, TIME_ZONE, 'yyyy-MM-dd');
 
-    // Format the date for database storage while preserving Pacific timezone
-    const formattedScheduleDate = formatInTimeZone(
-      pacificDate,
-      TIME_ZONE,
-      "yyyy-MM-dd"
-    );
-
-    console.log("Date conversion in API:", {
-      received: schedule_date,
-      parsed: parsedDate.toISOString(),
-      pacific: pacificDate.toISOString(),
-      formatted: formattedScheduleDate,
-      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    console.log("Date conversion:", {
+      receivedDate: schedule_date,
+      parsedDate: parsedDate.toISOString(),
+      formattedForDB: formattedDate,
+      timezone: TIME_ZONE,
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
 
-    // Update schedule with explicit timezone handling
-    const { data: scheduleData, error: scheduleFetchError } = await supabase
+    // Update schedule
+    const { data: existingSchedule, error: fetchError } = await supabase
       .from("schedules")
       .select("*")
       .eq("employee_id", employee_id)
-      .eq("schedule_date", formattedScheduleDate);
+      .eq("schedule_date", formattedDate)
+      .single();
 
-    if (scheduleFetchError) {
-      console.error("Schedule fetch error:", scheduleFetchError);
-      return NextResponse.json(
-        { error: scheduleFetchError.message },
-        { status: 500 }
-      );
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      throw fetchError;
     }
 
-    if (!scheduleData || scheduleData.length === 0) {
-      const { error: insertError } = await supabase.from("schedules").insert({
-        employee_id,
-        schedule_date: formattedScheduleDate,
-        status,
-        day_of_week: formatInTimeZone(pacificDate, TIME_ZONE, "EEEE"),
-      });
+    if (!existingSchedule) {
+      // Insert new schedule
+      const { error: insertError } = await supabase
+        .from("schedules")
+        .insert({
+          employee_id,
+          schedule_date: formattedDate,
+          status,
+          day_of_week: formatInTimeZone(parsedDate, TIME_ZONE, 'EEEE')
+        });
 
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        return NextResponse.json(
-          { error: insertError.message },
-          { status: 500 }
-        );
-      }
+      if (insertError) throw insertError;
     } else {
+      // Update existing schedule
       const { error: updateError } = await supabase
         .from("schedules")
         .update({ status })
         .eq("employee_id", employee_id)
-        .eq("schedule_date", formattedScheduleDate);
+        .eq("schedule_date", formattedDate);
 
-      if (updateError) {
-        console.error("Update error:", updateError);
-        return NextResponse.json(
-          { error: updateError.message },
-          { status: 500 }
-        );
-      }
+      if (updateError) throw updateError;
     }
 
-    // Return success with debug information
     return NextResponse.json({
-      message: "Schedule updated successfully",
+      success: true,
       debug: {
         receivedDate: schedule_date,
-        storedDate: formattedScheduleDate,
-        timezone: TIME_ZONE,
-      },
+        storedDate: formattedDate,
+        timezone: TIME_ZONE
+      }
     });
+
   } catch (error: any) {
     console.error("API Error:", error);
     return NextResponse.json(
@@ -94,16 +77,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
-    },
-  });
 }

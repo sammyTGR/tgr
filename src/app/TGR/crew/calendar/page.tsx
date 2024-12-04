@@ -19,7 +19,7 @@ import {
   isFriday,
   eachDayOfInterval,
 } from "date-fns";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { toZonedTime, format as formatTZ, formatInTimeZone } from "date-fns-tz";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "../../../../utils/supabase/client";
 import { useRole } from "../../../../context/RoleContext";
@@ -160,9 +160,7 @@ const formatDateForDB = (dateString: string) => {
   const pacificDate = toZonedTime(date, TIME_ZONE);
 
   // Format the date in YYYY-MM-DD format while preserving the Pacific timezone
-  const formattedDate = formatTZ(pacificDate, "yyyy-MM-dd", {
-    timeZone: TIME_ZONE,
-  });
+  const formattedDate = formatInTimeZone(pacificDate, TIME_ZONE, "yyyy-MM-dd");
 
   // Log for debugging
   // console.log("Original date:", dateString);
@@ -902,57 +900,55 @@ export default function Component() {
       status: string;
     }) => {
       try {
-        // Debug the incoming date
-        // console.log("Mutation Input Date:", schedule_date);
-
-        // Parse and format the date in Pacific Time
+        // Just parse the date once and format it for Pacific time
         const parsedDate = parseISO(schedule_date);
-        const pacificDate = toZonedTime(parsedDate, TIME_ZONE);
-
-        // Format for database ensuring Pacific timezone
-        const formattedDate = formatTZ(pacificDate, "yyyy-MM-dd", {
-          timeZone: TIME_ZONE,
+        const formattedDate = formatTZ(parsedDate, "yyyy-MM-dd", {
+          timeZone: TIME_ZONE
         });
-
-        // console.log("Date conversion debug:", {
-        //   input: schedule_date,
-        //   parsed: parsedDate.toISOString(),
-        //   pacific: pacificDate.toISOString(),
-        //   formatted: formattedDate,
-        // });
-
-        // Fetch employee data and proceed with update
+  
+        console.log("Status Update Debug:", {
+          originalDate: schedule_date,
+          formattedForDB: formattedDate,
+          timezone: TIME_ZONE,
+          browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
+  
+        // Fetch employee data
         const employeeData = await fetchEmployeeData(employee_id);
         if (!employeeData) {
           throw new Error("Failed to fetch employee data");
         }
-
+  
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date: formattedDate, // Use the formatted date
+            schedule_date: formattedDate,
             status,
           }),
         });
-
+  
         if (!scheduleResponse.ok) {
           throw new Error("Failed to update schedule status");
         }
-
-        // Prepare email payload with the correct date
+  
+        // For email display, format date in Pacific time
+        const emailDisplayDate = formatTZ(parsedDate, "EEEE, MMMM d, yyyy", {
+          timeZone: TIME_ZONE
+        });
+  
         let emailPayload: EmailPayload = {
           email: employeeData.contact_info,
           subject: "",
           templateName: "",
           templateData: {
             name: employeeData.name,
-            date: formatDateWithDay(formattedDate), // Use the formatted date
+            date: emailDisplayDate,
           },
         };
-
-        // Set email template and subject based on status
+  
+        // Rest of email logic stays the same
         if (status.startsWith("Late Start")) {
           emailPayload = {
             ...emailPayload,
@@ -986,18 +982,17 @@ export default function Component() {
             },
           };
         }
-
-        // Send email
+  
         const emailResponse = await fetch("/api/send_email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(emailPayload),
         });
-
+  
         if (!emailResponse.ok) {
           throw new Error("Failed to send email notification");
         }
-
+  
         return { success: true };
       } catch (error) {
         console.error("Error in updateStatusMutation:", error);
