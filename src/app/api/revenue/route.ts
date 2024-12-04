@@ -1,50 +1,70 @@
+// src/app/api/revenue/route.ts
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { format } from 'date-fns';
+import { toZonedTime, format as formatTZ } from 'date-fns-tz';
 
-interface MonthlyRevenue {
-  [key: string]: number;
-}
-
-interface SaleData {
-  Date: string;
-  SoldPrice: number;
-  Cost: number;
-}
+const timeZone = 'America/Los_Angeles';
 
 export async function GET() {
   try {
     const supabase = createRouteHandlerClient({ cookies });
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     
+    // Set the date range to include all data
+    const startDate = '2023-12-01';
+    const endDate = formatTZ(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd', { timeZone });
+    
+    // console.log('Query dates:', { startDate, endDate });
+
     const { data, error } = await supabase
-      .from('sales_data')
-      .select('*')
-      .gte('Date', format(sixMonthsAgo, 'yyyy-MM-dd'))
-      .order('Date', { ascending: true });
+      .rpc('calculate_monthly_revenue', {
+        start_date: startDate,
+        end_date: endDate
+      });
 
-    if (error) throw error;
+    // console.log('Raw RPC response:', data);
 
-    const monthlyRevenue: MonthlyRevenue = (data as SaleData[]).reduce((acc, sale) => {
-      const monthKey = format(new Date(sale.Date), 'MMM yyyy');
-      if (!acc[monthKey]) {
-        acc[monthKey] = 0;
-      }
-      acc[monthKey] += Number(sale.SoldPrice) - Number(sale.Cost);
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
+    }
+
+    // Initialize all months with 0
+    const months = [
+      'Dec 2023',
+      'Jan 2024', 'Feb 2024', 'Mar 2024', 'Apr 2024', 
+      'May 2024', 'Jun 2024', 'Jul 2024', 'Aug 2024',
+      'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024'
+    ];
+    
+    const monthlyRevenue = months.reduce((acc, month) => {
+      acc[month] = 0;
       return acc;
-    }, {} as MonthlyRevenue);
+    }, {} as Record<string, number>);
 
-    const formattedData = Object.entries(monthlyRevenue).map(([month, revenue]) => ({
+    // Fill in the actual revenue data
+    data?.forEach((row: any) => {
+      // console.log('Processing row:', row);
+      const date = toZonedTime(new Date(row.month), timeZone);
+      date.setDate(date.getDate() + 1);
+      const monthKey = formatTZ(date, 'MMM yyyy', { timeZone });
+      // console.log('Date conversion:', { date, monthKey });
+      monthlyRevenue[monthKey] = Number(row.revenue);
+    });
+
+    // console.log('Final monthly revenue:', monthlyRevenue);
+
+    const formattedData = months.map(month => ({
       month,
-      revenue: Number(revenue.toFixed(2))
+      revenue: Number(monthlyRevenue[month].toFixed(2))
     }));
+
+    // console.log('Formatted response:', formattedData);
 
     return NextResponse.json(formattedData);
 
   } catch (error) {
-    console.error('API Error:', error);
+    // console.error('API Error:', error);
     return NextResponse.json({ error: 'Failed to fetch revenue data' }, { status: 500 });
   }
 }

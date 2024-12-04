@@ -29,13 +29,13 @@ export async function GET() {
       .order("inserted_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching todos:", error);
+      // console.error("Error fetching todos:", error);
       throw new Error(error.message);
     }
 
     return NextResponse.json(data as Todo[]);
   } catch (error: any) {
-    console.error("Error in fetch-todos API route:", error);
+    // console.error("Error in fetch-todos API route:", error);
     return NextResponse.json({ error: "Failed to fetch todos", details: error.message }, { status: 500 });
   }
 }

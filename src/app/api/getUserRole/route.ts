@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       .single();
 
     if (employeeError && employeeError.code !== "PGRST116") {
-      console.error("Error fetching role from employees:", employeeError.message);
+      // console.error("Error fetching role from employees:", employeeError.message);
     }
 
     if (employeeData) {
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
       .single();
 
     if (customerError && customerError.code !== "PGRST116") {
-      console.error("Error fetching role from customers:", customerError.message);
+      // console.error("Error fetching role from customers:", customerError.message);
     }
 
     if (customerData) {
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('Error fetching user role:', error);
+    // console.error('Error fetching user role:', error);
     return NextResponse.json({ 
       error: error.message || "Failed to fetch user role" 
     }, { status: 500 });

@@ -306,7 +306,7 @@ function AdminDashboardContent() {
       toast.success("Reply sent successfully!");
     },
     onError: (error) => {
-      console.error("Error sending reply:", error);
+      // console.error("Error sending reply:", error);
       toast.error("Failed to send reply. Please try again.");
     },
   });
@@ -487,7 +487,7 @@ function AdminDashboardContent() {
       });
     },
     onError: (error) => {
-      console.error("Error during upload and processing:", error);
+      // console.error("Error during upload and processing:", error);
       toast.error("Failed to upload and process file");
     },
   });
@@ -544,7 +544,7 @@ function AdminDashboardContent() {
       toast.success("Reply sent successfully!");
     },
     onError: (error) => {
-      console.error("Error sending reply:", error);
+      // console.error("Error sending reply:", error);
       toast.error("Failed to send reply. Please try again.");
     },
   });
@@ -814,7 +814,7 @@ function AdminDashboardContent() {
     replyText: string;
   }): Promise<void> {
     if (!suggestion.id) {
-      console.error("Suggestion ID is undefined", suggestion);
+      // console.error("Suggestion ID is undefined", suggestion);
       toast.error("Unable to reply: Suggestion ID is missing");
       return Promise.reject("Suggestion ID is missing");
     }
@@ -873,7 +873,7 @@ function AdminDashboardContent() {
                       .upsert(batch)
                       .then(({ data: insertedData, error }) => {
                         if (error) {
-                          console.error("Error upserting data batch:", error);
+                          // console.error("Error upserting data batch:", error);
                         } else {
                           processedCount += batch.length;
                           onProgress(
@@ -889,14 +889,14 @@ function AdminDashboardContent() {
 
               chainPromise.then(() => resolve()).catch(reject);
             } catch (error) {
-              console.error("Error processing data:", error);
+              // console.error("Error processing data:", error);
               reject(error);
             }
           });
         };
 
         reader.onerror = (error) => {
-          console.error("Error reading file:", error);
+          // console.error("Error reading file:", error);
           reject(error);
         };
 
@@ -982,7 +982,7 @@ function AdminDashboardContent() {
           return result;
         })
         .catch((error: any) => {
-          console.error("Failed to send email:", error.message);
+          // console.error("Failed to send email:", error.message);
           throw error;
         })
     );

@@ -443,7 +443,7 @@ const HeaderDev = React.memo(() => {
   };
 
   const handleChatClick = () => {
-    router.push("/TGR/crew/chat");
+    router.push("/messages");
   };
 
   const aimComps = [
