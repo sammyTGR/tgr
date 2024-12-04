@@ -1,7 +1,7 @@
 // src/app/api/update_schedule_status/route.ts
 import { NextResponse } from "next/server";
 import { parseISO } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, toDate } from "date-fns-tz";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -14,13 +14,13 @@ export async function POST(request: Request) {
   try {
     console.log("Received date:", schedule_date);
 
-    // Parse the input date and format it directly in Pacific time
-    const parsedDate = parseISO(schedule_date);
-    const formattedDate = formatInTimeZone(parsedDate, TIME_ZONE, 'yyyy-MM-dd');
+    // Parse the date and ensure it's in Pacific time
+    const pacificDate = toDate(parseISO(schedule_date), { timeZone: TIME_ZONE });
+    const formattedDate = formatInTimeZone(pacificDate, TIME_ZONE, 'yyyy-MM-dd');
 
     console.log("Date conversion:", {
       receivedDate: schedule_date,
-      parsedDate: parsedDate.toISOString(),
+      pacificDate: pacificDate.toISOString(),
       formattedForDB: formattedDate,
       timezone: TIME_ZONE,
       serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
           employee_id,
           schedule_date: formattedDate,
           status,
-          day_of_week: formatInTimeZone(parsedDate, TIME_ZONE, 'EEEE')
+          day_of_week: formatInTimeZone(pacificDate, TIME_ZONE, 'EEEE')
         });
 
       if (insertError) throw insertError;

@@ -19,7 +19,7 @@ import {
   isFriday,
   eachDayOfInterval,
 } from "date-fns";
-import { toZonedTime, format as formatTZ, formatInTimeZone } from "date-fns-tz";
+import { toZonedTime, format as formatTZ, formatInTimeZone, toDate } from "date-fns-tz";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "../../../../utils/supabase/client";
 import { useRole } from "../../../../context/RoleContext";
@@ -900,25 +900,24 @@ export default function Component() {
       status: string;
     }) => {
       try {
-        // Just parse the date once and format it for Pacific time
-        const parsedDate = parseISO(schedule_date);
-        const formattedDate = formatTZ(parsedDate, "yyyy-MM-dd", {
-          timeZone: TIME_ZONE
-        });
-  
+        // Create date in Pacific time
+        const pacificDate = toDate(parseISO(schedule_date), { timeZone: TIME_ZONE });
+        const formattedDate = format(pacificDate, 'yyyy-MM-dd');
+
         console.log("Status Update Debug:", {
           originalDate: schedule_date,
+          pacificDate: pacificDate.toISOString(),
           formattedForDB: formattedDate,
           timezone: TIME_ZONE,
           browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
-  
+
         // Fetch employee data
         const employeeData = await fetchEmployeeData(employee_id);
         if (!employeeData) {
           throw new Error("Failed to fetch employee data");
         }
-  
+
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -928,16 +927,18 @@ export default function Component() {
             status,
           }),
         });
-  
+
         if (!scheduleResponse.ok) {
           throw new Error("Failed to update schedule status");
         }
-  
+
         // For email display, format date in Pacific time
-        const emailDisplayDate = formatTZ(parsedDate, "EEEE, MMMM d, yyyy", {
-          timeZone: TIME_ZONE
-        });
-  
+        const emailDisplayDate = formatInTimeZone(
+          parseISO(schedule_date),
+          TIME_ZONE,
+          "EEEE, MMMM d, yyyy"
+        );
+
         let emailPayload: EmailPayload = {
           email: employeeData.contact_info,
           subject: "",
@@ -947,7 +948,7 @@ export default function Component() {
             date: emailDisplayDate,
           },
         };
-  
+
         // Rest of email logic stays the same
         if (status.startsWith("Late Start")) {
           emailPayload = {
@@ -982,17 +983,17 @@ export default function Component() {
             },
           };
         }
-  
+
         const emailResponse = await fetch("/api/send_email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(emailPayload),
         });
-  
+
         if (!emailResponse.ok) {
           throw new Error("Failed to send email notification");
         }
-  
+
         return { success: true };
       } catch (error) {
         console.error("Error in updateStatusMutation:", error);
