@@ -165,8 +165,8 @@ const formatDateForDB = (dateString: string) => {
   });
 
   // Log for debugging
-  console.log("Original date:", dateString);
-  console.log("Formatted date for DB:", formattedDate);
+  // console.log("Original date:", dateString);
+  // console.log("Formatted date for DB:", formattedDate);
 
   return formattedDate;
 };
@@ -903,7 +903,7 @@ export default function Component() {
     }) => {
       try {
         // Debug the incoming date
-        console.log("Mutation Input Date:", schedule_date);
+        // console.log("Mutation Input Date:", schedule_date);
 
         // Parse and format the date in Pacific Time
         const parsedDate = parseISO(schedule_date);
@@ -914,12 +914,12 @@ export default function Component() {
           timeZone: TIME_ZONE,
         });
 
-        console.log("Date conversion debug:", {
-          input: schedule_date,
-          parsed: parsedDate.toISOString(),
-          pacific: pacificDate.toISOString(),
-          formatted: formattedDate,
-        });
+        // console.log("Date conversion debug:", {
+        //   input: schedule_date,
+        //   parsed: parsedDate.toISOString(),
+        //   pacific: pacificDate.toISOString(),
+        //   formatted: formattedDate,
+        // });
 
         // Fetch employee data and proceed with update
         const employeeData = await fetchEmployeeData(employee_id);
