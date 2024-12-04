@@ -36,6 +36,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { debounce } from "lodash";
+import {
+  getCurrentEmployee,
+  getTeamMembers,
+  getEmployees,
+  addTeamMember,
+  updateTeamMemberNotes,
+  removeEmployee,
+  markNoteAsDiscussed,
+  getDiscussedNotes,
+  dismissNote,
+  DiscussedNote,
+  removeDiscussedNote,
+} from "./actions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
 
 type NoteItem = {
   id: string;
@@ -90,6 +110,19 @@ type DraftNote = {
   };
 };
 
+type DiscussedNoteItem = {
+  id: number;
+  content: string;
+  employee_name: string;
+};
+
+type DiscussedNotes = {
+  meeting_date: string;
+  notes: {
+    [topic: string]: DiscussedNoteItem[];
+  };
+};
+
 export default function TeamWeeklyNotes() {
   const queryClient = useQueryClient();
   const supabase = createClientComponentClient();
@@ -97,10 +130,12 @@ export default function TeamWeeklyNotes() {
 
   const { data: user } = useQuery({
     queryKey: ["user"],
-    queryFn: () =>
-      Promise.resolve(
-        supabase.auth.getUser().then(({ data: { user } }) => user)
-      ),
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
   });
 
   const draftQuery = useQuery({
@@ -110,122 +145,59 @@ export default function TeamWeeklyNotes() {
   });
 
   const { data: currentEmployee } = useQuery<Employee | null>({
-    queryKey: ["currentEmployee"],
-    queryFn: () => {
-      if (!user) throw new Error("User not authenticated");
-      return Promise.resolve(
-        supabase
-          .from("employees")
-          .select("employee_id, name, role")
-          .eq("user_uuid", user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (error) throw error;
-            if (!data) throw new Error("Employee not found");
-            return data as Employee;
-          })
-      );
+    queryKey: ["currentEmployee", user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error("User not authenticated");
+      return await getCurrentEmployee(user.id);
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ["teamMembers"],
-    queryFn: () =>
-      Promise.resolve(
-        supabase
-          .from("team_weekly_notes")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return data;
-          })
-      ),
+    queryFn: async () => await getTeamMembers(),
   });
 
   const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["employees"],
-    queryFn: () =>
-      Promise.resolve(
-        supabase
-          .from("employees")
-          .select("employee_id, name, role")
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return data;
-          })
-      ),
+    queryFn: async () => await getEmployees(),
+  });
+
+  const { data: discussedNotes = [] } = useQuery<DiscussedNote[]>({
+    queryKey: ["discussedNotes"],
+    queryFn: async () => await getDiscussedNotes(),
   });
 
   const addTeamMemberMutation = useMutation({
     mutationFn: (
       newNotes: Omit<TeamMember, "note_id" | "created_at" | "updated_at">
-    ) =>
-      Promise.resolve(
-        supabase
-          .from("team_weekly_notes")
-          .insert([newNotes])
-          .single()
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("Supabase error:", error);
-              throw error;
-            }
-            return data;
-          })
-      ),
+    ) => addTeamMember(newNotes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
       if (popoverRef.current) {
-        popoverRef.current.click(); // Close the popover
+        popoverRef.current.click();
       }
     },
     onError: (error) => {
       console.error("Mutation error:", error);
+      toast.error("Failed to add team member");
     },
   });
 
   const updateNoteMutation = useMutation({
-    mutationFn: (member: TeamMember) =>
-      Promise.resolve(
-        supabase
-          .from("team_weekly_notes")
-          .update(member)
-          .eq("note_id", member.note_id)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return data;
-          })
-      ),
+    mutationFn: (member: TeamMember) => updateTeamMemberNotes(member),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+      // toast.success("Notes saved successfully");
+    },
+    onError: (error) => {
+      console.error("Error updating notes:", error);
+      toast.error("Failed to save notes");
     },
   });
 
   const removeEmployeeMutation = useMutation({
-    mutationFn: (employeeId: number) =>
-      Promise.resolve(
-        supabase
-          .from("team_weekly_notes")
-          .delete()
-          .eq("employee_id", employeeId)
-          .then(({ error }) => {
-            if (error) throw error;
-
-            // Optionally, also remove the employee from the employees table
-            // Uncomment the following lines if you want to remove the employee completely
-            // return Promise.resolve(
-            //   supabase
-            //     .from("employees")
-            //     .delete()
-            //     .eq("employee_id", employeeId)
-            //     .then(({ error: employeeError }) => {
-            //       if (employeeError) throw employeeError;
-            //     })
-            // );
-          })
-      ),
+    mutationFn: (employeeId: number) => removeEmployee(employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
       toast.success("Employee and notes removed successfully");
@@ -233,6 +205,86 @@ export default function TeamWeeklyNotes() {
     onError: (error) => {
       console.error("Error removing employee:", error);
       toast.error("Failed to remove employee");
+    },
+  });
+
+  const markAsDiscussedMutation = useMutation({
+    mutationFn: ({
+      content,
+      topic,
+      employeeId,
+      employeeName,
+    }: {
+      content: string;
+      topic: NoteType;
+      employeeId: number;
+      employeeName: string;
+    }) =>
+      markNoteAsDiscussed(
+        content,
+        topic,
+        employeeId,
+        employeeName,
+        format(new Date(), "yyyy-MM-dd")
+      ),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["discussedNotes"] });
+      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+
+      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map((member) => {
+          if (member.employee_id === variables.employeeId) {
+            const updatedNotes =
+              member[variables.topic]?.filter(
+                (note: NoteItem) => note.content !== variables.content
+              ) || [];
+            return { ...member, [variables.topic]: updatedNotes };
+          }
+          return member;
+        });
+      });
+      toast.success("Note marked as discussed");
+    },
+    onError: (error) => {
+      console.error("Error marking note as discussed:", error);
+      toast.error("Failed to mark note as discussed");
+    },
+  });
+
+  const dismissNoteMutation = useMutation({
+    mutationFn: ({
+      memberId,
+      topic,
+      noteId,
+    }: {
+      memberId: number;
+      topic: NoteType;
+      noteId: string;
+    }) => dismissNote(memberId, topic, noteId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["teamMembers"] });
+      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map((member) => {
+          if (member.note_id === variables.memberId) {
+            const updatedNotes = member[variables.topic]?.filter(
+              (note: NoteItem) => note.id !== variables.noteId
+            );
+            return { ...member, [variables.topic]: updatedNotes };
+          }
+          return member;
+        });
+      });
+      toast.success("Note dismissed");
+    },
+  });
+
+  const removeDiscussedNoteMutation = useMutation({
+    mutationFn: (noteId: number) => removeDiscussedNote(noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discussedNotes"] });
+      toast.success("Note removed successfully");
     },
   });
 
@@ -423,6 +475,31 @@ export default function TeamWeeklyNotes() {
     );
   }, [teamMembers, currentEmployee]);
 
+  const groupedDiscussedNotes = useMemo(() => {
+    const grouped: Record<string, DiscussedNotes> = {};
+
+    discussedNotes.forEach((note) => {
+      if (!grouped[note.meeting_date]) {
+        grouped[note.meeting_date] = {
+          meeting_date: note.meeting_date,
+          notes: {},
+        };
+      }
+
+      if (!grouped[note.meeting_date].notes[note.topic]) {
+        grouped[note.meeting_date].notes[note.topic] = [];
+      }
+
+      grouped[note.meeting_date].notes[note.topic].push({
+        id: note.id,
+        content: note.note_content,
+        employee_name: note.employee_name,
+      } as DiscussedNoteItem);
+    });
+
+    return grouped;
+  }, [discussedNotes]);
+
   return (
     <RoleBasedWrapper allowedRoles={["auditor", "admin", "super admin", "dev"]}>
       <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -455,6 +532,9 @@ export default function TeamWeeklyNotes() {
             <TabsList>
               <TabsTrigger value="weekly-notes">Team Updates</TabsTrigger>
               <TabsTrigger value="edit-notes">Edit Your Notes</TabsTrigger>
+              <TabsTrigger value="discussed-notes">
+                Discussed Topics
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -486,10 +566,55 @@ export default function TeamWeeklyNotes() {
                                 {member[topic]?.map((item) => (
                                   <li
                                     key={item.id}
-                                    className="flex items-start text-sm"
+                                    className="flex items-start text-sm group relative"
                                   >
                                     <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
                                     <span>{item.content || ""}</span>
+                                    {currentEmployee?.role === "dev" && (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="opacity-0 group-hover:opacity-100 absolute right-0"
+                                          >
+                                            Actions
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              const employeeName =
+                                                employees.find(
+                                                  (e) =>
+                                                    e.employee_id ===
+                                                    member.employee_id
+                                                )?.name || "Unknown";
+
+                                              markAsDiscussedMutation.mutate({
+                                                content: item.content,
+                                                topic,
+                                                employeeId: member.employee_id,
+                                                employeeName: employeeName,
+                                              });
+                                            }}
+                                          >
+                                            Mark as Discussed
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() =>
+                                              dismissNoteMutation.mutate({
+                                                memberId: member.note_id,
+                                                topic,
+                                                noteId: item.id,
+                                              })
+                                            }
+                                          >
+                                            Dismiss
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
                                   </li>
                                 )) || <li>No notes available.</li>}
                               </ul>
@@ -611,6 +736,66 @@ export default function TeamWeeklyNotes() {
                       </Card>
                     );
                   })}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="discussed-notes">
+                <div className="grid gap-6">
+                  {Object.values(groupedDiscussedNotes)
+                    .sort(
+                      (a, b) =>
+                        new Date(b.meeting_date).getTime() -
+                        new Date(a.meeting_date).getTime()
+                    )
+                    .map((dateGroup) => (
+                      <Card key={dateGroup.meeting_date}>
+                        <CardHeader>
+                          <CardTitle>
+                            Meeting Notes -{" "}
+                            {format(new Date(dateGroup.meeting_date), "PPP")}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {topics.map((topic) => (
+                            <div key={topic} className="mb-6">
+                              <h3 className="font-semibold text-lg mb-2">
+                                {topicDisplayNames[topic]}
+                              </h3>
+                              <ul className="space-y-2">
+                                {dateGroup.notes[topic]?.map((note) => (
+                                  <li
+                                    key={note.id}
+                                    className="flex items-start text-sm group relative" // Match Team Updates styling
+                                  >
+                                    <div className="flex items-start">
+                                      <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
+                                      <span>{note.content}</span>
+                                    </div>
+                                    <span className="text-sm text-muted-foreground ml-2">
+                                      {note.employee_name}
+                                    </span>
+                                    {currentEmployee?.role === "dev" && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="opacity-0 group-hover:opacity-100 absolute right-0"
+                                        onClick={() =>
+                                          removeDiscussedNoteMutation.mutate(
+                                            note.id
+                                          )
+                                        }
+                                      >
+                                        Remove
+                                      </Button>
+                                    )}
+                                  </li>
+                                )) || <li>No discussed notes</li>}
+                              </ul>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
                 </div>
               </TabsContent>
             </CardContent>

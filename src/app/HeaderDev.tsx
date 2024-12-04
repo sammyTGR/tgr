@@ -161,15 +161,16 @@ const manageComps = [
     href: "/admin/dashboard",
     description: "All Profiles",
   },
-  {
-    title: "Weekly Updates",
-    href: "/admin/meetings",
-    description: "Update These Notes Weekly",
-  },
+
   {
     title: "Monthly Contest",
     href: "/admin/audits/contest",
     description: "Monthly Sales Contest",
+  },
+  {
+    title: "Weekly Meetings",
+    href: "/admin/meetings",
+    description: "Update & Meet Weekly",
   },
   {
     title: "Sales Report",
