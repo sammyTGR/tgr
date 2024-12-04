@@ -14,7 +14,6 @@ import {
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -50,26 +49,6 @@ const prodComps = [
   },
 ];
 
-const LazyNavigationMenu = dynamic(
-  () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
-      default: module.NavigationMenu,
-    })),
-  {
-    loading: () => <LoadingIndicator />,
-  }
-);
-
-const LazyNavigationMenuList = dynamic(
-  () =>
-    import("@/components/ui/navigation-menu").then((module) => ({
-      default: module.NavigationMenuList,
-    })),
-  {
-    loading: () => <LoadingIndicator />,
-  }
-);
-
 const HeaderPublic = React.memo(() => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -77,21 +56,19 @@ const HeaderPublic = React.memo(() => {
   const { isLoading } = useQuery({
     queryKey: ["navigation", pathname, searchParams],
     queryFn: async () => {
-      // Simulate a delay to show the loading indicator
       await new Promise((resolve) => setTimeout(resolve, 100));
       return null;
     },
-    staleTime: 0, // Always refetch on route change
-    refetchInterval: 0, // Disable automatic refetching
+    staleTime: 0,
+    refetchInterval: 0,
   });
 
   return (
     <>
       {isLoading && <LoadingIndicator />}
-
       <header className="flex justify-between items-center p-1">
-        <LazyNavigationMenu>
-          <LazyNavigationMenuList className="flex mr-3">
+        <NavigationMenu>
+          <NavigationMenuList className="flex mr-3">
             <NavigationMenuItem>
               <Link href="/">
                 <Button variant="linkHover2">Home</Button>
@@ -134,48 +111,22 @@ const HeaderPublic = React.memo(() => {
               </NavigationMenuContent>
             </NavigationMenuItem>
 
-            {/* <NavigationMenuItem>
-            <Link href="/public/about">
-              <Button variant="linkHover2">About</Button>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <Link href="/public/contact">
-              <Button variant="linkHover2">Contact</Button>
-            </Link>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <Link href="/public/classes">
-              <Button variant="linkHover2">Classes</Button>
-            </Link>
-          </NavigationMenuItem>
-
-          <NavigationMenuItem>
-            <Link href="/pricing">
-              <Button variant="linkHover2">Products & Pricing</Button>
-            </Link>
-          </NavigationMenuItem> */}
             <NavigationMenuItem>
               <Link href="/sign-up">
                 <Button variant="linkHover2">Sign Up</Button>
               </Link>
             </NavigationMenuItem>
-            {/* <NavigationMenuItem>
-            <Link href="/sign-in">
-              <Button variant="linkHover1">Sign In</Button>
-            </Link>
-          </NavigationMenuItem> */}
-          </LazyNavigationMenuList>
-        </LazyNavigationMenu>
+            <NavigationMenuItem>
+              <Link href="/sign-in">
+                <Button variant="linkHover1">Sign In</Button>
+              </Link>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
         <div className="flex items-center mr-1">
           <Link href="/sign-in">
             <Button variant="linkHover1">Sign In</Button>
           </Link>
-          {/* <Link href="/">
-          <Button variant="linkHover2" size="icon">
-            <HomeIcon />
-          </Button>
-        </Link> */}
           <ModeToggle />
         </div>
       </header>
