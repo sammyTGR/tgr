@@ -3,9 +3,17 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+  const { weeks } = await request.json();
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const { weeks } = await request.json();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Validate input
     const parsedWeeks = parseInt(weeks || "0", 10);
@@ -45,7 +53,6 @@ export async function POST(request: Request) {
       schedulesGenerated: newSchedules?.length || 0,
       message: `Successfully generated schedules for ${parsedWeeks} weeks`,
     });
-
   } catch (error) {
     console.error("Error generating schedules:", error);
     return NextResponse.json(

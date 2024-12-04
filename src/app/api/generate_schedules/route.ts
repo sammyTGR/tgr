@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email");
-
-  if (!email) {
-    return NextResponse.json(
-      { error: "Email parameter is required" },
-      { status: 400 }
-    );
-  }
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!email) {
+      return NextResponse.json(
+        { error: "Email parameter is required" },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("employees")
       .select("role")

@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
 import { format } from "date-fns";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+ 
     const { startDate, endDate } = await request.json();
 
     if (!startDate || !endDate) {

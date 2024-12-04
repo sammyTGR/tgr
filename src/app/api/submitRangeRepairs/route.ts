@@ -1,27 +1,28 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   const token = request.headers.get("authorization")?.split(" ")[1];
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token);
-  if (userError) {
-    return NextResponse.json({ error: userError.message }, { status: 401 });
-  }
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { date_of_repair, lanes_repaired, description, role } =
-    await request.json();
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { date_of_repair, lanes_repaired, description, role } =
+      await request.json();
+
     const { error } = await supabase.from("range_repair_reports").insert([
       {
         user_uuid: user.id,

@@ -7,11 +7,17 @@ import { toZonedTime, format as formatTZ } from 'date-fns-tz';
 const timeZone = 'America/Los_Angeles';
 
 export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     // Set the date range to include all data
-    const startDate = '2023-12-01';
+    const startDate = '2024-01-01';
     const endDate = formatTZ(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd', { timeZone });
     
     // console.log('Query dates:', { startDate, endDate });
@@ -31,7 +37,7 @@ export async function GET() {
 
     // Initialize all months with 0
     const months = [
-      'Dec 2023',
+      
       'Jan 2024', 'Feb 2024', 'Mar 2024', 'Apr 2024', 
       'May 2024', 'Jun 2024', 'Jul 2024', 'Aug 2024',
       'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024'

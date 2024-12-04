@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { corsHeaders } from "@/utils/cors";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { data, error } = await supabase
       .from("time_off_reasons")
       .select("id, reason")
-      .order('reason', { ascending: true });
+      .order("reason", { ascending: true });
 
     if (error) {
       console.error("Supabase error:", error);
@@ -20,7 +31,10 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const timeOffReasons = data.map(item => ({ id: item.id, reason: item.reason }));
+    const timeOffReasons = data.map((item) => ({
+      id: item.id,
+      reason: item.reason,
+    }));
     // console.log("Fetched time off reasons:", timeOffReasons);
 
     return NextResponse.json(timeOffReasons);

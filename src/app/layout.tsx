@@ -20,6 +20,7 @@ import { IState } from "flagsmith/types";
 import dynamic from "next/dynamic";
 import FlagsmithWrapper from "@/FlagsmithWrapper";
 import { ReactElement } from "react";
+import SupabaseProvider from "@/providers/supabase-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -69,30 +70,32 @@ export default async function RootLayout({
         <html lang="en" suppressHydrationWarning>
           <body className={inter.className}>
             <QueryProvider>
-              <FlagsmithWrapper flagsmithState={flagsmithState}>
-                <NextSSRPlugin
-                  routerConfig={extractRouterConfig(ourFileRouter)}
-                />
-                <ThemeProvider
-                  attribute="class"
-                  defaultTheme="system"
-                  enableSystem
-                  disableTransitionOnChange
-                >
-                  {/* <UnreadCountsProvider> */}
-                  <NotificationsProvider>
-                    <Header />
-                    <main>
-                      {children as ReactElement}
+              <SupabaseProvider>
+                <FlagsmithWrapper flagsmithState={flagsmithState}>
+                  <NextSSRPlugin
+                    routerConfig={extractRouterConfig(ourFileRouter)}
+                  />
+                  <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                  >
+                    {/* <UnreadCountsProvider> */}
+                    <NotificationsProvider>
+                      <Header />
+                      <main>
+                        {children as ReactElement}
 
-                      {shouldInjectToolbar && <VercelToolbar />}
-                      <Analytics />
-                    </main>
-                    <Toaster />
-                  </NotificationsProvider>
-                  {/* </UnreadCountsProvider> */}
-                </ThemeProvider>
-              </FlagsmithWrapper>
+                        {shouldInjectToolbar && <VercelToolbar />}
+                        <Analytics />
+                      </main>
+                      <Toaster />
+                    </NotificationsProvider>
+                    {/* </UnreadCountsProvider> */}
+                  </ThemeProvider>
+                </FlagsmithWrapper>
+              </SupabaseProvider>
             </QueryProvider>
           </body>
         </html>

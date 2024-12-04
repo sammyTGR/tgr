@@ -3,8 +3,16 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Fetch reference schedules
     const { data: schedules, error: schedulesError } = await supabase
@@ -26,9 +34,8 @@ export async function GET() {
 
     return NextResponse.json({
       schedules,
-      employees
+      employees,
     });
-
   } catch (error) {
     console.error("Error in fetchReferenceSchedules:", error);
     return NextResponse.json(

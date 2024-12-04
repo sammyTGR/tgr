@@ -3,8 +3,17 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  //console.log("Received reconciliation request");
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const {
       employeeId,
       eventDate,
@@ -20,8 +29,6 @@ export async function POST(req: Request) {
     //   scheduledHours,
     //   calculatedTotalHours,
     // });
-
-    const supabase = createRouteHandlerClient({ cookies });
 
     // Fetch the current employee data
     const { data: employeeData, error: employeeError } = await supabase

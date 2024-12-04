@@ -1,31 +1,28 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   const token = request.headers.get("authorization")?.split(" ")[1];
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token);
-  if (userError || !user) {
-    console.error(
-      "Error fetching user with token:",
-      userError?.message || "No user data"
-    );
-    return NextResponse.json(
-      { error: userError?.message || "Unauthorized" },
-      { status: 401 }
-    );
-  }
-
-  const { date_of_walk, lanes, lanes_with_problems, description, role } =
-    await request.json();
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { date_of_walk, lanes, lanes_with_problems, description, role } =
+      await request.json();
+
     const { error: insertError } = await supabase
       .from("range_walk_reports")
       .insert([

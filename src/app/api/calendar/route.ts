@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { corsHeaders } from "@/utils/cors";
 import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 interface Employee {
   employee_id: number;
@@ -30,8 +31,7 @@ async function getCalendarData(
   start_date: string,
   end_date: string
 ): Promise<EmployeeCalendar[]> {
-  const cookieStore = cookies();
-  const supabase = createClient();
+  const supabase = createRouteHandlerClient({ cookies })
   const { data, error } = await supabase
     .from("schedules")
     .select(`
@@ -100,7 +100,16 @@ async function getCalendarData(
 }
 
 export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+
     const { start_date, end_date } = await request.json();
     
     if (!start_date || !end_date) {

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 // Function to get the day of the week from a date
 const getDayOfWeek = (date: Date): string => {
@@ -17,21 +19,30 @@ const getDayOfWeek = (date: Date): string => {
 
 export async function POST(request: Request) {
   const { employee_id, day, start_time, end_time } = await request.json();
-
-  if (!employee_id || !day || !start_time || !end_time) {
-    console.error("Missing required fields", {
-      employee_id,
-      day,
-      start_time,
-      end_time,
-    });
-    return NextResponse.json(
-      { message: "Missing required fields" },
-      { status: 400 }
-    );
-  }
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!employee_id || !day || !start_time || !end_time) {
+      console.error("Missing required fields", {
+        employee_id,
+        day,
+        start_time,
+        end_time,
+      });
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
     const scheduleDate = new Date(day);
     const dayOfWeek = getDayOfWeek(scheduleDate);
 

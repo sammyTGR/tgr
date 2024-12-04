@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
 import { corsHeaders } from "@/utils/cors";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+ 
     const body = await request.json();
     // console.log('Received request body:', body);
     
@@ -16,7 +26,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const supabase = createClient();
 
     // Get the time off request with employee data
     const { data: timeOffData, error: fetchError } = await supabase

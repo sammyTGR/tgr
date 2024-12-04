@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+  const { pageIndex, pageSize, filters, sorting } = await request.json();
+
   try {
-    const { pageIndex, pageSize, filters, sorting } = await request.json();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     let query = supabase.from("certifications").select("*", { count: "exact" });
 

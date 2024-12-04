@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { corsHeaders } from "@/utils/cors";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { data, error } = await supabase
       .from("employees")
       .select("name")
-      .order('name', { ascending: true });
+      .order("name", { ascending: true });
 
     if (error) {
       console.error("Supabase error:", error);
@@ -20,7 +31,7 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const employeeNames = data.map(employee => employee.name);
+    const employeeNames = data.map((employee) => employee.name);
     // console.log("Fetched employee names:", employeeNames);
 
     return NextResponse.json(employeeNames);

@@ -3,9 +3,17 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+  const { weeks } = await request.json();
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const { weeks } = await request.json();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Validate input
     const parsedWeeks = parseInt(weeks || "1", 10);
@@ -18,7 +26,7 @@ export async function POST(request: Request) {
 
     // Call the RPC function
     const { data, error } = await supabase.rpc("generate_all_schedules", {
-      weeks: parsedWeeks
+      weeks: parsedWeeks,
     });
 
     if (error) throw error;
@@ -32,7 +40,6 @@ export async function POST(request: Request) {
       employeesProcessed: result.employees_processed,
       message: `Successfully generated ${result.schedules_created} schedules for ${result.employees_processed} employees`,
     });
-
   } catch (error) {
     console.error("Error generating schedules:", error);
     return NextResponse.json(

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 interface Deposit {
   register: string;
@@ -28,31 +30,28 @@ interface Deposit {
 
 export async function POST(request: Request) {
   const token = request.headers.get("authorization")?.split(" ")[1];
-  if (!token) {
-    console.error("No token provided");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token);
-  if (userError) {
-    console.error("Error fetching user:", userError.message);
-    return NextResponse.json({ error: userError.message }, { status: 401 });
-  }
-  if (!user) {
-    console.error("User not found for token");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const deposits: Deposit[] = await request.json();
-  const depositsWithUserUUID = deposits.map((deposit: Deposit) => ({
-    ...deposit,
-    user_uuid: user.id,
-  }));
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!token) {
+      console.error("No token provided");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const deposits: Deposit[] = await request.json();
+    const depositsWithUserUUID = deposits.map((deposit: Deposit) => ({
+      ...deposit,
+      user_uuid: user.id,
+    }));
+
     const { error } = await supabase
       .from("daily_deposits")
       .insert(depositsWithUserUUID);

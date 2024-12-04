@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function GET() {
+  const supabase = createRouteHandlerClient({ cookies });
+
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { count, error } = await supabase
       .from("time_off_requests")
       .select("request_id", { count: "exact" })
-      .eq("is_read", false);
+      .eq("is_read", false)
+      .eq("status", "pending");  // Only count pending requests
 
     if (error) {
       console.error("Error fetching unread time-off requests:", error);

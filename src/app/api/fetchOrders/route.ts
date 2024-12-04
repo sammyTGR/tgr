@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from "@/utils/supabase/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
-  const supabase = createClient();
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return NextResponse.json({
-        error: 'Not authenticated',
-        details: userError?.message
-      }, { status: 401 });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('is_read', false)
-      .eq('status', 'pending');
+      .from("orders")
+      .select("id")
+      .eq("is_read", false)
+      .eq("status", "pending");
 
     if (ordersError) {
       console.error("Error fetching unread orders:", ordersError.message);
@@ -25,14 +27,16 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      unreadOrderCount: orders?.length || 0
+      unreadOrderCount: orders?.length || 0,
     });
-
   } catch (error: any) {
-    console.error('Error fetching unread orders:', error);
-    return NextResponse.json({ 
-      error: error.message || "Failed to fetch unread orders" 
-    }, { status: 500 });
+    console.error("Error fetching unread orders:", error);
+    return NextResponse.json(
+      {
+        error: error.message || "Failed to fetch unread orders",
+      },
+      { status: 500 }
+    );
   }
 }
 

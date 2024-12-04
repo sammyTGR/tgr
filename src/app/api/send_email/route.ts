@@ -16,11 +16,21 @@ import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
 import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotification";
 import GunsmithNewRequest from "../../../../emails/GunsmithNewRequest";
 import LateStart from "../../../../emails/LateStart";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   const { email, subject, templateName, templateData } = await request.json();
+  const supabase = createRouteHandlerClient({ cookies });
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
   if (!email || !subject || !templateName) {
     return NextResponse.json(
@@ -32,7 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  try {
+ 
     let emailTemplate;
     let fromEmail;
 

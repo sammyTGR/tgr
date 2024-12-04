@@ -1,21 +1,24 @@
 import { NextResponse } from "next/server";
 import { createClient } from '@/utils/supabase/server';
-import { format, addDays } from "date-fns";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
-  const supabase = createClient();
-
-  // Get current user first
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({
-      error: 'Not authenticated'
-    }, { status: 401 });
-  }
-
+  const supabase = createRouteHandlerClient({ cookies });
   const url = new URL(request.url);
   const weekStart = url.searchParams.get('weekStart');
   const getLastAssignment = url.searchParams.get('getLastAssignment') === 'true';
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+
+
+  
 
   if (!weekStart && !getLastAssignment) {
     return NextResponse.json({ 
@@ -23,7 +26,7 @@ export async function GET(request: Request) {
     }, { status: 400 });
   }
 
-  try {
+
     if (getLastAssignment) {
       const { data, error } = await supabase
         .from('break_room_duty')

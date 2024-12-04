@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   const { request_id } = await request.json();
-
-  if (!request_id) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!request_id) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
     const { error } = await supabase
       .from("time_off_requests")
       .update({ is_read: true, status: "duplicate" })

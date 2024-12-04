@@ -2,28 +2,38 @@ import { NextResponse } from "next/server";
 import { format, parseISO } from "date-fns";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { createClient } from "@/utils/supabase/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 const timeZone = "America/Los_Angeles";
 
 export async function POST(request: Request) {
-  const supabase = createClient();
   const { employee_id, schedule_date, status } = await request.json();
+  const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Parse the incoming date and convert to Pacific Time
     const parsedDate = parseISO(schedule_date);
     const pacificDate = toZonedTime(parsedDate, timeZone);
-    
+
     // Format the date for database storage - no need for additional adjustments
-    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", { 
-      timeZone // Use Pacific timezone consistently
+    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
+      timeZone, // Use Pacific timezone consistently
     });
 
-    console.log('Debug date conversion:', {
+    console.log("Debug date conversion:", {
       incoming_date: schedule_date,
       parsed_date: parsedDate.toISOString(),
       pacific_date: pacificDate.toISOString(),
-      final_formatted: formattedScheduleDate
+      final_formatted: formattedScheduleDate,
     });
 
     // Rest of the code remains the same...
@@ -52,7 +62,7 @@ export async function POST(request: Request) {
           employee_id,
           schedule_date: formattedScheduleDate,
           status,
-          day_of_week: formatTZ(pacificDate, 'EEEE', { timeZone })
+          day_of_week: formatTZ(pacificDate, "EEEE", { timeZone }),
         });
 
       if (scheduleInsertError) {
@@ -93,11 +103,10 @@ export async function POST(request: Request) {
         status,
         debug_dates: {
           incoming: schedule_date,
-          formatted: formattedScheduleDate
-        }
-      }
+          formatted: formattedScheduleDate,
+        },
+      },
     });
-
   } catch (error: any) {
     console.error("Error:", error);
     return NextResponse.json(

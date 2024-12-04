@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
   const { searchParams } = new URL(request.url);
   const start = searchParams.get("start");
   const end = searchParams.get("end");
@@ -14,7 +25,7 @@ export async function GET(request: Request) {
     );
   }
 
-  try {
+  
     let query = supabase.from("sales_data").select("*");
 
     if (start) {
