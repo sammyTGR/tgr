@@ -149,14 +149,26 @@ const formatDateForEmail = (dateString: string) => {
   const date = parseISO(dateString);
   // Ensure date is interpreted in Pacific Time
   const zonedDate = toZonedTime(date, TIME_ZONE);
-  return format(zonedDate, "EEEE, MMMM d, yyyy");
+  return formatTZ(zonedDate, "EEEE, MMMM d, yyyy");
 };
 
 const formatDateForDB = (dateString: string) => {
+  // Parse the input date string
   const date = parseISO(dateString);
-  // Ensure date is interpreted in Pacific Time
-  const zonedDate = toZonedTime(date, TIME_ZONE);
-  return formatTZ(zonedDate, "yyyy-MM-dd", { timeZone: TIME_ZONE });
+
+  // Create a new date object at the start of the day in Pacific Time
+  const pacificDate = toZonedTime(date, TIME_ZONE);
+
+  // Format the date in YYYY-MM-DD format while preserving the Pacific timezone
+  const formattedDate = formatTZ(pacificDate, "yyyy-MM-dd", {
+    timeZone: TIME_ZONE,
+  });
+
+  // Log for debugging
+  console.log("Original date:", dateString);
+  console.log("Formatted date for DB:", formattedDate);
+
+  return formattedDate;
 };
 
 // Utility functions
@@ -890,22 +902,24 @@ export default function Component() {
       status: string;
     }) => {
       try {
-        // Ensure the schedule_date is in the correct timezone
-        const formattedDate = formatDateForDB(schedule_date);
+        console.log("Input schedule_date:", schedule_date);
 
-        // First, get employee data for email
+        // Format the date while preserving Pacific timezone
+        const formattedDate = formatDateForDB(schedule_date);
+        console.log("Formatted date:", formattedDate);
+
+        // Rest of the mutation logic...
         const employeeData = await fetchEmployeeData(employee_id);
         if (!employeeData) {
           throw new Error("Failed to fetch employee data");
         }
 
-        // Update schedule status with the corrected date
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date: formattedDate, // Use the formatted date
+            schedule_date: formattedDate,
             status,
           }),
         });
@@ -974,6 +988,7 @@ export default function Component() {
         return { success: true };
       } catch (error) {
         console.error("Error in updateStatusMutation:", error);
+        console.error("Failed date:", schedule_date);
         throw error;
       }
     },
