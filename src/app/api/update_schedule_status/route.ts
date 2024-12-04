@@ -1,42 +1,38 @@
 import { NextResponse } from "next/server";
-import { format, parseISO } from "date-fns";
-import { toZonedTime, format as formatTZ } from "date-fns-tz";
-import { createClient } from "@/utils/supabase/server";
+import { parseISO } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
-const timeZone = "America/Los_Angeles";
+const TIME_ZONE = "America/Los_Angeles";
 
 export async function POST(request: Request) {
   const { employee_id, schedule_date, status } = await request.json();
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    console.log("API received date:", schedule_date);
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Parse the incoming date and convert to Pacific Time
+    // Parse the date and explicitly convert to Pacific Time
     const parsedDate = parseISO(schedule_date);
-    const pacificDate = toZonedTime(parsedDate, timeZone);
+    const pacificDate = toZonedTime(parsedDate, TIME_ZONE);
 
-    // Format the date for database storage - no need for additional adjustments
-    const formattedScheduleDate = formatTZ(pacificDate, "yyyy-MM-dd", {
-      timeZone, // Use Pacific timezone consistently
+    // Format the date for database storage while preserving Pacific timezone
+    const formattedScheduleDate = formatInTimeZone(
+      pacificDate,
+      TIME_ZONE,
+      "yyyy-MM-dd"
+    );
+
+    console.log("Date conversion in API:", {
+      received: schedule_date,
+      parsed: parsedDate.toISOString(),
+      pacific: pacificDate.toISOString(),
+      formatted: formattedScheduleDate,
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
 
-    console.log("Debug date conversion:", {
-      incoming_date: schedule_date,
-      parsed_date: parsedDate.toISOString(),
-      pacific_date: pacificDate.toISOString(),
-      final_formatted: formattedScheduleDate,
-    });
-
-    // Rest of the code remains the same...
+    // Update schedule with explicit timezone handling
     const { data: scheduleData, error: scheduleFetchError } = await supabase
       .from("schedules")
       .select("*")
@@ -44,10 +40,7 @@ export async function POST(request: Request) {
       .eq("schedule_date", formattedScheduleDate);
 
     if (scheduleFetchError) {
-      console.error(
-        `Error fetching schedule for date ${formattedScheduleDate}:`,
-        scheduleFetchError
-      );
+      console.error("Schedule fetch error:", scheduleFetchError);
       return NextResponse.json(
         { error: scheduleFetchError.message },
         { status: 500 }
@@ -55,60 +48,47 @@ export async function POST(request: Request) {
     }
 
     if (!scheduleData || scheduleData.length === 0) {
-      // Insert new schedule if it doesn't exist
-      const { error: scheduleInsertError } = await supabase
-        .from("schedules")
-        .insert({
-          employee_id,
-          schedule_date: formattedScheduleDate,
-          status,
-          day_of_week: formatTZ(pacificDate, "EEEE", { timeZone }),
-        });
+      const { error: insertError } = await supabase.from("schedules").insert({
+        employee_id,
+        schedule_date: formattedScheduleDate,
+        status,
+        day_of_week: formatInTimeZone(pacificDate, TIME_ZONE, "EEEE"),
+      });
 
-      if (scheduleInsertError) {
-        console.error(
-          `Error inserting schedule for date ${formattedScheduleDate}:`,
-          scheduleInsertError
-        );
+      if (insertError) {
+        console.error("Insert error:", insertError);
         return NextResponse.json(
-          { error: scheduleInsertError.message },
+          { error: insertError.message },
           { status: 500 }
         );
       }
     } else {
-      // Update existing schedule
-      const { error: scheduleUpdateError } = await supabase
+      const { error: updateError } = await supabase
         .from("schedules")
         .update({ status })
         .eq("employee_id", employee_id)
         .eq("schedule_date", formattedScheduleDate);
 
-      if (scheduleUpdateError) {
-        console.error(
-          `Error updating schedule for date ${formattedScheduleDate}:`,
-          scheduleUpdateError
-        );
+      if (updateError) {
+        console.error("Update error:", updateError);
         return NextResponse.json(
-          { error: scheduleUpdateError.message },
+          { error: updateError.message },
           { status: 500 }
         );
       }
     }
 
+    // Return success with debug information
     return NextResponse.json({
       message: "Schedule updated successfully",
-      data: {
-        employee_id,
-        schedule_date: formattedScheduleDate,
-        status,
-        debug_dates: {
-          incoming: schedule_date,
-          formatted: formattedScheduleDate,
-        },
+      debug: {
+        receivedDate: schedule_date,
+        storedDate: formattedScheduleDate,
+        timezone: TIME_ZONE,
       },
     });
   } catch (error: any) {
-    console.error("Error:", error);
+    console.error("API Error:", error);
     return NextResponse.json(
       { error: error.message || "An error occurred" },
       { status: 500 }
