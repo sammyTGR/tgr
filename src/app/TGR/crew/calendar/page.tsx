@@ -902,13 +902,26 @@ export default function Component() {
       status: string;
     }) => {
       try {
-        console.log("Input schedule_date:", schedule_date);
+        // Debug the incoming date
+        console.log("Mutation Input Date:", schedule_date);
 
-        // Format the date while preserving Pacific timezone
-        const formattedDate = formatDateForDB(schedule_date);
-        console.log("Formatted date:", formattedDate);
+        // Parse and format the date in Pacific Time
+        const parsedDate = parseISO(schedule_date);
+        const pacificDate = toZonedTime(parsedDate, TIME_ZONE);
 
-        // Rest of the mutation logic...
+        // Format for database ensuring Pacific timezone
+        const formattedDate = formatTZ(pacificDate, "yyyy-MM-dd", {
+          timeZone: TIME_ZONE,
+        });
+
+        console.log("Date conversion debug:", {
+          input: schedule_date,
+          parsed: parsedDate.toISOString(),
+          pacific: pacificDate.toISOString(),
+          formatted: formattedDate,
+        });
+
+        // Fetch employee data and proceed with update
         const employeeData = await fetchEmployeeData(employee_id);
         if (!employeeData) {
           throw new Error("Failed to fetch employee data");
@@ -919,7 +932,7 @@ export default function Component() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date: formattedDate,
+            schedule_date: formattedDate, // Use the formatted date
             status,
           }),
         });
