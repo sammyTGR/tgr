@@ -14,13 +14,13 @@ export async function POST(request: Request) {
   try {
     console.log("Received date:", schedule_date);
 
-    // Parse the date and ensure it's in Pacific time
-    const pacificDate = toDate(parseISO(schedule_date), { timeZone: TIME_ZONE });
-    const formattedDate = formatInTimeZone(pacificDate, TIME_ZONE, 'yyyy-MM-dd');
+    // Parse the date without adding a day
+    const parsedDate = parseISO(schedule_date);
+    const formattedDate = formatInTimeZone(parsedDate, TIME_ZONE, 'yyyy-MM-dd');
 
     console.log("Date conversion:", {
       receivedDate: schedule_date,
-      pacificDate: pacificDate.toISOString(),
+      parsedDate: parsedDate.toISOString(),
       formattedForDB: formattedDate,
       timezone: TIME_ZONE,
       serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
           employee_id,
           schedule_date: formattedDate,
           status,
-          day_of_week: formatInTimeZone(pacificDate, TIME_ZONE, 'EEEE')
+          day_of_week: formatInTimeZone(parsedDate, TIME_ZONE, 'EEEE')
         });
 
       if (insertError) throw insertError;

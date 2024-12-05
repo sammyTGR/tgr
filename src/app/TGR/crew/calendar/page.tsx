@@ -900,30 +900,25 @@ export default function Component() {
       status: string;
     }) => {
       try {
-        // Create date in Pacific time
-        const pacificDate = toDate(parseISO(schedule_date), { timeZone: TIME_ZONE });
-        const formattedDate = format(pacificDate, 'yyyy-MM-dd');
-
-        console.log("Status Update Debug:", {
-          originalDate: schedule_date,
-          pacificDate: pacificDate.toISOString(),
-          formattedForDB: formattedDate,
-          timezone: TIME_ZONE,
-          browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        });
-
-        // Fetch employee data
+        // Fetch employee data first
         const employeeData = await fetchEmployeeData(employee_id);
         if (!employeeData) {
           throw new Error("Failed to fetch employee data");
         }
+
+        // Send the original date string without any manipulation
+        console.log("Status Update Debug:", {
+          originalDate: schedule_date,
+          timezone: TIME_ZONE,
+          browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
 
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date: formattedDate,
+            schedule_date, // Send the original date string
             status,
           }),
         });
