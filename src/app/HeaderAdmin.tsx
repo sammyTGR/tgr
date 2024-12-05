@@ -49,6 +49,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { User } from "@supabase/supabase-js";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export interface ChatMessage {
   id: string;
@@ -624,6 +625,8 @@ const HeaderAdmin = React.memo(() => {
                   <HomeIcon />
                 </Button>
               </Link>
+
+              <NotificationBell />
 
               <div className="flex items-center space-x-1">
                 <Suspense fallback={<LoadingIndicator />}>

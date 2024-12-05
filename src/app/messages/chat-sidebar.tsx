@@ -20,8 +20,10 @@ interface ChatItem {
 
 export function ChatSidebar({
   onSelectChat,
+  onDeleteChat,
 }: {
   onSelectChat: (chatId: string) => void;
+  onDeleteChat: (chatId: string) => void;
 }) {
   const supabase = createClientComponentClient();
   const queryClient = useQueryClient();
@@ -38,12 +40,68 @@ export function ChatSidebar({
     },
   });
 
+  // Subscribe to real-time updates for chats, messages, and chat_participants
+  useQuery({
+    queryKey: ["chatSubscription", currentUser?.id],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("chat-updates")
+        .on(
+          "postgres_changes",
+          {
+            event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: "public",
+            table: "chats",
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: ["chats", currentUser?.id],
+              exact: true,
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: ["chats", currentUser?.id],
+              exact: true,
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "chat_participants",
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: ["chats", currentUser?.id],
+              exact: true,
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser?.id,
+  });
+
   const { data: chats = [] } = useQuery({
     queryKey: ["chats", currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return [];
 
-      // First get all chats with their participants
       const { data: chatsData, error: chatsError } = await supabase
         .from("chats")
         .select(
@@ -51,7 +109,14 @@ export function ChatSidebar({
           id,
           name,
           participants:chat_participants(user_id),
-          messages:messages(content)
+          messages:messages!left(
+            id,
+            content,
+            created_at,
+            message_reads!left(
+              user_id
+            )
+          )
         `
         )
         .eq("chat_participants.user_id", currentUser.id)
@@ -59,71 +124,36 @@ export function ChatSidebar({
 
       if (chatsError) {
         console.error("Error fetching chats:", chatsError);
-        return [];
+        throw chatsError;
       }
 
-      // Then get employee names for all participants
-      const participantIds = chatsData
-        .flatMap((chat) => chat.participants)
-        .map((p) => p.user_id)
-        .filter((id): id is string => !!id);
+      return (
+        chatsData?.map((chat) => {
+          const unreadCount =
+            chat.messages?.filter((msg) => {
+              const hasRead = msg.message_reads?.some(
+                (read) => read.user_id === currentUser?.id
+              );
+              return !hasRead;
+            }).length || 0;
 
-      const { data: employees, error: employeesError } = await supabase
-        .from("employees")
-        .select("employee_id, name")
-        .in("employee_id", participantIds);
-
-      if (employeesError) {
-        console.error("Error fetching employees:", employeesError);
-        return [];
-      }
-
-      // Create a map of employee_id to name for easy lookup
-      const employeeMap = new Map(
-        employees?.map((emp) => [emp.employee_id.toString(), emp.name]) || []
+          return {
+            ...chat,
+            isGroup: chat.participants.length > 2,
+            unreadCount,
+            participants: chat.participants.map((p: { user_id: string }) => ({
+              user_id: p.user_id,
+            })),
+          };
+        }) || []
       );
-
-      return chatsData.map((chat): ChatItem => {
-        const otherParticipant = chat.participants.find(
-          (p) => p.user_id !== currentUser.id
-        );
-
-        return {
-          id: chat.id,
-          name:
-            chat.name ||
-            (chat.participants.length === 2
-              ? employeeMap.get(otherParticipant?.user_id || "") ||
-                "Direct Message"
-              : "Group Chat"),
-          participants: chat.participants.map((p) => ({
-            user_id: p.user_id,
-            employee_name: employeeMap.get(p.user_id),
-          })),
-          lastMessage: chat.messages[0]?.content || "No messages yet",
-          isGroup: chat.participants.length > 2,
-        };
-      });
     },
     enabled: !!currentUser?.id,
   });
 
-  // Subscribe to chat updates
-  const channel = supabase
-    .channel("chats")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "chats" },
-      () => {
-        queryClient.invalidateQueries({ queryKey: ["chats", currentUser?.id] });
-      }
-    )
-    .subscribe();
-
   const deleteChat = useMutation({
     mutationFn: async (chatId: string) => {
       const { error } = await supabase.from("chats").delete().eq("id", chatId);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -135,53 +165,62 @@ export function ChatSidebar({
   });
 
   return (
-    <div className="w-64 bg-muted border-r border-zinc-800 max-h-full overflow-hidden">
+    <div className="w-[45rem] rounded-md border border-zinc-800 max-h-[calc(100vh-25rem)] overflow-hidden">
       <h2 className="text-xl font-semibold p-4">Chats</h2>
       <ScrollArea className="h-[calc(100vh-25rem)]">
-        {chats.map((chat) => (
-          <div key={chat.id} className="group relative">
-            <button
-              className="w-full text-left p-4 hover:bg-zinc-800 transition-colors"
-              onClick={() => onSelectChat(chat.id)}
-            >
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage
-                    src={
-                      chat.isGroup ? "/group-avatar.png" : "/user-avatar.png"
-                    }
-                  />
-                  <AvatarFallback>{chat.name[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{chat.name}</p>
-                  {chat.isGroup && (
-                    <p className="text-xs text-zinc-400">
-                      {chat.participants.length} members
-                    </p>
-                  )}
-                  <p className="text-sm text-zinc-400 truncate">
-                    {chat.lastMessage}
-                  </p>
-                </div>
-              </div>
-            </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm("Are you sure you want to delete this chat?")) {
-                  deleteChat.mutate(chat.id);
-                }
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Delete chat</span>
-            </Button>
+        {chats.length === 0 ? (
+          <div className="p-4 text-zinc-400 text-center">
+            No chats yet. Start a new conversation!
           </div>
-        ))}
+        ) : (
+          chats.map((chat) => (
+            <div key={chat.id} className="group relative">
+              <button
+                className="w-full text-left p-4 hover:bg-muted hover:border-zinc-700 transition-colors"
+                onClick={() => onSelectChat(chat.id)}
+              >
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={chat.name[0]} />
+                    <AvatarFallback>{chat.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{chat.name}</p>
+                    {chat.isGroup && (
+                      <p className="text-xs text-zinc-400 truncate">
+                        {chat.participants.length} members
+                      </p>
+                    )}
+                    <p className="text-sm text-zinc-400 truncate">
+                      {chat.unreadCount > 0 ? (
+                        <span className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          {chat.unreadCount} new
+                        </span>
+                      ) : (
+                        "All caught up"
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm("Are you sure you want to delete this chat?")) {
+                    onDeleteChat(chat.id);
+                  }
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete chat</span>
+              </Button>
+            </div>
+          ))
+        )}
         <ScrollBar orientation="vertical" />
       </ScrollArea>
     </div>

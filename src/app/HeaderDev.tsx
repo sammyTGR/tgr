@@ -47,6 +47,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Session, User } from "@supabase/supabase-js";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface HeaderDev {
   totalUnreadCount: number;
@@ -654,6 +655,8 @@ const HeaderDev = React.memo(() => {
                   <HomeIcon />
                 </Button>
               </Link>
+
+              <NotificationBell />
 
               <div className="flex items-center space-x-1">
                 <Suspense fallback={<LoadingIndicator />}>

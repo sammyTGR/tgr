@@ -21,6 +21,7 @@ import dynamic from "next/dynamic";
 import FlagsmithWrapper from "@/FlagsmithWrapper";
 import { ReactElement } from "react";
 import SupabaseProvider from "@/providers/supabase-provider";
+import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -83,6 +84,7 @@ export default async function RootLayout({
                   >
                     {/* <UnreadCountsProvider> */}
                     <NotificationsProvider>
+                      <RealTimeNotificationsWrapper />
                       <Header />
                       <main>
                         {children as ReactElement}

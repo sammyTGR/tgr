@@ -557,10 +557,10 @@ export default function TeamWeeklyNotes() {
                       <Card key={member.note_id}>
                         <CardHeader>
                           <CardTitle>
-                            <h1 className="text-xl font-semibold">
+                            <span className="text-xl font-semibold">
                               {employee?.name ||
                                 `Employee ID: ${member.employee_id}`}
-                            </h1>
+                            </span>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="ml-6">
@@ -651,10 +651,10 @@ export default function TeamWeeklyNotes() {
                       <Card key={member.note_id} className="relative">
                         <CardHeader>
                           <CardTitle>
-                            <h1 className="text-xl font-semibold">
+                            <p className="text-xl font-semibold">
                               {employee?.name ||
                                 `Employee ID: ${member.employee_id}`}
-                            </h1>
+                            </p>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
