@@ -907,11 +907,11 @@ export default function Component() {
         }
 
         // Send the original date string without any manipulation
-        console.log("Status Update Debug:", {
-          originalDate: schedule_date,
-          timezone: TIME_ZONE,
-          browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        });
+        // console.log("Status Update Debug:", {
+        //   originalDate: schedule_date,
+        //   timezone: TIME_ZONE,
+        //   browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        // });
 
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",

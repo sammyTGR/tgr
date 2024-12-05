@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    console.log("Received date:", schedule_date);
+    // console.log("Received date:", schedule_date);
 
     // Use the date as received, without timezone conversion
     const formattedDate = schedule_date;
@@ -24,13 +24,13 @@ export async function POST(request: Request) {
       'EEEE'
     );
 
-    console.log("Date conversion:", {
-      receivedDate: schedule_date,
-      formattedForDB: formattedDate,
-      dayOfWeek,
-      timezone: TIME_ZONE,
-      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
+    // console.log("Date conversion:", {
+    //   receivedDate: schedule_date,
+    //   formattedForDB: formattedDate,
+    //   dayOfWeek,
+    //   timezone: TIME_ZONE,
+    //   serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    // });
 
     // Update schedule
     const { data: existingSchedule, error: fetchError } = await supabase
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("API Error:", error);
+    // console.error("API Error:", error);
     return NextResponse.json(
       { error: error.message || "An error occurred" },
       { status: 500 }
