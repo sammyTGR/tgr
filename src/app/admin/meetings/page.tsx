@@ -68,19 +68,24 @@ type TeamMember = {
   created_at: string;
   updated_at: string;
   range_notes: NoteItem[] | null;
+  inventory_notes: NoteItem[] | null;
   store_notes: NoteItem[] | null;
   employees_notes: NoteItem[] | null;
   safety_notes: NoteItem[] | null;
   general_notes: NoteItem[] | null;
 };
 
-type NoteType = keyof Omit<
-  TeamMember,
-  "note_id" | "employee_id" | "created_at" | "updated_at"
->;
+type NoteType =
+  | "range_notes"
+  | "inventory_notes"
+  | "store_notes"
+  | "employees_notes"
+  | "safety_notes"
+  | "general_notes";
 
 const topics: NoteType[] = [
   "range_notes",
+  "inventory_notes",
   "store_notes",
   "employees_notes",
   "safety_notes",
@@ -90,6 +95,7 @@ type TopicType = (typeof topics)[number];
 
 const topicDisplayNames: Record<NoteType, string> = {
   range_notes: "Range",
+  inventory_notes: "Inventory",
   store_notes: "Store",
   employees_notes: "Employees",
   safety_notes: "Safety",
@@ -316,6 +322,7 @@ export default function TeamWeeklyNotes() {
         > = {
           employee_id: currentEmployee.employee_id,
           range_notes: [{ id: Date.now().toString(), content: "" }],
+          inventory_notes: [{ id: Date.now().toString(), content: "" }],
           store_notes: [{ id: Date.now().toString(), content: "" }],
           employees_notes: [{ id: Date.now().toString(), content: "" }],
           safety_notes: [{ id: Date.now().toString(), content: "" }],
@@ -563,60 +570,67 @@ export default function TeamWeeklyNotes() {
                                 {topicDisplayNames[topic]}
                               </h3>
                               <ul className="list-none ml-2">
-                                {member[topic]?.map((item) => (
-                                  <li
-                                    key={item.id}
-                                    className="flex items-start text-sm group relative"
-                                  >
-                                    <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                    <span>{item.content || ""}</span>
-                                    {currentEmployee?.role === "dev" && (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="opacity-0 group-hover:opacity-100 absolute right-0"
-                                          >
-                                            Actions
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              const employeeName =
-                                                employees.find(
-                                                  (e) =>
-                                                    e.employee_id ===
-                                                    member.employee_id
-                                                )?.name || "Unknown";
+                                {member[topic]?.length ? (
+                                  member[topic].map((item) => (
+                                    <li
+                                      key={item.id}
+                                      className="flex items-start text-sm group relative"
+                                    >
+                                      <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
+                                      <span>{item.content || ""}</span>
+                                      {currentEmployee?.role === "dev" && (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="opacity-0 group-hover:opacity-100 absolute right-0"
+                                            >
+                                              Actions
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent>
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                const employeeName =
+                                                  employees.find(
+                                                    (e) =>
+                                                      e.employee_id ===
+                                                      member.employee_id
+                                                  )?.name || "Unknown";
 
-                                              markAsDiscussedMutation.mutate({
-                                                content: item.content,
-                                                topic,
-                                                employeeId: member.employee_id,
-                                                employeeName: employeeName,
-                                              });
-                                            }}
-                                          >
-                                            Mark as Discussed
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              dismissNoteMutation.mutate({
-                                                memberId: member.note_id,
-                                                topic,
-                                                noteId: item.id,
-                                              })
-                                            }
-                                          >
-                                            Dismiss
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    )}
+                                                markAsDiscussedMutation.mutate({
+                                                  content: item.content,
+                                                  topic,
+                                                  employeeId:
+                                                    member.employee_id,
+                                                  employeeName: employeeName,
+                                                });
+                                              }}
+                                            >
+                                              Mark as Discussed
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                dismissNoteMutation.mutate({
+                                                  memberId: member.note_id,
+                                                  topic,
+                                                  noteId: item.id,
+                                                })
+                                              }
+                                            >
+                                              Dismiss
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      )}
+                                    </li>
+                                  ))
+                                ) : (
+                                  <li>
+                                    <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
                                   </li>
-                                )) || <li>No notes available.</li>}
+                                )}
                               </ul>
                             </div>
                           ))}
@@ -647,49 +661,61 @@ export default function TeamWeeklyNotes() {
                           {topics.map((topic) => (
                             <div key={topic} className="mb-4">
                               <Label>{topicDisplayNames[topic]}</Label>
-                              {member[topic]?.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="mt-1 flex items-center gap-2"
+                              <div className="mt-1">
+                                {" "}
+                                {/* Add this wrapper div */}
+                                {(member[topic]?.length ?? 0) > 0 ? (
+                                  // Render existing notes if they exist
+                                  member[topic]?.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className="mt-1 flex items-center gap-2"
+                                    >
+                                      <Textarea
+                                        value={item.content}
+                                        onChange={(e) =>
+                                          updateLocalNote(
+                                            member.note_id,
+                                            topic,
+                                            item.id,
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
+                                        className="flex-grow"
+                                      />
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() =>
+                                          removeLocalItem(
+                                            member.note_id,
+                                            topic,
+                                            item.id
+                                          )
+                                        }
+                                      >
+                                        <Minus className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))
+                                ) : (
+                                  // Render a placeholder when no notes exist
+                                  <div className="text-sm text-muted-foreground">
+                                    No notes added yet
+                                  </div>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    addLocalItem(member.note_id, topic)
+                                  }
+                                  className="mt-2"
                                 >
-                                  <Textarea
-                                    value={item.content}
-                                    onChange={(e) =>
-                                      updateLocalNote(
-                                        member.note_id,
-                                        topic,
-                                        item.id,
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
-                                    className="flex-grow"
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      removeLocalItem(
-                                        member.note_id,
-                                        topic,
-                                        item.id
-                                      )
-                                    }
-                                  >
-                                    <Minus className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )) || <div>No notes available.</div>}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  addLocalItem(member.note_id, topic)
-                                }
-                                className="mt-1"
-                              >
-                                <Plus className="h-4 w-4 mr-1" /> Add Item
-                              </Button>
+                                  <Plus className="h-4 w-4 mr-1" /> Add Item
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </CardContent>

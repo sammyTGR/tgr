@@ -14,6 +14,7 @@ export type TeamMember = {
   created_at: string;
   updated_at: string;
   range_notes: NoteItem[] | null;
+  inventory_notes: NoteItem[] | null;
   store_notes: NoteItem[] | null;
   employees_notes: NoteItem[] | null;
   safety_notes: NoteItem[] | null;
@@ -43,6 +44,32 @@ export type DiscussedNotes = {
       employee_name: string;
     }[];
   };
+};
+
+export type NoteType =
+  | "range_notes"
+  | "inventory_notes"
+  | "store_notes"
+  | "employees_notes"
+  | "safety_notes"
+  | "general_notes";
+
+const topics: NoteType[] = [
+  "range_notes",
+  "inventory_notes",
+  "store_notes",
+  "employees_notes",
+  "safety_notes",
+  "general_notes",
+];
+
+const topicDisplayNames: Record<NoteType, string> = {
+  range_notes: "Range",
+  inventory_notes: "Inventory",
+  store_notes: "Store",
+  employees_notes: "Employees",
+  safety_notes: "Safety",
+  general_notes: "General",
 };
 
 // Get current employee
@@ -138,6 +165,7 @@ export async function markNoteAsDiscussed(
   topic: keyof Pick<
     TeamMember,
     | "range_notes"
+    | "inventory_notes"
     | "store_notes"
     | "employees_notes"
     | "safety_notes"
@@ -216,6 +244,7 @@ export async function dismissNote(
   topic: keyof Pick<
     TeamMember,
     | "range_notes"
+    | "inventory_notes"
     | "store_notes"
     | "employees_notes"
     | "safety_notes"
