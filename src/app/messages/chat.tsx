@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Send } from 'lucide-react'
@@ -9,10 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import {  sendAndGetMessages, getEmployees } from "./actions"
+import { sendAndGetMessages, getEmployees } from "./actions"
 import { NewMessageDialog } from "./new-message-dialog"
+import { ChatSidebar } from "./chat-sidebar"
 import React from 'react'
-import Image from 'next/image'
 
 interface Message {
   id: string
@@ -29,8 +29,9 @@ interface Employee {
 }
 
 export default function Chat() {
-  const [input, setInput] = React.useState("")
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [input, setInput] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const supabase = createClientComponentClient()
@@ -40,7 +41,6 @@ export default function Chat() {
     queryFn: async () => {
       const { data: { user }, error } = await supabase.auth.getUser()
       if (error) throw error
-    //   console.log('Current user:', user)
       return user
     }
   })
@@ -48,30 +48,9 @@ export default function Chat() {
   const { data: currentEmployee, error: employeeError } = useQuery({
     queryKey: ['currentEmployee'],
     queryFn: async () => {
-      if (!userData?.email) {
-        // console.log('No user email found')
-        return null
-      }
+      if (!userData?.email) return null
       const employees = await getEmployees()
-    //   console.log('Looking for email:', userData.email)
-      
-      const employee = employees.find((emp: Employee) => {
-        // console.log('Comparing:', {
-        //   userEmail: userData.email,
-        //   empEmail: emp.contact_info,
-        //   matches: emp.contact_info === userData.email
-        // })
-        return emp.contact_info === userData.email
-      })
-      
-      if (!employee) {
-        // console.log('No employee found with email:', userData.email)
-        // console.log('Available emails:', employees.map(emp => emp.contact_info))
-      } else {
-        // console.log('Found employee:', employee)
-      }
-      
-      return employee || null
+      return employees.find((emp: Employee) => emp.contact_info === userData.email) || null
     },
     enabled: !!userData?.email,
     retry: false,
@@ -79,27 +58,33 @@ export default function Chat() {
   })
 
   const { data: messages = [], refetch } = useQuery({
-    queryKey: ['messages'],
+    queryKey: ['messages', selectedChatId],
     queryFn: async () => {
+      if (!selectedChatId) return []
       const { data: messages } = await supabase
         .from('messages')
         .select('id, content, is_agent, created_at')
+        .eq('chat_id', selectedChatId)
         .order('created_at', { ascending: true })
         .limit(50)
       return messages || []
     },
+    enabled: !!selectedChatId,
     staleTime: 1000 * 60,
     refetchOnWindowFocus: false
   })
 
   useEffect(() => {
+    if (!selectedChatId) return
+
     const channel = supabase
       .channel('messages')
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'messages' 
+          table: 'messages',
+          filter: `chat_id=eq.${selectedChatId}`
         }, 
         () => {
           refetch()
@@ -110,13 +95,16 @@ export default function Chat() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, refetch])
+  }, [supabase, refetch, selectedChatId])
 
   const { mutate: sendMessage, isError, error } = useMutation({
-    mutationFn: sendAndGetMessages,
+    mutationFn: async (message: string) => {
+      if (!selectedChatId) throw new Error('No chat selected')
+      return sendAndGetMessages(selectedChatId, message)
+    },
     onSuccess: (newMessages) => {
       if (newMessages) {
-        queryClient.setQueryData(['messages'], newMessages)
+        queryClient.setQueryData(['messages', selectedChatId], newMessages)
         setInput("")
         inputRef.current?.focus()
       }
@@ -132,81 +120,104 @@ export default function Chat() {
     sendMessage(input)
   }
 
-  const handleSelectUsers = (users: Employee[]) => {
-    console.log('Selected users:', users)
-    // Here you would typically:
-    // 1. Create a new conversation
-    // 2. Add selected users to the conversation
-    // 3. Update the UI to show the new conversation
+  const handleSelectUsers = async (users: Employee[]) => {
+    try {
+      const { data: chat, error } = await supabase
+        .from('chats')
+        .insert({ name: users.length > 1 ? 'Group Chat' : null })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      const participants = users.map(user => ({
+        chat_id: chat.id,
+        user_id: user.employee_id
+      }))
+
+      const { error: participantError } = await supabase
+        .from('chat_participants')
+        .insert(participants)
+
+      if (participantError) throw participantError
+
+      setSelectedChatId(chat.id)
+      setDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to create chat:', error)
+    }
   }
 
   return (
-    <>
-      <Card className="w-full max-w-md mx-auto bg-zinc-950 text-zinc-50 border-zinc-800">
-        <CardHeader className="flex flex-row items-center">
-          <div className="flex items-center space-x-4">
-            <Avatar>
-              <AvatarImage
-                src="https://utfs.io/f/9jzftpblGSv7zWule6FCYeqvSEFOu6crDAy19t5KBU2kQ0jZ"
-                alt={currentEmployee?.name || "User"}
-              />
-              <AvatarFallback>
-                {currentEmployee?.name
-                  ? currentEmployee.name.split(' ').map((n: string) => n[0]).join('')
-                  : 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium leading-none">
-                {currentEmployee?.name || 'Loading...'}
-              </p>
-              <p className="text-sm text-zinc-400">
-                {currentEmployee?.contact_info || 'Loading...'}
-              </p>
+    <div className="flex max-h-[calc(100vh-20rem)]">
+      <ChatSidebar onSelectChat={setSelectedChatId} />
+      <div className="flex-1">
+        <Card className="max-h-[calc(100vh-20rem)] border-zinc-800">
+          <CardHeader className="flex flex-row items-center">
+            <div className="flex items-center space-x-4">
+              <Avatar>
+                <AvatarImage
+                  src={currentEmployee?.avatar_url || "https://utfs.io/f/9jzftpblGSv7zWule6FCYeqvSEFOu6crDAy19t5KBU2kQ0jZ"}
+                  alt={currentEmployee?.name || "User"}
+                />
+                <AvatarFallback>
+                  {currentEmployee?.name
+                    ? currentEmployee.name.split(' ').map((n: string) => n[0]).join('')
+                    : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium leading-none">
+                  {currentEmployee?.name || 'Loading...'}
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {currentEmployee?.contact_info || 'Loading...'}
+                </p>
+              </div>
             </div>
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="ml-auto rounded-full text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4" />
-            <span className="sr-only">New message</span>
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(messages as Message[]).map((message) => (
-            <div
-              key={message.id}
-              className={`flex w-max max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm ${
-                message.is_agent
-                  ? 'bg-zinc-800 text-zinc-50' 
-                  : 'bg-white text-zinc-950 ml-auto'
-              }`}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="ml-auto rounded-full text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800"
+              onClick={() => setDialogOpen(true)}
             >
-              {message.content}
-            </div>
-          ))}
-        </CardContent>
-        <CardFooter>
-          <form onSubmit={handleSubmit} className="flex items-center w-full space-x-2">
-            <Input
-              ref={inputRef}
-              id="message"
-              placeholder="Type your message..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-50 placeholder:text-zinc-400 focus-visible:ring-zinc-700"
-              autoComplete="off"
-            />
-            <Button type="submit" size="icon" className="bg-zinc-50 text-zinc-950 hover:bg-zinc-300">
-              <Send className="w-4 h-4" />
-              <span className="sr-only">Send</span>
+              <Plus className="w-4 h-4" />
+              <span className="sr-only">New message</span>
             </Button>
-          </form>
-        </CardFooter>
-      </Card>
+          </CardHeader>
+          <CardContent className="space-y-4 overflow-y-auto h-[calc(100vh-20rem)]">
+            {(messages as Message[]).map((message) => (
+              <div
+                key={message.id}
+                className={`flex w-max max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm ${
+                  message.is_agent
+                    ? 'bg-zinc-800 text-zinc-50' 
+                    : 'bg-white text-zinc-950 ml-auto'
+                }`}
+              >
+                {message.content}
+              </div>
+            ))}
+          </CardContent>
+          <CardFooter>
+            <form onSubmit={handleSubmit} className="flex items-center w-full space-x-2">
+              <Input
+                ref={inputRef}
+                id="message"
+                placeholder="Type your message..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="flex-1 bg-zinc-800 border-zinc-700 text-zinc-50 placeholder:text-zinc-400 focus-visible:ring-zinc-700"
+                autoComplete="off"
+              />
+              <Button type="submit" size="icon" className="bg-zinc-50 text-zinc-950 hover:bg-zinc-300">
+                <Send className="w-4 h-4" />
+                <span className="sr-only">Send</span>
+              </Button>
+            </form>
+          </CardFooter>
+        </Card>
+      </div>
       <NewMessageDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -214,7 +225,7 @@ export default function Chat() {
       />
       {userError && <div>Error loading user: {userError.message}</div>}
       {employeeError && <div>Error loading employee: {employeeError.message}</div>}
-    </>
+    </div>
   )
 }
 

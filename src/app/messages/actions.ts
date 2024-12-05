@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import DOMPurify from 'isomorphic-dompurify'
 
-// Move this outside the function to avoid creating new client on every call
 const serviceClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -16,7 +15,7 @@ const serviceClient = createClient(
   }
 )
 
-export async function sendAndGetMessages(message: string) {
+export async function sendAndGetMessages(chatId: string, message: string) {
     const supabase = createServerComponentClient({ cookies })
     const sanitizedMessage = DOMPurify.sanitize(message.trim())
     
@@ -32,7 +31,8 @@ export async function sendAndGetMessages(message: string) {
           {
             content: sanitizedMessage,
             user_id: user.id,
-            is_agent: false
+            is_agent: false,
+            chat_id: chatId
           }
         ])
         .select()
@@ -40,8 +40,9 @@ export async function sendAndGetMessages(message: string) {
       supabase
         .from('messages')
         .select('id, content, is_agent, created_at')
+        .eq('chat_id', chatId)
         .order('created_at', { ascending: true })
-        .limit(50) // Pagination to prevent large data transfers
+        .limit(50)
     ])
   
     if (sendResult.error) throw sendResult.error
@@ -73,11 +74,52 @@ export async function getEmployees(search?: string) {
       throw error
     }
     
-    // console.log('Employees fetched:', data)
     return data
   } catch (error) {
     console.error('getEmployees error:', error)
     throw error
   }
+}
+
+export async function createChat(users: string[]) {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: chat, error: chatError } = await supabase
+    .from('chats')
+    .insert({ name: users.length > 2 ? 'Group Chat' : null })
+    .select()
+    .single()
+
+  if (chatError) throw chatError
+
+  const participants = [...users, user.id].map(userId => ({
+    chat_id: chat.id,
+    user_id: userId
+  }))
+
+  const { error: participantError } = await supabase
+    .from('chat_participants')
+    .insert(participants)
+
+  if (participantError) throw participantError
+
+  return chat.id
+}
+
+export async function getChatParticipants(chatId: string) {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data, error } = await supabase
+    .from('chat_participants')
+    .select('user_id')
+    .eq('chat_id', chatId)
+
+  if (error) throw error
+
+  return data.map(participant => participant.user_id)
 }
 
