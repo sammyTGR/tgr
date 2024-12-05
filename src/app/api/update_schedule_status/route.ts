@@ -1,7 +1,7 @@
 // src/app/api/update_schedule_status/route.ts
 import { NextResponse } from "next/server";
-import { parseISO } from "date-fns";
-import { formatInTimeZone, toDate } from "date-fns-tz";
+import { parseISO, format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -14,14 +14,20 @@ export async function POST(request: Request) {
   try {
     console.log("Received date:", schedule_date);
 
-    // Parse the date without adding a day
-    const parsedDate = parseISO(schedule_date);
-    const formattedDate = formatInTimeZone(parsedDate, TIME_ZONE, 'yyyy-MM-dd');
+    // Use the date as received, without timezone conversion
+    const formattedDate = schedule_date;
+
+    // For day of week, use formatInTimeZone to get correct day name
+    const dayOfWeek = formatInTimeZone(
+      parseISO(schedule_date),
+      TIME_ZONE,
+      'EEEE'
+    );
 
     console.log("Date conversion:", {
       receivedDate: schedule_date,
-      parsedDate: parsedDate.toISOString(),
       formattedForDB: formattedDate,
+      dayOfWeek,
       timezone: TIME_ZONE,
       serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
@@ -46,7 +52,7 @@ export async function POST(request: Request) {
           employee_id,
           schedule_date: formattedDate,
           status,
-          day_of_week: formatInTimeZone(parsedDate, TIME_ZONE, 'EEEE')
+          day_of_week: dayOfWeek
         });
 
       if (insertError) throw insertError;
@@ -66,6 +72,7 @@ export async function POST(request: Request) {
       debug: {
         receivedDate: schedule_date,
         storedDate: formattedDate,
+        dayOfWeek,
         timezone: TIME_ZONE
       }
     });
