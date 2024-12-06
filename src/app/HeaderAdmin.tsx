@@ -492,11 +492,8 @@ const HeaderAdmin = React.memo(() => {
     window.location.href = "/";
   };
 
-  const handleChatClick = async () => {
-    if (currentUser?.id) {
-      await queryClient.invalidateQueries({ queryKey: ["unreadMessages"] });
-      router.push("/TGR/crew/chat");
-    }
+  const handleChatClick = () => {
+    router.push("/messages");
   };
 
   const handleProfileClick = () => {
@@ -662,17 +659,12 @@ const HeaderAdmin = React.memo(() => {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 
-                      {/* <DropdownMenuItem onClick={handleChatClick}>
+                      <DropdownMenuItem onClick={handleChatClick}>
                         <ChatBubbleIcon className="mr-2 h-4 w-4" />
                         <span>Messages</span>
-                        {unreadMessagesData.totalUnreadCount > 0 && (
-                          <span className="ml-auto text-red-500 font-bold">
-                            {unreadMessagesData.totalUnreadCount}
-                          </span>
-                        )}
-                      </DropdownMenuItem> */}
+                      </DropdownMenuItem>
 
-                      {/* <DropdownMenuSeparator /> */}
+                      <DropdownMenuSeparator />
 
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
