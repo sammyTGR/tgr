@@ -52,7 +52,7 @@ function FlagsmithWrapperInner({
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
         .select("role")
-        .eq("email", user.email)
+        .eq("email", user.email || "")
         .single();
 
       if (customerData) return customerData.role;
