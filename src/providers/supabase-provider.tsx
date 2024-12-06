@@ -1,17 +1,19 @@
 "use client";
 
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/auth-helpers-nextjs";
+import type { SupabaseClient, User } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "../../types/supabase";
-import { getSupabaseClient } from "@/utils/supabase/client";
 
 type SupabaseContextType = {
-  supabase: ReturnType<typeof getSupabaseClient>;
+  supabase: SupabaseClient<Database>;
   user: User | null;
 };
 
 const Context = createContext<SupabaseContextType | undefined>(undefined);
+
+let supabaseInstance: SupabaseClient<Database> | null = null;
 
 export default function SupabaseProvider({
   children,
@@ -20,7 +22,12 @@ export default function SupabaseProvider({
 }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [supabase] = useState(() => getSupabaseClient());
+  const [supabase] = useState(() => {
+    if (!supabaseInstance) {
+      supabaseInstance = createClientComponentClient<Database>();
+    }
+    return supabaseInstance;
+  });
 
   useEffect(() => {
     // Get initial user

@@ -402,7 +402,7 @@ const HeaderAdmin = React.memo(() => {
         supabase
           .from("direct_messages")
           .select("id")
-          .eq("receiver_id", currentUser?.id)
+          .eq("receiver_id", currentUser?.id || "")
           .eq("is_read", false),
         supabase
           .from("group_chat_messages")
