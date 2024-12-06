@@ -34,12 +34,12 @@ import styles from "./table.module.css";
 // Types and Interfaces
 interface CertificationData {
   id: string;
-  name: string;
-  certificate: string;
-  number: number;
-  expiration: string;
-  status: string;
-  action_status: string;
+  name: string | null;
+  certificate: string | null;
+  number: number | null;
+  expiration: string | null;
+  status: string | null;
+  action_status: string | null;
 }
 
 interface Employee {
@@ -88,7 +88,7 @@ const CertificationsPage: React.FC = () => {
       if (error) throw error;
       return data.map((emp) => ({
         ...emp,
-        name: DOMPurify.sanitize(emp.name),
+        name: DOMPurify.sanitize(emp.name || ""),
       }));
     },
   });
@@ -124,9 +124,9 @@ const CertificationsPage: React.FC = () => {
       return {
         data: result.data.map((cert: CertificationData) => ({
           ...cert,
-          name: DOMPurify.sanitize(cert.name),
-          certificate: DOMPurify.sanitize(cert.certificate),
-          status: DOMPurify.sanitize(cert.status),
+          name: DOMPurify.sanitize(cert.name ?? ""),
+          certificate: DOMPurify.sanitize(cert.certificate ?? ""),
+          status: DOMPurify.sanitize(cert.status ?? ""),
         })),
         pageCount: Math.ceil(result.count / tableState.pagination.pageSize),
       };
@@ -188,9 +188,9 @@ const CertificationsPage: React.FC = () => {
     mutationFn: async (newCertification) => {
       const sanitizedCert = {
         ...newCertification,
-        name: DOMPurify.sanitize(newCertification.name || ""),
-        certificate: DOMPurify.sanitize(newCertification.certificate || ""),
-        status: DOMPurify.sanitize(newCertification.status || ""),
+        name: DOMPurify.sanitize(newCertification.name ?? ""),
+        certificate: DOMPurify.sanitize(newCertification.certificate ?? ""),
+        status: DOMPurify.sanitize(newCertification.status ?? ""),
       };
 
       const { data, error } = await supabase
@@ -200,7 +200,9 @@ const CertificationsPage: React.FC = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      if (!data) throw new Error("No data returned from insert");
+
+      return data as CertificationData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["certifications"] });

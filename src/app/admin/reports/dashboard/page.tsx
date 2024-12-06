@@ -124,13 +124,13 @@ interface Suggestion {
   id: number;
   suggestion: string;
   created_by: string;
-  created_at: string;
-  is_read: boolean;
+  created_at: string | null;
+  is_read: boolean | null;
   replied_by: string | null;
-  replierName: string | null;
   replied_at: string | null;
-  reply: string | null; // Add this line
-  email: string;
+  reply: string | null;
+  email: string | null;
+  replierName?: string | null;
 }
 
 interface ReplyStates {
@@ -283,7 +283,7 @@ function AdminDashboardContent() {
 
                 return Promise.resolve(
                   sendEmail(
-                    suggestion.email,
+                    suggestion.email || "",
                     "Reply to Your Suggestion",
                     "SuggestionReply",
                     {
@@ -514,7 +514,7 @@ function AdminDashboardContent() {
 
                 return Promise.resolve(
                   sendEmail(
-                    suggestion.email,
+                    suggestion.email || "",
                     "Reply to Your Suggestion",
                     "SuggestionReply",
                     {
@@ -667,11 +667,14 @@ function AdminDashboardContent() {
           if (error) throw error;
 
           const firearmsCount = data.length;
-          const lastSubmission = data.reduce((latest, current) => {
-            return latest && latest > current.last_maintenance_date
-              ? latest
-              : current.last_maintenance_date;
-          }, null);
+          const lastSubmission = data.reduce(
+            (latest: string | null, current) => {
+              return latest && latest > (current.last_maintenance_date ?? "")
+                ? latest
+                : current.last_maintenance_date ?? null;
+            },
+            null
+          );
 
           const submitted = lastSubmission
             ? new Date(lastSubmission) >
@@ -1032,7 +1035,7 @@ function AdminDashboardContent() {
     onClose,
   }: {
     suggestion: Suggestion;
-    onSubmit: (text: string) => void;
+    onSubmit: (text: string) => Promise<void>;
     onClose: () => void;
   }) {
     const queryClient = useQueryClient();
@@ -1054,12 +1057,10 @@ function AdminDashboardContent() {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      return Promise.resolve()
-        .then(() => onSubmit(replyText))
-        .then(() => {
-          replyTextMutation.mutate({ id: suggestion.id, text: "" }); // Clear the form
-          onClose(); // Close the popover after successful submission
-        });
+      onSubmit(replyText).then(() => {
+        replyTextMutation.mutate({ id: suggestion.id, text: "" });
+        onClose();
+      });
     };
 
     return (
@@ -1132,7 +1133,7 @@ function AdminDashboardContent() {
                 title="Daily Range Walk Reports"
                 date={rangeWalk?.date_of_walk || null}
                 icon={<MagnifyingGlassIcon className="h-6 w-6" />}
-                extraInfo={rangeWalk?.user_name}
+                extraInfo={rangeWalk?.user_name || ""}
               />
               <ReportCard
                 title="Daily Deposits"
@@ -1161,7 +1162,10 @@ function AdminDashboardContent() {
                   certificates && certificates.length === 1 ? "s" : ""
                 } renewal`}
                 type="certificate"
-                details={certificates}
+                details={certificates?.map((cert) => ({
+                  name: cert.name || "",
+                  value: cert.expiration || "",
+                }))}
               />
             </div>
           </div>
@@ -1199,7 +1203,7 @@ function AdminDashboardContent() {
                                 <TableCell>{suggestion.suggestion}</TableCell>
                                 <TableCell>
                                   {new Date(
-                                    suggestion.created_at
+                                    suggestion.created_at || ""
                                   ).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell>
@@ -1225,7 +1229,7 @@ function AdminDashboardContent() {
                                       <PopoverTrigger asChild>
                                         <Button
                                           variant="outline"
-                                          disabled={suggestion.is_read}
+                                          disabled={suggestion.is_read ?? false}
                                         >
                                           {suggestion.is_read
                                             ? "Replied"
@@ -1423,7 +1427,10 @@ function AdminDashboardContent() {
                                   </span>
                                   <Button
                                     onClick={() =>
-                                      setEditingDomainMutation.mutate(domain)
+                                      setEditingDomainMutation.mutate({
+                                        id: domain.id,
+                                        domain: domain.domain || "",
+                                      })
                                     }
                                     variant="outline"
                                   >
