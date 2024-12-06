@@ -34,6 +34,9 @@ export interface CertificationData {
   expiration: string;
   status: string;
   action_status: string;
+  employees?: {
+    status: string;
+  };
 }
 
 export interface Employee {

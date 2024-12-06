@@ -83,7 +83,8 @@ const CertificationsPage: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("employee_id, name");
+        .select("employee_id, name, status")
+        .eq("status", "active");
       if (error) throw error;
       return data.map((emp) => ({
         ...emp,
