@@ -843,7 +843,13 @@ function AdminDashboardContent() {
               const formattedData = jsonData.slice(1).map((row: any) => {
                 const rowData: any = {};
                 keys.forEach((key, index) => {
-                  rowData[key] = row[index];
+                  // Skip the Margin and Margin % columns
+                  if (key !== "Margin" && key !== "Margin %") {
+                    // Handle Primary Email column name change if needed
+                    const mappedKey =
+                      key === "Primary Email" ? "Primary Email" : key;
+                    rowData[mappedKey] = row[index];
+                  }
                 });
 
                 const categoryLabel =

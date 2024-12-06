@@ -617,13 +617,13 @@ const HeaderAdmin = React.memo(() => {
                 </Button>
               </Link>
 
+              <NotificationBell />
+
               <Link href="/admin/reports/dashboard">
                 <Button variant="ghost" size="icon">
                   <HomeIcon />
                 </Button>
               </Link>
-
-              <NotificationBell />
 
               <div className="flex items-center space-x-1">
                 <Suspense fallback={<LoadingIndicator />}>
@@ -663,7 +663,7 @@ const HeaderAdmin = React.memo(() => {
                         <ChatBubbleIcon className="mr-2 h-4 w-4" />
                         <span>Messages</span>
                       </DropdownMenuItem>
-
+                      <DropdownMenuSeparator />
                       <DropdownMenuSeparator />
 
                       <DropdownMenuSub>
