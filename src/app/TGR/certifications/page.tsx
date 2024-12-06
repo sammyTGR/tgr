@@ -66,8 +66,8 @@ const CertificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { role } = useRole();
 
-  // Create ref for current table state
-  const tableState = React.useRef({
+  // Convert tableState from ref to state
+  const [tableState, setTableState] = React.useState({
     sorting: [{ id: "expiration", desc: false }] as SortingState,
     pagination: {
       pageIndex: 0,
@@ -95,32 +95,29 @@ const CertificationsPage: React.FC = () => {
   const certificationsQuery = useQuery({
     queryKey: [
       "certifications",
-      tableState.current.pagination,
-      tableState.current.sorting,
-      tableState.current.columnFilters,
+      tableState.pagination,
+      tableState.sorting,
+      tableState.columnFilters,
     ],
     queryFn: async () => {
-      const state = tableState.current;
       const response = await fetch("/api/fetch-certifications-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pageIndex: state.pagination.pageIndex,
-          pageSize: state.pagination.pageSize,
-          filters: state.columnFilters.map((filter) => ({
+          pageIndex: tableState.pagination.pageIndex,
+          pageSize: tableState.pagination.pageSize,
+          filters: tableState.columnFilters.map((filter) => ({
             id: DOMPurify.sanitize(filter.id),
             value:
               typeof filter.value === "string"
                 ? DOMPurify.sanitize(filter.value)
                 : filter.value,
           })),
-          sorting: state.sorting,
+          sorting: tableState.sorting,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      if (!response.ok) throw new Error(await response.text());
 
       const result = await response.json();
       return {
@@ -130,7 +127,7 @@ const CertificationsPage: React.FC = () => {
           certificate: DOMPurify.sanitize(cert.certificate),
           status: DOMPurify.sanitize(cert.status),
         })),
-        pageCount: Math.ceil(result.count / state.pagination.pageSize),
+        pageCount: Math.ceil(result.count / tableState.pagination.pageSize),
       };
     },
   });
@@ -145,12 +142,9 @@ const CertificationsPage: React.FC = () => {
     () =>
       Math.ceil(
         (certificationsQuery.data?.pageCount ?? 0) *
-          tableState.current.pagination.pageSize
+          tableState.pagination.pageSize
       ),
-    [
-      certificationsQuery.data?.pageCount,
-      tableState.current.pagination.pageSize,
-    ]
+    [certificationsQuery.data?.pageCount, tableState.pagination.pageSize]
   );
 
   // Mutations
@@ -218,12 +212,12 @@ const CertificationsPage: React.FC = () => {
 
   // Table instance
   const table = useReactTable({
-    data: [],
+    data: tableData,
     columns: certificationColumns((id, updates) =>
       updateMutation.mutate({ id, updates })
     ),
+    pageCount: certificationsQuery.data?.pageCount ?? -1,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
@@ -234,25 +228,43 @@ const CertificationsPage: React.FC = () => {
       size: 150,
       maxSize: 500,
     },
-    initialState: {
-      pagination: {
-        pageIndex: 0,
-        pageSize: 10,
-      },
-      sorting: [{ id: "expiration", desc: false }],
-      columnFilters: [],
+    state: {
+      pagination: tableState.pagination,
+      sorting: tableState.sorting,
+      columnFilters: tableState.columnFilters,
+      columnVisibility: tableState.columnVisibility,
     },
-    onStateChange: (updater) => {
-      queryClient.invalidateQueries({ queryKey: ["certifications"] });
+    onPaginationChange: (updater) => {
+      setTableState((prev) => ({
+        ...prev,
+        pagination:
+          typeof updater === "function" ? updater(prev.pagination) : updater,
+      }));
+    },
+    onSortingChange: (updater) => {
+      setTableState((prev) => ({
+        ...prev,
+        sorting:
+          typeof updater === "function" ? updater(prev.sorting) : updater,
+      }));
+    },
+    onColumnFiltersChange: (updater) => {
+      setTableState((prev) => ({
+        ...prev,
+        columnFilters:
+          typeof updater === "function" ? updater(prev.columnFilters) : updater,
+      }));
+    },
+    onColumnVisibilityChange: (updater) => {
+      setTableState((prev) => ({
+        ...prev,
+        columnVisibility:
+          typeof updater === "function"
+            ? updater(prev.columnVisibility)
+            : updater,
+      }));
     },
   });
-
-  // Update table state
-  table.options.data = tableData;
-  table.options.pageCount = Math.ceil(
-    (certificationsQuery.data?.pageCount ?? 0) *
-      table.getState().pagination.pageSize
-  );
 
   return (
     <div className="flex flex-col h-screen my-8 overflow-hidden">
@@ -266,10 +278,7 @@ const CertificationsPage: React.FC = () => {
 
           <div className="grid flex-1 items-start mt-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body">
             <div className="container px-4 mt-4">
-              <TabsContent
-                value="certifications"
-                className="mt-0 overflow-hidden"
-              >
+              <TabsContent value="certifications" className="overflow-hidden">
                 <Card className="h-full overflow-hidden">
                   <CardHeader>
                     <CardTitle className="text-2xl font-bold">
@@ -278,11 +287,14 @@ const CertificationsPage: React.FC = () => {
                   </CardHeader>
                   <ScrollArea>
                     <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto relative">
-                      <CardContent className="p-0 mx-auto overflow-hidden">
+                      <CardContent className="mx-auto overflow-hidden">
                         <CertificationTableToolbar
                           table={table}
                           onFilterChange={(filters) => {
-                            tableState.current.columnFilters = filters;
+                            setTableState((prev) => ({
+                              ...prev,
+                              columnFilters: filters,
+                            }));
                             queryClient.invalidateQueries({
                               queryKey: ["certifications"],
                             });
