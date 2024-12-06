@@ -10,14 +10,11 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
-// import { UnreadCountsProvider } from "../components/UnreadCountsContext.tsx";
 import QueryProvider from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { VercelToolbar } from "@vercel/toolbar/next";
-import Provider from "./provider";
 import flagsmith from "flagsmith/isomorphic";
 import { IState } from "flagsmith/types";
-import dynamic from "next/dynamic";
 import FlagsmithWrapper from "@/FlagsmithWrapper";
 import { ReactElement } from "react";
 import SupabaseProvider from "@/providers/supabase-provider";
@@ -34,8 +31,6 @@ const clientId = process.env.GOOGLE_CLIENT_ID!;
 if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
-
-const DynamicProvider = dynamic(() => import("./provider"), { ssr: false });
 
 async function initializeFlagsmith(): Promise<IState<string> | undefined> {
   const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
@@ -66,12 +61,12 @@ export default async function RootLayout({
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
-    <RoleProvider>
-      <GoogleOAuthProvider clientId={clientId}>
-        <html lang="en" suppressHydrationWarning>
-          <body className={inter.className}>
-            <QueryProvider>
-              <SupabaseProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <SupabaseProvider>
+          <QueryProvider>
+            <RoleProvider>
+              <GoogleOAuthProvider clientId={clientId}>
                 <FlagsmithWrapper flagsmithState={flagsmithState}>
                   <NextSSRPlugin
                     routerConfig={extractRouterConfig(ourFileRouter)}
@@ -82,26 +77,23 @@ export default async function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                   >
-                    {/* <UnreadCountsProvider> */}
                     <NotificationsProvider>
                       <RealTimeNotificationsWrapper />
                       <Header />
                       <main>
                         {children as ReactElement}
-
                         {shouldInjectToolbar && <VercelToolbar />}
                         <Analytics />
                       </main>
                       <Toaster />
                     </NotificationsProvider>
-                    {/* </UnreadCountsProvider> */}
                   </ThemeProvider>
                 </FlagsmithWrapper>
-              </SupabaseProvider>
-            </QueryProvider>
-          </body>
-        </html>
-      </GoogleOAuthProvider>
-    </RoleProvider>
+              </GoogleOAuthProvider>
+            </RoleProvider>
+          </QueryProvider>
+        </SupabaseProvider>
+      </body>
+    </html>
   );
 }

@@ -1,10 +1,6 @@
 "use client";
-import {
-  createContext,
-  useContext,
-  ReactNode,
-} from "react";
-import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createContext, useContext, ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface RoleContextType {
   role: string | null;
@@ -14,23 +10,18 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-// Create a client
-const queryClient = new QueryClient();
-
-// Create the inner provider that uses the query
-const RoleProviderInner = ({ children }: { children: ReactNode }) => {
+export const RoleProvider = ({ children }: { children: ReactNode }) => {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['userRole'],
+    queryKey: ["userRole"],
     queryFn: async () => {
-      const response = await fetch('/api/getUserRole');
+      const response = await fetch("/api/getUserRole");
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch user role');
+        throw new Error(error.error || "Failed to fetch user role");
       }
       return response.json();
     },
     retry: false,
-
   });
 
   if (error) {
@@ -38,24 +29,15 @@ const RoleProviderInner = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <RoleContext.Provider 
-      value={{ 
-        role: data?.role ?? null, 
-        loading: isLoading, 
-        user: data?.user ?? null 
+    <RoleContext.Provider
+      value={{
+        role: data?.role ?? null,
+        loading: isLoading,
+        user: data?.user ?? null,
       }}
     >
       {children}
     </RoleContext.Provider>
-  );
-};
-
-// Create the outer provider that provides the QueryClient
-export const RoleProvider = ({ children }: { children: ReactNode }) => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <RoleProviderInner>{children}</RoleProviderInner>
-    </QueryClientProvider>
   );
 };
 

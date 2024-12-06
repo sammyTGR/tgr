@@ -1,8 +1,18 @@
-// this is the one to utilize for all user auth
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "../../../types/supabase";
 
-import { createBrowserClient as createClient } from '@supabase/ssr';
+let supabaseInstance: ReturnType<typeof createBrowserClient<Database>> | null =
+  null;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+export function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return supabaseInstance;
+}
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// For backwards compatibility
+export const supabase = getSupabaseClient();

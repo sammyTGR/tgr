@@ -6,6 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ChatItem {
   id: string;
@@ -164,6 +175,37 @@ export function ChatSidebar({
     },
   });
 
+  const DeleteButton = ({ chatId }: { chatId: string }) => (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span className="sr-only">Delete chat</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the chat
+            and remove all messages.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => onDeleteChat(chatId)}>
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   return (
     <div className="w-[45rem] rounded-md border border-zinc-800 max-h-[calc(100vh-25rem)] overflow-hidden">
       <h2 className="text-xl font-semibold p-4">Chats</h2>
@@ -204,20 +246,7 @@ export function ChatSidebar({
                   </div>
                 </div>
               </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm("Are you sure you want to delete this chat?")) {
-                    onDeleteChat(chat.id);
-                  }
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Delete chat</span>
-              </Button>
+              <DeleteButton chatId={chat.id} />
             </div>
           ))
         )}

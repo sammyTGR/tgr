@@ -27,7 +27,8 @@ import { useQuery } from "@tanstack/react-query";
 
 interface RevenueData {
   month: string;
-  revenue: number;
+  grossRevenue: number;
+  netRevenue: number;
 }
 
 interface MetricData {
@@ -35,10 +36,22 @@ interface MetricData {
   value: string;
 }
 
+interface SalesMetrics {
+  averageMonthlyGrossRevenue: number;
+  averageMonthlyNetRevenue: number;
+  topPerformingCategories: { category: string; revenue: number }[];
+  peakHours: { hour: number; transactions: number }[];
+  customerFrequency: { visits: string; percentage: number }[];
+}
+
 const chartConfig = {
-  revenue: {
-    label: "Net Revenue",
+  grossRevenue: {
+    label: "Gross Revenue",
     color: "hsl(var(--chart-1))",
+  },
+  netRevenue: {
+    label: "Net Revenue",
+    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig;
 
@@ -53,13 +66,6 @@ const columns = [
     header: "Value",
     cell: (info) => info.getValue(),
   }),
-];
-
-const metricsData = [
-  { metric: "Average Monthly Revenue", value: "$103,333" },
-  { metric: "Customer Retention Rate", value: "87%" },
-  { metric: "Class Attendance Rate", value: "92%" },
-  { metric: "Staff Satisfaction Score", value: "4.8/5" },
 ];
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -83,6 +89,10 @@ const chartColors = [
 ];
 
 const FranchisePresentation = () => {
+  const [activeChart, setActiveChart] = React.useState<
+    "grossRevenue" | "netRevenue"
+  >("netRevenue");
+
   const {
     data: revenueData,
     isLoading,
@@ -100,11 +110,68 @@ const FranchisePresentation = () => {
     refetchInterval: 300000, // Refetch every 5 minutes
   });
 
+  const { data: metrics, isLoading: isMetricsLoading } = useQuery<SalesMetrics>(
+    {
+      queryKey: ["metrics"],
+      queryFn: async () => {
+        const response = await fetch("/api/metrics");
+        if (!response.ok) {
+          throw new Error("Failed to fetch metrics");
+        }
+        return response.json();
+      },
+    }
+  );
+
+  const metricsData = React.useMemo(() => {
+    if (!metrics) return [];
+
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+
+    return [
+      {
+        metric: "Average Monthly Gross Revenue",
+        value: formatter.format(metrics.averageMonthlyGrossRevenue),
+      },
+      {
+        metric: "Average Monthly Net Revenue",
+        value: formatter.format(metrics.averageMonthlyNetRevenue),
+      },
+      {
+        metric: "Top Performing Category",
+        value: metrics.topPerformingCategories[0]?.category || "N/A",
+      },
+      {
+        metric: "Peak Business Hour",
+        value: metrics.peakHours[0]
+          ? `${metrics.peakHours[0].hour}:00 (${metrics.peakHours[0].transactions} transactions)`
+          : "N/A",
+      },
+      {
+        metric: "Regular Customer Rate",
+        value: `${metrics.customerFrequency[1]?.percentage || 0}%`,
+      },
+    ];
+  }, [metrics]);
+
   const table = useReactTable({
     data: metricsData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
+
+  const total = React.useMemo(
+    () => ({
+      grossRevenue:
+        revenueData?.reduce((acc, curr) => acc + curr.grossRevenue, 0) || 0,
+      netRevenue:
+        revenueData?.reduce((acc, curr) => acc + curr.netRevenue, 0) || 0,
+    }),
+    [revenueData]
+  );
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
@@ -116,126 +183,16 @@ const FranchisePresentation = () => {
 
       <Tabs defaultValue="overview">
         <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">TGR Web App Overview</TabsTrigger>
           <TabsTrigger value="operations">Operations</TabsTrigger>
           <TabsTrigger value="staff">Staff Management</TabsTrigger>
           <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Net Revenue</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[400px] w-full p-4">
-              <ChartContainer config={chartConfig} className="min-h-[20px] h-full w-full">
-                {(() => {
-                  if (isLoading) {
-                    return (
-                      <div className="flex items-center justify-center h-full">
-                        Loading...
-                      </div>
-                    );
-                  }
-
-                  if (error) {
-                    return (
-                      <div className="flex items-center justify-center h-full text-red-500">
-                        Error loading data
-                      </div>
-                    );
-                  }
-
-                  if (!revenueData || revenueData.length === 0) {
-                    return (
-                      <div className="flex items-center justify-center h-full">
-                        No data available
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <ResponsiveContainer width="100%" height={350}>
-                      <BarChart
-                        data={revenueData}
-                        margin={{ top: 20, right: 20, left: 40, bottom: 60 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="month"
-                          tickLine={false}
-                          tickMargin={30}
-                          axisLine={false}
-                          fontSize={12}
-                          angle={-45}
-                          textAnchor="end"
-                          interval={0}
-                          height={40}
-                        />
-                        <YAxis
-                          tickFormatter={(value) =>
-                            currencyFormatter.format(value)
-                          }
-                          tickLine={false}
-                          tickMargin={8}
-                          axisLine={false}
-                          fontSize={12}
-                          width={60}
-                        />
-                        <ChartTooltip
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              return (
-                                <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
-                                  <p className="text-muted-foreground">
-                                    Net Revenue
-                                  </p>
-                                  
-                                  
-                                  <p className="font-mono font-medium">
-                                    {currencyFormatter.format(
-                                      payload[0].value as number
-                                    )}
-                                  </p>
-                                  <p className="font-medium">{label}</p>
-                                  
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                          cursor={{ fill: "transparent" }}
-                        />
-                        <Bar
-                          dataKey="revenue"
-                          radius={[4, 4, 0, 0]}
-                          maxBarSize={40}
-                          shape={(props: any) => {
-                            const { x, y, width, height, index } = props;
-                            return (
-                              <rect
-                                x={x}
-                                y={y}
-                                width={width}
-                                height={height}
-                                fill={chartColors[index % chartColors.length]}
-                                rx={4}
-                                ry={4}
-                              />
-                            );
-                          }}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  );
-                })()}
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-3 gap-4">
             <FeatureCard
-              title="Daily Operations"
+              title="Oversee Operations Management On TGR"
               features={[
                 "Scheduling",
                 "Time Tracking",
@@ -273,6 +230,128 @@ const FranchisePresentation = () => {
           </div>
         </TabsContent>
 
+        <TabsContent value="metrics">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
+                <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
+                  <CardTitle>Revenue Analysis</CardTitle>
+                </div>
+                <div className="flex">
+                  {(["grossRevenue", "netRevenue"] as const).map((key) => (
+                    <button
+                      key={key}
+                      data-active={activeChart === key}
+                      className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+                      onClick={() => setActiveChart(key)}
+                    >
+                      <span className="text-xs text-muted-foreground">
+                        {chartConfig[key].label} (YTD)
+                      </span>
+                      <span className="text-lg font-bold leading-none sm:text-3xl">
+                        {currencyFormatter.format(total[key])}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                <ChartContainer
+                  config={chartConfig}
+                  className="min-h-[400px] w-full"
+                >
+                  <BarChart
+                    data={revenueData}
+                    margin={{ top: 10, right: 10, left: 40, bottom: 40 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      tickMargin={30}
+                      axisLine={false}
+                      fontSize={12}
+                      angle={-45}
+                      textAnchor="end"
+                      interval={0}
+                      height={40}
+                    />
+                    <YAxis
+                      tickFormatter={(value) => currencyFormatter.format(value)}
+                      tickLine={false}
+                      tickMargin={8}
+                      axisLine={false}
+                      fontSize={12}
+                      width={60}
+                    />
+                    <ChartTooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
+                              <p className="text-muted-foreground">
+                                {chartConfig[activeChart].label}
+                              </p>
+                              <p className="font-mono font-medium">
+                                {currencyFormatter.format(
+                                  payload[0].value as number
+                                )}
+                              </p>
+                              <p className="font-medium">{label}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                      cursor={{ fill: "transparent" }}
+                    />
+                    <Bar
+                      dataKey={activeChart}
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                      shape={(props: any) => {
+                        const { x, y, width, height, index } = props;
+                        return (
+                          <rect
+                            x={x}
+                            y={y}
+                            width={width}
+                            height={height}
+                            fill={chartColors[index % chartColors.length]}
+                            rx={4}
+                            ry={4}
+                          />
+                        );
+                      }}
+                    />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-4">
+              <MetricsCard
+                title="Financial Metrics"
+                metrics={[
+                  "Real-time revenue tracking",
+                  "Expense management",
+                  "Profit analysis",
+                  "Inventory costs",
+                ]}
+              />
+              <MetricsCard
+                title="Operational Metrics"
+                metrics={[
+                  "Lane utilization rates",
+                  "Class attendance",
+                  "Customer satisfaction",
+                  "Safety compliance",
+                ]}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
         <TabsContent value="operations">
           <div className="grid grid-cols-2 gap-4">
             <OperationsCard
@@ -302,69 +381,52 @@ const FranchisePresentation = () => {
               <CardTitle>Performance Metrics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <td
-                            key={cell.id}
-                            className="px-6 py-4 whitespace-nowrap"
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {isMetricsLoading ? (
+                <div className="flex items-center justify-center p-4">
+                  Loading metrics...
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {table.getRowModel().rows.map((row) => (
+                        <tr key={row.id}>
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-6 py-4 whitespace-nowrap"
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="metrics">
-          <div className="grid grid-cols-2 gap-4">
-            <MetricsCard
-              title="Financial Metrics"
-              metrics={[
-                "Real-time revenue tracking",
-                "Expense management",
-                "Profit analysis",
-                "Inventory costs",
-              ]}
-            />
-            <MetricsCard
-              title="Operational Metrics"
-              metrics={[
-                "Lane utilization rates",
-                "Class attendance",
-                "Customer satisfaction",
-                "Safety compliance",
-              ]}
-            />
-          </div>
         </TabsContent>
       </Tabs>
     </div>

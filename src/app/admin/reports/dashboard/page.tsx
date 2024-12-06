@@ -149,7 +149,11 @@ const LazySalesDataTable = dynamic(
       default: module.default,
     })),
   {
-    loading: () => <LoadingIndicator />,
+    loading: () => (
+      <div className="relative w-full h-[400px]">
+        <LoadingIndicator />
+      </div>
+    ),
   }
 );
 
@@ -164,15 +168,9 @@ function AdminDashboardContent() {
 
   const { isLoading } = useQuery({
     queryKey: ["navigation", pathname, searchParams],
-    queryFn: () => {
-      return Promise.resolve(
-        new Promise((resolve) => {
-          setTimeout(() => resolve(null), 100);
-        })
-      );
-    },
-    staleTime: 0, // Always refetch on route change
-    refetchInterval: 0, // Disable automatic refetching
+    queryFn: () => Promise.resolve(null),
+    staleTime: 0,
+    refetchInterval: 0,
   });
 
   // Modify the suggestions section in AdminDashboardContent:
@@ -468,14 +466,11 @@ function AdminDashboardContent() {
   });
 
   const uploadFileMutation = useMutation({
-    mutationFn: (file: File) => {
+    mutationFn: async (file: File) => {
       const upload = (progress: number) => {
         queryClient.setQueryData(["uploadProgress"], progress);
       };
-      return Promise.resolve(handleFileUpload(file, upload));
-    },
-    onMutate: () => {
-      queryClient.setQueryData(["uploadProgress"], 0);
+      return handleFileUpload(file, upload);
     },
     onSuccess: () => {
       queryClient.setQueryData(["uploadProgress"], 100);
@@ -485,10 +480,6 @@ function AdminDashboardContent() {
         fileName: null,
         fileInputKey: Date.now(),
       });
-    },
-    onError: (error) => {
-      // console.error("Error during upload and processing:", error);
-      toast.error("Failed to upload and process file");
     },
   });
 
@@ -1091,8 +1082,12 @@ function AdminDashboardContent() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
-      {isLoading && <LoadingIndicator />}
-      <div className="section w-full overflow-hidden">
+      <div className="relative section w-full overflow-hidden">
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50">
+            <LoadingIndicator />
+          </div>
+        )}
         <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
           {/*todo card*/}
@@ -1547,12 +1542,16 @@ function AdminDashboardContent() {
                     <CardContent className="flex-grow overflow-auto">
                       <div className="h-[400px]">
                         <Suspense fallback={<div>Loading chart...</div>}>
-                          <SalesRangeStackedBarChart
-                            selectedRange={{
-                              start: selectedRange?.start ?? undefined,
-                              end: selectedRange?.end ?? undefined,
-                            }}
-                          />
+                          {selectedRange ? (
+                            <SalesRangeStackedBarChart
+                              selectedRange={{
+                                start: selectedRange.start,
+                                end: selectedRange.end,
+                              }}
+                            />
+                          ) : (
+                            <div>Please select a date range</div>
+                          )}
                         </Suspense>
                       </div>
                     </CardContent>
