@@ -1,11 +1,13 @@
-import { headers } from 'next/headers';
-import { NextResponse, NextRequest } from 'next/server';
+import { headers } from "next/headers";
+import { NextResponse, NextRequest } from "next/server";
 
-const BASE_URL = 'https://cloud.fastbound.com'; // This is the correct base URL for FastBound
+const BASE_URL = "https://cloud.fastbound.com"; // This is the correct base URL for FastBound
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
 if (!ACCOUNT_NUMBER) {
-  throw new Error('FASTBOUND_ACCOUNT_NUMBER is not set in environment variables');
-};
+  throw new Error(
+    "FASTBOUND_ACCOUNT_NUMBER is not set in environment variables"
+  );
+}
 const API_KEY = process.env.FASTBOUND_API_KEY;
 const AUDIT_USER = process.env.FASTBOUND_AUDIT_USER;
 
@@ -23,7 +25,7 @@ class RateLimiter {
 
     if (this.requestCount >= 60) {
       const waitTime = this.resetInterval - (now - this.lastRequestTime);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
       this.requestCount = 0;
       this.lastRequestTime = Date.now();
     }
@@ -37,15 +39,15 @@ const rateLimiter = new RateLimiter();
 async function fetchItems(url: string, headers: HeadersInit) {
   await rateLimiter.limit();
   try {
-    const response = await fetch(url, { method: 'GET', headers });
-    
+    const response = await fetch(url, { method: "GET", headers });
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("FastBound API error response:", {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers),
-        body: errorText
+        body: errorText,
       });
       throw new Error(`FastBound API error: ${response.status} ${errorText}`);
     }
@@ -60,15 +62,40 @@ async function fetchItems(url: string, headers: HeadersInit) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const skip = parseInt(searchParams.get('skip') || '0', 10);
-    const take = parseInt(searchParams.get('take') || '10', 10);
+    const skip = parseInt(searchParams.get("skip") || "0", 10);
+    const take = parseInt(searchParams.get("take") || "10", 10);
 
     const validParams = new URLSearchParams();
-    validParams.set('take', take.toString());
-    validParams.set('skip', skip.toString());
+    validParams.set("take", take.toString());
+    validParams.set("skip", skip.toString());
 
     // Add other necessary parameters
-    ['search', 'itemNumber', 'serial', 'manufacturer', 'importer', 'model', 'type', 'caliber', 'location', 'condition', 'mpn', 'upc', 'sku', 'isTheftLoss', 'isDestroyed', 'doNotDispose', 'dispositionId', 'status', 'acquiredOnOrAfter', 'acquiredOnOrBefore', 'disposedOnOrAfter', 'disposedOnOrBefore', 'hasExternalId', 'acquisitionType'].forEach(param => {
+    [
+      "search",
+      "itemNumber",
+      "serial",
+      "manufacturer",
+      "importer",
+      "model",
+      "type",
+      "caliber",
+      "location",
+      "condition",
+      "mpn",
+      "upc",
+      "sku",
+      "isTheftLoss",
+      "isDestroyed",
+      "doNotDispose",
+      "dispositionId",
+      "status",
+      "acquiredOnOrAfter",
+      "acquiredOnOrBefore",
+      "disposedOnOrAfter",
+      "disposedOnOrBefore",
+      "hasExternalId",
+      "acquisitionType",
+    ].forEach((param) => {
       const value = searchParams.get(param);
       if (value !== null && value !== "") validParams.append(param, value);
     });
@@ -79,13 +106,13 @@ export async function GET(request: NextRequest) {
     // console.log("Requesting FastBound API with URL:", fbUrl);
 
     if (!API_KEY) {
-      throw new Error('FASTBOUND_API_KEY is not set in environment variables');
+      throw new Error("FASTBOUND_API_KEY is not set in environment variables");
     }
 
     const headers = {
-      'Authorization': `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
-      'Content-Type': 'application/json',
-      'X-AuditUser': AUDIT_USER || '',
+      Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString("base64")}`,
+      "Content-Type": "application/json",
+      "X-AuditUser": AUDIT_USER || "",
     };
 
     // console.log("Request headers:", headers);
@@ -115,7 +142,10 @@ export async function GET(request: NextRequest) {
       skip,
     });
   } catch (error: any) {
-    console.error('Error in API route:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    console.error("Error in API route:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error.message },
+      { status: 500 }
+    );
   }
 }

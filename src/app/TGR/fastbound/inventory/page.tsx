@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import {
   keepPreviousData,
   useQuery,
@@ -8,7 +8,17 @@ import {
 } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  SearchFields,
+  AcquisitionFields,
+  DispositionFields,
+  StatusFields,
+} from "./components/index";
+import type { SearchParams, InventoryItem, InventoryResponse } from "./types";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,50 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-interface InventoryItem {
-  id: string;
-  itemNumber: string;
-  serial: string;
-  manufacturer: string;
-  model: string;
-  type: string;
-  caliber: string;
-  location: string;
-  condition: string;
-  status: {
-    id: number;
-    name: string;
-  };
-}
-
-interface InventoryResponse {
-  items: InventoryItem[];
-  totalItems: number;
-  currentPage: number;
-  totalPages: number;
-  records: number;
-  itemsPerPage: number;
-  skip: number;
-}
-
-interface SearchParams {
-  search: string;
-  itemNumber: string;
-  serial: string;
-  manufacturer: string;
-  model: string;
-  type: string;
-  caliber: string;
-  location: string;
-  condition: string;
-  status: string;
-  skip: number;
-  take: number;
-}
-
-const initialSearchParams: SearchParams = {
+const initialSearchParams: SearchParams & { searchTriggered: boolean } = {
   search: "",
   itemNumber: "",
   serial: "",
@@ -73,43 +41,40 @@ const initialSearchParams: SearchParams = {
   status: "",
   skip: 0,
   take: 10,
+  disposedStatus: "3", // "Both"
+  deletedStatus: "1", // "Not Deleted Only"
+  doNotDisposeStatus: "1", // "Not Do Not Dispose Only"
+  searchTriggered: false,
 };
 
-const fetchInventory = async (
-  searchParams: SearchParams
-): Promise<InventoryResponse> => {
-  const params = new URLSearchParams(
-    Object.entries(searchParams).filter(
-      ([_, v]) => v !== "" && v !== undefined && v !== null
-    )
-  );
+const fetchInventory = async (searchParams: SearchParams) => {
+  // Convert searchParams to URLSearchParams
+  const queryParams = new URLSearchParams();
 
-  // Check if any search parameters are present (excluding skip, take, and searchTriggered)
-  const hasSearchParams = Array.from(params.entries()).some(
-    ([key, value]) =>
-      value !== "" && !["skip", "take", "searchTriggered"].includes(key)
-  );
+  // Build search query
+  const searchTerms = [];
+  if (searchParams.model) searchTerms.push(`Model:"${searchParams.model}"`);
+  if (searchParams.deletedStatus === "1") searchTerms.push("Deleted:false");
+  if (searchParams.doNotDisposeStatus === "1")
+    searchTerms.push("DoNotDispose:false");
 
-  if (!hasSearchParams) {
-    return {
-      items: [],
-      totalItems: 0,
-      currentPage: 1,
-      totalPages: 0,
-      records: 0,
-      itemsPerPage: searchParams.take,
-      skip: 0,
-    };
+  // Add the combined search terms
+  if (searchTerms.length > 0) {
+    queryParams.set("search", searchTerms.join(" AND "));
   }
 
-  const url = `/api/fastBoundApi/items?${params.toString()}`;
-  // console.log("Fetching inventory with full URL:", url);
+  // Add pagination parameters
+  queryParams.set("skip", searchParams.skip.toString());
+  queryParams.set("take", searchParams.take.toString());
 
-  const response = await fetch(url);
+  // Make GET request
+  const response = await fetch(
+    `/api/fastBoundApi/items?${queryParams.toString()}`
+  );
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Error fetching inventory:", errorText);
-    throw new Error(`Failed to fetch inventory: ${errorText}`);
+    const error = await response.json();
+    throw new Error(error.details || "Failed to fetch inventory");
   }
 
   return response.json();
@@ -143,25 +108,28 @@ function InventoryPage() {
   });
 
   const inventoryQuery = useQuery({
-    queryKey: [
-      "inventory",
-      searchParamsQuery.data?.skip,
-      searchParamsQuery.data?.take,
-      searchParamsQuery.data,
-    ],
-    queryFn: () =>
-      fetchInventory(searchParamsQuery.data || initialSearchParams),
-    enabled: !!searchParamsQuery.data?.searchTriggered,
+    queryKey: ["inventory", searchParamsQuery.data],
+    queryFn: () => fetchInventory(searchParamsQuery.data!),
+    enabled: !!searchParamsQuery.data,
     placeholderData: keepPreviousData,
   });
 
+  // Handle warning separately
+  if (inventoryQuery.data?.warning) {
+    console.warn("API Warning:", inventoryQuery.data.warning);
+  }
+
   const handlePageChange = (newPage: number) => {
     const newSkip = (newPage - 1) * (searchParamsQuery.data?.take || 10);
-    updateSearchParams({ skip: newSkip });
+    updateSearchParams({
+      skip: newSkip,
+      searchTriggered: true,
+    });
+    inventoryQuery.refetch();
   };
 
-  // console.log("Current search params:", searchParamsQuery.data);
-  // console.log("Current inventory data:", inventoryQuery.data);
+  console.log("Current search params:", searchParamsQuery.data);
+  console.log("Current inventory data:", inventoryQuery.data);
 
   const { data: manufacturers } = useQuery({
     queryKey: ["manufacturers"],
@@ -186,8 +154,11 @@ function InventoryPage() {
       (old) => ({
         ...old!,
         ...updates,
+        // Only override searchTriggered if explicitly provided
         searchTriggered:
-          updates.searchTriggered ?? old?.searchTriggered ?? false,
+          typeof updates.searchTriggered === "boolean"
+            ? updates.searchTriggered
+            : old?.searchTriggered ?? false,
       })
     );
   };
@@ -206,7 +177,12 @@ function InventoryPage() {
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    updateSearchParams({ take: newItemsPerPage, skip: 0 });
+    updateSearchParams({
+      take: newItemsPerPage,
+      skip: 0,
+      searchTriggered: true,
+    });
+    inventoryQuery.refetch();
   };
 
   const resetSearch = () => {
@@ -215,128 +191,90 @@ function InventoryPage() {
       { ...initialSearchParams, searchTriggered: false }
     );
     queryClient.removeQueries({ queryKey: ["inventory"] });
-    // console.log(
-    //   "Reset search params:",
-    //   queryClient.getQueryData(["searchParams"])
-    // );
-    // console.log(
-    //   "Reset inventory data:",
-    //   queryClient.getQueryData(["inventory"])
-    // );
+    console.log(
+      "Reset search params:",
+      queryClient.getQueryData(["searchParams"])
+    );
+    console.log(
+      "Reset inventory data:",
+      queryClient.getQueryData(["inventory"])
+    );
   };
 
   const currentPage =
     Math.floor(
       (searchParamsQuery.data?.skip || 0) / (searchParamsQuery.data?.take || 10)
     ) + 1;
-  const totalPages = Math.ceil(
-    (inventoryQuery.data?.records || 0) / (searchParamsQuery.data?.take || 10)
+  const totalPages = Math.min(
+    Math.ceil(
+      (inventoryQuery.data?.records || 0) / (searchParamsQuery.data?.take || 10)
+    ),
+    Math.ceil(100 / (searchParamsQuery.data?.take || 10))
   );
+
+  // Add search strategy hints
+  const showSearchHints =
+    inventoryQuery.data?.records && inventoryQuery.data.records > 100;
 
   return (
     <div className="flex justify-center items-center mt-8 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Inventory Search</CardTitle>
+          {showSearchHints && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Search Results Exceeded 100 Items</AlertTitle>
+              <AlertDescription>
+                To find specific items, try using the advanced search options in
+                the tabs below.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {/* Search form inputs */}
-            {Object.entries(initialSearchParams).map(([key, value]) => {
-              if (key === "page" || key === "itemsPerPage") return null;
-              return (
-                <div key={key}>
-                  <Label htmlFor={key}>
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                  </Label>
-                  {key === "manufacturer" ||
-                  key === "caliber" ||
-                  key === "location" ||
-                  key === "type" ||
-                  key === "condition" ||
-                  key === "status" ? (
-                    <Select
-                      onValueChange={(value) => handleSelectChange(key, value)}
-                      value={
-                        searchParamsQuery.data?.[
-                          key as keyof SearchParams
-                        ]?.toString() ?? ""
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={`Select ${key}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {key === "manufacturer" &&
-                          manufacturers?.map((item: string) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        {key === "caliber" &&
-                          calibers?.map((item: string) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        {key === "location" &&
-                          locations?.map((item: string) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        {key === "type" &&
-                          [
-                            "Pistol",
-                            "Revolver",
-                            "Rifle",
-                            "Shotgun",
-                            "Other",
-                          ].map((item) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        {key === "condition" &&
-                          ["New", "Used"].map((item) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        {key === "status" &&
-                          [
-                            { value: "1", label: "Available" },
-                            { value: "2", label: "Pending Disposal" },
-                            { value: "3", label: "Disposed" },
-                            { value: "4", label: "Deleted" },
-                          ].map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id={key}
-                      name={key}
-                      value={
-                        searchParamsQuery.data?.[key as keyof SearchParams] ??
-                        ""
-                      }
-                      onChange={handleInputChange}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex space-x-4">
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">Basic Search</TabsTrigger>
+              <TabsTrigger value="acquisition">Acquisition</TabsTrigger>
+              <TabsTrigger value="disposition">Disposition</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic">
+              <SearchFields
+                searchParams={searchParamsQuery.data}
+                onInputChange={handleInputChange}
+                onSelectChange={handleSelectChange}
+                manufacturers={manufacturers}
+                calibers={calibers}
+                locations={locations}
+              />
+            </TabsContent>
+
+            <TabsContent value="acquisition">
+              <AcquisitionFields
+                searchParams={searchParamsQuery.data}
+                onInputChange={handleInputChange}
+                onSelectChange={handleSelectChange}
+              />
+            </TabsContent>
+
+            <TabsContent value="disposition">
+              <DispositionFields
+                searchParams={searchParamsQuery.data}
+                onInputChange={handleInputChange}
+                onSelectChange={handleSelectChange}
+              />
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex space-x-4 mt-4">
             <Button onClick={handleSearch}>Search Inventory</Button>
             <Button variant="outline" onClick={resetSearch}>
               Reset
             </Button>
           </div>
+
           {inventoryQuery.isLoading ? (
             <p>Loading...</p>
           ) : inventoryQuery.isError ? (
@@ -346,7 +284,7 @@ function InventoryPage() {
               <h3>Results: {inventoryQuery.data.records} items found</h3>
               {inventoryQuery.isFetching && <p>Updating...</p>}
               <ScrollArea>
-                <div className="h-[calc(100vh-500px)] overflow-hidden relative">
+                <div className="h-[calc(100vh-700px)] overflow-auto">
                   <table className="w-full mt-2">
                     <thead>
                       <tr>
@@ -362,19 +300,21 @@ function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody className="text-left">
-                      {inventoryQuery.data?.items.map((item, index) => (
-                        <tr key={`${item.id}-${item.itemNumber}`}>
-                          <td>{item.itemNumber}</td>
-                          <td>{item.serial}</td>
-                          <td>{item.manufacturer}</td>
-                          <td>{item.model}</td>
-                          <td>{item.type}</td>
-                          <td>{item.caliber}</td>
-                          <td>{item.location}</td>
-                          <td>{item.condition}</td>
-                          <td>{item.status.name}</td>
-                        </tr>
-                      ))}
+                      {inventoryQuery.data?.items.map(
+                        (item: InventoryItem, index: number) => (
+                          <tr key={`${item.id}-${item.itemNumber}`}>
+                            <td>{item.itemNumber}</td>
+                            <td>{item.serial}</td>
+                            <td>{item.manufacturer}</td>
+                            <td>{item.model}</td>
+                            <td>{item.type}</td>
+                            <td>{item.caliber}</td>
+                            <td>{item.location}</td>
+                            <td>{item.condition}</td>
+                            <td>{item.status.name}</td>
+                          </tr>
+                        )
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -388,10 +328,22 @@ function InventoryPage() {
                 >
                   Previous Page
                 </Button>
+                <span>
+                  Page {currentPage} of {totalPages}{" "}
+                  {inventoryQuery.data?.records > 100 && (
+                    <span className="text-sm text-amber-600">
+                      (Limited to first 100 results)
+                    </span>
+                  )}
+                </span>
                 <Button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={
-                    currentPage >= totalPages || inventoryQuery.isFetching
+                    currentPage >= totalPages ||
+                    inventoryQuery.isFetching ||
+                    (searchParamsQuery.data?.skip || 0) +
+                      (searchParamsQuery.data?.take || 10) >=
+                      100
                   }
                 >
                   Next Page
@@ -416,6 +368,11 @@ function InventoryPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {inventoryQuery.data?.warning && (
+                <div className="mt-4 text-amber-600">
+                  Warning: {inventoryQuery.data.warning}
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-4 text-left">
