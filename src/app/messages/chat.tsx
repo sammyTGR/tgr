@@ -190,6 +190,8 @@ export default function Chat() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       reset();
     },
   });

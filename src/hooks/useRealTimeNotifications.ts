@@ -44,10 +44,9 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
       if (error) throw error;
       return notifications || [];
     },
-    // Add these options for more frequent updates
-    refetchInterval: 3000, // Refetch every 3 seconds
+    refetchInterval: 30000, // Reduced to every 30 seconds instead of 1 second
     refetchOnWindowFocus: true,
-    staleTime: 0, // Consider data always stale
+    staleTime: 5000, // Cache data for 5 seconds
   });
 
   // Mark notification as read mutation
@@ -113,30 +112,35 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
       if (!user) return null;
 
       const channel = supabase
-        .channel("notifications")
+        .channel(`notifications-${user.id}`)
         .on(
           "postgres_changes",
           {
-            event: "*", // Listen to all changes (INSERT, UPDATE, DELETE)
+            event: "*",
             schema: "public",
             table: "notifications",
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
-            // Immediately invalidate the query to trigger a refetch
-            queryClient.invalidateQueries({
-              queryKey: ["unreadNotifications"],
-            });
-
-            // Show toast notification for new messages
-            if (payload.eventType === "INSERT") {
-              toast(payload.new.content, {
-                action: {
-                  label: "View",
-                  onClick: () =>
-                    router.push(`/messages?chat=${payload.new.chat_id}`),
-                },
+          async (payload) => {
+            // Only refetch on INSERT or when read status changes
+            if (
+              payload.eventType === "INSERT" ||
+              (payload.eventType === "UPDATE" && 
+               payload.old?.read !== payload.new?.read)
+            ) {
+              await queryClient.refetchQueries({
+                queryKey: ["unreadNotifications"],
+                exact: true,
               });
+
+              if (payload.eventType === "INSERT") {
+                toast(payload.new.content, {
+                  action: {
+                    label: "View",
+                    onClick: () => router.push(`/messages?chat=${payload.new.chat_id}`),
+                  },
+                });
+              }
             }
           }
         )
@@ -146,10 +150,8 @@ export function useRealTimeNotifications(): UseRealTimeNotificationsReturn {
         supabase.removeChannel(channel);
       };
     },
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity, // Keep subscription active
+    gcTime: Infinity,
   });
 
   return {

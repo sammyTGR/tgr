@@ -649,6 +649,8 @@ const HeaderAdmin = React.memo(() => {
                         <PersonIcon className="mr-2 h-4 w-4" />
                         <span>Your Profile Page</span>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+
                       <DropdownMenuItem
                         onSelect={() =>
                           handleLinkClick("/admin/reports/dashboard")
@@ -663,7 +665,6 @@ const HeaderAdmin = React.memo(() => {
                         <ChatBubbleIcon className="mr-2 h-4 w-4" />
                         <span>Messages</span>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
                       <DropdownMenuSeparator />
 
                       <DropdownMenuSub>

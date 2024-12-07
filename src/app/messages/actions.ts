@@ -233,7 +233,15 @@ export async function sendMessage(
   const supabase = createClientComponentClient();
 
   try {
-    // Send message and create notification in a single transaction
+    // Get all chat participants first
+    const { data: participants, error: participantsError } = await supabase
+      .from("chat_participants")
+      .select("user_id")
+      .eq("chat_id", chatId);
+
+    if (participantsError) throw participantsError;
+
+    // Send the message
     const { data: message, error: messageError } = await supabase
       .from("messages")
       .insert({
@@ -247,17 +255,21 @@ export async function sendMessage(
 
     if (messageError) throw messageError;
 
-    // Only create notification if recipient is different from sender
-    if (userId !== recipientId) {
+    // Create notifications for all participants except the sender
+    const notifications = participants
+      .filter(participant => participant.user_id !== userId)
+      .map(participant => ({
+        user_id: participant.user_id,
+        type: "new_message",
+        content: `New message in chat`,
+        chat_id: chatId,
+        read: false,
+      }));
+
+    if (notifications.length > 0) {
       const { error: notificationError } = await supabase
         .from("notifications")
-        .insert({
-          user_id: recipientId,
-          type: "new_message",
-          content: `New message in chat`,
-          chat_id: chatId,
-          read: false,
-        });
+        .insert(notifications);
 
       if (notificationError) throw notificationError;
     }
