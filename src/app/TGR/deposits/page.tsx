@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query';
 
 const denominations = [
   { name: "Pennies", value: 0.01 },
@@ -47,6 +48,8 @@ export default function DailyDepositsPage() {
   const { role, loading, user } = useRole();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
+  const queryClient = useQueryClient();
+  const isFetching = useIsFetching({ queryKey: ['wheelEventHandlers'] });
 
   const [quantities, setQuantities] = useState<number[][]>(
     Array(registers.length)
@@ -65,34 +68,38 @@ export default function DailyDepositsPage() {
   );
   const [activeTab, setActiveTab] = useState("reg1");
 
-  useEffect(() => {
-    if (
-      !loading &&
-      role !== "user" &&
-      role !== "auditor" &&
-      role !== "admin" &&
-      role !== "super admin" &&
-      role !== "dev"
-    ) {
-      router.push("/unauthorized");
-    }
-  }, [role, loading, router]);
+  // useEffect(() => {
+  //   if (
+  //     !loading &&
+  //     role !== "user" &&
+  //     role !== "auditor" &&
+  //     role !== "admin" &&
+  //     role !== "super admin" &&
+  //     role !== "dev"
+  //   ) {
+  //     router.push("/unauthorized");
+  //   }
+  // }, [role, loading, router]);
 
   useEffect(() => {
-    inputRefs.current.flat().forEach((input) => {
-      if (input) {
-        input.addEventListener("wheel", handleWheel, { passive: false });
-      }
-    });
-
-    return () => {
+    if (!isFetching) {
+      // Add wheel event listeners
       inputRefs.current.flat().forEach((input) => {
         if (input) {
-          input.removeEventListener("wheel", handleWheel);
+          input.addEventListener('wheel', handleWheel, { passive: false });
         }
       });
-    };
-  }, []);
+
+      // Cleanup function
+      return () => {
+        inputRefs.current.flat().forEach((input) => {
+          if (input) {
+            input.removeEventListener('wheel', handleWheel);
+          }
+        });
+      };
+    }
+  }, [isFetching]);
 
   const handleQuantityChange = (
     registerIndex: number,
