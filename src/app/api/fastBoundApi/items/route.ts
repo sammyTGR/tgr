@@ -3,7 +3,7 @@
 
 import { headers } from "next/headers";
 import { NextResponse, NextRequest } from "next/server";
-import { createFastBoundHeaders, FASTBOUND_CONFIG } from "../route";
+import { createFastBoundHeaders, FASTBOUND_CONFIG } from "@/utils/fastbound";
 
 const BASE_URL = "https://cloud.fastbound.com"; // This is the correct base URL for FastBound
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
