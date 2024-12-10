@@ -32,6 +32,15 @@ import {
 } from "@/components/ui/card";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const title = "Review Time Off Requests";
 const timeZone = "America/Los_Angeles"; // Set your desired timezone
@@ -94,6 +103,27 @@ export default function ApproveRequestsPage() {
     staleTime: Infinity,
   });
 
+  const leftEarlyDialogQuery = useQuery({
+    queryKey: ["leftEarlyDialog"],
+    queryFn: () => ({
+      isOpen: false,
+      time: "",
+      currentRequestId: null as number | null,
+    }),
+    staleTime: Infinity,
+  });
+
+  const leftEarlyDataQuery = useQuery({
+    queryKey: ["leftEarlyData"],
+    queryFn: () => ({
+      hour: "",
+      minute: "",
+      period: "PM",
+      currentRequestId: null as number | null,
+    }),
+    staleTime: Infinity,
+  });
+
   const { data: dialogState = { isOpen: false, requestId: null, text: "" } } =
     useQuery({
       queryKey: ["customApprovalDialog"],
@@ -109,6 +139,18 @@ export default function ApproveRequestsPage() {
     }) => {
       return Promise.resolve(
         queryClient.setQueryData(["customApprovalDialog"], newState)
+      );
+    },
+  });
+
+  const leftEarlyDialogMutation = useMutation({
+    mutationFn: (newState: {
+      isOpen: boolean;
+      time: string;
+      currentRequestId: number | null;
+    }) => {
+      return Promise.resolve(
+        queryClient.setQueryData(["leftEarlyDialog"], newState)
       );
     },
   });
@@ -464,9 +506,9 @@ export default function ApproveRequestsPage() {
       <Button
         className="w-full"
         variant="outline"
-        onClick={() => handleLeftEarly(request.request_id)}
+        onClick={() => handleLeftEarlyWithTime(request.request_id)}
       >
-        Left Early
+        Leaving Early
       </Button>
       <Button
         className="w-full"
@@ -483,7 +525,7 @@ export default function ApproveRequestsPage() {
     return format(date, "EEEE, MMMM d, yyyy");
   };
 
-  const handleRequest = (
+  const handleRequest = async (
     request_id: number,
     action: RequestAction,
     emailMessage: string,
@@ -530,7 +572,14 @@ export default function ApproveRequestsPage() {
         };
         break;
       default:
-        if (action.startsWith("Custom: ")) {
+        if (action.startsWith("Custom: Left Early @")) {
+          templateName = "LeftEarly";
+          templateData = {
+            name: DOMPurify.sanitize(request.name),
+            date: formatDateWithDay(request.start_date),
+            time: action.split("Left Early @ ")[1], // Extract the time
+          };
+        } else if (action.startsWith("Custom: ")) {
           templateName = "CustomStatus";
           templateData = {
             name: DOMPurify.sanitize(request.name),
@@ -543,18 +592,19 @@ export default function ApproveRequestsPage() {
         }
     }
 
-    const subject =
-      action === "deny"
-        ? "Time Off Request Denied"
-        : action === "called_out"
-        ? "You've Called Out"
-        : action === "left_early"
-        ? "You've Left Early"
-        : action === "time_off"
-        ? "Time Off Request Approved"
-        : action.startsWith("Custom: ")
-        ? "Time Off Request Approval"
-        : "Time Off Request Status Update";
+    const subject = action.startsWith("Custom: Left Early @")
+      ? "Left Early Notification"
+      : action === "deny"
+      ? "Time Off Request Denied"
+      : action === "called_out"
+      ? "You've Called Out"
+      : action === "left_early"
+      ? "You've Left Early"
+      : action === "time_off"
+      ? "Time Off Request Approved"
+      : action.startsWith("Custom: ")
+      ? "Time Off Request Approval"
+      : "Time Off Request Status Update";
 
     // Chain mutations
     return Promise.resolve()
@@ -569,7 +619,7 @@ export default function ApproveRequestsPage() {
       .then(() =>
         sendEmailMutation.mutateAsync({
           email: request.email,
-          subject: DOMPurify.sanitize(subject),
+          subject,
           templateName,
           templateData,
         })
@@ -619,12 +669,12 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  const handleLeftEarly = (request_id: number) => {
-    handleRequest(
-      request_id,
-      "left_early",
-      "Your Schedule Has Been Updated To Reflect That You Left Early."
-    );
+  const handleLeftEarlyWithTime = (requestId: number) => {
+    leftEarlyDialogMutation.mutate({
+      isOpen: true,
+      time: "",
+      currentRequestId: requestId,
+    });
   };
 
   const handleCustomApproval = (request_id: number, customText: string) => {
@@ -639,6 +689,30 @@ export default function ApproveRequestsPage() {
         request.use_sick_time,
         request.use_vacation_time
       );
+    }
+  };
+
+  const handleLeftEarlyTimeChange = (time: string) => {
+    const currentState = queryClient.getQueryData(["leftEarlyDialog"]) as any;
+    leftEarlyDialogMutation.mutate({
+      ...currentState,
+      time: DOMPurify.sanitize(time),
+    });
+  };
+
+  const handleSubmitLeftEarly = () => {
+    const dialogState = queryClient.getQueryData(["leftEarlyDialog"]) as any;
+    if (dialogState?.currentRequestId && dialogState?.time) {
+      handleRequest(
+        dialogState.currentRequestId,
+        `Custom: Left Early @ ${dialogState.time}` as RequestAction,
+        "Your Schedule Has Been Updated To Reflect That You Left Early."
+      );
+      leftEarlyDialogMutation.mutate({
+        isOpen: false,
+        time: "",
+        currentRequestId: null,
+      });
     }
   };
 
@@ -782,9 +856,11 @@ export default function ApproveRequestsPage() {
                       <Button
                         className="w-full"
                         variant="outline"
-                        onClick={() => handleLeftEarly(request.request_id)}
+                        onClick={() =>
+                          handleLeftEarlyWithTime(request.request_id)
+                        }
                       >
-                        Left Early
+                        Leaving Early
                       </Button>
                       <Button
                         className="w-full"
@@ -823,6 +899,122 @@ export default function ApproveRequestsPage() {
                   Cancel
                 </Button>
                 <Button onClick={handleSubmitCustomApproval}>Submit</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={leftEarlyDialogQuery.data?.isOpen || false}
+            onOpenChange={(open) => {
+              if (!open) {
+                leftEarlyDialogMutation.mutate({
+                  isOpen: false,
+                  time: "",
+                  currentRequestId: null,
+                });
+              }
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Left Early Time</DialogTitle>
+              </DialogHeader>
+              <div className="flex space-x-2">
+                <div className="flex-1">
+                  <Label>Hour</Label>
+                  <Input
+                    type="text"
+                    placeholder="HH"
+                    maxLength={2}
+                    value={leftEarlyDataQuery.data?.hour || ""}
+                    onChange={(e) => {
+                      const currentData = queryClient.getQueryData([
+                        "leftEarlyData",
+                      ]) as any;
+                      queryClient.setQueryData(["leftEarlyData"], {
+                        ...currentData,
+                        hour: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label>Minute</Label>
+                  <Input
+                    type="text"
+                    placeholder="MM"
+                    maxLength={2}
+                    value={leftEarlyDataQuery.data?.minute || ""}
+                    onChange={(e) => {
+                      const currentData = queryClient.getQueryData([
+                        "leftEarlyData",
+                      ]) as any;
+                      queryClient.setQueryData(["leftEarlyData"], {
+                        ...currentData,
+                        minute: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label>AM/PM</Label>
+                  <Select
+                    value={leftEarlyDataQuery.data?.period || "PM"}
+                    onValueChange={(value) => {
+                      const currentData = queryClient.getQueryData([
+                        "leftEarlyData",
+                      ]) as any;
+                      queryClient.setQueryData(["leftEarlyData"], {
+                        ...currentData,
+                        period: value,
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    leftEarlyDialogMutation.mutate({
+                      isOpen: false,
+                      time: "",
+                      currentRequestId: null,
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const data = queryClient.getQueryData([
+                      "leftEarlyData",
+                    ]) as any;
+                    if (data?.hour && data?.minute && data?.period) {
+                      const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
+                      handleRequest(
+                        leftEarlyDialogQuery.data?.currentRequestId!,
+                        `Custom: Left Early @ ${formattedTime}` as RequestAction,
+                        `Your schedule has been updated to reflect that you left early at ${formattedTime}.`
+                      );
+                      leftEarlyDialogMutation.mutate({
+                        isOpen: false,
+                        time: "",
+                        currentRequestId: null,
+                      });
+                    }
+                  }}
+                >
+                  Submit
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

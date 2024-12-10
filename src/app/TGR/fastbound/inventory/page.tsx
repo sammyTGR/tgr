@@ -1,3 +1,4 @@
+//returns results but not the correct ones
 "use client";
 
 import { useCallback } from "react";
@@ -48,17 +49,91 @@ const initialSearchParams: SearchParams & { searchTriggered: boolean } = {
 };
 
 const fetchInventory = async (searchParams: SearchParams) => {
-  // Convert searchParams to URLSearchParams
   const queryParams = new URLSearchParams();
-
-  // Build search query
   const searchTerms = [];
-  if (searchParams.model) searchTerms.push(`Model:"${searchParams.model}"`);
-  if (searchParams.deletedStatus === "1") searchTerms.push("Deleted:false");
-  if (searchParams.doNotDisposeStatus === "1")
-    searchTerms.push("DoNotDispose:false");
 
-  // Add the combined search terms
+  // Handle basic search fields
+  const basicFields = {
+    model: "Model",
+    manufacturer: "Manufacturer",
+    type: "Type",
+    caliber: "Caliber",
+    location: "Location",
+    condition: "Condition",
+    serial: "Serial",
+    itemNumber: "ItemNumber",
+  };
+
+  // Only add non-empty search terms
+  Object.entries(basicFields).forEach(([key, fbKey]) => {
+    const value = searchParams[key as keyof SearchParams];
+    if (value && typeof value === "string" && value.trim() !== "") {
+      searchTerms.push(`${fbKey}:"${value.trim()}"`);
+    }
+  });
+
+  // Handle status filters - only add if they're not "3" (Both)
+  if (searchParams.deletedStatus && searchParams.deletedStatus !== "3") {
+    searchTerms.push(`Deleted:${searchParams.deletedStatus === "2"}`);
+  }
+
+  if (searchParams.disposedStatus && searchParams.disposedStatus !== "3") {
+    searchTerms.push(`Disposed:${searchParams.disposedStatus === "2"}`);
+  }
+
+  if (
+    searchParams.doNotDisposeStatus &&
+    searchParams.doNotDisposeStatus !== "3"
+  ) {
+    searchTerms.push(`DoNotDispose:${searchParams.doNotDisposeStatus === "2"}`);
+  }
+
+  // Handle date ranges - only add if they have values
+  if (searchParams.acquiredOnAfter?.trim()) {
+    searchTerms.push(`AcquireDate:>="${searchParams.acquiredOnAfter.trim()}"`);
+  }
+  if (searchParams.acquiredOnBefore?.trim()) {
+    searchTerms.push(`AcquireDate:<="${searchParams.acquiredOnBefore.trim()}"`);
+  }
+  if (searchParams.disposedOnAfter?.trim()) {
+    searchTerms.push(`DisposeDate:>="${searchParams.disposedOnAfter.trim()}"`);
+  }
+  if (searchParams.disposedOnBefore?.trim()) {
+    searchTerms.push(`DisposeDate:<="${searchParams.disposedOnBefore.trim()}"`);
+  }
+
+  // Handle other fields - only add if they have non-empty values
+  if (searchParams.acquiredType?.trim()) {
+    searchTerms.push(`AcquisitionType:"${searchParams.acquiredType.trim()}"`);
+  }
+
+  if (searchParams.disposedType?.trim()) {
+    searchTerms.push(`DispositionType:"${searchParams.disposedType.trim()}"`);
+  }
+
+  // Handle contact fields - only add if they have non-empty values
+  if (searchParams.acquiredFromLicenseName?.trim()) {
+    searchTerms.push(
+      `AcquisitionContactName:"${searchParams.acquiredFromLicenseName.trim()}"`
+    );
+  }
+  if (searchParams.acquiredFromFFLNumber?.trim()) {
+    searchTerms.push(
+      `AcquisitionContactFFLNumber:"${searchParams.acquiredFromFFLNumber.trim()}"`
+    );
+  }
+  if (searchParams.disposedToLicenseName?.trim()) {
+    searchTerms.push(
+      `DispositionContactName:"${searchParams.disposedToLicenseName.trim()}"`
+    );
+  }
+  if (searchParams.disposedToFFLNumber?.trim()) {
+    searchTerms.push(
+      `DispositionContactFFLNumber:"${searchParams.disposedToFFLNumber.trim()}"`
+    );
+  }
+
+  // Add the combined search terms only if there are any
   if (searchTerms.length > 0) {
     queryParams.set("search", searchTerms.join(" AND "));
   }
@@ -66,6 +141,9 @@ const fetchInventory = async (searchParams: SearchParams) => {
   // Add pagination parameters
   queryParams.set("skip", searchParams.skip.toString());
   queryParams.set("take", searchParams.take.toString());
+
+  console.log("Search terms:", searchTerms); // Debug log
+  console.log("Query params:", queryParams.toString()); // Debug log
 
   // Make GET request
   const response = await fetch(

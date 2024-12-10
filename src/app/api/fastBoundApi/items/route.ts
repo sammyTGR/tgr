@@ -1,5 +1,9 @@
+//returns results but not the correct ones
+"use server";
+
 import { headers } from "next/headers";
 import { NextResponse, NextRequest } from "next/server";
+import { createFastBoundHeaders, FASTBOUND_CONFIG } from "../route";
 
 const BASE_URL = "https://cloud.fastbound.com"; // This is the correct base URL for FastBound
 const ACCOUNT_NUMBER = process.env.FASTBOUND_ACCOUNT_NUMBER;
@@ -36,23 +40,28 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
-async function fetchItems(url: string, headers: HeadersInit) {
+async function fetchItems(url: string, options: RequestInit): Promise<any> {
   await rateLimiter.limit();
   try {
-    const response = await fetch(url, { method: "GET", headers });
+    console.log("Requesting FastBound API:", url);
+    const response = await fetch(url, options);
+
+    const responseText = await response.text();
+    console.log("FastBound API response:", responseText);
 
     if (!response.ok) {
-      const errorText = await response.text();
       console.error("FastBound API error response:", {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers),
-        body: errorText,
+        body: responseText,
       });
-      throw new Error(`FastBound API error: ${response.status} ${errorText}`);
+      throw new Error(
+        `FastBound API error: ${response.status} ${responseText}`
+      );
     }
 
-    return response.json();
+    return JSON.parse(responseText);
   } catch (error) {
     console.error("Error fetching items from FastBound API:", error);
     throw error;
@@ -62,83 +71,89 @@ async function fetchItems(url: string, headers: HeadersInit) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    console.log("Received search params:", Object.fromEntries(searchParams));
+
     const skip = parseInt(searchParams.get("skip") || "0", 10);
     const take = parseInt(searchParams.get("take") || "10", 10);
+    const search = searchParams.get("search");
 
-    const validParams = new URLSearchParams();
-    validParams.set("take", take.toString());
-    validParams.set("skip", skip.toString());
+    // Build the search URL
+    const apiUrl = new URL(
+      `${FASTBOUND_CONFIG.BASE_URL}/${FASTBOUND_CONFIG.ACCOUNT_NUMBER}/api/Items`
+    );
 
-    // Add other necessary parameters
-    [
-      "search",
-      "itemNumber",
-      "serial",
-      "manufacturer",
-      "importer",
-      "model",
-      "type",
-      "caliber",
-      "location",
-      "condition",
-      "mpn",
-      "upc",
-      "sku",
-      "isTheftLoss",
-      "isDestroyed",
-      "doNotDispose",
-      "dispositionId",
-      "status",
-      "acquiredOnOrAfter",
-      "acquiredOnOrBefore",
-      "disposedOnOrAfter",
-      "disposedOnOrBefore",
-      "hasExternalId",
-      "acquisitionType",
-    ].forEach((param) => {
-      const value = searchParams.get(param);
-      if (value !== null && value !== "") validParams.append(param, value);
-    });
+    const searchFormData = new URLSearchParams();
+    searchFormData.append("$top", take.toString());
+    searchFormData.append("$skip", skip.toString());
 
-    const fbParams = validParams;
+    // Parse search parameters
+    if (search) {
+      const searchTerms = search.split(" AND ");
+      const filters: string[] = [];
 
-    const fbUrl = `${BASE_URL}/${ACCOUNT_NUMBER}/api/Items?${fbParams.toString()}`;
-    // console.log("Requesting FastBound API with URL:", fbUrl);
+      searchTerms.forEach((term) => {
+        const [key, value] = term.split(":");
+        if (key && value) {
+          const cleanValue = value.replace(/['"]/g, "").trim();
 
-    if (!API_KEY) {
-      throw new Error("FASTBOUND_API_KEY is not set in environment variables");
+          switch (key) {
+            case "Model":
+              filters.push(`model eq '${cleanValue}'`);
+              break;
+            case "Manufacturer":
+              filters.push(`manufacturer eq '${cleanValue}'`);
+              break;
+            case "Serial":
+              filters.push(`serial eq '${cleanValue}'`);
+              break;
+            case "Deleted":
+              filters.push(`deleted eq ${cleanValue.toLowerCase()}`);
+              break;
+            case "DoNotDispose":
+              filters.push(`doNotDispose eq ${cleanValue.toLowerCase()}`);
+              break;
+          }
+        }
+      });
+
+      if (filters.length > 0) {
+        searchFormData.append("$filter", filters.join(" and "));
+      }
     }
 
-    const headers = {
-      Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString("base64")}`,
+    // Add the search parameters to the URL
+    apiUrl.search = searchFormData.toString();
+
+    const headers = createFastBoundHeaders({
       "Content-Type": "application/json",
-      "X-AuditUser": AUDIT_USER || "",
+    });
+
+    // Filter out undefined values and ensure all values are strings
+    const validHeaders = Object.entries(headers)
+      .filter(([_, value]) => value !== undefined)
+      .reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: value as string,
+        }),
+        {} as Record<string, string>
+      );
+
+    const fetchOptions: RequestInit = {
+      method: "GET",
+      headers: new Headers(validHeaders),
     };
 
-    // console.log("Request headers:", headers);
-
-    const data = await fetchItems(fbUrl, headers);
-    // console.log("FastBound API response:", JSON.stringify(data, null, 2));
-
-    const totalItems = data.records || 0;
-    const totalPages = Math.ceil(totalItems / take);
-    const currentPage = Math.floor(skip / take) + 1;
-
-    // console.log("Pagination info:", {
-    //   skip,
-    //   take,
-    //   currentPage,
-    //   totalPages,
-    //   totalItems,
-    // });
+    const data = await fetchItems(apiUrl.toString(), fetchOptions);
+    console.log("FastBound API response data:", data);
 
     return NextResponse.json({
       items: data.items || [],
-      totalItems,
-      currentPage,
-      totalPages,
+      totalItems: data.records || 0,
+      currentPage: Math.floor(skip / take) + 1,
+      totalPages: Math.ceil((data.records || 0) / take),
       itemsPerPage: take,
-      records: totalItems,
+      records: data.records || 0,
       skip,
     });
   } catch (error: any) {

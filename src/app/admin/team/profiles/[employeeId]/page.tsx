@@ -973,38 +973,50 @@ const EmployeeProfile = () => {
   const fetchAbsences = async () => {
     if (!employeeId) return;
 
+    // Fetch absences from employee_absences table
     const { data: absencesData, error: absencesError } = await supabase
       .from("employee_absences")
       .select("id, employee_id, schedule_date, status, created_by, created_at")
       .eq("employee_id", employeeId);
 
     if (absencesError) {
-      //console.("Error fetching absences:", absencesError);
-    } else {
-      setAbsences(absencesData);
+      console.error("Error fetching absences:", absencesError);
     }
 
+    // Fetch custom statuses from schedules table
     const { data: schedulesData, error: schedulesError } = await supabase
       .from("schedules")
-      .select("schedule_date, status")
+      .select("schedule_id, schedule_date, status") // Changed id to schedule_id
       .eq("employee_id", employeeId)
-      .or("status.eq.called_out,status.eq.left_early,status.ilike.%late%");
+      .or(
+        "status.ilike.%Late Start%,status.ilike.%Left Early%,status.eq.called_out"
+      );
 
     if (schedulesError) {
-      //console.("Error fetching schedules:", schedulesError);
+      console.error("Error fetching schedules:", schedulesError);
     } else {
       const formattedAbsences = schedulesData.map(
-        (absence: { schedule_date: string; status: string }) => {
+        (
+          absence: {
+            schedule_id: number;
+            schedule_date: string;
+            status: string;
+          },
+          index: number
+        ) => {
           let status = absence.status;
-          if (status === "called_out") {
+
+          if (
+            status.toLowerCase().includes("late start") ||
+            status.toLowerCase().includes("left early")
+          ) {
+            status = status.replace(/^Custom:\s*/i, "");
+          } else if (status === "called_out") {
             status = "Called Out";
-          } else if (status === "left_early") {
-            status = "Left Early";
-          } else if (status.toLowerCase().includes("late")) {
-            status = status.replace(/^Custom:\s*/i, "").trim();
           }
+
           return {
-            id: -1,
+            id: -(absence.schedule_id || index + 1000), // Using schedule_id instead of id
             employee_id: employeeId,
             schedule_date: absence.schedule_date,
             status: status,
@@ -1013,16 +1025,20 @@ const EmployeeProfile = () => {
           };
         }
       );
+
+      // Combine both regular absences and schedule-based absences
       setAbsences((prevAbsences) => {
-        const combinedAbsences = [...prevAbsences];
+        const combinedAbsences = [...(absencesData || [])];
         const existingDates = new Set(
-          prevAbsences.map((absence) => absence.schedule_date)
+          combinedAbsences.map((absence) => absence.schedule_date)
         );
+
         formattedAbsences.forEach((absence) => {
           if (!existingDates.has(absence.schedule_date)) {
             combinedAbsences.push(absence);
           }
         });
+
         return combinedAbsences;
       });
     }

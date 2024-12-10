@@ -19,7 +19,12 @@ import {
   isFriday,
   eachDayOfInterval,
 } from "date-fns";
-import { toZonedTime, format as formatTZ, formatInTimeZone, toDate } from "date-fns-tz";
+import {
+  toZonedTime,
+  format as formatTZ,
+  formatInTimeZone,
+  toDate,
+} from "date-fns-tz";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "../../../../utils/supabase/client";
 import { useRole } from "../../../../context/RoleContext";
@@ -615,6 +620,24 @@ export default function Component() {
       currentDateQuery.data instanceof Date,
   });
 
+  const leftEarlyDataQuery = useQuery({
+    queryKey: ["leftEarlyData"],
+    queryFn: () =>
+      Promise.resolve({
+        hour: "",
+        minute: "",
+        period: "PM",
+        employeeId: null as number | null,
+      }),
+    staleTime: Infinity,
+    initialData: {
+      hour: "",
+      minute: "",
+      period: "PM",
+      employeeId: null,
+    },
+  });
+
   // Mutations
   const updatePopoverOpenMutation = useMutation({
     mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
@@ -906,13 +929,6 @@ export default function Component() {
           throw new Error("Failed to fetch employee data");
         }
 
-        // Send the original date string without any manipulation
-        // console.log("Status Update Debug:", {
-        //   originalDate: schedule_date,
-        //   timezone: TIME_ZONE,
-        //   browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        // });
-
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -944,7 +960,7 @@ export default function Component() {
           },
         };
 
-        // Rest of email logic stays the same
+        // Update email logic to handle the new status format
         if (status.startsWith("Late Start")) {
           emailPayload = {
             ...emailPayload,
@@ -961,11 +977,16 @@ export default function Component() {
             subject: "Called Out Confirmation",
             templateName: "CalledOut",
           };
-        } else if (status === "left_early") {
+        } else if (status.startsWith("Left Early @")) {
+          // Handle Left Early status
           emailPayload = {
             ...emailPayload,
             subject: "Left Early Notification",
             templateName: "LeftEarly",
+            templateData: {
+              ...emailPayload.templateData,
+              startTime: status.split("Left Early @ ")[1], // Changed 'time' to 'startTime' to match the type
+            },
           };
         } else if (status.startsWith("Custom:")) {
           emailPayload = {
@@ -1180,18 +1201,143 @@ export default function Component() {
                 >
                   Called Out
                 </Button>
-                <Button
-                  variant="linkHover2"
-                  onClick={() => {
-                    updateStatusMutation.mutate({
-                      employee_id: calendarEvent.employee_id,
-                      schedule_date: calendarEvent.schedule_date,
-                      status: "left_early",
-                    });
-                  }}
-                >
-                  Left Early
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      className="p-4"
+                      variant="linkHover2"
+                      onClick={() => {
+                        queryClient.setQueryData(["leftEarlyData"], {
+                          hour: "",
+                          minute: "",
+                          period: "AM",
+                          employeeId: calendarEvent.employee_id,
+                        });
+                        updatePopoverOpenMutation.mutate(false);
+                      }}
+                    >
+                      Left Early
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="p-4">
+                        Enter Left Early Time
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex space-x-2">
+                      <div className="flex-1">
+                        <Label>Hour</Label>
+                        <Input
+                          type="text"
+                          placeholder="HH"
+                          maxLength={2}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const currentData =
+                              queryClient.getQueryData(["leftEarlyData"]) || {};
+                            queryClient.setQueryData(["leftEarlyData"], {
+                              ...currentData,
+                              hour: value,
+                              employeeId: calendarEvent.employee_id,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label>Minute</Label>
+                        <Input
+                          type="text"
+                          placeholder="MM"
+                          maxLength={2}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const currentData =
+                              queryClient.getQueryData(["leftEarlyData"]) || {};
+                            queryClient.setQueryData(["leftEarlyData"], {
+                              ...currentData,
+                              minute: value,
+                              employeeId: calendarEvent.employee_id,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label>AM/PM</Label>
+                        <Select
+                          defaultValue="PM"
+                          value={
+                            (queryClient.getQueryData(["leftEarlyData"]) as any)
+                              ?.period || "PM"
+                          }
+                          onValueChange={(value) => {
+                            const currentData =
+                              queryClient.getQueryData(["leftEarlyData"]) || {};
+                            queryClient.setQueryData(["leftEarlyData"], {
+                              ...currentData,
+                              period: value,
+                              employeeId: calendarEvent.employee_id,
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AM">AM</SelectItem>
+                            <SelectItem value="PM">PM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-4">
+                      <DialogClose asChild>
+                        <Button
+                          onClick={() => {
+                            const data = queryClient.getQueryData([
+                              "leftEarlyData",
+                            ]) as any;
+                            if (data?.hour && data?.minute && data?.period) {
+                              const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
+                              updateStatusMutation.mutate({
+                                employee_id: calendarEvent.employee_id,
+                                schedule_date: calendarEvent.schedule_date,
+                                status: `Custom: Left Early @ ${formattedTime}`,
+                              });
+                              // Reset the form
+                              queryClient.setQueryData(["leftEarlyData"], {
+                                hour: "",
+                                minute: "",
+                                period: "PM",
+                                employeeId: null,
+                              });
+                              // Close both Dialog and Popover
+                              updatePopoverOpenMutation.mutate(false);
+                            }
+                          }}
+                        >
+                          Submit
+                        </Button>
+                      </DialogClose>
+                      <DialogClose asChild>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            // Reset form on cancel
+                            queryClient.setQueryData(["leftEarlyData"], {
+                              hour: "",
+                              minute: "",
+                              period: "PM",
+                              employeeId: null,
+                            });
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button
                   variant="linkHover2"
                   onClick={() => {
