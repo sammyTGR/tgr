@@ -1097,10 +1097,6 @@ function AdminDashboardContent() {
             <div className="w-full overflow-hidden">
               <div className="w-full overflow-hidden">
                 <div className="h-full overflow-hidden">
-                  <div className="flex items-center gap-4 pb-4">
-                    <CheckCircledIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
-                    <h1 className="font-semibold text-2xl">Todos</h1>
-                  </div>
                   <TodoWrapper />
                 </div>
               </div>
@@ -1392,75 +1388,6 @@ function AdminDashboardContent() {
           {/* Sales Chart*/}
           {flags.is_barchart_enabled.enabled && (
             <div className="col-span-full overflow-hidden">
-              {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarIcon className="h-6 w-6" />
-                      Select Date For Chart & Table
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full pl-3 text-left font-normal mb-2"
-                        >
-                          {selectedRange?.start
-                            ? format(selectedRange.start, "PPP")
-                            : "Select Date"}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CustomCalendar
-                          selectedDate={selectedRange?.start || undefined}
-                          onDateChange={handleRangeChange}
-                          disabledDays={() => false}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Gross Sales
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${totalGross?.toFixed(2) || "N/A"}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Net Sales With Firearms
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${totalNet?.toFixed(2) || "N/A"}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Net Sales Without Firearms
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${totalNetMinusExclusions?.toFixed(2) || "N/A"}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div> */}
-
               <Card className="flex flex-col col-span-full mt-2 mb-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1477,13 +1404,6 @@ function AdminDashboardContent() {
                   >
                     <CardContent className="flex-grow overflow-auto">
                       <div className="h-[650px]">
-                        {/* <Suspense
-                          fallback={
-                            <div>
-                              <LoadingIndicator />
-                            </div>
-                          }
-                        > */}
                         {selectedRange ? (
                           <SalesRangeStackedBarChart
                             selectedRange={{
@@ -1494,7 +1414,6 @@ function AdminDashboardContent() {
                         ) : (
                           <div>Please select a date range</div>
                         )}
-                        {/* </Suspense> */}
                       </div>
                     </CardContent>
                     <ScrollBar orientation="horizontal" />
