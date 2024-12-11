@@ -7,25 +7,26 @@ export async function GET(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-  const { searchParams } = new URL(request.url);
-  const start = searchParams.get("start");
-  const end = searchParams.get("end");
 
-  // console.log(`Fetching sales data from ${start} to ${end}`);
-  if (!start || !end) {
-    return NextResponse.json(
-      { error: "Invalid date parameters" },
-      { status: 400 }
-    );
-  }
+    const { searchParams } = new URL(request.url);
+    const start = searchParams.get("start");
+    const end = searchParams.get("end");
 
-  
+    // console.log(`Fetching sales data from ${start} to ${end}`);
+    if (!start || !end) {
+      return NextResponse.json(
+        { error: "Invalid date parameters" },
+        { status: 400 }
+      );
+    }
+
     let query = supabase.from("sales_data").select("*");
 
     if (start) {

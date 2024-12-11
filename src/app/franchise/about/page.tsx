@@ -23,7 +23,7 @@ import {
   flexRender,
   createColumnHelper,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface RevenueData {
   month: string;
@@ -89,9 +89,28 @@ const chartColors = [
 ];
 
 const FranchisePresentation = () => {
-  const [activeChart, setActiveChart] = React.useState<
-    "grossRevenue" | "netRevenue"
-  >("netRevenue");
+  const queryClient = useQueryClient();
+
+  const { data: activeChart } = useQuery({
+    queryKey: ["revenue-chart-view"],
+    queryFn: () => "netRevenue" as "grossRevenue" | "netRevenue",
+    initialData: "netRevenue",
+  });
+
+  const setChartViewMutation = useMutation({
+    mutationFn: async (newView: "grossRevenue" | "netRevenue") => newView,
+    onMutate: async (newView) => {
+      await queryClient.cancelQueries({ queryKey: ["revenue-chart-view"] });
+      const previousView = queryClient.getQueryData(["revenue-chart-view"]);
+      queryClient.setQueryData(["revenue-chart-view"], newView);
+      return { previousView };
+    },
+    onError: (err, newView, context) => {
+      if (context?.previousView) {
+        queryClient.setQueryData(["revenue-chart-view"], context.previousView);
+      }
+    },
+  });
 
   const {
     data: revenueData,
@@ -243,7 +262,7 @@ const FranchisePresentation = () => {
                       key={key}
                       data-active={activeChart === key}
                       className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
-                      onClick={() => setActiveChart(key)}
+                      onClick={() => setChartViewMutation.mutate(key)}
                     >
                       <span className="text-xs text-muted-foreground">
                         {chartConfig[key].label} (YTD)
@@ -290,7 +309,11 @@ const FranchisePresentation = () => {
                           return (
                             <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
                               <p className="text-muted-foreground">
-                                {chartConfig[activeChart].label}
+                                {
+                                  chartConfig[
+                                    activeChart as keyof typeof chartConfig
+                                  ].label
+                                }
                               </p>
                               <p className="font-mono font-medium">
                                 {currencyFormatter.format(

@@ -40,6 +40,7 @@ import {
   BellIcon,
   CalendarIcon,
   TableIcon,
+  FilePlusIcon,
 } from "@radix-ui/react-icons";
 import { format, formatDate, formatDistanceToNow } from "date-fns";
 import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStackedBarChart";
@@ -1304,8 +1305,8 @@ function AdminDashboardContent() {
                   <Card className="flex flex-col h-full">
                     <CardHeader className="flex-shrink-0">
                       <CardTitle className="flex items-center gap-2">
-                        <CalendarIcon className="h-6 w-6" />
-                        Select Date For Chart & Table
+                        <FilePlusIcon className="h-6 w-6" />
+                        Select File To Upload
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
@@ -1352,118 +1353,46 @@ function AdminDashboardContent() {
                   </Card>
                 )}
 
-              {(role === "super admin" || role === "dev") &&
-                !uploadFileMutation.isPending && (
-                  <Card className="flex flex-col overflow-hidden">
-                    <CardHeader>
-                      <CardTitle>Manage Approved Domains</CardTitle>
-                      <CardDescription>
-                        Add, edit, or remove domains for internal email
-                        addresses.
-                      </CardDescription>
-                    </CardHeader>
-                    <div className="flex-grow overflow-hidden">
-                      {/* <ScrollArea className="h-[calc(100vh-1000px)] overflow-auto"> */}
-                      <CardContent>
-                        <div className="mb-4 flex items-center space-x-2">
-                          <Input
-                            type="text"
-                            value={newDomain}
-                            onChange={(e) =>
-                              setNewDomainMutation.mutate(e.target.value)
-                            }
-                            placeholder="Enter new domain"
-                            className="flex-grow"
-                          />
+              {flags.is_barchart_enabled.enabled && (
+                <Card className="flex flex-col h-full">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <CalendarIcon className="h-6 w-6" />
+                      Select Date For Chart & Table Below
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                    <div className="mt-8">
+                      <Popover>
+                        <PopoverTrigger asChild>
                           <Button
                             variant="outline"
-                            onClick={() => addDomainMutation.mutate(newDomain)}
+                            className="w-full pl-3 text-left font-normal mb-2"
                           >
-                            Add Domain
+                            {selectedRange?.start
+                              ? format(selectedRange.start, "PPP")
+                              : "Select Date"}
                           </Button>
-                        </div>
-
-                        <ul className="space-y-2 flex flex-col flex-shrink-0">
-                          {domains?.map((domain) => (
-                            <li
-                              key={domain.id}
-                              className="flex items-center space-x-2"
-                            >
-                              {editingDomain &&
-                              editingDomain.id === domain.id ? (
-                                <>
-                                  <Input
-                                    type="text"
-                                    value={editingDomain?.domain || ""}
-                                    onChange={(e) =>
-                                      setEditingDomainMutation.mutate({
-                                        ...editingDomain,
-                                        domain: e.target.value,
-                                      })
-                                    }
-                                    className="flex-grow"
-                                  />
-                                  <Button
-                                    onClick={() =>
-                                      updateDomainMutation.mutate(editingDomain)
-                                    }
-                                    variant="outline"
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    onClick={() =>
-                                      setEditingDomainMutation.mutate(null)
-                                    }
-                                    variant="outline"
-                                  >
-                                    Cancel
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="flex-grow">
-                                    {domain.domain}
-                                  </span>
-                                  <Button
-                                    onClick={() =>
-                                      setEditingDomainMutation.mutate({
-                                        id: domain.id,
-                                        domain: domain.domain || "",
-                                      })
-                                    }
-                                    variant="outline"
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    onClick={() =>
-                                      deleteDomainMutation.mutate(domain.id)
-                                    }
-                                    variant="destructive"
-                                  >
-                                    Delete
-                                  </Button>
-                                </>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                      {/* <ScrollBar orientation="vertical" /> */}
-                      {/* </ScrollArea> */}
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CustomCalendar
+                            selectedDate={selectedRange?.start || undefined}
+                            onDateChange={handleRangeChange}
+                            disabledDays={() => false}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                  </Card>
-                )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
-            {/* </CardContent>
-          </Card> */}
           </div>
 
           {/* Sales Chart*/}
           {flags.is_barchart_enabled.enabled && (
             <div className="col-span-full overflow-hidden">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="flex items-center gap-2">
@@ -1530,7 +1459,7 @@ function AdminDashboardContent() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </div> */}
 
               <Card className="flex flex-col col-span-full mt-2 mb-2">
                 <CardHeader>
@@ -1547,19 +1476,25 @@ function AdminDashboardContent() {
                     )}
                   >
                     <CardContent className="flex-grow overflow-auto">
-                      <div className="h-[400px]">
-                        <Suspense fallback={<div>Loading chart...</div>}>
-                          {selectedRange ? (
-                            <SalesRangeStackedBarChart
-                              selectedRange={{
-                                start: selectedRange.start,
-                                end: selectedRange.end,
-                              }}
-                            />
-                          ) : (
-                            <div>Please select a date range</div>
-                          )}
-                        </Suspense>
+                      <div className="h-[650px]">
+                        {/* <Suspense
+                          fallback={
+                            <div>
+                              <LoadingIndicator />
+                            </div>
+                          }
+                        > */}
+                        {selectedRange ? (
+                          <SalesRangeStackedBarChart
+                            selectedRange={{
+                              start: selectedRange.start,
+                              end: selectedRange.end,
+                            }}
+                          />
+                        ) : (
+                          <div>Please select a date range</div>
+                        )}
+                        {/* </Suspense> */}
                       </div>
                     </CardContent>
                     <ScrollBar orientation="horizontal" />

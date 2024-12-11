@@ -10,7 +10,23 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  QueryClient,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { BarChartIcon, CalendarIcon } from "@radix-ui/react-icons";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CustomCalendar } from "@/components/ui/calendar";
+import { format } from "date-fns-tz";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import React from "react";
 
 interface ChartData {
   Lanid: string;
@@ -21,6 +37,19 @@ interface ChartData {
 interface SalesRangeStackedBarChartProps {
   selectedRange: { start: Date | undefined; end: Date | undefined };
 }
+
+interface ProcessedData {
+  processedData: ChartData[];
+  categories: string[];
+  totalGross: number;
+  totalNet: number;
+  totalNetMinusExclusions: number;
+}
+
+type ChartView =
+  | "totalGross"
+  | "totalNetWithFirearms"
+  | "totalNetWithoutFirearms";
 
 const chartColors = [
   "hsl(var(--chart-1))",
@@ -49,86 +78,16 @@ const chartColors = [
   "hsl(var(--chart-24))",
 ];
 
-const processData = (data: any[]) => {
-  const processedData: ChartData[] = [];
-  const categories: Set<string> = new Set();
-  const excludeCategoriesFromChart = [
-    "CA Tax Gun Transfer",
-    "CA Tax Adjust",
-    "CA Excise Tax",
-    "CA Excise Tax Adjustment",
-  ];
-  const excludeCategoriesFromTotalFirearms = [
-    "Pistol",
-    "Rifle",
-    "Revolver",
-    "Shotgun",
-    "Receiver",
-    ...excludeCategoriesFromChart,
-  ];
-
-  let totalGross = 0;
-  let totalGrossMinusExclusions = 0;
-  let totalNet = 0;
-
-  data.forEach((item) => {
-    const lanid = item.Lanid;
-    const category = item.category_label;
-    const grossValue = item.total_gross ?? 0;
-    const netValue = item.total_net ?? 0;
-
-    totalGross += grossValue;
-    totalNet += netValue;
-
-    if (!excludeCategoriesFromTotalFirearms.includes(category)) {
-      totalGrossMinusExclusions += grossValue;
-    }
-
-    if (!excludeCategoriesFromChart.includes(category)) {
-      let existingEntry = processedData.find((d) => d.Lanid === lanid);
-      if (!existingEntry) {
-        existingEntry = {
-          Lanid: lanid,
-          Date: item.Date,
-          Total: 0,
-          TotalMinusExclusions: 0,
-        };
-        processedData.push(existingEntry);
-      }
-
-      existingEntry[category] = grossValue;
-      existingEntry.Total += grossValue;
-      if (!excludeCategoriesFromTotalFirearms.includes(category)) {
-        existingEntry.TotalMinusExclusions += grossValue;
-      }
-      categories.add(category);
-    }
-  });
-
-  return {
-    processedData,
-    categories: Array.from(categories),
-    totalGross,
-    totalGrossMinusExclusions,
-    totalNet,
-  };
-};
-
-// Add this function to transform the values
 const transformValue = (value: number): number => {
   if (value <= 100) {
-    // Apply larger scale for values under 100
     return value * 2;
   } else if (value <= 1000) {
-    // Gradual transition
     return 200 + (value - 100) * 0.8;
   } else {
-    // Compress higher values
     return 920 + (value - 1000) * 0.3;
   }
 };
 
-// Inverse transform for display
 const inverseTransform = (value: number): number => {
   if (value <= 200) {
     return value / 2;
@@ -142,10 +101,43 @@ const inverseTransform = (value: number): number => {
 const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
   selectedRange,
 }) => {
-  const { data: chartData, isLoading } = useQuery({
-    queryKey: ["sales-range", selectedRange.start, selectedRange.end],
+  const queryClient = useQueryClient();
+
+  const { data: activeView } = useQuery({
+    queryKey: ["chart-view"],
+    queryFn: () => "totalGross" as ChartView,
+    initialData: "totalGross",
+  });
+
+  const setViewMutation = useMutation({
+    mutationFn: async (newView: ChartView) => newView,
+    onMutate: async (newView) => {
+      await queryClient.cancelQueries({ queryKey: ["chart-view"] });
+      const previousView = queryClient.getQueryData(["chart-view"]);
+      queryClient.setQueryData(["chart-view"], newView);
+      return { previousView };
+    },
+    onError: (err, newView, context) => {
+      if (context?.previousView) {
+        queryClient.setQueryData(["chart-view"], context.previousView);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales-range-data"] });
+    },
+  });
+
+  const { data: salesData, isLoading } = useQuery({
+    queryKey: [
+      "sales-range-data",
+      selectedRange.start,
+      selectedRange.end,
+      activeView,
+    ],
     queryFn: async () => {
-      if (!selectedRange.start || !selectedRange.end) return null;
+      if (!selectedRange.start || !selectedRange.end) {
+        throw new Error("Date range not selected");
+      }
 
       const response = await fetch(
         `/api/fetch-sales-data-by-range?start=${
@@ -157,10 +149,123 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
         throw new Error("Failed to fetch data");
       }
 
-      const data = await response.json();
-      return processData(data);
+      return response.json();
     },
     enabled: !!selectedRange.start && !!selectedRange.end,
+  });
+
+  const processData = (data: any[], currentView: ChartView): ProcessedData => {
+    const processedData: ChartData[] = [];
+    const categories: Set<string> = new Set();
+    const excludeCategoriesFromChart = [
+      "CA Tax Gun Transfer",
+      "CA Tax Adjust",
+      "CA Excise Tax",
+      "CA Excise Tax Adjustment",
+    ];
+    const excludeCategoriesFromTotalFirearms = [
+      "Pistol",
+      "Rifle",
+      "Revolver",
+      "Shotgun",
+      "Receiver",
+      ...excludeCategoriesFromChart,
+    ];
+
+    let totalGross = 0;
+    let totalNet = 0;
+    let totalNetMinusExclusions = 0;
+
+    data.forEach((item) => {
+      const lanid = item.Lanid;
+      const category = item.category_label;
+      const grossValue = item.total_gross ?? 0;
+      const netValue = item.total_net ?? 0;
+
+      totalGross += grossValue;
+
+      if (!excludeCategoriesFromChart.includes(category)) {
+        totalNet += netValue;
+      }
+
+      if (!excludeCategoriesFromTotalFirearms.includes(category)) {
+        totalNetMinusExclusions += netValue;
+      }
+
+      if (!excludeCategoriesFromChart.includes(category)) {
+        let existingEntry = processedData.find((d) => d.Lanid === lanid);
+        if (!existingEntry) {
+          existingEntry = {
+            Lanid: lanid,
+            Date: item.Date,
+            Total: 0,
+            TotalMinusExclusions: 0,
+          };
+          processedData.push(existingEntry);
+        }
+
+        existingEntry[category] = netValue;
+        existingEntry.Total += netValue;
+        if (!excludeCategoriesFromTotalFirearms.includes(category)) {
+          existingEntry.TotalMinusExclusions += netValue;
+        }
+        categories.add(category);
+      }
+    });
+
+    const processedDataForView = processedData.map((item) => {
+      switch (currentView) {
+        case "totalNetWithoutFirearms":
+          return {
+            ...item,
+            ...Object.fromEntries(
+              Object.entries(item).filter(
+                ([key]) => !excludeCategoriesFromTotalFirearms.includes(key)
+              )
+            ),
+          };
+        case "totalNetWithFirearms":
+          return {
+            ...item,
+            ...Object.fromEntries(
+              Object.entries(item).filter(
+                ([key]) => !excludeCategoriesFromChart.includes(key)
+              )
+            ),
+          };
+        default:
+          return item;
+      }
+    });
+
+    return {
+      processedData: processedDataForView,
+      categories: Array.from(categories),
+      totalGross,
+      totalNet,
+      totalNetMinusExclusions,
+    };
+  };
+
+  const chartData = React.useMemo(() => {
+    if (!salesData) return null;
+    return processData(salesData, activeView as ChartView);
+  }, [salesData, activeView]);
+
+  const updateRangeMutation = useMutation({
+    mutationFn: (date: Date) => {
+      const newStart = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+      const newEnd = new Date(newStart);
+      newEnd.setHours(23, 59, 59, 999);
+      return Promise.resolve({ start: newStart, end: newEnd });
+    },
+    onSuccess: (newRange) => {
+      queryClient.setQueryData(["selectedRange"], newRange);
+    },
   });
 
   const chartConfig =
@@ -172,7 +277,6 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
       return acc;
     }, {} as ChartConfig) ?? {};
 
-  // Calculate the maximum total height for any stacked bar
   const maxTotal = chartData?.processedData.reduce((max, item) => {
     const total = chartData.categories.reduce((sum, category) => {
       return sum + (item[category] || 0);
@@ -180,17 +284,13 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     return Math.max(max, total);
   }, 0);
 
-  // Add some padding (20%) to ensure all stacks are visible
   const yAxisMax = maxTotal ? maxTotal * 1.2 : 0;
 
-  // Calculate custom ticks with non-linear intervals
   const calculateCustomTicks = (max: number): number[] => {
     const ticks: number[] = [];
 
-    // Start with 0
     ticks.push(0);
 
-    // Add very granular intervals for very low values
     if (max > 10) ticks.push(10);
     if (max > 25) ticks.push(25);
     if (max > 30) ticks.push(30);
@@ -204,19 +304,14 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     if (max > 750) ticks.push(750);
     if (max > 1000) ticks.push(1000);
 
-    // Add more intervals between 1000 and 2500
     if (max > 1250) ticks.push(1250);
     if (max > 1500) ticks.push(1500);
-    // if (max > 1750) ticks.push(1750);
     if (max > 2000) ticks.push(2000);
-    // if (max > 2250) ticks.push(2250);
     if (max > 2500) ticks.push(2500);
 
-    // Add medium intervals with smaller steps
     if (max > 3000) ticks.push(3000);
     if (max > 3500) ticks.push(3500);
     if (max > 4000) ticks.push(4000);
-    // if (max > 4500) ticks.push(4500);
     if (max > 5000) ticks.push(5000);
     if (max > 6000) ticks.push(6000);
     if (max > 7000) ticks.push(7000);
@@ -224,12 +319,10 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     if (max > 9000) ticks.push(9000);
     if (max > 10000) ticks.push(10000);
 
-    // Add larger intervals
     if (max > 15000) ticks.push(15000);
     if (max > 20000) ticks.push(20000);
     if (max > 25000) ticks.push(25000);
 
-    // Add smaller intervals for remaining values
     const remaining: number = max - ticks[ticks.length - 1];
     const interval: number = remaining / 12;
 
@@ -238,13 +331,22 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
       if (value < max) ticks.push(Math.round(value));
     }
 
-    // Add the max value
     ticks.push(Math.ceil(max));
 
     return ticks;
   };
 
   const customTicks = maxTotal ? calculateCustomTicks(yAxisMax) : [];
+
+  const handleRangeChange = (date: Date | undefined) => {
+    if (date) {
+      updateRangeMutation.mutate(date);
+    }
+  };
+
+  const handleViewChange = (newView: ChartView) => {
+    setViewMutation.mutate(newView);
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -255,7 +357,44 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
   }
 
   return (
-    <div style={{ minWidth: chartData.processedData.length * 100 }}>
+    <div style={{ minWidth: chartData?.processedData.length * 100 }}>
+      <div className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <div className="flex flex-row items-center justify-center gap-2 px-6 py-5 sm:py-6">
+          <h1 className="text-2xl font-bold flex items-center gap-2"></h1>
+        </div>
+        <div className="flex">
+          {[
+            { key: "totalGross", label: "Total Gross Sales" },
+            {
+              key: "totalNetWithFirearms",
+              label: "Total Net Sales With Firearms",
+            },
+            {
+              key: "totalNetWithoutFirearms",
+              label: "Total Net Sales Without Firearms",
+            },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              data-active={activeView === key}
+              className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+              onClick={() => setViewMutation.mutate(key as ChartView)}
+            >
+              <span className="text-xs text-muted-foreground">{label}</span>
+              <span className="text-lg font-bold leading-none sm:text-3xl">
+                {currencyFormatter.format(
+                  key === "totalGross"
+                    ? chartData?.totalGross ?? 0
+                    : key === "totalNetWithFirearms"
+                    ? chartData?.totalNet ?? 0
+                    : chartData?.totalNetMinusExclusions ?? 0
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <ChartContainer
         config={chartConfig}
         className="min-h-[20px] max-h-[500px] w-full"
@@ -317,5 +456,10 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     </div>
   );
 };
+
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
 
 export default SalesRangeStackedBarChart;
