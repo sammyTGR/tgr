@@ -243,6 +243,11 @@ const manageComps = [
     href: "/franchise/about",
     description: "Joining TGR",
   },
+  {
+    title: "Banned Firearms",
+    href: "/TGR/dros/banned",
+    description: "Banned Firearms",
+  },
 ];
 
 const fbComps = [

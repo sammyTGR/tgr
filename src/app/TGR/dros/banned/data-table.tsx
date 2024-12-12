@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DataTablePagination } from "./data-table-pagination";
-import { EmployeeTableToolbar } from "./employee-table-toolbar";
+import { FirearmTableToolbar } from "./firearm-table-toolbar";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -40,7 +40,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <EmployeeTableToolbar table={table} />
+      <FirearmTableToolbar table={table} />
       <div className="rounded-md border">
         <Table className="min-w-7xl">
           <TableHeader>

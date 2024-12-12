@@ -29,16 +29,16 @@ export default function AddTodo() {
         mutation.mutate(formData);
       }}
     >
-      <Button type="submit" className="min-w-6 h-6 p-1 rounded-sm">
-        <PlusIcon className="w-4 h-4" />
-      </Button>
       <Input
         id="task"
-        className="p-1 focus-visible:ring-transparent"
+        className="p-2 focus-visible:ring-transparent"
         name="task"
-        placeholder="Add new item..."
+        placeholder=" Add new item..."
         required
       />
+      <Button type="submit" className="p-2" size="icon" variant="gooeyLeft">
+        <PlusIcon />
+      </Button>
     </form>
   );
 }

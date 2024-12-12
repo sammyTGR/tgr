@@ -26,8 +26,7 @@ export default function Todos() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="flex flex-col">
-      <AddTodo />
+      <div className="flex flex-col gap-1 mb-2">
         {todos
           ?.filter((todo) => !todo.is_complete)
           .map((todo) => (
@@ -38,8 +37,8 @@ export default function Todos() {
           .map((todo) => (
             <Todo key={todo.id} todo={todo} />
           ))}
-        
       </div>
+      <AddTodo />
     </div>
   );
 }

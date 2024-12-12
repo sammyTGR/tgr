@@ -18,11 +18,10 @@ export default function ClearActions() {
   });
 
   return (
-    <div className="flex items-center border-t pt-2 justify-between space-x-2">
+    <div className="flex items-center pt-4 justify-between space-x-2">
       <Button
         onClick={() => clearAllMutation.mutate()}
         variant="destructive"
-        className="ml-auto"
         size="sm"
       >
         Clear All Items

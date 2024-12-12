@@ -214,27 +214,41 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     });
 
     const processedDataForView = processedData.map((item) => {
+      const displayItem = { ...item };
+
+      Object.keys(displayItem).forEach((key) => {
+        if (
+          typeof displayItem[key] === "number" &&
+          key !== "Total" &&
+          key !== "TotalMinusExclusions" &&
+          key !== "Lanid" &&
+          key !== "Date"
+        ) {
+          displayItem[key] = displayItem[key] < 0 ? 0 : displayItem[key];
+        }
+      });
+
       switch (currentView) {
         case "totalNetWithoutFirearms":
           return {
-            ...item,
+            ...displayItem,
             ...Object.fromEntries(
-              Object.entries(item).filter(
+              Object.entries(displayItem).filter(
                 ([key]) => !excludeCategoriesFromTotalFirearms.includes(key)
               )
             ),
           };
         case "totalNetWithFirearms":
           return {
-            ...item,
+            ...displayItem,
             ...Object.fromEntries(
-              Object.entries(item).filter(
+              Object.entries(displayItem).filter(
                 ([key]) => !excludeCategoriesFromChart.includes(key)
               )
             ),
           };
         default:
-          return item;
+          return displayItem;
       }
     });
 

@@ -38,16 +38,16 @@ export default function Todo({ todo }: { todo: Todo }) {
           isHovered ? "opacity-100" : "opacity-0"
         }`}
       >
-        <Button
+        {/* <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8 p-0"
           onClick={() => {
-            /* Handle edit */
+           
           }}
         >
           <Pencil1Icon className="h-4 w-4" />
-        </Button>
+        </Button> */}
         <DeleteTodo id={todo.id} />
       </div>
     </div>
