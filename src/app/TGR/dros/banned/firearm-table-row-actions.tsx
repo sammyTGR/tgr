@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Row } from "@tanstack/react-table";
 import { DatabaseFirearm } from "./types";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,13 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
   const [currentVariation, setCurrentVariation] = useState("");
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    setEditingFirearm({
+      ...row.original,
+      variations: row.original.variations || "",
+    });
+  }, [row.original]);
+
   const handleDelete = async () => {
     try {
       const { error } = await supabase
@@ -64,6 +71,15 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
       console.error("Error deleting firearm:", error);
       toast.error("Failed to delete firearm");
     }
+  };
+
+  const handleEditClick = () => {
+    setEditingFirearm({
+      ...row.original,
+      variations: row.original.variations || "",
+    });
+    setCurrentVariation("");
+    setIsEditDialogOpen(true);
   };
 
   const handleUpdate = async () => {
@@ -126,7 +142,9 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+          <DropdownMenuItem onClick={handleEditClick}>
+            {" "}
+            {/* Use the new handler */}
             Edit
           </DropdownMenuItem>
           <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
@@ -216,9 +234,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
             >
               Cancel
             </Button>
-            <Button variant="linkHover1" onClick={handleUpdate}>
-              Save Changes
-            </Button>
+            <Button onClick={handleUpdate}>Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>

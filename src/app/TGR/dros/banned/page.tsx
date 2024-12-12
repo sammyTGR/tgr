@@ -61,7 +61,7 @@ export default function BannedFirearmsPage() {
       <div className="container mx-auto py-10 max-w-full">
         <h1 className="text-2xl font-bold mt-8">Banned Firearms Database</h1>
         <div className="flex justify-end mb-5">
-          <Button variant="linkHover2" onClick={() => setIsAddDialogOpen(true)}>
+          <Button variant="gooeyRight" onClick={() => setIsAddDialogOpen(true)}>
             <PlusCircledIcon className="mr-2 h-4 w-4" />
             Add Firearm
           </Button>

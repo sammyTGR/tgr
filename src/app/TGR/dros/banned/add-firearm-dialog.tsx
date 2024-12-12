@@ -86,20 +86,33 @@ export default function AddFirearmDialog({
     setModels(newModels);
   };
 
+  // In AddFirearmDialog.tsx, modify the handleSubmit function:
+  // In AddFirearmDialog.tsx, modify the handleSubmit function:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Create a firearm entry for each model
-    const firearmsToAdd = models.map((model) => ({
-      type,
-      manufacturer: manufacturer.trim(),
-      model: model.name.trim(),
-      variations: model.variations.trim() || null,
-    }));
+    const firearmsToAdd = models.map((model) => {
+      // Ensure the variation is properly formatted
+      const variation = model.variations ? model.variations.trim() : null;
 
-    // Add each firearm
+      return {
+        type,
+        manufacturer: DOMPurify.sanitize(manufacturer.trim()),
+        model: DOMPurify.sanitize(model.name.trim()),
+        variations: variation, // This matches the edit functionality's structure
+      };
+    });
+
+    // Add each firearm and log the response
     for (const firearm of firearmsToAdd) {
-      await onAdd(firearm);
+      console.log("Attempting to add firearm:", firearm); // Debug log
+      try {
+        const result = await onAdd(firearm);
+        console.log("Add firearm response:", result); // Debug log
+      } catch (error) {
+        console.error("Error adding firearm:", error);
+      }
     }
 
     // Reset form
@@ -145,7 +158,7 @@ export default function AddFirearmDialog({
                 onChange={(e) =>
                   setManufacturer(DOMPurify.sanitize(e.target.value))
                 }
-                required
+                placeholder="Enter manufacturer"
               />
             </div>
 
