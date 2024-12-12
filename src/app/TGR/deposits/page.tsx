@@ -68,18 +68,6 @@ export default function DailyDepositsPage() {
   );
   const [activeTab, setActiveTab] = useState("reg1");
 
-  // useEffect(() => {
-  //   if (
-  //     !loading &&
-  //     role !== "user" &&
-  //     role !== "auditor" &&
-  //     role !== "admin" &&
-  //     role !== "super admin" &&
-  //     role !== "dev"
-  //   ) {
-  //     router.push("/unauthorized");
-  //   }
-  // }, [role, loading, router]);
 
   useEffect(() => {
     if (!isFetching) {
