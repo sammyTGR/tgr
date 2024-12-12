@@ -135,112 +135,112 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin", "dev", "admin"]}>
-      <>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <DotsHorizontalIcon className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleEditClick}>
-              {" "}
-              {/* Use the new handler */}
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    // <RoleBasedWrapper allowedRoles={["super admin", "dev", "admin"]}>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <DotsHorizontalIcon className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleEditClick}>
+            {" "}
+            {/* Use the new handler */}
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Firearm</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select
-                  value={editingFirearm.type}
-                  onValueChange={(value: "rifle" | "handgun") =>
-                    setEditingFirearm((prev) => ({ ...prev, type: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rifle">Rifle</SelectItem>
-                    <SelectItem value="handgun">Handgun</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Manufacturer</Label>
-                <Input
-                  value={editingFirearm.manufacturer}
-                  onChange={(e) =>
-                    setEditingFirearm((prev) => ({
-                      ...prev,
-                      manufacturer: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Input
-                  value={editingFirearm.model}
-                  onChange={(e) =>
-                    setEditingFirearm((prev) => ({
-                      ...prev,
-                      model: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Variation</Label>
-                <Input
-                  value={currentVariation}
-                  onChange={(e) => setCurrentVariation(e.target.value)}
-                  placeholder="Enter variation"
-                />
-              </div>
-              {editingFirearm.variations && (
-                <div className="flex items-center gap-1 bg-secondary p-1 rounded mt-2">
-                  <span>{editingFirearm.variations}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0"
-                    onClick={handleRemoveVariation}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Firearm</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={editingFirearm.type}
+                onValueChange={(value: "rifle" | "handgun") =>
+                  setEditingFirearm((prev) => ({ ...prev, type: value }))
+                }
               >
-                Cancel
-              </Button>
-              <Button onClick={handleUpdate}>Save Changes</Button>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rifle">Rifle</SelectItem>
+                  <SelectItem value="handgun">Handgun</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </DialogContent>
-        </Dialog>
-      </>
-    </RoleBasedWrapper>
+
+            <div className="space-y-2">
+              <Label>Manufacturer</Label>
+              <Input
+                value={editingFirearm.manufacturer}
+                onChange={(e) =>
+                  setEditingFirearm((prev) => ({
+                    ...prev,
+                    manufacturer: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Model</Label>
+              <Input
+                value={editingFirearm.model}
+                onChange={(e) =>
+                  setEditingFirearm((prev) => ({
+                    ...prev,
+                    model: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Variation</Label>
+              <Input
+                value={currentVariation}
+                onChange={(e) => setCurrentVariation(e.target.value)}
+                placeholder="Enter variation"
+              />
+            </div>
+            {editingFirearm.variations && (
+              <div className="flex items-center gap-1 bg-secondary p-1 rounded mt-2">
+                <span>{editingFirearm.variations}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0"
+                  onClick={handleRemoveVariation}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdate}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+    // </RoleBasedWrapper>
   );
 }

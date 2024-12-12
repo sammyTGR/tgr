@@ -186,7 +186,7 @@ export default function DROSGuide() {
           </div>
 
           <TabsContent value="dros-guide">
-            <div className="flex flex-col justify-center px-4 space-y-6 py-10 mx-auto max-w-sm">
+            <div className="flex flex-col justify-center space-y-6 py-10 mx-auto max-w-sm">
               {selections.map((selection, index) => (
                 <Select
                   key={index}

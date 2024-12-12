@@ -97,7 +97,7 @@ export default function BannedFirearmsPage() {
         {isLoading ? (
           <p>Loading firearms database...</p>
         ) : (
-          <DataTable columns={columns} data={firearms || []} />
+          <DataTable columns={columns(userRole?.role)} data={firearms || []} />
         )}
         <AddFirearmDialog
           isOpen={isAddDialogOpen}
