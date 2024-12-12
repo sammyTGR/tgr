@@ -55,7 +55,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
+import { format, toZonedTime } from "date-fns-tz";
+import { parseISO, format as formatDate } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 type NoteItem = {
   id: string;
@@ -128,6 +130,9 @@ type DiscussedNotes = {
     [topic: string]: DiscussedNoteItem[];
   };
 };
+
+// Add timezone constant
+const TIME_ZONE = "America/Los_Angeles";
 
 export default function TeamWeeklyNotes() {
   const queryClient = useQueryClient();
@@ -773,55 +778,67 @@ export default function TeamWeeklyNotes() {
                         new Date(b.meeting_date).getTime() -
                         new Date(a.meeting_date).getTime()
                     )
-                    .map((dateGroup) => (
-                      <Card key={dateGroup.meeting_date}>
-                        <CardHeader>
-                          <CardTitle>
-                            Meeting Notes -{" "}
-                            {format(new Date(dateGroup.meeting_date), "PPP")}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {topics.map((topic) => (
-                            <div key={topic} className="mb-6">
-                              <h3 className="font-semibold text-lg mb-2">
-                                {topicDisplayNames[topic]}
-                              </h3>
-                              <ul className="space-y-2">
-                                {dateGroup.notes[topic]?.map((note) => (
-                                  <li
-                                    key={note.id}
-                                    className="flex items-start text-sm group relative" // Match Team Updates styling
-                                  >
-                                    <div className="flex items-start">
-                                      <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                      <span>{note.content}</span>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground ml-2">
-                                      {note.employee_name}
-                                    </span>
-                                    {currentEmployee?.role === "dev" && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="opacity-0 group-hover:opacity-100 absolute right-0"
-                                        onClick={() =>
-                                          removeDiscussedNoteMutation.mutate(
-                                            note.id
-                                          )
-                                        }
-                                      >
-                                        Remove
-                                      </Button>
-                                    )}
-                                  </li>
-                                )) || <li>No discussed notes</li>}
-                              </ul>
-                            </div>
-                          ))}
-                        </CardContent>
-                      </Card>
-                    ))}
+                    .map((dateGroup) => {
+                      // Convert UTC date from Supabase to Pacific time
+                      const utcDate = parseISO(dateGroup.meeting_date);
+                      const zonedDate = toZonedTime(utcDate, TIME_ZONE);
+
+                      // Format the date in Pacific time
+                      const formattedDate = formatInTimeZone(
+                        utcDate,
+                        TIME_ZONE,
+                        "EEEE, MMMM d, yyyy"
+                      );
+
+                      return (
+                        <Card key={dateGroup.meeting_date}>
+                          <CardHeader>
+                            <CardTitle>
+                              Meeting Notes - {formattedDate}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {topics.map((topic) => (
+                              <div key={topic} className="mb-6">
+                                <h3 className="font-semibold text-lg mb-2">
+                                  {topicDisplayNames[topic]}
+                                </h3>
+                                <ul className="space-y-2">
+                                  {dateGroup.notes[topic]?.map((note) => (
+                                    <li
+                                      key={note.id}
+                                      className="flex items-start text-sm group relative"
+                                    >
+                                      <div className="flex items-start">
+                                        <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
+                                        <span>{note.content}</span>
+                                      </div>
+                                      <span className="text-sm text-muted-foreground ml-2">
+                                        {note.employee_name}
+                                      </span>
+                                      {currentEmployee?.role === "dev" && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="opacity-0 group-hover:opacity-100 absolute right-0"
+                                          onClick={() =>
+                                            removeDiscussedNoteMutation.mutate(
+                                              note.id
+                                            )
+                                          }
+                                        >
+                                          Remove
+                                        </Button>
+                                      )}
+                                    </li>
+                                  )) || <li>No discussed notes</li>}
+                                </ul>
+                              </div>
+                            ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                 </div>
               </TabsContent>
             </CardContent>

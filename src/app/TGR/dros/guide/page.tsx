@@ -180,7 +180,7 @@ export default function DROSGuide() {
             <TabsList>
               <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
               <TabsTrigger value="assault-weapons">
-                Assault Weapons Table
+                Banned Assault Weapons
               </TabsTrigger>
             </TabsList>
           </div>
