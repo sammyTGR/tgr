@@ -152,16 +152,6 @@ export default function AddFirearmDialog({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label>Models</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddModel}
-                  className="flex items-center gap-1"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Model
-                </Button>
               </div>
 
               {models.map((model, modelIndex) => (
@@ -234,8 +224,17 @@ export default function AddFirearmDialog({
           </div>
 
           <div className="p-6 mt-auto border-t">
-            <div className="flex justify-end gap-2">
-              <Button type="submit" variant="linkHover1">
+            <div className="flex justify-between gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddModel}
+                className="flex items-center gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add Model
+              </Button>
+              <Button type="submit">
                 Add Firearm{models.length > 1 ? "s" : ""}
               </Button>
             </div>
