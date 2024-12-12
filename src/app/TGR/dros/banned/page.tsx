@@ -16,6 +16,18 @@ export default function BannedFirearmsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role"],
+    queryFn: async () => {
+      const response = await fetch("/api/getUserRole");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user role");
+      }
+      const data = await response.json();
+      return data;
+    },
+  });
+
   const { data: firearms, isLoading } = useQuery({
     queryKey: ["banned-firearms"],
     queryFn: async () => {
@@ -28,6 +40,8 @@ export default function BannedFirearmsPage() {
       return data as unknown as DatabaseFirearm[];
     },
   });
+
+  const canAddFirearm = userRole?.role === "admin" || userRole?.role === "dev";
 
   const addFirearmMutation = useMutation({
     mutationFn: async (
@@ -61,10 +75,15 @@ export default function BannedFirearmsPage() {
       <div className="container mx-auto py-10 max-w-full">
         <h1 className="text-2xl font-bold mt-8">Banned Firearms Database</h1>
         <div className="flex justify-end mb-5">
-          <Button variant="gooeyRight" onClick={() => setIsAddDialogOpen(true)}>
-            <PlusCircledIcon className="mr-2 h-4 w-4" />
-            Add Firearm
-          </Button>
+          {canAddFirearm && (
+            <Button
+              variant="gooeyRight"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <PlusCircledIcon className="mr-2 h-4 w-4" />
+              Add Firearm
+            </Button>
+          )}
         </div>
         {isLoading ? (
           <p>Loading firearms database...</p>
