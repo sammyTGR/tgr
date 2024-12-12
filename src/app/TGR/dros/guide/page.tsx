@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,12 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import IDsCard from "../cards/IDsCard";
 import dynamic from "next/dynamic";
-import { supabase } from "../../../../utils/supabase/client"; // Updated import
+import { supabase } from "../../../../utils/supabase/client";
 import FedsCard from "../cards/FedsCard";
-import { useRouter } from "next/navigation";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import BannedFirearmsPage from "../banned/page";
+import { useState } from "react";
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -34,13 +37,35 @@ interface DropdownItem {
 }
 
 export default function DROSGuide() {
-  const [data, setData] = useState<DropdownItem[]>([]);
-  const [selections, setSelections] = useState<(string | null)[]>(
-    Array(8).fill(null)
-  );
+  const queryClient = useQueryClient();
   const [activeDialogContentId, setActiveDialogContentId] = useState<
     string | null
   >(null);
+
+  const { data: dropsData = [], isLoading } = useQuery({
+    queryKey: ["drops-data"],
+    queryFn: async () => {
+      const { data: fetchedData, error } = await supabase
+        .from("Drops")
+        .select("*");
+      if (error) throw error;
+      return fetchedData as DropdownItem[];
+    },
+  });
+
+  const { data: selections = Array(8).fill(null) } = useQuery({
+    queryKey: ["selections"],
+    initialData: Array(8).fill(null),
+  });
+
+  const selectionsMutation = useMutation({
+    mutationFn: (newSelections: (string | null)[]) => {
+      return Promise.resolve(newSelections);
+    },
+    onSuccess: (newSelections) => {
+      queryClient.setQueryData(["selections"], newSelections);
+    },
+  });
 
   const handleSubItemClick = (contentId: string) => {
     setActiveDialogContentId(contentId);
@@ -57,44 +82,10 @@ export default function DROSGuide() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: session, error: sessionError } =
-          await supabase.auth.getSession();
-        if (sessionError) {
-          throw new Error(`Session Error: ${sessionError.message}`);
-        }
-
-        if (!session) {
-          throw new Error("No active session found");
-        }
-
-        let { data: fetchedData, error } = await supabase
-          .from("Drops")
-          .select("*");
-
-        if (error) {
-          throw new Error(`Data Fetch Error: ${error.message}`);
-        }
-
-        if (fetchedData) {
-          setData(fetchedData);
-        } else {
-          console.error("No data available");
-        }
-      } catch (error) {
-        console.error("Unexpected error:", error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
   const getOptionsForSelect = (index: number) => {
-    if (!data.length) return [];
+    if (!dropsData?.length) return [];
 
-    let filteredData = data;
+    let filteredData = dropsData;
     const keys: (keyof DropdownItem)[] = [
       "product",
       "type",
@@ -106,6 +97,7 @@ export default function DROSGuide() {
       "blank",
       "requirements",
     ];
+
     for (let i = 0; i < index; i++) {
       if (selections[i] !== null) {
         filteredData = filteredData.filter(
@@ -119,31 +111,32 @@ export default function DROSGuide() {
   };
 
   const handleSelectionChange = (selectIndex: number, value: string) => {
-    let updatedSelections = [...selections];
-    updatedSelections[selectIndex] = value === "none" ? null : value; // Handle 'none' as null
+    const updatedSelections = [...selections];
+    updatedSelections[selectIndex] = value === "none" ? null : value;
 
     if (
       selectIndex === 6 &&
       updatedSelections.slice(0, 7).every((selection) => selection !== null)
     ) {
-      updatedSelections[7] = ""; // Automatically set the 8th dropdown as blank, indicating ready to show 'requirements'
+      updatedSelections[7] = "";
     }
 
     for (let i = selectIndex + 1; i < updatedSelections.length; i++) {
-      updatedSelections[i] = null; // Reset selections for dropdowns that follow
+      updatedSelections[i] = null;
     }
-    setSelections(updatedSelections);
+
+    selectionsMutation.mutate(updatedSelections);
   };
 
   const resetSelections = () => {
-    setSelections(Array(7).fill(null));
+    selectionsMutation.mutate(Array(7).fill(null));
   };
 
   const canShowColumnH = () => {
     const areSevenDropdownsSelected = selections
       .slice(0, 7)
       .every((selection) => selection !== null);
-    const isBlankAutomaticallySet = selections[7] === ""; // Check if the blank column is set as intended
+    const isBlankAutomaticallySet = selections[7] === "";
 
     if (areSevenDropdownsSelected && isBlankAutomaticallySet) {
       return true;
@@ -155,7 +148,7 @@ export default function DROSGuide() {
   };
 
   const columnHText = canShowColumnH()
-    ? data.find((row) => {
+    ? dropsData.find((row) => {
         const keys: (keyof DropdownItem)[] = [
           "product",
           "type",
@@ -177,57 +170,74 @@ export default function DROSGuide() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
-      <div>
-        <div className="flex flow-row items-center justify-center max w-full mb-40 mt-20">
+      <main className="grid flex-1 items-start my-4 mb-4 max-w-7xl mx-auto gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <div className="flex flow-row items-center justify-center max w-full mb-10">
           <SupportMenu />
-          {activeDialogContentId}
         </div>
-        <div className="flex flex-col justify-center px-4 space-y-6 mx-auto max-w-sm">
-          {selections.map((selection, index) => (
-            <Select
-              key={index}
-              disabled={index > 0 && selections[index - 1] === null}
-              onValueChange={(value) => handleSelectionChange(index, value)}
-              value={selection || "none"}
-            >
-              <SelectTrigger className="flex max-w-full">
-                <SelectValue
-                  placeholder={`Select from ${String.fromCharCode(
-                    "A".charCodeAt(0) + index
-                  )}`}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">...</SelectItem>
-                {getOptionsForSelect(index).map((option, optionIndex) => (
-                  <SelectItem key={optionIndex} value={option}>
-                    {option}
-                  </SelectItem>
+
+        <Tabs defaultValue="dros-guide">
+          <div className="flex items-center space-x-2">
+            <TabsList>
+              <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
+              <TabsTrigger value="assault-weapons">
+                Assault Weapons Table
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="dros-guide">
+            <div className="flex flex-col justify-center px-4 space-y-6 py-10 mx-auto max-w-sm">
+              {selections.map((selection, index) => (
+                <Select
+                  key={index}
+                  disabled={index > 0 && selections[index - 1] === null}
+                  onValueChange={(value) => handleSelectionChange(index, value)}
+                  value={selection || "none"}
+                >
+                  <SelectTrigger className="flex max-w-full">
+                    <SelectValue
+                      placeholder={`Select from ${String.fromCharCode(
+                        "A".charCodeAt(0) + index
+                      )}`}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">...</SelectItem>
+                    {getOptionsForSelect(index).map((option, optionIndex) => (
+                      <SelectItem key={optionIndex} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
+            <br />
+            <div className="flex flex-row justify-center mx-auto max-w-[700px]">
+              {columnHText &&
+                (columnHText as string).split("\n").map((line, index) => (
+                  <React.Fragment key={index}>
+                    {line}
+                    <br />
+                  </React.Fragment>
                 ))}
-              </SelectContent>
-            </Select>
-          ))}
-        </div>
-        <br />
-        <div className="flex flex-row justify-center mx-auto max-w-[700px]">
-          {columnHText &&
-            (columnHText as string).split("\n").map((line, index) => (
-              <React.Fragment key={index}>
-                {line}
-                <br />
-              </React.Fragment>
-            ))}
-        </div>
-        <div className="flex flex-row justify-center mt-10 md:mt-10 lg:mt-12">
-          <Button
-            variant="gooeyLeft"
-            onClick={resetSelections}
-            className="mb-6 flex-shrink py-1"
-          >
-            Reset Selections
-          </Button>
-        </div>
-      </div>
+            </div>
+            <div className="flex flex-row justify-center mt-10">
+              <Button
+                variant="gooeyLeft"
+                onClick={resetSelections}
+                className="mb-6 flex-shrink py-1"
+              >
+                Reset Selections
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="assault-weapons">
+            <BannedFirearmsPage />
+          </TabsContent>
+        </Tabs>
+      </main>
     </RoleBasedWrapper>
   );
 }

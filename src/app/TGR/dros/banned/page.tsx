@@ -71,9 +71,18 @@ export default function BannedFirearmsPage() {
   });
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin", "dev", "admin"]}>
-      <div className="container mx-auto py-10 max-w-full">
-        <h1 className="text-2xl font-bold mt-8">Banned Firearms Database</h1>
+    <RoleBasedWrapper
+      allowedRoles={[
+        "super admin",
+        "dev",
+        "admin",
+        "user",
+        "auditor",
+        "gunsmith",
+      ]}
+    >
+      <div className="container mx-auto max-w-full">
+        <h1 className="text-2xl font-bold ">Banned Firearms Database</h1>
         <div className="flex justify-end mb-5">
           {canAddFirearm && (
             <Button
