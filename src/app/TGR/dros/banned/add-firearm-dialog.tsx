@@ -42,7 +42,6 @@ export default function AddFirearmDialog({
   const [type, setType] = useState<"rifle" | "handgun">("rifle");
   const [manufacturer, setManufacturer] = useState("");
   const [models, setModels] = useState<Model[]>([{ name: "", variations: "" }]);
-  const [currentVariation, setCurrentVariation] = useState("");
   const [currentModelIndex, setCurrentModelIndex] = useState(0);
 
   const handleAddModel = () => {
@@ -64,43 +63,29 @@ export default function AddFirearmDialog({
     setModels(newModels);
   };
 
-  const handleAddVariation = () => {
-    if (currentVariation.trim()) {
-      const sanitizedVariation = DOMPurify.sanitize(currentVariation.trim());
-      const newModels = [...models];
-      newModels[currentModelIndex] = {
-        ...newModels[currentModelIndex],
-        variations: sanitizedVariation,
-      };
-      setModels(newModels);
-      setCurrentVariation("");
-    }
-  };
-
-  const handleRemoveVariation = (modelIndex: number) => {
+  const handleVariationChange = (modelIndex: number, value: string) => {
+    const sanitizedValue = DOMPurify.sanitize(value);
     const newModels = [...models];
     newModels[modelIndex] = {
       ...newModels[modelIndex],
-      variations: "",
+      variations: sanitizedValue,
     };
     setModels(newModels);
   };
 
-  // In AddFirearmDialog.tsx, modify the handleSubmit function:
-  // In AddFirearmDialog.tsx, modify the handleSubmit function:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Create a firearm entry for each model
     const firearmsToAdd = models.map((model) => {
-      // Ensure the variation is properly formatted
-      const variation = model.variations ? model.variations.trim() : null;
+      // Ensure the variation is properly formatted and matches the edit functionality
+      const variations = model.variations ? model.variations.trim() : null;
 
       return {
         type,
         manufacturer: DOMPurify.sanitize(manufacturer.trim()),
         model: DOMPurify.sanitize(model.name.trim()),
-        variations: variation, // This matches the edit functionality's structure
+        variations, // This should now match the database field name
       };
     });
 
@@ -119,7 +104,6 @@ export default function AddFirearmDialog({
     setType("rifle");
     setManufacturer("");
     setModels([{ name: "", variations: "" }]);
-    setCurrentVariation("");
     setCurrentModelIndex(0);
   };
 
@@ -198,38 +182,14 @@ export default function AddFirearmDialog({
                     <Label className="text-sm">Variations</Label>
                     <div className="flex gap-2">
                       <Input
-                        value={
-                          modelIndex === currentModelIndex
-                            ? currentVariation
-                            : ""
+                        value={model.variations}
+                        onChange={(e) =>
+                          handleVariationChange(modelIndex, e.target.value)
                         }
-                        onChange={(e) => setCurrentVariation(e.target.value)}
                         placeholder="Add variation"
                         onFocus={() => setCurrentModelIndex(modelIndex)}
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddVariation}
-                        disabled={modelIndex !== currentModelIndex}
-                      >
-                        Add
-                      </Button>
                     </div>
-                    {model.variations && (
-                      <div className="flex items-center gap-1 bg-secondary p-1 rounded">
-                        <span>{model.variations}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0"
-                          onClick={() => handleRemoveVariation(modelIndex)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
