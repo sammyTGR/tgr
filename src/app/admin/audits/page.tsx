@@ -59,6 +59,7 @@ import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { useMemo } from "react";
 import { ModalStateProvider, useModalState } from "@/context/ModalStateContext";
+import AuditChart from "./AuditChart";
 
 // Type definitions
 interface OptionType {
@@ -961,6 +962,47 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const { selectedDate, selectedLanid, showAllEmployees } = pageParams;
   const queryClient = useQueryClient();
 
+    const getDateRangeFromTimeRange = useCallback((timeRange: string, date: Date | null) => {
+    if (!date) return null;
+
+    switch (timeRange) {
+      case "7d":
+        const sevenDaysAgo = new Date(date);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        return {
+          startDate: format(sevenDaysAgo, "yyyy-MM-dd"),
+          endDate: format(date, "yyyy-MM-dd")
+        };
+      case "30d":
+        const thirtyDaysAgo = new Date(date);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return {
+          startDate: format(thirtyDaysAgo, "yyyy-MM-dd"),
+          endDate: format(date, "yyyy-MM-dd")
+        };
+      case "90d":
+        const ninetyDaysAgo = new Date(date);
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        return {
+          startDate: format(ninetyDaysAgo, "yyyy-MM-dd"),
+          endDate: format(date, "yyyy-MM-dd")
+        };
+      default:
+        // Default to current month view
+        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        return {
+          startDate: format(startOfMonth, "yyyy-MM-dd"),
+          endDate: format(date, "yyyy-MM-dd")
+        };
+    }
+  }, []);
+
+  const timeRangeQuery = useQuery({
+    queryKey: ["timeRange"],
+    queryFn: () => "90d", // default value
+    staleTime: Infinity,
+  });
+
   const reviewAuditsQuery = useQuery({
     queryKey: ["audits", "review"],
     queryFn: () => api.fetchAudits(),
@@ -1025,24 +1067,6 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     },
     enabled: !!dateRange,
   });
-
-  // const auditsQuery = useQuery({
-  //   queryKey: [
-  //     "audits",
-  //     dateRange?.startDate,
-  //     dateRange?.endDate,
-  //     selectedLanid,
-  //   ],
-  //   queryFn: async () => {
-  //     if (!dateRange) return [];
-  //     return api.fetchAudits({
-  //       startDate: dateRange.startDate,
-  //       endDate: dateRange.endDate,
-  //       lanid: selectedLanid || undefined,
-  //     });
-  //   },
-  //   enabled: !!dateRange,
-  // });
 
   const contestAuditsQuery = useQuery({
     queryKey: [
@@ -1355,6 +1379,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       salesDataQuery.error,
 
     // Handlers
+    timeRangeQuery,
     handlers: {
       handleDateChange,
       handleEmployeeChange,
@@ -1363,6 +1388,9 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       handleExport,
       handleTabChange,
       handleSearchChange,
+      handleTimeRangeChange: (value: string) => {
+        queryClient.setQueryData(["timeRange"], value);
+      },
     },
   };
 };
@@ -1555,6 +1583,7 @@ function AuditsPage() {
     error,
 
     // Handlers
+    timeRangeQuery,
     handlers: {
       handleDateChange,
       handleEmployeeChange,
@@ -1563,6 +1592,7 @@ function AuditsPage() {
       handleExport,
       handleTabChange,
       handleSearchChange,
+      handleTimeRangeChange,
     },
   } = useAuditsPage();
 
@@ -1621,7 +1651,7 @@ function AuditsPage() {
             <TabsList>
               <TabsTrigger value="submit">Submit Audits</TabsTrigger>
               <TabsTrigger value="review">Review Audits</TabsTrigger>
-              <TabsTrigger value="contest">Sales Contest</TabsTrigger>
+              <TabsTrigger value="contest">Sales Performance</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1853,7 +1883,6 @@ function AuditsPage() {
             </div>
 
             {/* Metrics Grid - Only shown for individual employee view */}
-            {/* Metrics Grid - Only shown for individual employee view */}
             <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
               {!showAllEmployees && selectedLanid && (
                 <>
@@ -2033,6 +2062,20 @@ function AuditsPage() {
                 )}
               </CardContent>
             </Card>
+
+{/* Audit Chart */}
+<Card>
+  <CardContent>
+    {selectedDate && (
+      <AuditChart
+        data={contestAuditsQuery.data || []}
+        timeRange={timeRangeQuery.data || "90d"}
+        onTimeRangeChange={handleTimeRangeChange}
+        isLoading={contestAuditsQuery.isLoading || salesDataQuery.isLoading}
+      />
+    )}
+  </CardContent>
+</Card>
           </TabsContent>
         </Tabs>
       </main>
