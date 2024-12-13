@@ -291,6 +291,17 @@ const api = {
     return data || [];
   },
 
+  fetchHistoricalAuditData: async (lanid: string) => {
+    const { data, error } = await supabase
+      .from("Auditsinput")
+      .select("*")
+      .eq("salesreps", lanid)
+      .order("audit_date", { ascending: true });
+
+    if (error) throw error;
+    return data;
+  },
+
   fetchPointsCalculation: async (): Promise<PointsCalculation[]> => {
     const { data, error } = await supabase
       .from("points_calculation")
@@ -459,7 +470,7 @@ const calculateSummaryData = (
             calculator.metrics.TotalWeightedMistakes || null,
         };
       } catch (error) {
-        console.error(`Error calculating metrics for ${lanid}:`, error);
+        // console.error(`Error calculating metrics for ${lanid}:`, error);
         return null;
       }
     })
@@ -916,6 +927,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
+import { HistoricalAuditChart } from "./HistoricalAuditChart";
 
 const usePageParams = () => {
   const router = useRouter();
@@ -958,44 +970,257 @@ const usePageParams = () => {
   };
 };
 
+const MetricCard = ({
+  title,
+  value,
+  accessor,
+  formatter = (val: any) => val,
+}: {
+  title: string;
+  value: any;
+  accessor: string;
+  formatter?: (val: any) => any;
+}) => {
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4">
+        <div className="text-center">
+          <div className="font-semibold text-2xl">
+            {value !== null && value !== undefined ? formatter(value) : "-"}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Then add the MetricsSection component
+const MetricsSection = ({
+  metricsData,
+  showAllEmployees,
+  selectedLanid,
+  selectedDate,
+}: {
+  metricsData: SummaryRowData[];
+  showAllEmployees: boolean;
+  selectedLanid: string | null;
+  selectedDate: Date | null;
+}) => {
+  if (
+    showAllEmployees ||
+    !selectedLanid ||
+    !selectedDate ||
+    !metricsData?.length
+  ) {
+    return null;
+  }
+
+  const metrics = metricsData[0];
+
+  // console.log("Metrics Data:", {
+  //   selectedDate: selectedDate.toISOString(),
+  //   selectedLanid,
+  //   metricsLength: metricsData.length,
+  //   metrics,
+  // });
+
+  return (
+    <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <MetricCard
+        title="Total # Of DROS"
+        value={metrics?.TotalDros}
+        accessor="TotalDros"
+      />
+
+      <MetricCard
+        title="Minor Mistakes"
+        value={metrics?.MinorMistakes}
+        accessor="MinorMistakes"
+      />
+
+      <MetricCard
+        title="Major Mistakes"
+        value={metrics?.MajorMistakes}
+        accessor="MajorMistakes"
+      />
+
+      <MetricCard
+        title="Cancelled DROS"
+        value={metrics?.CancelledDros}
+        accessor="CancelledDros"
+      />
+
+      <MetricCard
+        title="Error Rate"
+        value={metrics?.WeightedErrorRate}
+        accessor="WeightedErrorRate"
+        formatter={(value) => `${Number(value).toFixed(2)}%`}
+      />
+    </div>
+  );
+};
+
+const calculateDailyMetrics = (
+  salesData: SalesData[],
+  auditData: Audit[],
+  pointsCalculation: PointsCalculation[],
+  employeesData: Employee[],
+  selectedLanid: string,
+  selectedDate: Date
+): SummaryRowData[] => {
+  // Debug current inputs
+  // console.log("Calculating Daily Metrics:", {
+  //   date: selectedDate.toISOString(),
+  //   lanid: selectedLanid,
+  //   totalSalesData: salesData.length,
+  //   totalAuditData: auditData.length,
+  // });
+
+  // Format the selected date to YYYY-MM-DD for comparison
+  const targetDateStr = format(selectedDate, "yyyy-MM-dd");
+
+  // Filter sales data for the specific day and employee
+  const dailySalesData = salesData.filter((sale) => {
+    // Format the sale date to YYYY-MM-DD for comparison
+    const saleDateStr = format(new Date(sale.Date), "yyyy-MM-dd");
+    const matches =
+      saleDateStr === targetDateStr && sale.Lanid === selectedLanid;
+
+    // Debug individual sale matching
+    // console.log("Sale comparison:", {
+    //   saleDate: saleDateStr,
+    //   targetDate: targetDateStr,
+    //   lanid: sale.Lanid,
+    //   selectedLanid,
+    //   matches,
+    // });
+
+    return matches;
+  });
+
+  // Filter audit data for the specific day and employee
+  const dailyAuditData = auditData.filter((audit) => {
+    // Format the audit date to YYYY-MM-DD for comparison
+    const auditDateStr = format(new Date(audit.audit_date), "yyyy-MM-dd");
+    const matches =
+      auditDateStr === targetDateStr && audit.salesreps === selectedLanid;
+
+    // Debug individual audit matching
+    // console.log("Audit comparison:", {
+    //   auditDate: auditDateStr,
+    //   targetDate: targetDateStr,
+    //   salesrep: audit.salesreps,
+    //   selectedLanid,
+    //   matches,
+    // });
+
+    return matches;
+  });
+
+  // Debug filtered data
+  // console.log("Filtered Daily Data:", {
+  //   targetDate: targetDateStr,
+  //   dailySalesCount: dailySalesData.length,
+  //   dailyAuditCount: dailyAuditData.length,
+  //   salesData: dailySalesData,
+  //   auditData: dailyAuditData,
+  // });
+
+  const employeeDepartment = employeesData.find(
+    (emp) => emp.lanid === selectedLanid
+  )?.department;
+
+  try {
+    const calculator = new WeightedScoringCalculator({
+      salesData: dailySalesData.map((sale) => ({
+        ...sale,
+        dros_cancel: sale.cancelled_dros?.toString() || "0",
+      })),
+      auditData: dailyAuditData.map((audit) => ({
+        ...audit,
+        id: audit.audits_id,
+      })),
+      pointsCalculation,
+      isOperations: employeeDepartment?.toString() === "Operations",
+      minimumDros: 0, // Set to 0 for daily metrics
+    });
+
+    const metrics = {
+      ...calculator.metrics,
+      Department: employeeDepartment || "Unknown",
+      Lanid: selectedLanid,
+      TotalWeightedMistakes: calculator.metrics.TotalWeightedMistakes || 0,
+    };
+
+    // Debug calculated metrics
+    // console.log("Calculated Metrics:", metrics);
+
+    return [metrics];
+  } catch (error) {
+    console.error("Error calculating metrics:", error);
+    return [
+      {
+        Lanid: selectedLanid,
+        Department: employeeDepartment || "Unknown",
+        TotalDros: dailySalesData.length,
+        MinorMistakes: 0,
+        MajorMistakes: 0,
+        CancelledDros: dailySalesData.filter((sale) => sale.cancelled_dros > 0)
+          .length,
+        WeightedErrorRate: 0,
+        TotalWeightedMistakes: 0,
+        Qualified: true,
+        DisqualificationReason: "",
+      },
+    ];
+  }
+};
+
+// Update the useAuditsPageQueries hook
 const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const { selectedDate, selectedLanid, showAllEmployees } = pageParams;
   const queryClient = useQueryClient();
 
-    const getDateRangeFromTimeRange = useCallback((timeRange: string, date: Date | null) => {
-    if (!date) return null;
+  const getDateRangeFromTimeRange = useCallback(
+    (timeRange: string, date: Date | null) => {
+      if (!date) return null;
 
-    switch (timeRange) {
-      case "7d":
-        const sevenDaysAgo = new Date(date);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        return {
-          startDate: format(sevenDaysAgo, "yyyy-MM-dd"),
-          endDate: format(date, "yyyy-MM-dd")
-        };
-      case "30d":
-        const thirtyDaysAgo = new Date(date);
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return {
-          startDate: format(thirtyDaysAgo, "yyyy-MM-dd"),
-          endDate: format(date, "yyyy-MM-dd")
-        };
-      case "90d":
-        const ninetyDaysAgo = new Date(date);
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-        return {
-          startDate: format(ninetyDaysAgo, "yyyy-MM-dd"),
-          endDate: format(date, "yyyy-MM-dd")
-        };
-      default:
-        // Default to current month view
-        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-        return {
-          startDate: format(startOfMonth, "yyyy-MM-dd"),
-          endDate: format(date, "yyyy-MM-dd")
-        };
-    }
-  }, []);
+      switch (timeRange) {
+        case "7d":
+          const sevenDaysAgo = new Date(date);
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          return {
+            startDate: format(sevenDaysAgo, "yyyy-MM-dd"),
+            endDate: format(date, "yyyy-MM-dd"),
+          };
+        case "30d":
+          const thirtyDaysAgo = new Date(date);
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return {
+            startDate: format(thirtyDaysAgo, "yyyy-MM-dd"),
+            endDate: format(date, "yyyy-MM-dd"),
+          };
+        case "90d":
+          const ninetyDaysAgo = new Date(date);
+          ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+          return {
+            startDate: format(ninetyDaysAgo, "yyyy-MM-dd"),
+            endDate: format(date, "yyyy-MM-dd"),
+          };
+        default:
+          // Default to current month view
+          const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+          return {
+            startDate: format(startOfMonth, "yyyy-MM-dd"),
+            endDate: format(date, "yyyy-MM-dd"),
+          };
+      }
+    },
+    []
+  );
 
   const timeRangeQuery = useQuery({
     queryKey: ["timeRange"],
@@ -1234,6 +1459,61 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     selectedLanid,
   ]);
 
+  // Update metricsData to pass selectedDate
+  const metricsData = useMemo(() => {
+    if (
+      !selectedDate ||
+      !selectedLanid ||
+      showAllEmployees ||
+      !salesDataQuery.data ||
+      !contestAuditsQuery.data ||
+      !pointsCalculationQuery.data ||
+      !employeesQuery.data
+    )
+      return [];
+
+    return calculateDailyMetrics(
+      salesDataQuery.data,
+      contestAuditsQuery.data,
+      pointsCalculationQuery.data,
+      employeesQuery.data,
+      selectedLanid,
+      selectedDate
+    );
+  }, [
+    selectedDate,
+    selectedLanid,
+    showAllEmployees,
+    salesDataQuery.data,
+    contestAuditsQuery.data,
+    pointsCalculationQuery.data,
+    employeesQuery.data,
+  ]);
+
+  // Update summaryTableData to always use monthly data
+  const summaryTableData = useMemo(() => {
+    if (!salesDataQuery.data || !contestAuditsQuery.data) return [];
+
+    // Always calculate using the full month's data
+    const monthlyData = calculateSummaryData(
+      salesDataQuery.data,
+      contestAuditsQuery.data,
+      pointsCalculationQuery.data || [],
+      employeesQuery.data || [],
+      showAllEmployees,
+      selectedLanid
+    );
+
+    return monthlyData;
+  }, [
+    salesDataQuery.data,
+    contestAuditsQuery.data,
+    pointsCalculationQuery.data,
+    employeesQuery.data,
+    showAllEmployees,
+    selectedLanid,
+  ]);
+
   // Event handlers that update URL params
   const handleDateChange = useCallback(
     (date: Date | undefined) => {
@@ -1312,35 +1592,12 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     [pageParams.setParams]
   );
 
-  const summaryTableData = useMemo(() => {
-    if (showAllEmployees) {
-      // If showing all employees, include divider between qualified and unqualified
-      const qualifiedEmployees = summaryData.filter((emp) => emp.Qualified);
-      const unqualifiedEmployees = summaryData.filter((emp) => !emp.Qualified);
-
-      if (qualifiedEmployees.length && unqualifiedEmployees.length) {
-        return [
-          ...qualifiedEmployees,
-          {
-            Lanid: "",
-            TotalDros: null,
-            MinorMistakes: null,
-            MajorMistakes: null,
-            CancelledDros: null,
-            WeightedErrorRate: null,
-            TotalWeightedMistakes: null,
-            Qualified: false,
-            DisqualificationReason: "",
-            isDivider: true,
-          },
-          ...unqualifiedEmployees,
-        ];
-      }
-      return summaryData;
-    }
-    // If not showing all, filter for selected employee
-    return summaryData.filter((item) => item.Lanid === selectedLanid);
-  }, [showAllEmployees, summaryData, selectedLanid]);
+  const handleTimeRangeChange = useCallback(
+    (value: string) => {
+      queryClient.setQueryData(["timeRange"], value);
+    },
+    [queryClient]
+  );
 
   return {
     // Queries
@@ -1358,6 +1615,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     // Computed data
     summaryData,
     summaryTableData,
+    metricsData,
 
     // Loading states
     isLoading:
@@ -1388,9 +1646,7 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       handleExport,
       handleTabChange,
       handleSearchChange,
-      handleTimeRangeChange: (value: string) => {
-        queryClient.setQueryData(["timeRange"], value);
-      },
+      handleTimeRangeChange,
     },
   };
 };
@@ -1551,6 +1807,22 @@ const AuditActions = ({ row }: { row: { original: Audit } }) => {
   );
 };
 
+// Add this new query function
+const fetchHistoricalAuditData = async (lanid: string | null = null) => {
+  let query = supabase
+    .from("Auditsinput")
+    .select("*")
+    .order("audit_date", { ascending: true });
+
+  if (lanid) {
+    query = query.eq("salesreps", lanid);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+};
+
 // Main Component Implementation
 function AuditsPage() {
   const { modalState, setModalState } = useModalState();
@@ -1577,6 +1849,8 @@ function AuditsPage() {
     // Computed data
     summaryData,
     summaryTableData,
+    metricsData,
+
     // Loading states
     isLoading,
     isError,
@@ -1612,6 +1886,14 @@ function AuditsPage() {
       setModalState({ isOpen: false, selectedAudit: null });
       toast.success("Audit updated successfully");
     },
+  });
+
+  // Add a separate query for historical data
+  const historicalAuditsQuery = useQuery({
+    queryKey: ["historicalAudits", selectedLanid],
+    queryFn: () => fetchHistoricalAuditData(selectedLanid),
+    enabled: !!selectedLanid,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Error boundary
@@ -1883,166 +2165,14 @@ function AuditsPage() {
             </div>
 
             {/* Metrics Grid - Only shown for individual employee view */}
-            <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-              {!showAllEmployees && selectedLanid && (
-                <>
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Total # Of DROS
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTableProfile
-                          columns={[
-                            {
-                              Header: "Total DROS",
-                              accessor: "TotalDros",
-                              Cell: ({
-                                value,
-                              }: {
-                                value: any;
-                                row: { original: any };
-                              }) => (
-                                <div className="text-center font-semibold text-lg">
-                                  {value}
-                                </div>
-                              ),
-                            },
-                          ]}
-                          data={summaryTableData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Minor Mistakes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTableProfile
-                          columns={[
-                            {
-                              Header: "Minor Mistakes",
-                              accessor: "MinorMistakes",
-                              Cell: ({
-                                value,
-                              }: {
-                                value: any;
-                                row: { original: any };
-                              }) => (
-                                <div className="text-center font-semibold text-lg">
-                                  {value}
-                                </div>
-                              ),
-                            },
-                          ]}
-                          data={summaryTableData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Major Mistakes
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTableProfile
-                          columns={[
-                            {
-                              Header: "Major Mistakes",
-                              accessor: "MajorMistakes",
-                              Cell: ({
-                                value,
-                              }: {
-                                value: any;
-                                row: { original: any };
-                              }) => (
-                                <div className="text-center font-semibold text-lg">
-                                  {value}
-                                </div>
-                              ),
-                            },
-                          ]}
-                          data={summaryTableData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Cancelled DROS
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTableProfile
-                          columns={[
-                            {
-                              Header: "Cancelled DROS",
-                              accessor: "CancelledDros",
-                              Cell: ({
-                                value,
-                              }: {
-                                value: any;
-                                row: { original: any };
-                              }) => (
-                                <div className="text-center font-semibold text-lg">
-                                  {value}
-                                </div>
-                              ),
-                            },
-                          ]}
-                          data={summaryTableData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        Error Rate
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="text-left">
-                        <DataTableProfile
-                          columns={[
-                            {
-                              Header: "Error Rate",
-                              accessor: "WeightedErrorRate",
-                              Cell: ({
-                                value,
-                              }: {
-                                value: any;
-                                row: { original: any };
-                              }) => (
-                                <div className="text-center font-semibold text-lg">
-                                  {value}%
-                                </div>
-                              ),
-                            },
-                          ]}
-                          data={summaryTableData}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-            </div>
+            {/* {!showAllEmployees && selectedLanid && (
+              <MetricsSection
+                metricsData={metricsData}
+                showAllEmployees={showAllEmployees}
+                selectedLanid={selectedLanid}
+                selectedDate={selectedDate}
+              />
+            )} */}
 
             {/* Summary Table */}
             <Card>
@@ -2055,7 +2185,7 @@ function AuditsPage() {
                         accessor: col.id as string,
                         Cell: col.cell as any,
                       }))}
-                      data={summaryTableData}
+                      data={summaryTableData} // Use summaryTableData for the table
                       {...tableOptions}
                     />
                   </div>
@@ -2063,19 +2193,32 @@ function AuditsPage() {
               </CardContent>
             </Card>
 
-{/* Audit Chart */}
-<Card>
-  <CardContent>
-    {selectedDate && (
-      <AuditChart
-        data={contestAuditsQuery.data || []}
-        timeRange={timeRangeQuery.data || "90d"}
-        onTimeRangeChange={handleTimeRangeChange}
-        isLoading={contestAuditsQuery.isLoading || salesDataQuery.isLoading}
-      />
-    )}
-  </CardContent>
-</Card>
+            {/* Audit Chart */}
+            {/* <Card>
+              <CardContent> */}
+            {selectedDate && (
+              <AuditChart
+                data={contestAuditsQuery.data || []}
+                isLoading={
+                  contestAuditsQuery.isLoading || salesDataQuery.isLoading
+                }
+                showTimeRangeSelector={false} // This will hide the time range selector
+              />
+            )}
+            {/* </CardContent>
+            </Card> */}
+
+            {/* Historical Audit Chart */}
+            {/* <Card>
+              <CardContent> */}
+            {selectedLanid && (
+              <HistoricalAuditChart
+                data={historicalAuditsQuery.data || []}
+                selectedLanid={selectedLanid}
+              />
+            )}
+            {/* </CardContent>
+            </Card> */}
           </TabsContent>
         </Tabs>
       </main>

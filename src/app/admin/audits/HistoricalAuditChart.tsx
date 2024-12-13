@@ -1,6 +1,7 @@
+// src/app/admin/audits/HistoricalAuditChart.tsx - fully functional
 "use client";
 
-import React from "react";
+import * as React from "react";
 import {
   Area,
   AreaChart,
@@ -10,6 +11,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format, subDays, parseISO } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+
 import {
   Card,
   CardContent,
@@ -24,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
 
 interface ChartDataPoint {
   date: string;
@@ -33,32 +37,76 @@ interface ChartDataPoint {
   cancelledDros: number;
 }
 
-interface AuditChartProps {
+interface HistoricalChartProps {
   data: any[];
-  timeRange?: string;
-  onTimeRangeChange?: (value: string) => void;
-  isLoading: boolean;
-  showTimeRangeSelector?: boolean;
+  selectedLanid: string;
 }
 
-const AuditChart: React.FC<AuditChartProps> = ({
-  data = [],
-  timeRange,
-  onTimeRangeChange,
-  isLoading = false,
-  showTimeRangeSelector = false,
-}) => {
+// Constants
+const TIME_ZONE = "America/Los_Angeles";
+
+export function HistoricalAuditChart({
+  data,
+  selectedLanid,
+}: HistoricalChartProps) {
+  const queryClient = useQueryClient();
+
+  // Create a separate query for historical time range
+  const { data: timeRange } = useQuery({
+    queryKey: ["historicalTimeRange"],
+    queryFn: () => "7d",
+    initialData: "7d",
+    staleTime: Infinity, // Prevent automatic refetching
+  });
+
+  const handleTimeRangeChange = (value: string) => {
+    queryClient.setQueryData(["historicalTimeRange"], value);
+  };
+
   // Transform and aggregate the daily audit data
   const chartData = React.useMemo(() => {
-    if (!data || !data.length) return [];
+    if (!data?.length || !selectedLanid) return [];
+
+    const employeeData = data.filter(
+      (audit) => audit.salesreps === selectedLanid
+    );
+    if (!employeeData.length) return [];
 
     const auditsByDate = new Map<string, ChartDataPoint>();
 
+    // Calculate start date based on selected time range only
+    const now = toZonedTime(new Date(), TIME_ZONE);
+    let startDate: Date;
+
+    switch (timeRange) {
+      case "365d":
+        startDate = subDays(now, 365);
+        break;
+      case "90d":
+        startDate = subDays(now, 90);
+        break;
+      case "30d":
+        startDate = subDays(now, 30);
+        break;
+      case "7d":
+        startDate = subDays(now, 7);
+        break;
+      default:
+        startDate = subDays(now, 7);
+    }
+
     // Process each audit entry
-    data.forEach((audit) => {
+    employeeData.forEach((audit) => {
       if (!audit.audit_date) return;
 
-      const dateKey = format(new Date(audit.audit_date), "yyyy-MM-dd");
+      const date = parseISO(audit.audit_date);
+      const zonedDate = toZonedTime(date, TIME_ZONE);
+
+      // Skip if before start date
+      if (zonedDate < startDate) return;
+
+      const dateKey = formatInTimeZone(zonedDate, TIME_ZONE, "yyyy-MM-dd");
+
       const currentData = auditsByDate.get(dateKey) || {
         date: dateKey,
         minorMistakes: 0,
@@ -68,7 +116,6 @@ const AuditChart: React.FC<AuditChartProps> = ({
 
       // Check error_location to determine mistake type
       if (audit.error_location) {
-        // You'll need to adjust these conditions based on your business logic
         if (
           audit.error_location.includes("Minor") ||
           audit.error_location === "DROS Pending Form"
@@ -87,43 +134,34 @@ const AuditChart: React.FC<AuditChartProps> = ({
       auditsByDate.set(dateKey, currentData);
     });
 
-    // Convert to array and sort by date
-    const result = Array.from(auditsByDate.values()).sort(
+    return Array.from(auditsByDate.values()).sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-
-    // console.log('Processed chart data:', result);
-    return result;
-  }, [data]);
-
-  if (isLoading) {
-    return <div>Loading chart...</div>;
-  }
+  }, [data, selectedLanid, timeRange]); // Only depend on these values
 
   return (
     <Card className="mt-6">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div className="grid flex-1 gap-1 text-center sm:text-left">
-          <CardTitle>Daily Audit Metrics</CardTitle>
+          <CardTitle>Historical Performance</CardTitle>
           <CardDescription>
-            Daily breakdown of mistakes and cancelled DROS
+            Historical audit metrics for {selectedLanid}
           </CardDescription>
         </div>
-        {showTimeRangeSelector && timeRange && onTimeRangeChange && (
-          <Select value={timeRange} onValueChange={onTimeRangeChange}>
-            <SelectTrigger
-              className="w-40 rounded-lg sm:ml-auto"
-              aria-label="Select time range"
-            >
-              <SelectValue placeholder="Select range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="90d">Last 3 months</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+        <Select value={timeRange} onValueChange={handleTimeRangeChange}>
+          <SelectTrigger
+            className="w-[160px] rounded-lg sm:ml-auto"
+            aria-label="Select time range"
+          >
+            <SelectValue placeholder="Select range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">Last 7 Days</SelectItem>
+            <SelectItem value="30d">Last 30 Days</SelectItem>
+            <SelectItem value="90d">Last 3 Months</SelectItem>
+            <SelectItem value="365d">Last 12 Months</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="h-[350px] w-full">
@@ -133,15 +171,33 @@ const AuditChart: React.FC<AuditChartProps> = ({
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <defs>
-                <linearGradient id="minorMistakes" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient
+                  id="historicalMinor"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
                   <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
                 </linearGradient>
-                <linearGradient id="majorMistakes" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient
+                  id="historicalMajor"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
                   <stop offset="5%" stopColor="#EAB308" stopOpacity={0.8} />
                   <stop offset="95%" stopColor="#EAB308" stopOpacity={0.1} />
                 </linearGradient>
-                <linearGradient id="cancelledDros" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient
+                  id="historicalCancelled"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
                   <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8} />
                   <stop offset="95%" stopColor="#EF4444" stopOpacity={0.1} />
                 </linearGradient>
@@ -150,7 +206,11 @@ const AuditChart: React.FC<AuditChartProps> = ({
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
-                tickFormatter={(date) => format(new Date(date), "MMM d")}
+                tickFormatter={(date) => {
+                  const parsedDate = parseISO(date);
+                  const zonedDate = toZonedTime(parsedDate, TIME_ZONE);
+                  return format(zonedDate, "MMM d");
+                }}
                 tickMargin={8}
                 minTickGap={20}
               />
@@ -180,7 +240,7 @@ const AuditChart: React.FC<AuditChartProps> = ({
                 dataKey="minorMistakes"
                 name="minorMistakes"
                 stroke="#3B82F6"
-                fill="url(#minorMistakes)"
+                fill="url(#historicalMinor)"
                 stackId="1"
               />
               <Area
@@ -188,7 +248,7 @@ const AuditChart: React.FC<AuditChartProps> = ({
                 dataKey="majorMistakes"
                 name="majorMistakes"
                 stroke="#EAB308"
-                fill="url(#majorMistakes)"
+                fill="url(#historicalMajor)"
                 stackId="1"
               />
               <Area
@@ -196,7 +256,7 @@ const AuditChart: React.FC<AuditChartProps> = ({
                 dataKey="cancelledDros"
                 name="cancelledDros"
                 stroke="#EF4444"
-                fill="url(#cancelledDros)"
+                fill="url(#historicalCancelled)"
                 stackId="1"
               />
             </AreaChart>
@@ -205,6 +265,6 @@ const AuditChart: React.FC<AuditChartProps> = ({
       </CardContent>
     </Card>
   );
-};
+}
 
-export default AuditChart;
+export default HistoricalAuditChart;
