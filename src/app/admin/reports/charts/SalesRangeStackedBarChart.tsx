@@ -411,12 +411,12 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
       <ChartContainer
         config={chartConfig}
-        className="min-h-[20px] max-h-[500px] w-full"
+        className="min-h-[20px] max-h-[400px] w-full"
       >
         <BarChart
           data={chartData.processedData}
           height={300}
-          margin={{ top: 20, right: 30, left: 40, bottom: 50 }}
+          margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
         >
           <CartesianGrid vertical={false} />
           <XAxis

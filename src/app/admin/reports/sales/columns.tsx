@@ -5,8 +5,8 @@ import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import SalesTableRowActions from "./sales-table-row-actions";
 import { includesArrayString } from "./custom-filter";
-import { compareAsc, format, parseISO } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { compareAsc, format, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export interface SalesData {
   id: number;
@@ -140,10 +140,10 @@ export const salesColumns = (
     cell: ({ row }) => {
       const originalDate = row.original.Date;
       const parsedDate = parseISO(originalDate);
-      const utcDate = toZonedTime(parsedDate, 'UTC');
-      
+      const utcDate = toZonedTime(parsedDate, "UTC");
+
       // console.log('Original date:', originalDate, 'Parsed UTC date:', utcDate);
-      
+
       return format(utcDate, "MM/dd/yyyy");
     },
     meta: {
@@ -156,31 +156,31 @@ export const salesColumns = (
     },
     filterFn: (row, columnId, filterValue) => {
       const date = parseISO(row.getValue(columnId));
-      const utcDate = toZonedTime(date, 'UTC');
+      const utcDate = toZonedTime(date, "UTC");
       const formattedDate = format(utcDate, "yyyy-MM-dd");
       return formattedDate.includes(filterValue);
     },
   },
-  // {
-  //   accessorKey: "Last",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Last" />
-  //   ),
-  //   meta: {
-  //     style: { width: "150px" },
-  //   },
-  //   enableHiding: true,
-  //   initial: false,
-  // },
   {
-    accessorKey: "LastName",
+    accessorKey: "Last",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="LastName" />
+      <DataTableColumnHeader column={column} title="Last" />
     ),
     meta: {
       style: { width: "150px" },
     },
+    enableHiding: true,
+    initial: false,
   },
+  // {
+  //   accessorKey: "LastName",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="LastName" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  // },
   // {
   //   accessorKey: "Mfg",
   //   header: ({ column }) => (
@@ -206,7 +206,7 @@ export const salesColumns = (
   {
     accessorKey: "category_label",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category Label" />
+      <DataTableColumnHeader column={column} title="Category" />
     ),
     meta: {
       style: { width: "150px" },
@@ -215,32 +215,32 @@ export const salesColumns = (
   {
     accessorKey: "subcategory_label",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Subcategory Label" />
+      <DataTableColumnHeader column={column} title="Subcategory" />
     ),
     meta: {
       style: { width: "150px" },
     },
   },
-  {
-    accessorKey: "total_gross",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total Gross" />
-    ),
-    meta: {
-      style: { width: "150px" },
-    },
-    enableHiding: true,
-    initial: false,
-  },
-  {
-    accessorKey: "total_net",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total Net" />
-    ),
-    meta: {
-      style: { width: "150px" },
-    },
-    enableHiding: true,
-    initial: false,
-  },
+  // {
+  //   accessorKey: "total_gross",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Total Gross" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
+  // {
+  //   accessorKey: "total_net",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Total Net" />
+  //   ),
+  //   meta: {
+  //     style: { width: "150px" },
+  //   },
+  //   enableHiding: true,
+  //   initial: false,
+  // },
 ];

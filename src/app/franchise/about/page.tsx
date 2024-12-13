@@ -126,7 +126,7 @@ const FranchisePresentation = () => {
       const data = await response.json();
       return data;
     },
-    refetchInterval: 300000, // Refetch every 5 minutes
+    refetchInterval: 43200000, // Refetch every 12 hours
   });
 
   const { data: metrics, isLoading: isMetricsLoading } = useQuery<SalesMetrics>(
@@ -169,10 +169,10 @@ const FranchisePresentation = () => {
           ? `${metrics.peakHours[0].hour}:00 (${metrics.peakHours[0].transactions} transactions)`
           : "N/A",
       },
-      {
-        metric: "Regular Customer Rate",
-        value: `${metrics.customerFrequency[1]?.percentage || 0}%`,
-      },
+      // {
+      //   metric: "Regular Customer Rate",
+      //   value: `${metrics.customerFrequency[1]?.percentage || 0}%`,
+      // },
     ];
   }, [metrics]);
 
@@ -201,12 +201,14 @@ const FranchisePresentation = () => {
       </Card>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="overview">TGR Web App Overview</TabsTrigger>
-          <TabsTrigger value="operations">Operations</TabsTrigger>
-          <TabsTrigger value="staff">Staff Management</TabsTrigger>
-          <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center space-x-2">
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="overview">TGR Web App Overview</TabsTrigger>
+            <TabsTrigger value="operations">Operations</TabsTrigger>
+            <TabsTrigger value="staff">Staff Management</TabsTrigger>
+            <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           <div className="grid grid-cols-3 gap-4">
@@ -409,44 +411,79 @@ const FranchisePresentation = () => {
                   Loading metrics...
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id}>
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                            >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {table.getRowModel().rows.map((row) => (
-                        <tr key={row.id}>
-                          {row.getVisibleCells().map((cell) => (
-                            <td
-                              key={cell.id}
-                              className="px-6 py-4 whitespace-nowrap"
-                            >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  <div className="rounded-md border mb-6">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <tr key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <th
+                                key={header.id}
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                              </th>
+                            ))}
+                          </tr>
+                        ))}
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {table.getRowModel().rows.map((row) => (
+                          <tr key={row.id}>
+                            {row.getVisibleCells().map((cell) => (
+                              <td
+                                key={cell.id}
+                                className="px-6 py-4 whitespace-nowrap"
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Customer Visit Frequency</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-4">
+                        {metrics?.customerFrequency.map((freq) => (
+                          <Card key={freq.visits} className="bg-muted/50">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm font-medium">
+                                {freq.visits}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold">
+                                {freq.percentage}%
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                of total customers
+                              </p>
+                              <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary"
+                                  style={{ width: `${freq.percentage}%` }}
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </CardContent>
           </Card>

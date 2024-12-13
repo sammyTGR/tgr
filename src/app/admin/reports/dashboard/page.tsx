@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import styles from "./table.module.css";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   CheckCircledIcon,
   CrossCircledIcon,
@@ -72,6 +73,20 @@ import { useFlags } from "flagsmith/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import dynamic from "next/dynamic";
+import { flexRender } from "@tanstack/react-table";
+import { createColumnHelper, getCoreRowModel } from "@tanstack/react-table";
+import { useReactTable } from "@tanstack/react-table";
+import React from "react";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface Certificate {
   id: number;
@@ -138,11 +153,53 @@ interface ReplyStates {
   [key: number]: string;
 }
 
+interface MetricData {
+  metric: string;
+  value: string;
+}
+
+interface SalesMetrics {
+  averageMonthlyGrossRevenue: number;
+  averageMonthlyNetRevenue: number;
+  topPerformingCategories: { category: string; revenue: number }[];
+  peakHours: { hour: number; transactions: number }[];
+  customerFrequency: { visits: string; percentage: number }[];
+}
+
+interface RevenueData {
+  month: string;
+  grossRevenue: number;
+  netRevenue: number;
+}
+
 declare global {
   interface Function {
     timeoutId?: number;
   }
 }
+
+const chartConfig = {
+  grossRevenue: {
+    label: "Gross Revenue",
+    color: "hsl(var(--chart-1))",
+  },
+  netRevenue: {
+    label: "Net Revenue",
+    color: "hsl(var(--chart-2))",
+  },
+};
+
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+];
+
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
 
 const LazySalesDataTable = dynamic(
   () =>
@@ -157,6 +214,18 @@ const LazySalesDataTable = dynamic(
     ),
   }
 );
+const columnHelper = createColumnHelper<MetricData>();
+
+const columns = [
+  columnHelper.accessor("metric", {
+    header: "Metric",
+    cell: (info) => info.getValue(),
+  }),
+  columnHelper.accessor("value", {
+    header: "Value",
+    cell: (info) => info.getValue(),
+  }),
+];
 
 const timeZone = "America/Los_Angeles";
 
@@ -173,6 +242,41 @@ function AdminDashboardContent() {
     staleTime: 0,
     refetchInterval: 0,
   });
+
+  const { data: activeChart = "grossRevenue" } = useQuery({
+    queryKey: ["chartView"],
+    queryFn: () => "grossRevenue",
+    staleTime: Infinity,
+  });
+
+  const setChartViewMutation = useMutation({
+    mutationFn: (view: "grossRevenue" | "netRevenue") => Promise.resolve(view),
+    onSuccess: (newView) => {
+      queryClient.setQueryData(["chartView"], newView);
+    },
+  });
+
+  const { data: revenueData = [] } = useQuery<RevenueData[]>({
+    queryKey: ["revenueData"],
+    queryFn: async () => {
+      const response = await fetch("/api/revenue");
+      if (!response.ok) throw new Error("Failed to fetch revenue data");
+      return response.json();
+    },
+  });
+
+  const { data: metrics, isLoading: isMetricsLoading } = useQuery<SalesMetrics>(
+    {
+      queryKey: ["metrics"],
+      queryFn: async () => {
+        const response = await fetch("/api/metrics");
+        if (!response.ok) {
+          throw new Error("Failed to fetch metrics");
+        }
+        return response.json();
+      },
+    }
+  );
 
   // Modify the suggestions section in AdminDashboardContent:
   const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
@@ -545,6 +649,56 @@ function AdminDashboardContent() {
     queryKey: ["uploadProgress"],
     queryFn: () => queryClient.getQueryData(["uploadProgress"]) ?? 0,
     enabled: uploadFileMutation.isPending,
+  });
+
+  const total = React.useMemo(() => {
+    return revenueData.reduce(
+      (acc, item) => ({
+        grossRevenue: acc.grossRevenue + item.grossRevenue,
+        netRevenue: acc.netRevenue + item.netRevenue,
+      }),
+      { grossRevenue: 0, netRevenue: 0 }
+    );
+  }, [revenueData]);
+
+  const metricsData = React.useMemo(() => {
+    if (!metrics) return [];
+
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+
+    return [
+      {
+        metric: "Average Monthly Gross Revenue",
+        value: formatter.format(metrics.averageMonthlyGrossRevenue),
+      },
+      {
+        metric: "Average Monthly Net Revenue",
+        value: formatter.format(metrics.averageMonthlyNetRevenue),
+      },
+      {
+        metric: "Top Performing Category",
+        value: metrics.topPerformingCategories[0]?.category || "N/A",
+      },
+      {
+        metric: "Peak Business Hour",
+        value: metrics.peakHours[0]
+          ? `${metrics.peakHours[0].hour}:00 (${metrics.peakHours[0].transactions} transactions)`
+          : "N/A",
+      },
+      // {
+      //   metric: "Regular Customer Rate",
+      //   value: `${metrics.customerFrequency[1]?.percentage || 0}%`,
+      // },
+    ];
+  }, [metrics]);
+
+  const table = useReactTable({
+    data: metricsData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
   });
 
   const handleSubmit = () => {
@@ -1084,378 +1238,615 @@ function AdminDashboardContent() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
-      <div className="relative section w-full overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50">
-            <LoadingIndicator />
+      <div className="container max-w-[calc(100vw-90px)] py-4">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold">
+              Admin Dashboard
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Tabs defaultValue="reporting">
+          <div className="flex items-center space-x-2">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="reporting">Reports Overview</TabsTrigger>
+              <TabsTrigger value="sales">Daily Sales</TabsTrigger>
+              <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
+            </TabsList>
           </div>
-        )}
-        <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
-          {/*todo card*/}
-          {flags.is_todo_enabled.enabled && (
-            <div className="w-full overflow-hidden">
-              <div className="w-full overflow-hidden">
-                <div className="h-full overflow-hidden">
-                  <TodoWrapper />
+
+          <div className="relative section w-full overflow-hidden">
+            {isLoading && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50">
+                <LoadingIndicator />
+              </div>
+            )}
+            {/* <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1> */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden"> */}
+
+            <TabsContent value="reporting">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
+                {/*todo card*/}
+                {flags.is_todo_enabled.enabled && (
+                  <div className="w-full overflow-hidden">
+                    <div className="col-span-full overflow-hidden mt-2">
+                      <div className="h-full w-full overflow-hidden">
+                        <TodoWrapper />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/*All Report cards*/}
+                <div className="w-full overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
+                    <ReportCard
+                      title="Gunsmithing Weekly Maintenance"
+                      date={gunsmiths?.last_maintenance_date || null}
+                      icon={<PersonIcon className="h-6 w-6" />}
+                      extraInfo={gunsmiths?.firearm_name}
+                      type="maintenance"
+                    />
+                    <ReportCard
+                      title="Firearms With Gunsmith"
+                      date={dailyChecklistStatus?.lastSubmissionDate || null}
+                      icon={<ClipboardIcon className="h-6 w-6" />}
+                      extraInfo={`${dailyChecklistStatus?.firearmsCount} firearms with gunsmith`}
+                      type="dailyChecklist"
+                    />
+                    <ReportCard
+                      title="Daily Checklist Submissions"
+                      date={checklist?.submission_date || null}
+                      icon={<ClipboardIcon className="h-6 w-6" />}
+                      extraInfo={checklist?.submitted_by_name}
+                    />
+                    <ReportCard
+                      title="Daily Range Walk Reports"
+                      date={rangeWalk?.date_of_walk || null}
+                      icon={<MagnifyingGlassIcon className="h-6 w-6" />}
+                      extraInfo={rangeWalk?.user_name || ""}
+                    />
+                    <ReportCard
+                      title="Daily Deposits"
+                      date={dailyDeposit?.created_at || null}
+                      icon={<ClipboardIcon className="h-6 w-6" />}
+                      extraInfo={dailyDeposit?.employee_name}
+                      type="deposit"
+                      details={[
+                        {
+                          name: dailyDeposit?.register || "",
+                          value:
+                            dailyDeposit?.total_to_deposit?.toFixed(2) ||
+                            "0.00",
+                        },
+                      ]}
+                    />
+                    <ReportCard
+                      title="Certificates Needing Renewal"
+                      date={
+                        certificates && certificates.length > 0
+                          ? certificates[certificates.length - 1].expiration
+                          : null
+                      }
+                      icon={<DrawingPinIcon className="h-6 w-6" />}
+                      extraInfo={`${certificates?.length} certificate${
+                        certificates && certificates.length !== 1 ? "s" : ""
+                      } need${
+                        certificates && certificates.length === 1 ? "s" : ""
+                      } renewal`}
+                      type="certificate"
+                      details={certificates?.map((cert) => ({
+                        name: cert.name || "",
+                        value: cert.expiration || "",
+                      }))}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/*All Report cards*/}
-          <div className="w-full overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
-              <ReportCard
-                title="Gunsmithing Weekly Maintenance"
-                date={gunsmiths?.last_maintenance_date || null}
-                icon={<PersonIcon className="h-6 w-6" />}
-                extraInfo={gunsmiths?.firearm_name}
-                type="maintenance"
-              />
-              <ReportCard
-                title="Firearms With Gunsmith"
-                date={dailyChecklistStatus?.lastSubmissionDate || null}
-                icon={<ClipboardIcon className="h-6 w-6" />}
-                extraInfo={`${dailyChecklistStatus?.firearmsCount} firearms with gunsmith`}
-                type="dailyChecklist"
-              />
-              <ReportCard
-                title="Daily Checklist Submissions"
-                date={checklist?.submission_date || null}
-                icon={<ClipboardIcon className="h-6 w-6" />}
-                extraInfo={checklist?.submitted_by_name}
-              />
-              <ReportCard
-                title="Daily Range Walk Reports"
-                date={rangeWalk?.date_of_walk || null}
-                icon={<MagnifyingGlassIcon className="h-6 w-6" />}
-                extraInfo={rangeWalk?.user_name || ""}
-              />
-              <ReportCard
-                title="Daily Deposits"
-                date={dailyDeposit?.created_at || null}
-                icon={<ClipboardIcon className="h-6 w-6" />}
-                extraInfo={dailyDeposit?.employee_name}
-                type="deposit"
-                details={[
-                  {
-                    name: dailyDeposit?.register || "",
-                    value: dailyDeposit?.total_to_deposit?.toFixed(2) || "0.00",
-                  },
-                ]}
-              />
-              <ReportCard
-                title="Certificates Needing Renewal"
-                date={
-                  certificates && certificates.length > 0
-                    ? certificates[certificates.length - 1].expiration
-                    : null
-                }
-                icon={<DrawingPinIcon className="h-6 w-6" />}
-                extraInfo={`${certificates?.length} certificate${
-                  certificates && certificates.length !== 1 ? "s" : ""
-                } need${
-                  certificates && certificates.length === 1 ? "s" : ""
-                } renewal`}
-                type="certificate"
-                details={certificates?.map((cert) => ({
-                  name: cert.name || "",
-                  value: cert.expiration || "",
-                }))}
-              />
-            </div>
-          </div>
-
-          {/* Suggestions Card*/}
-          <div className="w-full overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
-              <Card className="col-span-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BellIcon className="h-6 w-6" />
-                    Employee Suggestions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {suggestions && suggestions.length === 0 ? (
-                    <p>No suggestions submitted yet.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Submitted By</TableHead>
-                            <TableHead>Suggestion</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {suggestions &&
-                            suggestions.map((suggestion) => (
-                              <TableRow key={suggestion.id}>
-                                <TableCell>{suggestion.created_by}</TableCell>
-                                <TableCell>{suggestion.suggestion}</TableCell>
-                                <TableCell>
-                                  {new Date(
-                                    suggestion.created_at || ""
-                                  ).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell>
-                                  {suggestion.is_read ? (
-                                    <Badge
-                                      variant="outline"
-                                      className="bg-green-100 text-green-800"
-                                    >
-                                      Replied
-                                    </Badge>
-                                  ) : (
-                                    <Badge
-                                      variant="outline"
-                                      className="bg-yellow-100 text-yellow-800"
-                                    >
-                                      Pending
-                                    </Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex space-x-2">
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          disabled={suggestion.is_read ?? false}
-                                        >
-                                          {suggestion.is_read
-                                            ? "Replied"
-                                            : "Reply"}
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-80">
-                                        <SuggestionReplyForm
-                                          suggestion={suggestion}
-                                          onSubmit={(replyText) =>
-                                            Promise.resolve(
-                                              handleReply({
-                                                suggestion,
-                                                replyText,
-                                              })
-                                            )
-                                          }
-                                          onClose={() => {}}
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                    {suggestion.is_read && (
-                                      <Popover>
-                                        <PopoverTrigger asChild>
-                                          <Button variant="outline">
-                                            View
-                                          </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-80">
-                                          <div className="space-y-2">
-                                            <h4 className="font-medium">
-                                              Reply Sent
-                                            </h4>
-                                            <p className="text-sm">
-                                              {suggestion.reply}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                              Replied by:{" "}
-                                              {suggestion.replied_by}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                              Replied at:{" "}
-                                              {new Date(
-                                                suggestion.replied_at || ""
-                                              ).toLocaleString()}
-                                            </p>
-                                          </div>
-                                        </PopoverContent>
-                                      </Popover>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Super Admin Only*/}
-
-          <div className="w-full overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 my-2 gap-6 overflow-hidden">
-              {/* File Upload Section */}
-
-              {flags.is_barchart_enabled.enabled &&
-                (role === "super admin" || role === "dev") && (
-                  <Card className="flex flex-col h-full">
-                    <CardHeader className="flex-shrink-0">
+              {/* Suggestions Card*/}
+              <div className="w-full overflow-hidden">
+                <div className="col-span-full overflow-hidden mt-2">
+                  <Card className="flex flex-col col-span-full h-full">
+                    <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <FilePlusIcon className="h-6 w-6" />
-                        Select File To Upload
+                        <BellIcon className="h-6 w-6" />
+                        Employee Suggestions
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                      <div className="mt-4 rounded-md border">
-                        <div className="flex flex-col items-start gap-2 p-2">
-                          <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
-                            <Input
-                              type="file"
-                              accept=".csv,.xlsx"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                            <span>{fileData?.fileName || "Select File"}</span>
-                          </label>
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              fileData?.file &&
-                              uploadFileMutation.mutate(fileData.file)
-                            }
-                            className="w-full"
-                            disabled={
-                              uploadFileMutation.isPending || !fileData?.file
-                            }
-                          >
-                            {uploadFileMutation.isPending
-                              ? "Uploading..."
-                              : "Upload & Process"}
-                          </Button>
+                    <CardContent>
+                      {suggestions && suggestions.length === 0 ? (
+                        <p>No suggestions submitted yet.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Submitted By</TableHead>
+                                <TableHead>Suggestion</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Action</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {suggestions &&
+                                suggestions.map((suggestion) => (
+                                  <TableRow key={suggestion.id}>
+                                    <TableCell>
+                                      {suggestion.created_by}
+                                    </TableCell>
+                                    <TableCell>
+                                      {suggestion.suggestion}
+                                    </TableCell>
+                                    <TableCell>
+                                      {new Date(
+                                        suggestion.created_at || ""
+                                      ).toLocaleDateString()}
+                                    </TableCell>
+                                    <TableCell>
+                                      {suggestion.is_read ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-green-100 text-green-800"
+                                        >
+                                          Replied
+                                        </Badge>
+                                      ) : (
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-yellow-100 text-yellow-800"
+                                        >
+                                          Pending
+                                        </Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex space-x-2">
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              disabled={
+                                                suggestion.is_read ?? false
+                                              }
+                                            >
+                                              {suggestion.is_read
+                                                ? "Replied"
+                                                : "Reply"}
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-80">
+                                            <SuggestionReplyForm
+                                              suggestion={suggestion}
+                                              onSubmit={(replyText) =>
+                                                Promise.resolve(
+                                                  handleReply({
+                                                    suggestion,
+                                                    replyText,
+                                                  })
+                                                )
+                                              }
+                                              onClose={() => {}}
+                                            />
+                                          </PopoverContent>
+                                        </Popover>
+                                        {suggestion.is_read && (
+                                          <Popover>
+                                            <PopoverTrigger asChild>
+                                              <Button variant="outline">
+                                                View
+                                              </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80">
+                                              <div className="space-y-2">
+                                                <h4 className="font-medium">
+                                                  Reply Sent
+                                                </h4>
+                                                <p className="text-sm">
+                                                  {suggestion.reply}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                  Replied by:{" "}
+                                                  {suggestion.replied_by}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                  Replied at:{" "}
+                                                  {new Date(
+                                                    suggestion.replied_at || ""
+                                                  ).toLocaleString()}
+                                                </p>
+                                              </div>
+                                            </PopoverContent>
+                                          </Popover>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                      </div>
-
-                      {uploadFileMutation.isPending && (
-                        <Progress
-                          value={
-                            typeof uploadProgress === "number"
-                              ? uploadProgress
-                              : 0
-                          }
-                          className="mt-4"
-                        />
                       )}
                     </CardContent>
                   </Card>
-                )}
+                </div>
+              </div>
+              {/* </div> */}
+            </TabsContent>
 
+            <TabsContent value="sales">
+              {/* Super Admin Only*/}
+              <div className="w-full overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 my-2 gap-6 overflow-hidden">
+                  {/* File Upload Section */}
+                  {flags.is_barchart_enabled.enabled &&
+                    (role === "super admin" || role === "dev") && (
+                      <Card className="flex flex-col h-full">
+                        <CardHeader className="flex-shrink-0">
+                          <CardTitle className="flex items-center gap-2">
+                            <FilePlusIcon className="h-6 w-6" />
+                            Select File To Upload
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                          <div className="mt-4 rounded-md border">
+                            <div className="flex flex-col items-start gap-2 p-2">
+                              <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                                <Input
+                                  type="file"
+                                  accept=".csv,.xlsx"
+                                  onChange={handleFileChange}
+                                  className="hidden"
+                                />
+                                <span>
+                                  {fileData?.fileName || "Select File"}
+                                </span>
+                              </label>
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  fileData?.file &&
+                                  uploadFileMutation.mutate(fileData.file)
+                                }
+                                className="w-full"
+                                disabled={
+                                  uploadFileMutation.isPending ||
+                                  !fileData?.file
+                                }
+                              >
+                                {uploadFileMutation.isPending
+                                  ? "Uploading..."
+                                  : "Upload & Process"}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {uploadFileMutation.isPending && (
+                            <Progress
+                              value={
+                                typeof uploadProgress === "number"
+                                  ? uploadProgress
+                                  : 0
+                              }
+                              className="mt-4"
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  {flags.is_barchart_enabled.enabled && (
+                    <Card className="flex flex-col h-full">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="flex items-center gap-2">
+                          <CalendarIcon className="h-6 w-6" />
+                          Select Date For Chart & Table Below
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                        <div className="mt-8">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full pl-3 text-left font-normal mb-2"
+                              >
+                                {selectedRange?.start
+                                  ? format(selectedRange.start, "PPP")
+                                  : "Select Date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <CustomCalendar
+                                selectedDate={selectedRange?.start || undefined}
+                                onDateChange={handleRangeChange}
+                                disabledDays={() => false}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </div>
+              {/* </div> */}
+
+              {/* Sales Chart*/}
               {flags.is_barchart_enabled.enabled && (
-                <Card className="flex flex-col h-full">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarIcon className="h-6 w-6" />
-                      Select Date For Chart & Table Below
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                    <div className="mt-8">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full pl-3 text-left font-normal mb-2"
-                          >
-                            {selectedRange?.start
-                              ? format(selectedRange.start, "PPP")
-                              : "Select Date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CustomCalendar
-                            selectedDate={selectedRange?.start || undefined}
-                            onDateChange={handleRangeChange}
-                            disabledDays={() => false}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                <div className="col-span-full overflow-hidden">
+                  <Card className="flex flex-col col-span-full mt-2 mb-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChartIcon className="h-6 w-6" />
+                        Sales Report Chart
+                      </CardTitle>
+                    </CardHeader>
+                    <div className="overflow-hidden">
+                      <ScrollArea
+                        className={classNames(
+                          styles.noScroll,
+                          "w-[calc(100vw-100px)] overflow-auto relative"
+                        )}
+                      >
+                        <CardContent className="flex-grow overflow-auto">
+                          <div className="h-full">
+                            {selectedRange ? (
+                              <SalesRangeStackedBarChart
+                                selectedRange={{
+                                  start: selectedRange.start,
+                                  end: selectedRange.end,
+                                }}
+                              />
+                            ) : (
+                              <div>Please select a date range</div>
+                            )}
+                          </div>
+                        </CardContent>
+                        <ScrollBar orientation="horizontal" />
+                        <ScrollBar orientation="vertical" />
+                      </ScrollArea>
                     </div>
-                  </CardContent>
-                </Card>
+                  </Card>
+                </div>
               )}
-            </div>
+
+              {/* Sales Report Table*/}
+              {flags.is_barchart_enabled.enabled && (
+                <div className="col-span-full overflow-hidden mt-2">
+                  <Card className="flex flex-col col-span-full h-full">
+                    <CardHeader className="flex-shrink-0">
+                      <CardTitle className="flex items-center gap-2">
+                        <TableIcon className="h-6 w-6" />
+                        Sales Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
+                      <Suspense fallback={<div></div>}>
+                        <div className=" overflow-hidden ">
+                          <LazySalesDataTable
+                            startDate={
+                              selectedRange?.start
+                                ? format(selectedRange.start, "yyyy-MM-dd")
+                                : "N/A"
+                            }
+                            endDate={
+                              selectedRange?.end
+                                ? format(selectedRange.end, "yyyy-MM-dd")
+                                : "N/A"
+                            }
+                          />
+                        </div>
+                      </Suspense>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
           </div>
 
-          {/* Sales Chart*/}
-          {flags.is_barchart_enabled.enabled && (
-            <div className="col-span-full overflow-hidden">
-              <Card className="flex flex-col col-span-full mt-2 mb-2">
+          <TabsContent value="metrics">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChartIcon className="h-6 w-6" />
-                    Sales Report Chart
-                  </CardTitle>
+                  <CardTitle>Performance Metrics</CardTitle>
                 </CardHeader>
-                <div className="overflow-hidden">
-                  <ScrollArea
-                    className={classNames(
-                      styles.noScroll,
-                      "w-[calc(100vw-90px)] overflow-auto relative"
-                    )}
-                  >
-                    <CardContent className="flex-grow overflow-auto">
-                      <div className="h-[650px]">
-                        {selectedRange ? (
-                          <SalesRangeStackedBarChart
-                            selectedRange={{
-                              start: selectedRange.start,
-                              end: selectedRange.end,
-                            }}
-                          />
-                        ) : (
-                          <div>Please select a date range</div>
-                        )}
-                      </div>
-                    </CardContent>
-                    <ScrollBar orientation="horizontal" />
-                    <ScrollBar orientation="vertical" />
-                  </ScrollArea>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* Sales Report Table*/}
-          {flags.is_barchart_enabled.enabled && (
-            <div className="col-span-full overflow-hidden mt-2">
-              <Card className="flex flex-col col-span-full h-full">
-                <CardHeader className="flex-shrink-0">
-                  <CardTitle className="flex items-center gap-2">
-                    <TableIcon className="h-6 w-6" />
-                    Sales Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
-                  <Suspense fallback={<div></div>}>
-                    <div className=" overflow-hidden ">
-                      <LazySalesDataTable
-                        startDate={
-                          selectedRange?.start
-                            ? format(selectedRange.start, "yyyy-MM-dd")
-                            : "N/A"
-                        }
-                        endDate={
-                          selectedRange?.end
-                            ? format(selectedRange.end, "yyyy-MM-dd")
-                            : "N/A"
-                        }
-                      />
+                <CardContent>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      Loading metrics...
                     </div>
-                  </Suspense>
+                  ) : (
+                    <>
+                      <div className="rounded-md border mb-6">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                              <tr key={headerGroup.id}>
+                                {headerGroup.headers.map((header) => (
+                                  <th
+                                    key={header.id}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                  >
+                                    {flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext()
+                                    )}
+                                  </th>
+                                ))}
+                              </tr>
+                            ))}
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {table.getRowModel().rows.map((row) => (
+                              <tr key={row.id}>
+                                {row.getVisibleCells().map((cell) => (
+                                  <td
+                                    key={cell.id}
+                                    className="px-6 py-4 whitespace-nowrap"
+                                  >
+                                    {flexRender(
+                                      cell.column.columnDef.cell,
+                                      cell.getContext()
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Customer Visit Frequency</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-3 gap-4">
+                            {metrics?.customerFrequency.map((freq) => (
+                              <Card key={freq.visits} className="bg-muted/50">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-sm font-medium">
+                                    {freq.visits}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold">
+                                    {freq.percentage}%
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    of total customers
+                                  </p>
+                                  <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-primary"
+                                      style={{ width: `${freq.percentage}%` }}
+                                    />
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Revenue Analysis Chart*/}
+              <Card>
+                <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
+                  <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
+                    <CardTitle>Annual Revenue Analysis</CardTitle>
+                  </div>
+                  <div className="flex">
+                    {(["grossRevenue", "netRevenue"] as const).map((key) => (
+                      <button
+                        key={key}
+                        data-active={activeChart === key}
+                        className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+                        onClick={() => setChartViewMutation.mutate(key)}
+                      >
+                        <span className="text-xs text-muted-foreground">
+                          {chartConfig[key].label} (YTD)
+                        </span>
+                        <span className="text-lg font-bold leading-none sm:text-3xl">
+                          {currencyFormatter.format(total[key])}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <ChartContainer
+                    config={chartConfig}
+                    className="min-h-[200px] max-h-[500px] w-full"
+                  >
+                    <BarChart
+                      data={revenueData}
+                      margin={{ top: 10, right: 10, left: 40, bottom: 40 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tickLine={false}
+                        tickMargin={30}
+                        axisLine={false}
+                        fontSize={12}
+                        angle={-45}
+                        textAnchor="end"
+                        interval={0}
+                        height={40}
+                      />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          currencyFormatter.format(value)
+                        }
+                        tickLine={false}
+                        tickMargin={8}
+                        axisLine={false}
+                        fontSize={12}
+                        width={60}
+                      />
+                      <ChartTooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
+                                <p className="text-muted-foreground">
+                                  {
+                                    chartConfig[
+                                      activeChart as keyof typeof chartConfig
+                                    ].label
+                                  }
+                                </p>
+                                <p className="font-mono font-medium">
+                                  {currencyFormatter.format(
+                                    payload[0].value as number
+                                  )}
+                                </p>
+                                <p className="font-medium">{label}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                        cursor={{ fill: "transparent" }}
+                      />
+                      <Bar
+                        dataKey={activeChart}
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={40}
+                        shape={(props: any) => {
+                          const { x, y, width, height, index } = props;
+                          return (
+                            <rect
+                              x={x}
+                              y={y}
+                              width={width}
+                              height={height}
+                              fill={chartColors[index % chartColors.length]}
+                              rx={4}
+                              ry={4}
+                            />
+                          );
+                        }}
+                      />
+                    </BarChart>
+                  </ChartContainer>
                 </CardContent>
               </Card>
             </div>
-          )}
-        </div>
+          </TabsContent>
+
+          {/* </div> */}
+        </Tabs>
       </div>
     </RoleBasedWrapper>
   );
