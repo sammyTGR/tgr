@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
+import { Textarea } from "@/components/ui/textarea";
 
 const denominations = [
   { name: "Pennies", value: 0.01 },
@@ -49,7 +50,7 @@ export default function DailyDepositsPage() {
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
   const queryClient = useQueryClient();
-  const isFetching = useIsFetching({ queryKey: ['wheelEventHandlers'] });
+  const isFetching = useIsFetching({ queryKey: ["wheelEventHandlers"] });
 
   const [quantities, setQuantities] = useState<number[][]>(
     Array(registers.length)
@@ -68,13 +69,12 @@ export default function DailyDepositsPage() {
   );
   const [activeTab, setActiveTab] = useState("reg1");
 
-
   useEffect(() => {
     if (!isFetching) {
       // Add wheel event listeners
       inputRefs.current.flat().forEach((input) => {
         if (input) {
-          input.addEventListener('wheel', handleWheel, { passive: false });
+          input.addEventListener("wheel", handleWheel, { passive: false });
         }
       });
 
@@ -82,7 +82,7 @@ export default function DailyDepositsPage() {
       return () => {
         inputRefs.current.flat().forEach((input) => {
           if (input) {
-            input.removeEventListener('wheel', handleWheel);
+            input.removeEventListener("wheel", handleWheel);
           }
         });
       };
@@ -330,9 +330,9 @@ export default function DailyDepositsPage() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
-      <main className="grid flex-1 items-start mx-auto my-4 mb-4 max-w-4xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <main className="grid flex-1 items-start my-6 max-w-4xl sm:px-6 sm:py-0 md:gap-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between">
             <TabsList>
               {registers.map((register, index) => (
                 <TabsTrigger key={index} value={`reg${index + 1}`}>
@@ -347,22 +347,22 @@ export default function DailyDepositsPage() {
                 onCheckedChange={handleSwitchChange}
               />
               <Label htmlFor="deposit-type" className="ml-2">
-                Select For 2nd Count
+                Count Only
               </Label>
             </div>
           </div>
 
           {registers.map((register, registerIndex) => (
             <TabsContent key={registerIndex} value={`reg${registerIndex + 1}`}>
-              <Card className="mb-4 ">
+              <Card>
                 <CardHeader>
                   <CardTitle>{register}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col w-full">
-                  <div className="flex-1 flex flex-col border p-4">
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="flex-1 flex flex-col">
                     {denominations.map((denomination, denominationIndex) => (
                       <div
-                        className="flex grid grid-cols-3 gap-4 mb-3"
+                        className="flex grid grid-cols-3 mb-1"
                         key={denominationIndex}
                       >
                         <div>{denomination.name}</div>
@@ -402,7 +402,7 @@ export default function DailyDepositsPage() {
                         </div>
                       </div>
                     ))}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-3 mb-2">
                       <div className="col-span-1 text-left">
                         Total In Drawer
                       </div>
@@ -412,15 +412,15 @@ export default function DailyDepositsPage() {
                     </div>
                     {!isSecondCount && (
                       <>
-                        <div className="grid grid-cols-3 gap-4 mb-4">
-                          <div className="col-span-2 text-left">
+                        <div className="grid grid-cols-3 mb-2">
+                          <div className="col-span-2 text-left text-lg font-bold">
                             Total To Deposit
                           </div>
-                          <div className="col-span-1 text-right">
+                          <div className="col-span-1 text-right text-lg font-bold">
                             ${calculateTotalToDeposit(registerIndex)}
                           </div>
                         </div>
-                        <div className="grid grid-cols-6 gap-4 mb-4">
+                        <div className="grid grid-cols-6 mb-2">
                           <Input
                             className="col-span-2"
                             placeholder="AIM Cash Clearing Total"
@@ -435,19 +435,8 @@ export default function DailyDepositsPage() {
                           <div className="col-span-2 text-center">
                             {discrepancyMessages[registerIndex]}
                           </div>
-                          <Input
-                            className="col-span-2"
-                            placeholder="Explain Discrepancies"
-                            value={explainDiscrepancies[registerIndex]}
-                            onChange={(e) =>
-                              handleExplainDiscrepanciesChange(
-                                registerIndex,
-                                e.target.value
-                              )
-                            }
-                          />
                         </div>
-                        <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-3 mb-2">
                           <div className="col-span-2 text-left">
                             Remaining Balance In Register After $
                             {calculateTotalToDeposit(registerIndex)} Is
@@ -457,6 +446,17 @@ export default function DailyDepositsPage() {
                             ${calculateRemainingBalance(registerIndex)}
                           </div>
                         </div>
+                        <Textarea
+                          className="col-span-2"
+                          placeholder="Explain Discrepancies"
+                          value={explainDiscrepancies[registerIndex]}
+                          onChange={(e) =>
+                            handleExplainDiscrepanciesChange(
+                              registerIndex,
+                              e.target.value
+                            )
+                          }
+                        />
                       </>
                     )}
                   </div>
@@ -464,26 +464,35 @@ export default function DailyDepositsPage() {
                 <CardFooter>
                   <div className="flex justify-between items-center w-full">
                     <Button
-                      variant="linkHover2"
+                      variant="outline"
                       onClick={() => clearForm(registerIndex)}
                       className="mr-4"
                     >
-                      Clear
+                      Clear Current Register
                     </Button>
+                    {!isSecondCount && (
+                      <Button
+                        variant="gooeyRight"
+                        className="flex justify-between ml-auto mt-4"
+                        onClick={handleSubmit}
+                      >
+                        Submit Final
+                      </Button>
+                    )}
                   </div>
                 </CardFooter>
               </Card>
             </TabsContent>
           ))}
-          {!isSecondCount && (
+          {/* {!isSecondCount && (
             <Button
-              variant="linkHover1"
+              variant="gooeyRight"
               className="flex justify-between ml-auto mt-4"
               onClick={handleSubmit}
             >
-              Submit
+              Submit Final
             </Button>
-          )}
+          )} */}
         </Tabs>
       </main>
     </RoleBasedWrapper>
