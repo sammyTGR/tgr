@@ -337,7 +337,7 @@ export default function RangeWalkPage() {
           Range Walks & Repairs
         </h1>
         <div className="col-span-full overflow-hidden mt-14 ">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-6 overflow-hidden">
             {/* Range Walk Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -386,20 +386,21 @@ export default function RangeWalkPage() {
                       Enter Repair Notes
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-xl p-2" align="start">
+                  <PopoverContent className="w-2xl p-2" align="start">
                     <div className="space-y-4">
                       <Select onValueChange={handleSelectedRangeWalkChange}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a range walk" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-w-xl mb-2">
                           {rangeWalkData?.map((walk) => (
                             <SelectItem
                               key={walk.id}
                               value={walk.id.toString()}
                             >
                               {formatDate(walk.date_of_walk)} -{" "}
-                              {walk.lanes_with_problems || "No problems"}
+                              {walk.lanes_with_problems || "No problems"} <br />
+                              {walk.description || "No problems"}
                             </SelectItem>
                           ))}
                         </SelectContent>
