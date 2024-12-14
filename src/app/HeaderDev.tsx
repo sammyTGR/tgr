@@ -736,7 +736,7 @@ const HeaderDev = React.memo(() => {
             </>
           ) : (
             <Link href="/sign-in">
-              <Button variant="linkHover2">Sign In</Button>
+              <Button variant="outline">Sign In</Button>
             </Link>
           )}
         </div>

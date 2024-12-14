@@ -2034,7 +2034,6 @@ function AdminDashboardContent() {
     );
   }
 }
-
 export default function AdminDashboard() {
   return <AdminDashboardContent />;
 }
