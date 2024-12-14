@@ -31,18 +31,14 @@ export async function POST(request: Request) {
       query = query.in("name", activeEmployeeNames);
     }
 
-    // Apply other filters
-    if (filters && filters.length > 0) {
-      filters.forEach((filter: { id: string; value: string }) => {
-        if (filter.id === "action_status" && Array.isArray(filter.value)) {
-          query = query.in(filter.id, filter.value);
-        } else if (filter.id === "number") {
-          query = query.eq(filter.id, filter.value);
-        } else {
-          query = query.ilike(filter.id, `%${filter.value}%`);
-        }
-      });
-    }
+    // Apply filters
+    filters.forEach((filter: { id: string; value: string | string[] }) => {
+      if (filter.id === "action_status" && Array.isArray(filter.value)) {
+        query = query.in("action_status", filter.value);
+      } else if (typeof filter.value === "string") {
+        query = query.ilike(filter.id, `%${filter.value}%`);
+      }
+    });
 
     // Apply sorting
     if (sorting && sorting.length > 0) {

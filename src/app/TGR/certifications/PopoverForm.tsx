@@ -114,7 +114,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="linkHover2">{buttonText}</Button>
+        <Button variant="ghost">{buttonText}</Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="p-4">
         <div>
@@ -169,7 +169,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
               onChange={(e) => setExpiration(e.target.value)}
             />
           </div>
-          <Button variant="linkHover1" className="mt-2" onClick={handleSubmit}>
+          <Button variant="gooeyLeft" className="mt-2" onClick={handleSubmit}>
             Submit
           </Button>
         </div>

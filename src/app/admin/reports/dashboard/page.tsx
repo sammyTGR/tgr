@@ -162,7 +162,7 @@ interface SalesMetrics {
   averageMonthlyGrossRevenue: number;
   averageMonthlyNetRevenue: number;
   topPerformingCategories: { category: string; revenue: number }[];
-  peakHours: { hour: number; transactions: number }[];
+  peakHours: { hour: number; transactions: number; formattedHour: string }[];
   customerFrequency: { visits: string; percentage: number }[];
 }
 
@@ -685,13 +685,9 @@ function AdminDashboardContent() {
       {
         metric: "Peak Business Hour",
         value: metrics.peakHours[0]
-          ? `${metrics.peakHours[0].hour}:00 (${metrics.peakHours[0].transactions} transactions)`
+          ? `${metrics.peakHours[0].formattedHour} (${metrics.peakHours[0].transactions} transactions)`
           : "N/A",
       },
-      // {
-      //   metric: "Regular Customer Rate",
-      //   value: `${metrics.customerFrequency[1]?.percentage || 0}%`,
-      // },
     ];
   }, [metrics]);
 
@@ -1654,7 +1650,7 @@ function AdminDashboardContent() {
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
               <Card>
                 <CardHeader>
-                  <CardTitle>Performance Metrics</CardTitle>
+                  <CardTitle>2024 Sales Metrics</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
@@ -1779,8 +1775,8 @@ function AdminDashboardContent() {
                         tickMargin={30}
                         axisLine={false}
                         fontSize={12}
-                        angle={-45}
-                        textAnchor="end"
+                        angle={0}
+                        textAnchor="middle"
                         interval={0}
                         height={40}
                       />

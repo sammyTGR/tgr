@@ -62,9 +62,9 @@ export function CertificationDataTable({
 
   return (
     <div className="flex flex-col h-full max-w-7xl">
-      <div className="flex flex-row items-center justify-between mx-2">
+      <div className="flex flex-row items-center justify-between mb-2">
         {isAdmin && (
-          <Button variant="linkHover1">
+          <Button variant="outline">
             <PopoverForm
               onSubmit={(_, updates) => onAddCertificate(updates)}
               buttonText="Add A Certificate"
@@ -77,7 +77,7 @@ export function CertificationDataTable({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="linkHover2" className="ml-auto mb-2">
+            <Button variant="outline" className="ml-auto mb-2">
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

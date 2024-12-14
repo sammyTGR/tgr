@@ -372,7 +372,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
   return (
     <div style={{ minWidth: chartData?.processedData.length * 100 }}>
-      <div className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <div className="flex flex-row items-center justify-between space-y-0 pb-4 w-[calc(100vw-200px)]">
         <div className="flex flex-row items-center justify-center gap-2 px-6 py-5 sm:py-6">
           <h1 className="text-2xl font-bold flex items-center gap-2"></h1>
         </div>
@@ -391,7 +391,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
             <button
               key={key}
               data-active={activeView === key}
-              className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+              className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
               onClick={() => setViewMutation.mutate(key as ChartView)}
             >
               <span className="text-xs text-muted-foreground">{label}</span>
@@ -411,7 +411,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
       <ChartContainer
         config={chartConfig}
-        className="min-h-[20px] max-h-[400px] w-full"
+        className="min-h-[20px] max-h-[400px] w-[calc(100vw-200px)]"
       >
         <BarChart
           data={chartData.processedData}

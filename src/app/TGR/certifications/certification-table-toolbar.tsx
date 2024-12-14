@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { statuses } from "./statuses";
+import { useState } from "react";
 
 interface CertificationTableToolbarProps<TData> {
   table: Table<TData>;
@@ -17,31 +18,42 @@ export function CertificationTableToolbar<TData>({
   table,
   onFilterChange,
 }: CertificationTableToolbarProps<TData>) {
-  // Get current filter values
-  const getColumnFilterValue = (columnId: string) => {
-    const column = table.getColumn(columnId);
-    return column?.getFilterValue() ?? "";
-  };
+  const [filterValues, setFilterValues] = useState<{
+    name: string;
+    certificate: string;
+    action_status?: string[];
+  }>({
+    name: "",
+    certificate: "",
+    action_status: [],
+  });
 
   // Handle filter changes
-  const handleFilterChange = (columnId: string, value: unknown) => {
-    const column = table.getColumn(columnId);
-    if (column) {
-      column.setFilterValue(value);
+  const handleFilterChange = (columnId: string, value: string | string[]) => {
+    // Update local state
+    setFilterValues((prev) => ({
+      ...prev,
+      [columnId]: value,
+    }));
 
-      // Get all current filters
-      const newFilters = table
-        .getAllColumns()
-        .map((col) => ({
-          id: col.id,
-          value: col.getFilterValue(),
-        }))
-        .filter(
-          (filter) => filter.value != null && filter.value !== ""
-        ) as ColumnFiltersState;
+    // Create new filters array
+    const newFilters: ColumnFiltersState = Object.entries({
+      ...filterValues,
+      [columnId]: value,
+    })
+      .filter(([_, value]) => {
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+        return value !== "";
+      })
+      .map(([id, value]) => ({
+        id,
+        value,
+      }));
 
-      onFilterChange(newFilters);
-    }
+    // Update filters through the callback
+    onFilterChange(newFilters);
   };
 
   // Check if any filters are applied
@@ -49,28 +61,22 @@ export function CertificationTableToolbar<TData>({
 
   return (
     <div className="flex items-center justify-between">
-      <div className="flex flex-1 items-center space-x-2 p-1">
+      <div className="flex flex-1 items-center space-x-2 mb-2 mt-2">
         <Input
           placeholder="Filter By Name..."
-          value={getColumnFilterValue("name") as string}
+          value={filterValues.name}
           onChange={(event) => handleFilterChange("name", event.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
         />
         <Input
           placeholder="Filter By Certificate"
-          value={getColumnFilterValue("certificate") as string}
+          value={filterValues.certificate}
           onChange={(event) =>
             handleFilterChange("certificate", event.target.value)
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {/* <Input
-          placeholder="Filter By Number"
-          value={getColumnFilterValue("number") as string}
-          onChange={(event) => handleFilterChange("number", event.target.value)}
-          className="h-8 w-[150px] lg:w-[250px]"
-        /> */}
-        {table.getColumn("action_status") && (
+        {/* {table.getColumn("action_status") && (
           <DataTableFacetedFilter
             column={table.getColumn("action_status")!}
             title="Status"
@@ -79,11 +85,12 @@ export function CertificationTableToolbar<TData>({
               handleFilterChange("action_status", selectedValues)
             }
           />
-        )}
+        )} */}
         {isFiltered && (
           <Button
             variant="ghost"
             onClick={() => {
+              setFilterValues({ name: "", certificate: "", action_status: [] });
               table.resetColumnFilters();
               onFilterChange([]);
             }}

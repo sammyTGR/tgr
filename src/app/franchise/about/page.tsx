@@ -40,7 +40,7 @@ interface SalesMetrics {
   averageMonthlyGrossRevenue: number;
   averageMonthlyNetRevenue: number;
   topPerformingCategories: { category: string; revenue: number }[];
-  peakHours: { hour: number; transactions: number }[];
+  peakHours: { hour: number; transactions: number; formattedHour: string }[];
   customerFrequency: { visits: string; percentage: number }[];
 }
 
@@ -166,13 +166,9 @@ const FranchisePresentation = () => {
       {
         metric: "Peak Business Hour",
         value: metrics.peakHours[0]
-          ? `${metrics.peakHours[0].hour}:00 (${metrics.peakHours[0].transactions} transactions)`
+          ? `${metrics.peakHours[0].formattedHour} (${metrics.peakHours[0].transactions} transactions)`
           : "N/A",
       },
-      // {
-      //   metric: "Regular Customer Rate",
-      //   value: `${metrics.customerFrequency[1]?.percentage || 0}%`,
-      // },
     ];
   }, [metrics]);
 

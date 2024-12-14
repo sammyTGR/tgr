@@ -9,7 +9,7 @@ interface SalesMetrics {
   averageMonthlyGrossRevenue: number;
   averageMonthlyNetRevenue: number;
   topPerformingCategories: { category: string; revenue: number }[];
-  peakHours: { hour: number; transactions: number }[];
+  peakHours: { hour: number; transactions: number; formattedHour: string }[];
   customerFrequency: { visits: string; percentage: number }[];
 }
 
@@ -63,16 +63,23 @@ function calculateMonthlyMetrics(salesData: SalesData[]): SalesMetrics {
     .slice(0, 3);
 
   const hourlyTransactions = salesData.reduce((acc, curr) => {
-    const hour = new Date(curr.Date).getHours();
+    const pacificDate = toZonedTime(new Date(curr.Date), "America/Los_Angeles");
+    const hour = pacificDate.getHours();
     acc[hour] = (acc[hour] || 0) + 1;
     return acc;
   }, {} as Record<number, number>);
 
   const sortedHours = Object.entries(hourlyTransactions)
-    .map(([hour, transactions]) => ({
-      hour: parseInt(hour),
-      transactions: transactions as number,
-    }))
+    .map(([hour, transactions]) => {
+      const numHour = parseInt(hour);
+      const period = numHour >= 12 ? "PM" : "AM";
+      const displayHour = numHour % 12 || 12;
+      return {
+        hour: numHour,
+        transactions,
+        formattedHour: `${displayHour}:00 ${period}`,
+      };
+    })
     .sort((a, b) => b.transactions - a.transactions)
     .slice(0, 3);
 
@@ -161,16 +168,26 @@ export async function GET() {
       .slice(0, 3);
 
     const hourlyTransactions = salesData.reduce((acc, curr) => {
-      const hour = new Date(curr.Date).getHours();
+      const pacificDate = toZonedTime(
+        new Date(curr.Date),
+        "America/Los_Angeles"
+      );
+      const hour = pacificDate.getHours();
       acc[hour] = (acc[hour] || 0) + 1;
       return acc;
     }, {} as Record<number, number>);
 
     const sortedHours = Object.entries(hourlyTransactions)
-      .map(([hour, transactions]) => ({
-        hour: parseInt(hour),
-        transactions,
-      }))
+      .map(([hour, transactions]) => {
+        const numHour = parseInt(hour);
+        const period = numHour >= 12 ? "PM" : "AM";
+        const displayHour = numHour % 12 || 12;
+        return {
+          hour: numHour,
+          transactions,
+          formattedHour: `${displayHour}:00 ${period}`,
+        };
+      })
       .sort((a, b) => b.transactions - a.transactions)
       .slice(0, 3);
 
