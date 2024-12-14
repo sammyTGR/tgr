@@ -333,11 +333,9 @@ export default function RangeWalkPage() {
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div className="section w-full overflow-hidden max-w-[calc(100vw-90px)] mx-auto">
-        <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">
-          Range Walks & Repairs
-        </h1>
+        <h1 className="text-3xl font-bold mt-8">Range Walks & Repairs</h1>
         <div className="col-span-full overflow-hidden mt-14 ">
-          <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-6 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 space-x-2 overflow-hidden">
             {/* Range Walk Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -432,7 +430,7 @@ export default function RangeWalkPage() {
                           Cancel
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="gooeyRight"
                           onClick={handleSubmitRepairNotes}
                           disabled={!selectedRangeWalkId}
                         >
