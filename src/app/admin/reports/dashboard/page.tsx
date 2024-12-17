@@ -1,52 +1,20 @@
 "use client";
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  HydrationBoundary,
-} from "@tanstack/react-query";
-import { dehydrate, hydrate, QueryClient } from "@tanstack/react-query";
-import { GetServerSideProps } from "next";
-import DOMPurify from "isomorphic-dompurify";
-import { Suspense, useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStackedBarChart";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CustomCalendar } from "@/components/ui/calendar";
-import { parseISO } from "date-fns";
-import { format as formatTZ, toZonedTime } from "date-fns-tz";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import styles from "./table.module.css";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  CheckCircledIcon,
-  CrossCircledIcon,
-  ClipboardIcon,
-  PersonIcon,
-  BarChartIcon,
-  MagnifyingGlassIcon,
-  DrawingPinIcon,
-  BellIcon,
-  CalendarIcon,
-  TableIcon,
-  FilePlusIcon,
-} from "@radix-ui/react-icons";
-import { format, formatDate, formatDistanceToNow } from "date-fns";
-import SalesRangeStackedBarChart from "@/app/admin/reports/charts/SalesRangeStackedBarChart";
-import SalesDataTable from "../sales/sales-data-table";
-import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -55,38 +23,59 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import classNames from "classnames";
-import { Input } from "@/components/ui/input";
-import Papa, { ParseResult } from "papaparse";
-import * as XLSX from "xlsx";
-import { toast } from "sonner";
-import { Progress } from "@/components/ui/progress";
-import { useRole } from "@/context/RoleContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import DailyChecklist from "@/app/TGR/gunsmithing/DailyChecklist";
-import Todos from "../../todo/todos";
-import ClearActions from "../../todo/clear-actions";
-import Todo from "../../todo/todo";
-import TodoWrapper from "../../todo/todo-wrapper";
-import { useFlags } from "flagsmith/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import LoadingIndicator from "@/components/LoadingIndicator";
-import dynamic from "next/dynamic";
-import { flexRender } from "@tanstack/react-table";
-import { createColumnHelper, getCoreRowModel } from "@tanstack/react-table";
-import { useReactTable } from "@tanstack/react-table";
-import React from "react";
-import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { useRole } from "@/context/RoleContext";
+import { supabase } from "@/utils/supabase/client";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+  BarChartIcon,
+  BellIcon,
+  CalendarIcon,
+  CheckCircledIcon,
+  ClipboardIcon,
+  CrossCircledIcon,
+  DrawingPinIcon,
+  FilePlusIcon,
+  MagnifyingGlassIcon,
+  PersonIcon,
+  TableIcon,
+} from "@radix-ui/react-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import classNames from "classnames";
+import { format, parseISO } from "date-fns";
+import { format as formatTZ, toZonedTime } from "date-fns-tz";
+import { useFlags } from "flagsmith/react";
+import DOMPurify from "isomorphic-dompurify";
+import dynamic from "next/dynamic";
+import { usePathname, useSearchParams } from "next/navigation";
+import React, { Suspense } from "react";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import TodoWrapper from "../../todo/todo-wrapper";
+import styles from "./table.module.css";
+import AnnualRevenueBarChart from "@/app/admin/reports/charts/AnnualRevenueBarChart";
+import {
+  fetchDomains,
+  fetchSuggestions,
+  fetchCertificates,
+  replySuggestion,
+  addDomainMutation,
+  updateDomainMutation,
+  deleteDomainMutation,
+  fetchLatestRangeWalkReport,
+  fetchLatestChecklistSubmission,
+  fetchLatestGunsmithMaintenance,
+  fetchLatestDailyDeposit,
+  fetchDailyChecklistStatus,
+  fetchLatestSalesData,
+} from "./api";
+import { sendEmail } from "./actions";
 
 interface Certificate {
   id: number;
@@ -96,44 +85,9 @@ interface Certificate {
   expiration: Date;
 }
 
-interface SalesDataResponse {
-  totalGross: number;
-  totalNet: number;
-  totalNetMinusExclusions: number;
-  salesData: Array<{
-    category_label: string;
-    total_gross: number;
-    total_net: number;
-    // Add other fields as needed
-  }>;
-}
-
-interface Gunsmith {
-  last_maintenance_date: string;
-  firearm_name: string;
-}
-
-interface Checklist {
-  submission_date: string;
-  submitted_by_name: string;
-}
-
-interface RangeWalk {
-  date_of_walk: string;
-  user_name: string;
-}
-
 interface Domain {
   id: number;
   domain: string;
-}
-
-interface DailyDeposit {
-  id: number;
-  register: string;
-  employee_name: string;
-  total_to_deposit: number;
-  created_at: string;
 }
 
 interface Suggestion {
@@ -166,40 +120,11 @@ interface SalesMetrics {
   customerFrequency: { visits: string; percentage: number }[];
 }
 
-interface RevenueData {
-  month: string;
-  grossRevenue: number;
-  netRevenue: number;
-}
-
 declare global {
   interface Function {
     timeoutId?: number;
   }
 }
-
-const chartConfig = {
-  grossRevenue: {
-    label: "Gross Revenue",
-    color: "hsl(var(--chart-1))",
-  },
-  netRevenue: {
-    label: "Net Revenue",
-    color: "hsl(var(--chart-2))",
-  },
-};
-
-const chartColors = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-];
-
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
 
 const LazySalesDataTable = dynamic(
   () =>
@@ -227,8 +152,6 @@ const columns = [
   }),
 ];
 
-const timeZone = "America/Los_Angeles";
-
 function AdminDashboardContent() {
   const flags = useFlags(["is_todo_enabled", "is_barchart_enabled"]);
   const queryClient = useQueryClient();
@@ -243,40 +166,16 @@ function AdminDashboardContent() {
     refetchInterval: 0,
   });
 
-  const { data: activeChart = "grossRevenue" } = useQuery({
-    queryKey: ["chartView"],
-    queryFn: () => "grossRevenue",
-    staleTime: Infinity,
-  });
-
-  const setChartViewMutation = useMutation({
-    mutationFn: (view: "grossRevenue" | "netRevenue") => Promise.resolve(view),
-    onSuccess: (newView) => {
-      queryClient.setQueryData(["chartView"], newView);
-    },
-  });
-
-  const { data: revenueData = [] } = useQuery<RevenueData[]>({
-    queryKey: ["revenueData"],
+  const { data: metrics } = useQuery<SalesMetrics>({
+    queryKey: ["metrics"],
     queryFn: async () => {
-      const response = await fetch("/api/revenue");
-      if (!response.ok) throw new Error("Failed to fetch revenue data");
+      const response = await fetch("/api/metrics");
+      if (!response.ok) {
+        throw new Error("Failed to fetch metrics");
+      }
       return response.json();
     },
   });
-
-  const { data: metrics, isLoading: isMetricsLoading } = useQuery<SalesMetrics>(
-    {
-      queryKey: ["metrics"],
-      queryFn: async () => {
-        const response = await fetch("/api/metrics");
-        if (!response.ok) {
-          throw new Error("Failed to fetch metrics");
-        }
-        return response.json();
-      },
-    }
-  );
 
   // Modify the suggestions section in AdminDashboardContent:
   const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
@@ -303,47 +202,45 @@ function AdminDashboardContent() {
     staleTime: Infinity,
   });
 
-  const setNewDomainMutation = useMutation({
-    mutationFn: (value: string) => Promise.resolve(value),
-    onSuccess: (newValue) => {
-      queryClient.setQueryData(["newDomain"], newValue);
-    },
-  });
-
-  const setEditingDomainMutation = useMutation({
-    mutationFn: (value: Domain | null) => Promise.resolve(value),
-    onSuccess: (newValue) => {
-      queryClient.setQueryData(["editingDomain"], newValue);
-    },
-  });
-
   const { data: suggestions } = useQuery({
     queryKey: ["suggestions"],
     queryFn: fetchSuggestions,
   });
+
   const { data: certificates } = useQuery({
     queryKey: ["certificates"],
     queryFn: fetchCertificates,
+    refetchInterval: 15 * 60 * 1000,
   });
+
   const { data: rangeWalk } = useQuery({
     queryKey: ["rangeWalk"],
     queryFn: fetchLatestRangeWalkReport,
+    refetchInterval: 5 * 60 * 1000,
   });
+
   const { data: checklist } = useQuery({
     queryKey: ["checklist"],
     queryFn: fetchLatestChecklistSubmission,
+    refetchInterval: 5 * 60 * 1000,
   });
+
   const { data: gunsmiths } = useQuery({
     queryKey: ["gunsmiths"],
     queryFn: fetchLatestGunsmithMaintenance,
+    refetchInterval: 5 * 60 * 1000,
   });
+
   const { data: dailyDeposit } = useQuery({
     queryKey: ["dailyDeposit"],
     queryFn: fetchLatestDailyDeposit,
+    refetchInterval: 5 * 60 * 1000,
   });
+
   const { data: dailyChecklistStatus } = useQuery({
     queryKey: ["dailyChecklistStatus"],
     queryFn: fetchDailyChecklistStatus,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: replyText, refetch: refetchReplyText } = useQuery({
@@ -353,66 +250,6 @@ function AdminDashboardContent() {
   });
 
   //Mutations
-  const handleSuggestionReplyMutation = useMutation({
-    mutationFn: ({
-      suggestion,
-      replyText,
-    }: {
-      suggestion: Suggestion;
-      replyText: string;
-    }) => {
-      if (!suggestion.id) {
-        return Promise.reject(new Error("Suggestion ID is missing"));
-      }
-
-      return Promise.resolve(
-        supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
-          if (userError) throw userError;
-
-          const fullName = user?.user_metadata?.name || "";
-          const firstName = fullName.split(" ")[0];
-          const replierName = firstName || "Admin";
-
-          return Promise.resolve(
-            supabase
-              .from("employee_suggestions")
-              .update({
-                is_read: true,
-                replied_by: replierName,
-                replied_at: new Date().toISOString(),
-                reply: replyText,
-              })
-              .eq("id", suggestion.id)
-              .then(({ error }) => {
-                if (error) throw error;
-
-                return Promise.resolve(
-                  sendEmail(
-                    suggestion.email || "",
-                    "Reply to Your Suggestion",
-                    "SuggestionReply",
-                    {
-                      employeeName: suggestion.created_by,
-                      originalSuggestion: suggestion.suggestion,
-                      replyText: replyText,
-                      repliedBy: replierName,
-                    }
-                  ).then(() => ({ suggestion, replyText }))
-                );
-              })
-          );
-        })
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["suggestions"] });
-      toast.success("Reply sent successfully!");
-    },
-    onError: (error) => {
-      // console.error("Error sending reply:", error);
-      toast.error("Failed to send reply. Please try again.");
-    },
-  });
 
   const updateRangeMutation = useMutation({
     mutationFn: (date: Date) => {
@@ -430,24 +267,6 @@ function AdminDashboardContent() {
     },
   });
 
-  const handleReplyTextChangeMutation = useMutation({
-    mutationFn: ({
-      suggestionId,
-      text,
-    }: {
-      suggestionId: number;
-      text: string;
-    }) => {
-      return Promise.resolve({ suggestionId, text });
-    },
-    onSuccess: ({ suggestionId, text }) => {
-      queryClient.setQueryData(["replyStates"], (old: ReplyStates = {}) => ({
-        ...old,
-        [suggestionId]: text,
-      }));
-    },
-  });
-
   const updateReplyTextMutation = useMutation({
     mutationFn: (newReplyText: string) => {
       return Promise.resolve(newReplyText);
@@ -457,11 +276,7 @@ function AdminDashboardContent() {
     },
   });
 
-  const handleReplyTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    updateReplyTextMutation.mutate(e.target.value);
-  };
-
-  const { data: selectedRange, refetch: refetchSelectedRange } = useQuery({
+  const { data: selectedRange } = useQuery({
     queryKey: ["selectedRange"],
     queryFn: () => {
       const yesterday = new Date();
@@ -483,7 +298,7 @@ function AdminDashboardContent() {
 
   // Convert salesData to a query
   // Update the sales data query with proper configuration
-  const { data: salesData, refetch: refetchSalesData } = useQuery({
+  const { data: salesData } = useQuery({
     queryKey: [
       "salesData",
       selectedRange?.start?.toISOString(),
@@ -501,12 +316,8 @@ function AdminDashboardContent() {
     refetchOnReconnect: false, // Don't refetch on reconnection
   });
 
-  const totalGross = salesData?.totalGross ?? 0;
-  const totalNet = salesData?.totalNet ?? 0;
-  const totalNetMinusExclusions = salesData?.totalNetMinusExclusions ?? 0;
-
   // Keep your existing fileData query
-  const { data: fileData, refetch: refetchFileData } = useQuery({
+  const { data: fileData } = useQuery({
     queryKey: ["fileData"],
     queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
     staleTime: Infinity,
@@ -543,33 +354,6 @@ function AdminDashboardContent() {
     }
   };
 
-  const addDomainMutation = useMutation({
-    mutationFn: addDomain,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["domains"] }),
-  });
-
-  const updateDomainMutation = useMutation({
-    mutationFn: updateDomain,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["domains"] }),
-  });
-
-  const deleteDomainMutation = useMutation({
-    mutationFn: deleteDomain,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["domains"] }),
-  });
-
-  const handleReplyMutation = useMutation({
-    mutationFn: ({
-      suggestion,
-      replyText,
-    }: {
-      suggestion: Suggestion;
-      replyText: string;
-    }) => handleReply({ suggestion, replyText }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["suggestions"] }),
-  });
-
   const uploadFileMutation = useMutation({
     mutationFn: async (file: File) => {
       const upload = (progress: number) => {
@@ -589,58 +373,45 @@ function AdminDashboardContent() {
   });
 
   const replyMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       suggestion,
       replyText,
     }: {
       suggestion: Suggestion;
       replyText: string;
     }) => {
-      return Promise.resolve(
-        supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
-          if (userError) throw userError;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not found");
 
-          const fullName = user?.user_metadata?.name || "";
-          const firstName = fullName.split(" ")[0];
-          const replierName = firstName || "Admin";
+      const fullName = user.user_metadata?.name || "";
+      const firstName = fullName.split(" ")[0];
+      const replierName = firstName || "Admin";
 
-          return Promise.resolve(
-            supabase
-              .from("employee_suggestions")
-              .update({
-                is_read: true,
-                replied_by: replierName,
-                replied_at: new Date().toISOString(),
-                reply: replyText,
-              })
-              .eq("id", suggestion.id)
-              .then(({ error }) => {
-                if (error) throw error;
+      // Use the API function
+      await replySuggestion({ suggestion, replyText, replierName });
 
-                return Promise.resolve(
-                  sendEmail(
-                    suggestion.email || "",
-                    "Reply to Your Suggestion",
-                    "SuggestionReply",
-                    {
-                      employeeName: suggestion.created_by,
-                      originalSuggestion: suggestion.suggestion,
-                      replyText: replyText,
-                      repliedBy: replierName,
-                    }
-                  ).then(() => ({ suggestion, replyText }))
-                );
-              })
-          );
-        })
+      // Send email notification
+      await sendEmail(
+        suggestion.email || "",
+        "Reply to Your Suggestion",
+        "SuggestionReply",
+        {
+          employeeName: suggestion.created_by,
+          originalSuggestion: suggestion.suggestion,
+          replyText: replyText,
+          repliedBy: replierName,
+        }
       );
+
+      return { suggestion, replyText };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suggestions"] });
       toast.success("Reply sent successfully!");
     },
-    onError: (error) => {
-      // console.error("Error sending reply:", error);
+    onError: () => {
       toast.error("Failed to send reply. Please try again.");
     },
   });
@@ -650,16 +421,6 @@ function AdminDashboardContent() {
     queryFn: () => queryClient.getQueryData(["uploadProgress"]) ?? 0,
     enabled: uploadFileMutation.isPending,
   });
-
-  const total = React.useMemo(() => {
-    return revenueData.reduce(
-      (acc, item) => ({
-        grossRevenue: acc.grossRevenue + item.grossRevenue,
-        netRevenue: acc.netRevenue + item.netRevenue,
-      }),
-      { grossRevenue: 0, netRevenue: 0 }
-    );
-  }, [revenueData]);
 
   const metricsData = React.useMemo(() => {
     if (!metrics) return [];
@@ -696,260 +457,6 @@ function AdminDashboardContent() {
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  const handleSubmit = () => {
-    if (fileData?.file) {
-      uploadFileMutation.mutate(fileData.file);
-    } else {
-      toast.error("No file selected.");
-    }
-  };
-
-  function fetchDomains() {
-    return Promise.resolve(
-      supabase
-        .from("employee_domains")
-        .select("*")
-        .order("domain")
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-    );
-  }
-
-  function fetchSuggestions() {
-    return Promise.resolve(
-      supabase
-        .from("employee_suggestions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-    );
-  }
-
-  function fetchCertificates() {
-    return Promise.resolve(
-      supabase
-        .from("certifications")
-        .select("*")
-        .lt(
-          "expiration",
-          new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
-        )
-        .order("expiration", { ascending: true })
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-    );
-  }
-
-  function fetchLatestRangeWalkReport() {
-    return Promise.resolve(
-      supabase
-        .from("range_walk_reports")
-        .select("*")
-        .order("date_of_walk", { ascending: false })
-        .limit(1)
-        .single()
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-    );
-  }
-
-  function fetchLatestChecklistSubmission() {
-    return Promise.resolve(
-      supabase
-        .from("checklist_submissions")
-        .select("*")
-        .order("submission_date", { ascending: false })
-        .limit(1)
-        .single()
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-    );
-  }
-
-  function fetchLatestGunsmithMaintenance() {
-    return Promise.resolve(
-      supabase
-        .from("firearms_maintenance")
-        .select("id, firearm_name, last_maintenance_date")
-        .order("last_maintenance_date", { ascending: false })
-        .limit(5)
-        .not("last_maintenance_date", "is", null)
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data && data.length > 0 ? data[0] : null;
-        })
-    );
-  }
-
-  function fetchLatestDailyDeposit() {
-    return Promise.resolve(
-      supabase
-        .from("daily_deposits")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single()
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        })
-    );
-  }
-
-  function fetchDailyChecklistStatus() {
-    return Promise.resolve(
-      supabase
-        .from("firearms_maintenance")
-        .select("id, last_maintenance_date")
-        .eq("rental_notes", "With Gunsmith")
-        .then(({ data, error }) => {
-          if (error) throw error;
-
-          const firearmsCount = data.length;
-          const lastSubmission = data.reduce(
-            (latest: string | null, current) => {
-              return latest && latest > (current.last_maintenance_date ?? "")
-                ? latest
-                : current.last_maintenance_date ?? null;
-            },
-            null
-          );
-
-          const submitted = lastSubmission
-            ? new Date(lastSubmission) >
-              new Date(Date.now() - 24 * 60 * 60 * 1000)
-            : false;
-
-          return {
-            submitted,
-            lastSubmissionDate: lastSubmission,
-            firearmsCount,
-          };
-        })
-    );
-  }
-
-  function fetchLatestSalesData(startDate: Date, endDate: Date) {
-    const utcStartDate = new Date(startDate.toUTCString().slice(0, -4));
-    const utcEndDate = new Date(endDate.toUTCString().slice(0, -4));
-
-    return Promise.resolve(
-      fetch("/api/fetch-sales-data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: utcStartDate.toISOString(),
-          endDate: utcEndDate.toISOString(),
-        }),
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error("Error fetching sales data");
-        }
-
-        return response.json().then((responseData) => {
-          let salesData;
-
-          if (Array.isArray(responseData)) {
-            salesData = responseData;
-          } else if (responseData && Array.isArray(responseData.data)) {
-            salesData = responseData.data;
-          } else {
-            throw new Error("Unexpected data format");
-          }
-
-          const excludeCategoriesFromChart = [
-            "CA Tax Gun Transfer",
-            "CA Tax Adjust",
-            "CA Excise Tax",
-            "CA Excise Tax Adjustment",
-          ];
-
-          const excludeCategoriesFromTotalNet = [
-            "Pistol",
-            "Rifle",
-            "Revolver",
-            "Shotgun",
-            "Receiver",
-            ...excludeCategoriesFromChart,
-          ];
-
-          let totalGross = 0;
-          let totalNetMinusExclusions = 0;
-          let totalNet = 0;
-
-          interface SalesItem {
-            category_label: string;
-            total_gross: number;
-            total_net: number;
-          }
-
-          salesData.forEach((item: SalesItem) => {
-            const category = item.category_label;
-            const grossValue = item.total_gross ?? 0;
-            const netValue = item.total_net ?? 0;
-
-            totalGross += grossValue;
-            totalNet += netValue;
-
-            if (!excludeCategoriesFromTotalNet.includes(category)) {
-              totalNetMinusExclusions += netValue;
-            }
-          });
-
-          return { totalGross, totalNet, totalNetMinusExclusions, salesData };
-        });
-      })
-    );
-  }
-
-  function addDomain(newDomain: string) {
-    return Promise.resolve(
-      supabase
-        .from("employee_domains")
-        .insert({ domain: newDomain.toLowerCase() })
-        .then(({ error }) => {
-          if (error) throw error;
-        })
-    );
-  }
-
-  function updateDomain(domain: Domain) {
-    return Promise.resolve(
-      supabase
-        .from("employee_domains")
-        .update({ domain: domain.domain.toLowerCase() })
-        .eq("id", domain.id)
-        .then(({ error }) => {
-          if (error) throw error;
-        })
-    );
-  }
-
-  function deleteDomain(id: number) {
-    return Promise.resolve(
-      supabase
-        .from("employee_domains")
-        .delete()
-        .eq("id", id)
-        .then(({ error }) => {
-          if (error) throw error;
-        })
-    );
-  }
 
   function handleReply({
     suggestion,
@@ -1022,7 +529,7 @@ function AdminDashboardContent() {
                     supabase
                       .from("sales_data")
                       .upsert(batch)
-                      .then(({ data: insertedData, error }) => {
+                      .then(({ error }) => {
                         if (error) {
                           // console.error("Error upserting data batch:", error);
                         } else {
@@ -1056,87 +563,11 @@ function AdminDashboardContent() {
     );
   }
 
-  function getServerSideProps() {
-    const queryClient = new QueryClient();
-
-    return Promise.resolve(
-      Promise.all([
-        queryClient.prefetchQuery({
-          queryKey: ["domains"],
-          queryFn: fetchDomains,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["suggestions"],
-          queryFn: fetchSuggestions,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["certificates"],
-          queryFn: fetchCertificates,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["rangeWalk"],
-          queryFn: fetchLatestRangeWalkReport,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["checklist"],
-          queryFn: fetchLatestChecklistSubmission,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["gunsmiths"],
-          queryFn: fetchLatestGunsmithMaintenance,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["dailyDeposit"],
-          queryFn: fetchLatestDailyDeposit,
-        }),
-        queryClient.prefetchQuery({
-          queryKey: ["dailyChecklistStatus"],
-          queryFn: fetchDailyChecklistStatus,
-        }),
-      ]).then(() => ({
-        props: {
-          dehydratedState: dehydrate(queryClient),
-        },
-      }))
-    );
-  }
-
   function convertDateFormat(date: string) {
     if (!date) return "";
     const [month, day, year] = date.split("/");
     if (!month || !day || !year) return "";
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  }
-
-  function sendEmail(
-    email: string,
-    subject: string,
-    templateName: string,
-    templateData: any
-  ) {
-    return Promise.resolve(
-      fetch("/api/send_email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, subject, templateName, templateData }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((result) => {
-          // console.log("Email sent successfully:", result);
-          return result;
-        })
-        .catch((error: any) => {
-          // console.error("Failed to send email:", error.message);
-          throw error;
-        })
-    );
   }
 
   const categoryMap = new Map<number, string>([
@@ -1736,108 +1167,7 @@ function AdminDashboardContent() {
               </Card>
 
               {/* Revenue Analysis Chart*/}
-              <Card>
-                <CardHeader className="flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row">
-                  <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
-                    <CardTitle>Annual Revenue Analysis</CardTitle>
-                  </div>
-                  <div className="flex">
-                    {(["grossRevenue", "netRevenue"] as const).map((key) => (
-                      <button
-                        key={key}
-                        data-active={activeChart === key}
-                        className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
-                        onClick={() => setChartViewMutation.mutate(key)}
-                      >
-                        <span className="text-xs text-muted-foreground">
-                          {chartConfig[key].label} (YTD)
-                        </span>
-                        <span className="text-lg font-bold leading-none sm:text-3xl">
-                          {currencyFormatter.format(total[key])}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <ChartContainer
-                    config={chartConfig}
-                    className="min-h-[200px] max-h-[500px] w-full"
-                  >
-                    <BarChart
-                      data={revenueData}
-                      margin={{ top: 10, right: 10, left: 40, bottom: 40 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis
-                        dataKey="month"
-                        tickLine={false}
-                        tickMargin={30}
-                        axisLine={false}
-                        fontSize={12}
-                        angle={0}
-                        textAnchor="middle"
-                        interval={0}
-                        height={40}
-                      />
-                      <YAxis
-                        tickFormatter={(value) =>
-                          currencyFormatter.format(value)
-                        }
-                        tickLine={false}
-                        tickMargin={8}
-                        axisLine={false}
-                        fontSize={12}
-                        width={60}
-                      />
-                      <ChartTooltip
-                        content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
-                                <p className="text-muted-foreground">
-                                  {
-                                    chartConfig[
-                                      activeChart as keyof typeof chartConfig
-                                    ].label
-                                  }
-                                </p>
-                                <p className="font-mono font-medium">
-                                  {currencyFormatter.format(
-                                    payload[0].value as number
-                                  )}
-                                </p>
-                                <p className="font-medium">{label}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                        cursor={{ fill: "transparent" }}
-                      />
-                      <Bar
-                        dataKey={activeChart}
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={40}
-                        shape={(props: any) => {
-                          const { x, y, width, height, index } = props;
-                          return (
-                            <rect
-                              x={x}
-                              y={y}
-                              width={width}
-                              height={height}
-                              fill={chartColors[index % chartColors.length]}
-                              rx={4}
-                              ry={4}
-                            />
-                          );
-                        }}
-                      />
-                    </BarChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
+              <AnnualRevenueBarChart />
             </div>
           </TabsContent>
 
