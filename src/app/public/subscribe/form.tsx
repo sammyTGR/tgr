@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 // Create a sanitize function that uses DOMPurify
 const sanitizeInput = (value: string) => {
@@ -93,16 +94,25 @@ function SubscribeForm() {
   }
 
   return (
-    <div className="flex flex-coljustify-center items-center p-4 h-screen w-[400px] mx-auto">
+    <div className="flex flex-col justify-center items-center h-screen mx-auto">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
-          <div className="flex w-full gap-2">
-            <div className="flex flex-col w-full gap-2">
-              <h1 className="text-2xl font-bold">TGR Newsletter & Deals</h1>
+          <div className="flex w-full">
+            <div className="flex flex-col justify-center items-center w-full space-y-2">
+              <div className="flex justify-center items-center w-full">
+                <Image
+                  src="https://utfs.io/f/9jzftpblGSv7Dy9MFXIa5pnydWiRaOIt8ZMoUDHXSEx79kJm"
+                  alt="Subscribe"
+                  width={700}
+                  height={150}
+                  priority
+                />
+              </div>
+              {/* <h1 className="text-2xl font-bold">TGR Insider Deals</h1> */}
               <p className="text-sm mb-4">
                 Sign Up For Insider Deals For TGR Members Only
               </p>
-              <div className="flex flex-row space-x-2">
+              <div className="flex flex-row space-x-2 w-[400px]">
                 <FormField
                   control={form.control}
                   name="first_name"
@@ -112,6 +122,7 @@ function SubscribeForm() {
                         <Input
                           {...field}
                           placeholder="First Name"
+                          required
                           // Add onBlur handler to sanitize on blur
                           onBlur={(e) => {
                             field.onChange(sanitizeInput(e.target.value));
@@ -131,6 +142,7 @@ function SubscribeForm() {
                         <Input
                           {...field}
                           placeholder="Last Name"
+                          required
                           onBlur={(e) => {
                             field.onChange(sanitizeInput(e.target.value));
                           }}
@@ -145,12 +157,13 @@ function SubscribeForm() {
                 control={form.control}
                 name="email"
                 render={({ field }) => (
-                  <FormItem className="w-full">
+                  <FormItem className="w-[400px]">
                     <FormControl>
                       <Input
                         {...field}
                         type="email"
                         placeholder="Enter your email"
+                        required
                         onBlur={(e) => {
                           field.onChange(sanitizeInput(e.target.value));
                         }}
@@ -164,7 +177,7 @@ function SubscribeForm() {
               <Button
                 type="submit"
                 disabled={mutation.isPending}
-                className="mt-4"
+                className="mt-4 w-[400px]"
               >
                 {mutation.isPending ? "Submitting" : "Sign Up"}
               </Button>

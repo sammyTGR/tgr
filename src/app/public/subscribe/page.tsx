@@ -2,6 +2,7 @@
 
 import { Toaster } from "sonner";
 import SubscribeForm from "./form";
+import Image from "next/image";
 
 const SubscribePage = () => {
   return (

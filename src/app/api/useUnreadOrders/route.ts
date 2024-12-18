@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -7,12 +6,14 @@ export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     const { count, error } = await supabase
       .from("orders")
       .select("id", { count: "exact" })
@@ -31,7 +32,6 @@ export async function GET() {
       { status: 500 }
     );
   }
-
 }
 
 export async function OPTIONS() {

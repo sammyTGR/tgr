@@ -67,7 +67,7 @@ const serviceComponents = [
   {
     title: "Newsletter",
     href: "/public/subscribe",
-    description: "Sign Up For Deals",
+    description: "Subscribe To Our Email List",
   },
 ];
 

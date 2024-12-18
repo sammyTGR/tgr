@@ -706,8 +706,8 @@ function AdminDashboardContent() {
                 )}
 
                 {/*All Report cards*/}
-                <div className="w-full overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-hidden">
+                <div className="w-full ">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 ">
                     <ReportCard
                       title="Gunsmithing Weekly Maintenance"
                       date={gunsmiths?.last_maintenance_date || null}

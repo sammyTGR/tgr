@@ -1,7 +1,7 @@
 "use client";
 
-import React, { lazy, Suspense } from "react";
-import { useState, useEffect, useCallback } from "react";
+import React, { Suspense } from "react";
+import { useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -9,7 +9,6 @@ import {
   HomeIcon,
   CalendarIcon,
   FileTextIcon,
-  DotFilledIcon,
   PersonIcon,
   SunIcon,
   MoonIcon,
@@ -18,11 +17,9 @@ import {
   DashboardIcon,
 } from "@radix-ui/react-icons";
 import {
-  NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
@@ -30,7 +27,6 @@ import { supabase } from "@/utils/supabase/client";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useRouter } from "next/navigation";
 import {
-  DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -47,7 +43,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Session, User } from "@supabase/supabase-js";
-import { NotificationBell } from "@/components/NotificationBell";
+import { QueryClient } from "@tanstack/react-query";
 
 interface HeaderDev {
   totalUnreadCount: number;
@@ -231,7 +227,7 @@ const manageComps = [
   {
     title: "Newsletter",
     href: "/public/subscribe",
-    description: "Newsletter",
+    description: "Subscribe To Our Email List",
   },
   {
     title: "AIM Inventory",
@@ -311,6 +307,87 @@ const comboComps = [
   },
 ];
 
+// Auth state subscription query
+const useAuthStateSubscription = (queryClient: QueryClient) => {
+  return useQuery({
+    queryKey: ["authStateSubscription"],
+    queryFn: async () => {
+      const subscription = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN") {
+          queryClient.invalidateQueries({ queryKey: ["authSession"] });
+          queryClient.invalidateQueries({ queryKey: ["userRole"] });
+          queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+        } else if (event === "SIGNED_OUT") {
+          queryClient.clear();
+          window.location.href = "/";
+        }
+      });
+
+      return () => subscription.data.subscription.unsubscribe();
+    },
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+};
+
+// Orders subscription query
+const useOrdersSubscription = (
+  currentUser: User | null,
+  queryClient: QueryClient
+) => {
+  return useQuery({
+    queryKey: ["ordersSubscription"],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("orders")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser,
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+};
+
+// Time off requests subscription query
+const useTimeOffSubscription = (
+  currentUser: User | null,
+  queryClient: QueryClient
+) => {
+  return useQuery({
+    queryKey: ["timeOffSubscription"],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("time_off_requests")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "time_off_requests" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser,
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+};
+
 const HeaderDev = React.memo(() => {
   const router = useRouter();
   const { setTheme } = useTheme();
@@ -319,7 +396,7 @@ const HeaderDev = React.memo(() => {
   const queryClient = useQueryClient();
 
   // Add new queries to replace the state
-  const { data: currentUser, refetch: refetchUser } = useQuery({
+  const { data: currentUser } = useQuery({
     queryKey: ["currentUser"],
     queryFn: async () => {
       const {
@@ -328,7 +405,7 @@ const HeaderDev = React.memo(() => {
       return user;
     },
     staleTime: Infinity,
-  });
+  }) as { data: User | null };
 
   // Navigation query
   const { isLoading: isNavigating } = useQuery({
@@ -384,41 +461,7 @@ const HeaderDev = React.memo(() => {
     staleTime: Infinity,
   });
 
-  // Replace handleAuthChange callback
-  const handleAuthChange = useCallback(
-    async (event: string, session: Session | null) => {
-      if (event === "SIGNED_IN") {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["authSession"] }),
-          queryClient.invalidateQueries({ queryKey: ["userRole"] }),
-          queryClient.invalidateQueries({ queryKey: ["currentUser"] }),
-        ]);
-      } else if (event === "SIGNED_OUT") {
-        queryClient.removeQueries({ queryKey: ["authSession"] });
-        queryClient.removeQueries({ queryKey: ["userRole"] });
-        queryClient.removeQueries({ queryKey: ["currentUser"] });
-        window.location.href = "/";
-      }
-    },
-    [queryClient]
-  );
-
-  // Auth listener effect
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "SIGNED_IN") {
-          queryClient.invalidateQueries({ queryKey: ["authSession"] });
-        } else if (event === "SIGNED_OUT") {
-          queryClient.clear();
-          window.location.href = "/";
-        }
-      }
-    );
-    return () => authListener.subscription.unsubscribe();
-  }, [queryClient]);
-
-  // Unread counts queries
+  // Unread counts queries with proper refetchInterval
   const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
     queryKey: ["unreadOrders"],
     queryFn: async () => {
@@ -427,7 +470,7 @@ const HeaderDev = React.memo(() => {
       return response.json();
     },
     enabled: !!authData?.user,
-    refetchInterval: 30000,
+    refetchInterval: 300000, // Refetch every 5 minutes
   });
 
   const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
@@ -439,14 +482,20 @@ const HeaderDev = React.memo(() => {
       return response.json();
     },
     enabled: !!authData?.user,
-    refetchInterval: 30000,
+    refetchInterval: 300000,
   });
 
-  // Update handleSignOut
+  // Use the auth state subscription
+  useAuthStateSubscription(queryClient);
+
+  // Use all subscriptions
+  useOrdersSubscription(currentUser, queryClient);
+  useTimeOffSubscription(currentUser, queryClient);
+
+  // Update sign out handler to work with the subscription
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    queryClient.removeQueries({ queryKey: ["currentUser"] });
-    window.location.href = "/";
+    // The auth state subscription will handle the cleanup and redirect
   };
 
   const handleChatClick = () => {
@@ -470,38 +519,6 @@ const HeaderDev = React.memo(() => {
       router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
     }
   };
-
-  // Update the real-time subscription useEffect
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const ordersSubscription = supabase
-      .channel("orders")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
-        }
-      )
-      .subscribe();
-
-    const timeOffSubscription = supabase
-      .channel("time_off_requests")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "time_off_requests" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      ordersSubscription.unsubscribe();
-      timeOffSubscription.unsubscribe();
-    };
-  }, [currentUser, queryClient]);
 
   const handleHomeClick = () => {
     router.push("/");

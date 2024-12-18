@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { ModeToggle } from "@/components/mode-toggle";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {
@@ -10,7 +9,6 @@ import {
   HomeIcon,
   FileTextIcon,
   CalendarIcon,
-  DotFilledIcon,
   ShadowIcon,
   SunIcon,
   MoonIcon,
@@ -18,11 +16,9 @@ import {
   DashboardIcon,
 } from "@radix-ui/react-icons";
 import {
-  NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
-  NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
@@ -32,7 +28,6 @@ import { supabase } from "@/utils/supabase/client";
 // import useUnreadOrders from "@/app/api/useUnreadOrders/route"; // Import the hook
 // import useUnreadTimeOffRequests from "@/app/api/useUnreadTimeOffRequests/route"; // Import the hook
 import {
-  DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -49,7 +44,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { User } from "@supabase/supabase-js";
-import { NotificationBell } from "@/components/NotificationBell";
 
 export interface ChatMessage {
   id: string;
@@ -287,7 +281,7 @@ const comboComps = [
   {
     title: "Newsletter",
     href: "/public/subscribe",
-    description: "Sign Up For Deals",
+    description: "Subscribe To Our Email List",
   },
 ];
 
@@ -329,7 +323,7 @@ const HeaderAdmin = React.memo(() => {
   const queryClient = useQueryClient();
 
   // Current user query
-  const { data: currentUser, refetch: refetchUser } = useQuery({
+  const { data: currentUser } = useQuery({
     queryKey: ["currentUser"],
     queryFn: async () => {
       const {
@@ -338,7 +332,7 @@ const HeaderAdmin = React.memo(() => {
       return user;
     },
     staleTime: Infinity,
-  });
+  }) as { data: User | null };
 
   // Add session query
   const { data: authData, isLoading: isAuthLoading } = useQuery({
@@ -442,44 +436,6 @@ const HeaderAdmin = React.memo(() => {
     enabled: !!currentUser,
     refetchInterval: 30000,
   });
-
-  // Real-time subscriptions
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    const channels = [
-      supabase
-        .channel("orders")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "orders" },
-          () => queryClient.invalidateQueries({ queryKey: ["unreadOrders"] })
-        )
-        .subscribe(),
-
-      supabase
-        .channel("time_off_requests")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "time_off_requests" },
-          () => queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] })
-        )
-        .subscribe(),
-
-      supabase
-        .channel("messages")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "direct_messages" },
-          () => queryClient.invalidateQueries({ queryKey: ["unreadMessages"] })
-        )
-        .subscribe(),
-    ];
-
-    return () => {
-      channels.forEach((channel) => channel.unsubscribe());
-    };
-  }, [currentUser?.id, queryClient]);
 
   // Handler functions
   const handleLinkClick = (href: string) => {
