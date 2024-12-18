@@ -305,6 +305,11 @@ const comboComps = [
     href: "/TGR/deposits",
     description: "Daily Deposits",
   },
+  {
+    title: "DROS Training",
+    href: "/TGR/dros/training/",
+    description: "DROS Simulation",
+  },
 ];
 
 // Auth state subscription query

@@ -283,6 +283,11 @@ const comboComps = [
     href: "/public/subscribe",
     description: "Subscribe To Our Email List",
   },
+  {
+    title: "DROS Training",
+    href: "/TGR/dros/training/",
+    description: "DROS Simulation",
+  },
 ];
 
 const LazyNavigationMenu = dynamic(

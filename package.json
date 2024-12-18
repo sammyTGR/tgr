@@ -61,6 +61,7 @@
     "@vercel/flags": "^2.6.1",
     "@vercel/toolbar": "^0.1.22",
     "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
