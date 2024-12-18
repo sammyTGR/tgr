@@ -35,7 +35,7 @@ const LandingPagePublic: React.FC = React.memo(() => {
       <main className="flex-1">
         <TracingBeam className="relative w-full py-12 md:py-24 lg:py-32 border-y">
           <div className="flex items-center justify-center py-6 md:py-6 lg:py-12">
-            <div className="relative w-full max-w-xl">
+            {/* <div className="relative w-full max-w-xl">
               <Image
                 src="https://utfs.io/f/9jzftpblGSv7ROHHGs4fVP6o2eAaJrB1Rt9lE3Wk7wqnNhxD"
                 alt="Banner"
@@ -44,10 +44,11 @@ const LandingPagePublic: React.FC = React.memo(() => {
                 priority
                 className="w-full h-auto object-contain"
               />
-            </div>
+            </div> */}
           </div>
           <section className="relative w-full py-6 md:py-12 lg:py-12 ">
             <h1 className="lg:leading-tighter text-center text-xl font-bold tracking-tighter sm:text-2xl md:text-3xl xl:text-[3rem] 2xl:text-[2.75rem]">
+              <TextGenerateColor words={title} />
               <TextGenerateEffect words={sub} />
             </h1>
           </section>
