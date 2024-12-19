@@ -75,8 +75,8 @@ function DelayedDeliveries({ className }: { className?: string }) {
               <hr className="my-4" />
               <li>Continue With Normal Process To Complete The 4473</li>
               <li>
-                After Saving - Have Customer Recertify, Then Save, Print,
-                Continue As Normal
+                After Saving - Have Customer Recertify, Then Save, Send To
+                Cloud, Continue As Normal
               </li>
             </ul>
             <br />
