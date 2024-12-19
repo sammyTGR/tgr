@@ -2,45 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/*Oceanic Design Theme From shadcn studio*/
 @layer base {
   :root {
-    --background: 210 5% 98%;
+    --background: 220 15% 97%;
 
-    --foreground: 210 10% 15%;
+    --foreground: 220 10% 15%;
 
-    --card: 210 5% 98%;
+    --card: 220 15% 97%;
 
-    --card-foreground: 210 10% 15%;
+    --card-foreground: 220 10% 15%;
 
-    --popover: 210 5% 98%;
+    --popover: 220 15% 97%;
 
-    --popover-foreground: 210 10% 15%;
+    --popover-foreground: 220 10% 15%;
 
-    --primary: 200 80% 60%;
+    --primary: 210 80% 55%;
 
-    --primary-foreground: 200 90% 95%;
+    --primary-foreground: 210 90% 95%;
 
-    --secondary: 310 60% 65%;
+    --secondary: 240 60% 65%;
 
-    --secondary-foreground: 210 15% 10%;
+    --secondary-foreground: 220 15% 10%;
 
-    --muted: 210 5% 90%;
+    --muted: 220 5% 90%;
 
-    --muted-foreground: 210 10% 40%;
+    --muted-foreground: 220 10% 40%;
 
-    --accent: 210 5% 90%;
+    --accent: 220 5% 90%;
 
-    --accent-foreground: 210 10% 15%;
+    --accent-foreground: 220 10% 15%;
 
     --destructive: 0 75% 55%;
 
     --destructive-foreground: 0 10% 95%;
 
-    --border: 210 10% 85%;
+    --border: 220 10% 85%;
 
-    --input: 210 10% 85%;
+    --input: 220 10% 85%;
 
-    --ring: 200 80% 60%;
+    --ring: 210 80% 55%;
 
     --radius: 0.5rem;
 
@@ -71,43 +72,43 @@
   }
 
   .dark {
-    --background: 210 10% 10%;
+    --background: 220 10% 10%;
 
-    --foreground: 200 50% 90%;
+    --foreground: 210 50% 90%;
 
-    --card: 210 10% 10%;
+    --card: 220 10% 10%;
 
-    --card-foreground: 200 50% 90%;
+    --card-foreground: 210 50% 90%;
 
-    --popover: 210 10% 10%;
+    --popover: 220 10% 10%;
 
-    --popover-foreground: 200 50% 90%;
+    --popover-foreground: 210 50% 90%;
 
-    --primary: 200 80% 60%;
+    --primary: 210 80% 55%;
 
-    --primary-foreground: 200 90% 95%;
+    --primary-foreground: 210 90% 95%;
 
-    --secondary: 310 60% 40%;
+    --secondary: 240 60% 40%;
 
     --secondary-foreground: 210 50% 95%;
 
-    --muted: 210 20% 20%;
+    --muted: 220 20% 20%;
 
-    --muted-foreground: 210 40% 70%;
+    --muted-foreground: 220 40% 70%;
 
-    --accent: 210 20% 20%;
+    --accent: 220 20% 20%;
 
-    --accent-foreground: 200 50% 90%;
+    --accent-foreground: 210 50% 90%;
 
     --destructive: 0 75% 50%;
 
     --destructive-foreground: 0 10% 95%;
 
-    --border: 210 20% 30%;
+    --border: 220 20% 30%;
 
-    --input: 210 20% 30%;
+    --input: 220 20% 30%;
 
-    --ring: 200 80% 60%;
+    --ring: 210 80% 55%;
 
     --radius: 0.5rem;
 
