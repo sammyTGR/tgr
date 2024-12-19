@@ -17,6 +17,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import BannedFirearmsPage from "../banned/page";
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -112,24 +113,22 @@ export default function DROSGuide() {
 
   const handleSelectionChange = (selectIndex: number, value: string) => {
     const updatedSelections = [...selections];
-    updatedSelections[selectIndex] = value === "none" ? null : value;
-
-    if (
-      selectIndex === 6 &&
-      updatedSelections.slice(0, 7).every((selection) => selection !== null)
-    ) {
-      updatedSelections[7] = "";
-    }
+    updatedSelections[selectIndex] = value;
 
     for (let i = selectIndex + 1; i < updatedSelections.length; i++) {
       updatedSelections[i] = null;
     }
 
-    selectionsMutation.mutate(updatedSelections);
+    const currentOptions = getOptionsForSelect(selectIndex + 1);
+    if (currentOptions.length === 0) {
+      selectionsMutation.mutate(updatedSelections);
+    } else {
+      selectionsMutation.mutate(updatedSelections);
+    }
   };
 
   const resetSelections = () => {
-    selectionsMutation.mutate(Array(7).fill(null));
+    selectionsMutation.mutate(Array(8).fill(null));
   };
 
   const canShowColumnH = () => {
@@ -170,66 +169,94 @@ export default function DROSGuide() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
-      <main className="grid flex-1 items-start my-4 mb-4 max-w-7xl mx-auto gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <div className="flex flow-row items-center justify-center max w-full mb-10">
-          <SupportMenu />
+      <div className="container mx-auto py-6">
+        <div className="flex flow-row items-center justify-between mb-8">
+          <div className="flex justify-center items-center mx-auto mb-24 w-full">
+            <SupportMenu />
+          </div>
         </div>
 
-        <Tabs defaultValue="dros-guide">
-          <div className="flex items-center space-x-2">
-            <TabsList>
-              <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
-              <TabsTrigger value="assault-weapons">
-                Banned Assault Weapons
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <Tabs defaultValue="dros-guide" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="dros-guide">DROS Guide</TabsTrigger>
+            <TabsTrigger value="assault-weapons">
+              Banned Assault Weapons
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="dros-guide">
-            <div className="flex flex-col justify-center space-y-6 py-10 mx-auto max-w-sm">
-              {selections.map((selection, index) => (
-                <Select
-                  key={index}
-                  disabled={index > 0 && selections[index - 1] === null}
-                  onValueChange={(value) => handleSelectionChange(index, value)}
-                  value={selection || "none"}
+            <div className="grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Selection Criteria</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {selections.map((selection, index) => {
+                      const shouldShow =
+                        index === 0 ||
+                        (selections[index - 1] !== null &&
+                          getOptionsForSelect(index).length > 0 &&
+                          getOptionsForSelect(index - 1).length > 0);
+
+                      if (!shouldShow) return null;
+
+                      return (
+                        <Select
+                          key={index}
+                          disabled={index > 0 && selections[index - 1] === null}
+                          onValueChange={(value) =>
+                            handleSelectionChange(index, value)
+                          }
+                          value={selection || undefined}
+                        >
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={selection === null ? `` : selection}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getOptionsForSelect(index).map(
+                              (option, optionIndex) => (
+                                <SelectItem key={optionIndex} value={option}>
+                                  {option}
+                                </SelectItem>
+                              )
+                            )}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {columnHText && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Requirements</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      {(columnHText as string)
+                        .split("\n")
+                        .map((line, index) => (
+                          <p key={index}>{line}</p>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  variant="gooeyLeft"
+                  onClick={resetSelections}
+                  className="w-full sm:w-auto"
                 >
-                  <SelectTrigger className="flex max-w-full">
-                    <SelectValue
-                      placeholder={`Select from ${String.fromCharCode(
-                        "A".charCodeAt(0) + index
-                      )}`}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">...</SelectItem>
-                    {getOptionsForSelect(index).map((option, optionIndex) => (
-                      <SelectItem key={optionIndex} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ))}
-            </div>
-            <br />
-            <div className="flex flex-row justify-center mx-auto max-w-[700px]">
-              {columnHText &&
-                (columnHText as string).split("\n").map((line, index) => (
-                  <React.Fragment key={index}>
-                    {line}
-                    <br />
-                  </React.Fragment>
-                ))}
-            </div>
-            <div className="flex flex-row justify-center mt-10">
-              <Button
-                variant="gooeyLeft"
-                onClick={resetSelections}
-                className="mb-6 flex-shrink py-1"
-              >
-                Reset Selections
-              </Button>
+                  Reset Selections
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
@@ -237,7 +264,7 @@ export default function DROSGuide() {
             <BannedFirearmsPage />
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </RoleBasedWrapper>
   );
 }
