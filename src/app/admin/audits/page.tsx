@@ -60,6 +60,17 @@ import { toast } from "sonner";
 import { useMemo } from "react";
 import { ModalStateProvider, useModalState } from "@/context/ModalStateContext";
 import AuditChart from "./AuditChart";
+import { useCallback } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
+import { HistoricalAuditChart } from "./HistoricalAuditChart";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { CSSProperties } from "react";
 
 // Type definitions
 interface OptionType {
@@ -599,8 +610,6 @@ const exportToExcel = (
   XLSX.writeFile(wb, `Sales_Contest_Results_${dateStr}${suffix}.xlsx`);
 };
 // Column Definitions and Table Configurations
-import type { ColumnDef } from "@tanstack/react-table";
-import type { CSSProperties } from "react";
 
 // Column Helper with proper typing
 const columnHelper = createColumnHelper<SummaryRowData>();
@@ -919,15 +928,6 @@ const profileTableStyles = {
   th: "px-4 py-2 text-center font-semibold text-gray-600",
 } as const;
 // TanStack Query Hooks
-import { useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
-import { HistoricalAuditChart } from "./HistoricalAuditChart";
 
 const usePageParams = () => {
   const router = useRouter();
@@ -1020,13 +1020,6 @@ const MetricsSection = ({
 
   const metrics = metricsData[0];
 
-  // console.log("Metrics Data:", {
-  //   selectedDate: selectedDate.toISOString(),
-  //   selectedLanid,
-  //   metricsLength: metricsData.length,
-  //   metrics,
-  // });
-
   return (
     <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
       <MetricCard
@@ -1071,14 +1064,6 @@ const calculateDailyMetrics = (
   selectedLanid: string,
   selectedDate: Date
 ): SummaryRowData[] => {
-  // Debug current inputs
-  // console.log("Calculating Daily Metrics:", {
-  //   date: selectedDate.toISOString(),
-  //   lanid: selectedLanid,
-  //   totalSalesData: salesData.length,
-  //   totalAuditData: auditData.length,
-  // });
-
   // Format the selected date to YYYY-MM-DD for comparison
   const targetDateStr = format(selectedDate, "yyyy-MM-dd");
 
@@ -1088,15 +1073,6 @@ const calculateDailyMetrics = (
     const saleDateStr = format(new Date(sale.Date), "yyyy-MM-dd");
     const matches =
       saleDateStr === targetDateStr && sale.Lanid === selectedLanid;
-
-    // Debug individual sale matching
-    // console.log("Sale comparison:", {
-    //   saleDate: saleDateStr,
-    //   targetDate: targetDateStr,
-    //   lanid: sale.Lanid,
-    //   selectedLanid,
-    //   matches,
-    // });
 
     return matches;
   });
@@ -1108,26 +1084,8 @@ const calculateDailyMetrics = (
     const matches =
       auditDateStr === targetDateStr && audit.salesreps === selectedLanid;
 
-    // Debug individual audit matching
-    // console.log("Audit comparison:", {
-    //   auditDate: auditDateStr,
-    //   targetDate: targetDateStr,
-    //   salesrep: audit.salesreps,
-    //   selectedLanid,
-    //   matches,
-    // });
-
     return matches;
   });
-
-  // Debug filtered data
-  // console.log("Filtered Daily Data:", {
-  //   targetDate: targetDateStr,
-  //   dailySalesCount: dailySalesData.length,
-  //   dailyAuditCount: dailyAuditData.length,
-  //   salesData: dailySalesData,
-  //   auditData: dailyAuditData,
-  // });
 
   const employeeDepartment = employeesData.find(
     (emp) => emp.lanid === selectedLanid
