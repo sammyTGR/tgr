@@ -1065,13 +1065,27 @@ const EmployeeProfile = () => {
       .channel("custom-all-channel")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "employee_profile_notes" },
-        (payload) => {
-          if (payload.new) {
-            setNotes((prevNotes) => [...prevNotes, payload.new as Note]);
-          } else if (payload.old) {
+        {
+          event: "*",
+          schema: "public",
+          table: "employee_profile_notes",
+          filter: `profile_employee_id=eq.${employeeId}`, // Add filter for specific employee
+        },
+        async (payload) => {
+          if (payload.eventType === "INSERT") {
+            // Add new note to the beginning of the list
+            setNotes((prevNotes) => [payload.new as Note, ...prevNotes]);
+          } else if (payload.eventType === "DELETE") {
+            // Remove deleted note
             setNotes((prevNotes) =>
-              prevNotes.filter((note) => note.id !== (payload.old as Note).id)
+              prevNotes.filter((note) => note.id !== payload.old.id)
+            );
+          } else if (payload.eventType === "UPDATE") {
+            // Update modified note
+            setNotes((prevNotes) =>
+              prevNotes.map((note) =>
+                note.id === payload.new.id ? (payload.new as Note) : note
+              )
             );
           }
         }
@@ -1110,51 +1124,39 @@ const EmployeeProfile = () => {
     const employeeName = await fetchEmployeeNameByUserUUID(user.id);
     if (!employeeName) return;
 
-    const { data, error } = await supabase
-      .from("employee_profile_notes")
-      .insert([
-        {
-          profile_employee_id: employeeId,
-          employee_id: parseInt(user.id, 10),
-          note: noteContent,
-          type,
-          created_by: employeeName,
-        },
-      ])
-      .select();
+    const { error } = await supabase.from("employee_profile_notes").insert([
+      {
+        profile_employee_id: employeeId,
+        employee_id: parseInt(user.id, 10),
+        note: noteContent,
+        type,
+        created_by: employeeName,
+      },
+    ]);
 
     if (error) {
-      //console.("Error adding note:", error);
-    } else if (data) {
-      setNotes((prevNotes) => [data[0], ...prevNotes]);
-      switch (type) {
-        case "notes":
-          setNewNote("");
-          break;
-        case "reviews":
-          setNewReview("");
-          break;
-        case "growth":
-          setNewGrowth("");
-          break;
-        case "absence":
-          setNewAbsence("");
-          setAbsences((prevAbsences) => [
-            ...prevAbsences,
-            {
-              id: data[0].id,
-              schedule_date: noteContent.split(" ")[0],
-              status: noteContent.split(" ").slice(1).join(" "),
-              created_by: data[0].created_by,
-              created_at: data[0].created_at,
-              employee_id: employeeId, // Add employee_id here
-            },
-          ]);
-          break;
-        case "daily_briefing":
-          setNewDailyBriefing("");
-          break;
-      }
+      console.error("Error adding note:", error);
+      return;
+    }
+
+    // Clear the input field but don't manually update the notes state
+    // The subscription will handle the state update
+    switch (type) {
+      case "notes":
+        setNewNote("");
+        break;
+      case "reviews":
+        setNewReview("");
+        break;
+      case "growth":
+        setNewGrowth("");
+        break;
+      case "absence":
+        setNewAbsence("");
+        break;
+      case "daily_briefing":
+        setNewDailyBriefing("");
+        break;
     }
   };
 
@@ -1521,7 +1523,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -1536,7 +1538,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -1597,7 +1599,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -1612,7 +1614,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -1690,7 +1692,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -1703,7 +1705,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -1938,7 +1940,7 @@ const EmployeeProfile = () => {
                               </div>
                               <div className="flex space-x-2">
                                 <Button
-                                  variant="linkHover1"
+                                  variant="ghost"
                                   onClick={() => handleEditReview(review.id)}
                                 >
                                   <Pencil1Icon />
