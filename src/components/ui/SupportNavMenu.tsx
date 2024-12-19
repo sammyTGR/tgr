@@ -115,7 +115,7 @@ const PendingResident = dynamic(
 );
 // Add other imports as needed
 
-// Styled components
+// Width sets fixed width, max-width ensure does not exceed viewport width, overflow-x: hidden hides horizontal overflow
 const SubItemsContainer = styled.div`
   position: fixed;
   display: grid;
@@ -125,26 +125,27 @@ const SubItemsContainer = styled.div`
   background: muted;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 20;
-  width: 620px; // Set a fixed width
-  max-width: calc(100vw - 20px); // Ensure it doesn't exceed viewport width
-  overflow-x: hidden; // Hide horizontal overflow
+  width: 700px;
+  max-width: calc(100vw - 20px);
+  overflow-x: hidden;
 `;
 
+// font-size controls the size of the text
 const SubItemWrapper = styled.div`
   cursor: pointer;
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
-  font-size: 0.8rem; // Slightly reduce font size if needed
+  font-size: 0.9rem;
 `;
 
+// z-index: 100; ensures the dialog is above other content
 const DialogContainer = styled.div`
   position: absolute;
   padding: 10px;
   background-color: none;
   border: none;
-  z-index: 100; // Ensure the dialog is above other content
-  // Additional styling as needed
+  z-index: 100;
 `;
 
 // Close Button - Styled component for the close button
@@ -155,7 +156,6 @@ const CloseButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  // Style your close button as needed
 `;
 
 const LineSeparator = styled.div`
@@ -182,7 +182,7 @@ const applyColorToLabel = (label: string) => {
     const parts = label.split(foundKeyword);
     const ColorStyledText = styled.span`
       colorMapping[foundKeyword as keyof typeof colorMapping]
-        font-weight: bold; // Optional styling
+        font-weight: bold; 
       `;
 
     return (
