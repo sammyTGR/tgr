@@ -136,7 +136,7 @@ const SubItemWrapper = styled.div`
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 `;
 
 // z-index: 100; ensures the dialog is above other content

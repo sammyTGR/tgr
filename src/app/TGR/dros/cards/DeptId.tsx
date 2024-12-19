@@ -33,24 +33,26 @@ function DeptId({ className }: { className?: string }) {
             <h2>Requirements:</h2>
             <ul className="list-disc pl-4">
               <li>
-                If The First Name Is Multiple Names On The CA DL | CA ID,
-                Department ID Must Match:
+                If The First Name Consists Of Multiple Names On The CA DL | CA
+                ID, Department ID Must Match:
               </li>
               <ul className="list-none pl-4">
-                <li>&quot;John Henry&quot;</li>
-                <li>
-                  Otherwise, First Name Can Be Shortned (Nicholas -&gt; Nick)
-                </li>
+                <li>- &quot;John Henry&quot;</li>
+              </ul>
+              <li>Otherwise, First Name Can Be Shortned</li>
+              <ul className="list-none pl-4">
+                <li>- &quot;Nicholas&quot; -&gt; &quot;Nick&quot;</li>
               </ul>
               <li>
-                If The Last Name Is Multiple Names On The CA DL | CA ID,
-                Department ID Must Match:
+                If The Last Name Consists Of Multiple Names On The CA DL | CA
+                ID, Department ID Must Match:
               </li>
               <ul className="list-none pl-4">
-                <li>&quot;Ortiz Monraga&quot;</li>
+                <li>- &quot;Ortiz Monraga&quot;</li>
               </ul>
               <li>
                 Middle Names Are Not Always Printed On Department ID&apos;s
+                Therefore It Is Not Required
               </li>
             </ul>
           </div>
