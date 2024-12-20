@@ -2,7 +2,12 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation"; // Correct import
+import {
+  useParams,
+  usePathname,
+  useSearchParams,
+  useRouter,
+} from "next/navigation"; // Correct import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -46,7 +51,7 @@ import {
   ColumnDef,
   ScheduleData,
 } from "@/app/admin/schedules/columns";
-import { endOfMonth, format, parseISO, startOfMonth } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
@@ -63,12 +68,26 @@ import { toZonedTime, format as formatTZ, formatInTimeZone } from "date-fns-tz";
 import { SortingState } from "@tanstack/react-table";
 import { WeightedScoringCalculator } from "../../../audits/contest/WeightedScoringCalculator";
 import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AuditChart from "../../../audits/AuditChart";
-import AuditDetailsChart from "../../../audits/AuditDetailsChart";
-import { HistoricalAuditChart } from "../../../audits/HistoricalAuditChart";
-import { Switch } from "@/components/ui/switch";
-import { createColumnHelper } from "@tanstack/react-table";
+import HistoricalAuditChart from "@/app/admin/audits/HistoricalAuditChart";
+import AuditChart from "@/app/admin/audits/AuditChart";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { exportToExcel } from "@/app/admin/audits/utils";
+import * as XLSX from "xlsx";
+
+interface PageParams {
+  tab?: string;
+  lanid?: string;
+  date?: string;
+  showAll?: string;
+  search?: string; // Add this
+}
+
+interface AuditFilters {
+  startDate?: string;
+  endDate?: string;
+  lanid?: string;
+  auditType?: string;
+}
 
 interface Note {
   id: number;
@@ -92,31 +111,52 @@ interface Absence {
   employee_id: number;
 }
 
+interface AddNoteParams {
+  employeeId: number;
+  note: string;
+  type: string;
+}
+
 interface Audit {
   dros_number: string;
   salesreps: string;
   audit_type: string;
-  audits_id: string;
   trans_date: string;
   audit_date: string;
   error_location: string;
   error_details: string;
   error_notes: string;
   dros_cancel: string;
+  audits_id: string;
 }
 
 interface Employee {
+  id: number;
   lanid: string;
   name: string;
+  position: string;
+  avatar_url?: string;
+  department?: string;
+  role?: string;
+  status?: string;
+  contact_info?: string;
 }
 
 interface SalesData {
   id: number;
   Lanid: string;
-  name: string;
   subcategory_label: string;
   dros_cancel: string | null;
-  // other fields
+  cancelled_dros?: number;
+  Date: string;
+  dros_number: string;
+  salesreps: string;
+  audit_type: string;
+  trans_date: string;
+  audit_date: string;
+  error_location: string;
+  error_details: string;
+  error_notes: string;
 }
 
 interface AuditInput {
@@ -151,6 +191,20 @@ interface Review {
   created_at: string;
 }
 
+interface SummaryRowData {
+  Lanid: string;
+  TotalDros: number | null;
+  MinorMistakes: number | null;
+  MajorMistakes: number | null;
+  CancelledDros: number | null;
+  WeightedErrorRate: number | null;
+  TotalWeightedMistakes: number | null;
+  Qualified: boolean;
+  DisqualificationReason: string;
+  isDivider?: boolean;
+  Department?: string;
+}
+
 interface SickTimeReport {
   employee_id: number;
   name: string; // Change this from employee_name to name
@@ -174,20 +228,6 @@ interface EmployeeCalendar {
   events: CalendarEvent[];
 }
 
-interface SummaryRowData {
-  Lanid: string;
-  name: string;
-  TotalDros: number | null;
-  MinorMistakes: number | null;
-  MajorMistakes: number | null;
-  CancelledDros: number | null;
-  WeightedErrorRate: number | null;
-  TotalWeightedMistakes: number | null;
-  Qualified: boolean;
-  DisqualificationReason: string;
-  Department?: string;
-}
-
 const daysOfWeek = [
   "Sunday",
   "Monday",
@@ -200,15 +240,538 @@ const daysOfWeek = [
 
 const timezone = "America/Los_Angeles";
 
+const calculateSummaryData = (
+  salesData: SalesData[],
+  auditData: Audit[],
+  pointsCalculation: PointsCalculation[],
+  historicalAuditData: Audit[],
+  employeesData: Employee[],
+  showAllEmployees: boolean,
+  selectedLanid: string | null
+): SummaryRowData[] => {
+  const employeeDepartments = new Map(
+    employeesData?.map((emp: Employee) => [emp.lanid, emp.department]) || []
+  );
+
+  const lanids = showAllEmployees
+    ? Array.from(new Set(salesData.map((sale) => sale.Lanid)))
+    : selectedLanid
+    ? [selectedLanid]
+    : [];
+
+  const calculatedData = lanids
+    .map((lanid): SummaryRowData | null => {
+      if (!lanid) return null;
+
+      const employeeSalesData = salesData.filter(
+        (sale) => sale.Lanid === lanid
+      );
+      const employeeAuditData = auditData.filter(
+        (audit) => audit.salesreps === lanid
+      );
+      const employeeHistoricalAuditData = historicalAuditData.filter(
+        (audit) => audit.salesreps === lanid
+      );
+
+      const department = employeeDepartments.get(lanid);
+      const isOperations = department?.toString() === "Operations";
+
+      try {
+        const calculator = new WeightedScoringCalculator({
+          salesData: employeeSalesData.map((sale) => ({
+            ...sale,
+            // Add default value of "0" if cancelled_dros is undefined or null
+            dros_cancel:
+              sale.cancelled_dros !== undefined && sale.cancelled_dros !== null
+                ? sale.cancelled_dros.toString()
+                : "0",
+          })),
+          auditData: employeeAuditData.map((audit) => ({
+            ...audit,
+            id: audit.audits_id,
+          })),
+          // historicalAuditData: employeeHistoricalAuditData.map((audit) => ({
+          //   ...audit,
+          //   id: audit.audits_id,
+          // })),
+          pointsCalculation,
+          isOperations,
+          minimumDros: 20,
+        });
+
+        return {
+          ...calculator.metrics,
+          Department: department || "Unknown",
+          Lanid: lanid,
+          TotalWeightedMistakes:
+            calculator.metrics.TotalWeightedMistakes || null,
+        };
+      } catch (error) {
+        // console.error(`Error calculating metrics for ${lanid}:`, error);
+        return null;
+      }
+    })
+    .filter((data): data is SummaryRowData => {
+      if (!data) return false;
+      return (
+        "Lanid" in data &&
+        "Department" in data &&
+        "TotalDros" in data &&
+        "MinorMistakes" in data &&
+        "MajorMistakes" in data &&
+        "CancelledDros" in data &&
+        "WeightedErrorRate" in data &&
+        "Qualified" in data &&
+        "DisqualificationReason" in data &&
+        "TotalWeightedMistakes" in data
+      );
+    });
+
+  // Sort data by qualification status and error rate
+  const qualifiedEmployees = calculatedData
+    .filter((emp) => emp.Qualified)
+    .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0));
+
+  const unqualifiedEmployees = calculatedData
+    .filter((emp) => !emp.Qualified)
+    .sort((a, b) => (a.WeightedErrorRate || 0) - (b.WeightedErrorRate || 0));
+
+  if (
+    showAllEmployees &&
+    qualifiedEmployees.length &&
+    unqualifiedEmployees.length
+  ) {
+    const divider: SummaryRowData = {
+      Lanid: "",
+      TotalDros: null,
+      MinorMistakes: null,
+      MajorMistakes: null,
+      CancelledDros: null,
+      WeightedErrorRate: null,
+      TotalWeightedMistakes: null,
+      Qualified: false,
+      DisqualificationReason: "",
+      isDivider: true,
+    };
+    return [...qualifiedEmployees, divider, ...unqualifiedEmployees];
+  }
+
+  return [...qualifiedEmployees, ...unqualifiedEmployees];
+};
+
+const usePageParams = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const tab = searchParams.get("tab") || "submit";
+  const selectedLanid = searchParams.get("lanid") || null;
+  const showAllEmployees = searchParams.get("showAll") === "true";
+  const dateParam = searchParams.get("date");
+  const selectedDate = dateParam ? new Date(dateParam) : null;
+  const searchText = searchParams.get("search") || "";
+
+  const setParams = useCallback(
+    (params: Partial<PageParams>) => {
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") {
+          current.delete(key);
+        } else {
+          current.set(key, value.toString());
+        }
+      });
+
+      const search = current.toString();
+      const query = search ? `?${search}` : "";
+      router.push(`${pathname}${query}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  return {
+    tab,
+    selectedLanid,
+    showAllEmployees,
+    selectedDate,
+    searchText,
+    setParams,
+  };
+};
+
+// API Functions
+const api = {
+  fetchEmployees: async (): Promise<Employee[]> => {
+    const searchParams = new URLSearchParams({
+      select: "lanid,department,role,status,contact_info",
+      status: "active",
+      order: "lanid.asc",
+    });
+
+    const response = await fetch(`/api/fetchEmployees?${searchParams}`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Error fetching employees: ${error.message}`);
+    }
+
+    return response.json();
+  },
+
+  fetchAudits: async (filters?: AuditFilters): Promise<Audit[]> => {
+    let query = supabase
+      .from("Auditsinput")
+      .select("*")
+      .order("audit_date", { ascending: false });
+
+    // Only apply filters if they are provided AND we're in contest tab
+    if (filters && Object.keys(filters).length > 0) {
+      if (filters.startDate) query = query.gte("audit_date", filters.startDate);
+      if (filters.endDate) query = query.lte("audit_date", filters.endDate);
+      if (filters.lanid) query = query.eq("salesreps", filters.lanid);
+      if (filters.auditType) query = query.eq("audit_type", filters.auditType);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`Error fetching audits: ${error.message}`);
+    }
+
+    // Only filter by date range if filters are provided
+    if (filters?.endDate) {
+      return (data || []).filter((audit) => {
+        const auditDate = new Date(audit.audit_date);
+        const endDate = new Date(filters.endDate!);
+        return auditDate <= endDate;
+      });
+    }
+
+    return data || [];
+  },
+
+  fetchHistoricalAuditData: async (lanid: string) => {
+    const { data, error } = await supabase
+      .from("Auditsinput")
+      .select("*")
+      .eq("salesreps", lanid)
+      .order("audit_date", { ascending: true });
+
+    if (error) throw error;
+    return data;
+  },
+
+  fetchPointsCalculation: async (): Promise<PointsCalculation[]> => {
+    const { data, error } = await supabase
+      .from("points_calculation")
+      .select("*")
+      .order("category", { ascending: true });
+
+    if (error) {
+      throw new Error(`Error fetching points calculation: ${error.message}`);
+    }
+    return data || [];
+  },
+
+  fetchSalesData: async (
+    startDate: string,
+    endDate: string,
+    lanid?: string,
+    showAllEmployees?: boolean
+  ): Promise<SalesData[]> => {
+    let query = supabase
+      .from("sales_data")
+      .select("*")
+      .gte("Date", startDate)
+      .lte("Date", endDate)
+      .not("subcategory_label", "is", null)
+      .not("subcategory_label", "eq", "");
+
+    if (!showAllEmployees && lanid) {
+      query = query.eq("Lanid", lanid);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Error fetching sales data: ${error.message}`);
+
+    // Filter out any data that doesn't match our date range
+    const filteredData = (data || []).filter((sale) => {
+      const saleDate = new Date(sale.Date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return saleDate >= start && saleDate <= end;
+    });
+
+    return filteredData;
+  },
+
+  updateAudit: async (
+    auditId: string,
+    updateData: Partial<Audit>
+  ): Promise<Audit> => {
+    const normalizedData = {
+      ...updateData,
+      dros_cancel: updateData.dros_cancel ? "True" : "",
+    };
+
+    const { data, error } = await supabase
+      .from("Auditsinput")
+      .update(normalizedData)
+      .eq("audits_id", auditId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Error updating audit: ${error.message}`);
+    }
+    return data;
+  },
+
+  deleteAudit: async (auditId: string): Promise<void> => {
+    const { error } = await supabase
+      .from("Auditsinput")
+      .delete()
+      .eq("audits_id", auditId);
+
+    if (error) {
+      throw new Error(`Error deleting audit: ${error.message}`);
+    }
+  },
+};
+
+// Custom hook for audit queries
+const useAuditsPageQueries = (pageParams: {
+  selectedDate: Date | null;
+  selectedLanid: string;
+  showAllEmployees: boolean;
+  tab: string;
+  setParams: (params: PageParams) => void;
+}) => {
+  const { selectedDate, selectedLanid } = pageParams;
+
+  const dateRange = useMemo(() => {
+    if (!selectedDate) return null;
+    const startDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      1
+    );
+    const endDate = new Date(selectedDate);
+    return {
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+    };
+  }, [selectedDate]);
+
+  const contestAuditsQuery = useQuery({
+    queryKey: [
+      "audits",
+      "contest",
+      dateRange?.startDate,
+      dateRange?.endDate,
+      selectedLanid,
+    ],
+    queryFn: async () => {
+      if (!dateRange) return [];
+      const response = await supabase
+        .from("audits")
+        .select("*")
+        .eq("salesreps", selectedLanid)
+        .gte("audit_date", dateRange.startDate)
+        .lte("audit_date", dateRange.endDate);
+      return response.data || [];
+    },
+    enabled: !!dateRange,
+  });
+
+  const salesDataQuery = useQuery({
+    queryKey: [
+      "salesData",
+      dateRange?.startDate,
+      dateRange?.endDate,
+      selectedLanid,
+    ],
+    queryFn: async () => {
+      if (!dateRange) return [];
+      const response = await supabase
+        .from("sales")
+        .select("*")
+        .eq("Lanid", selectedLanid)
+        .gte("Date", dateRange.startDate)
+        .lte("Date", dateRange.endDate);
+      return response.data || [];
+    },
+    enabled: !!dateRange,
+  });
+
+  const historicalAuditsQuery = useQuery({
+    queryKey: ["historicalAudits", selectedLanid],
+    queryFn: async () => {
+      const response = await supabase
+        .from("audits")
+        .select("*")
+        .eq("salesreps", selectedLanid)
+        .order("audit_date", { ascending: false });
+      return response.data || [];
+    },
+    enabled: !!selectedLanid,
+  });
+
+  const handleExportToExcel = useCallback(() => {
+    if (!selectedDate || !contestAuditsQuery.data) return;
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(contestAuditsQuery.data);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Performance Data");
+    XLSX.writeFile(
+      workbook,
+      `performance_data_${format(selectedDate, "yyyy-MM")}.xlsx`
+    );
+  }, [selectedDate, contestAuditsQuery.data]);
+
+  return {
+    contestAuditsQuery,
+    salesDataQuery,
+    historicalAuditsQuery,
+    summaryTableData: useMemo(() => {
+      if (!contestAuditsQuery.data || !salesDataQuery.data) return [];
+      // Process your data here to create summary table data
+      return [];
+    }, [contestAuditsQuery.data, salesDataQuery.data]),
+    handlers: {
+      handleDateChange: (date: Date | null) => {
+        pageParams.setParams({
+          date: date ? format(date, "yyyy-MM-dd") : undefined,
+        });
+      },
+      handleReset: () => {
+        pageParams.setParams({ date: undefined });
+      },
+      handleExport: handleExportToExcel,
+    },
+  };
+};
+
+const useAuditsData = (employee: Employee | null) => {
+  const { selectedDate, setParams } = usePageParams();
+
+  const dateRange = useMemo(() => {
+    if (!selectedDate) return null;
+    const startDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      1
+    );
+    const endDate = new Date(selectedDate);
+    return {
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+    };
+  }, [selectedDate]);
+
+  const contestAuditsQuery = useQuery({
+    queryKey: [
+      "audits",
+      "contest",
+      dateRange?.startDate,
+      dateRange?.endDate,
+      employee?.lanid,
+    ],
+    queryFn: async () => {
+      if (!dateRange || !employee?.lanid) return [];
+      const response = await supabase
+        .from("audits")
+        .select("*")
+        .eq("salesreps", employee.lanid)
+        .gte("audit_date", dateRange.startDate)
+        .lte("audit_date", dateRange.endDate);
+      return response.data || [];
+    },
+    enabled: !!dateRange && !!employee?.lanid,
+  });
+
+  const salesDataQuery = useQuery({
+    queryKey: [
+      "salesData",
+      dateRange?.startDate,
+      dateRange?.endDate,
+      employee?.lanid,
+    ],
+    queryFn: async () => {
+      if (!dateRange || !employee?.lanid) return [];
+      const response = await supabase
+        .from("sales")
+        .select("*")
+        .eq("Lanid", employee.lanid)
+        .gte("Date", dateRange.startDate)
+        .lte("Date", dateRange.endDate);
+      return response.data || [];
+    },
+    enabled: !!dateRange && !!employee?.lanid,
+  });
+
+  const historicalAuditsQuery = useQuery({
+    queryKey: ["historicalAudits", employee?.lanid],
+    queryFn: async () => {
+      const response = await supabase
+        .from("audits")
+        .select("*")
+        .eq("salesreps", employee?.lanid)
+        .order("audit_date", { ascending: false });
+      return response.data || [];
+    },
+    enabled: !!employee?.lanid,
+  });
+
+  const handleExportToExcel = useCallback(() => {
+    if (!selectedDate || !contestAuditsQuery.data) return;
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(contestAuditsQuery.data);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Performance Data");
+    XLSX.writeFile(
+      workbook,
+      `performance_data_${format(selectedDate, "yyyy-MM")}.xlsx`
+    );
+  }, [selectedDate, contestAuditsQuery.data]);
+
+  return {
+    queries: {
+      contestAudits: contestAuditsQuery,
+      salesData: salesDataQuery,
+      historicalAudits: historicalAuditsQuery,
+    },
+    summaryData: useMemo(() => {
+      if (!contestAuditsQuery.data || !salesDataQuery.data) return [];
+      // Process your data here to create summary data
+      return [];
+    }, [contestAuditsQuery.data, salesDataQuery.data]),
+    handlers: {
+      handleDateChange: (date: Date | null) => {
+        setParams({
+          date: date ? format(date, "yyyy-MM-dd") : undefined,
+        });
+      },
+      handleReset: () => {
+        setParams({ date: undefined });
+      },
+      handleExport: handleExportToExcel,
+    },
+  };
+};
+
 const EmployeeProfile = () => {
+  const pageParams = usePageParams();
+  const { selectedDate, selectedLanid, showAllEmployees } = pageParams;
   const queryClient = useQueryClient();
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
 
-  const employeeId = Array.isArray(employeeIdParam)
-    ? parseInt(employeeIdParam[0], 10)
-    : parseInt(employeeIdParam, 10);
-
+  const employeeId =
+    typeof employeeIdParam === "string"
+      ? parseInt(employeeIdParam, 10)
+      : Array.isArray(employeeIdParam)
+      ? parseInt(employeeIdParam[0], 10)
+      : 0;
+  const [performanceDate, setPerformanceDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState("daily_briefing");
   const [notes, setNotes] = useState<Note[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
@@ -218,10 +781,13 @@ const EmployeeProfile = () => {
   const [newAbsence, setNewAbsence] = useState("");
   const [newGrowth, setNewGrowth] = useState("");
   const [newDailyBriefing, setNewDailyBriefing] = useState("");
-  const [employee, setEmployee] = useState<any>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
   const { user } = useRole();
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [selectedLanid, setSelectedLanid] = useState<string | null>(null);
+  // const [selectedLanid, setSelectedLanid] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(
+    undefined
+  );
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [auditData, setAuditData] = useState<AuditInput[]>([]);
   const [pointsCalculation, setPointsCalculation] = useState<
@@ -229,7 +795,7 @@ const EmployeeProfile = () => {
   >([]);
   const [totalPoints, setTotalPoints] = useState<number>(300);
   const [summaryData, setSummaryData] = useState<any[]>([]);
-  const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
+  // const [showAllEmployees, setShowAllEmployees] = useState<boolean>(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewQuarter, setReviewQuarter] = useState("");
@@ -254,7 +820,7 @@ const EmployeeProfile = () => {
   const [availableSickTime, setAvailableSickTime] = useState<number | null>(
     null
   );
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  // const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
   const [selectedAbsenceReason, setSelectedAbsenceReason] = useState<
     string | null
@@ -279,6 +845,92 @@ const EmployeeProfile = () => {
     calendarData: [],
     employeeNames: [],
   });
+
+  const handlePerformanceDateChange = useCallback(
+    (date: Date | undefined) => {
+      pageParams.setParams({
+        date: date ? format(date, "yyyy-MM-dd") : undefined,
+      });
+    },
+    [pageParams]
+  );
+
+  const employeeQuery = useQuery({
+    queryKey: ["employee", employeeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("id", employeeId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Performance data queries
+  const performanceQueries = useQuery({
+    queryKey: ["performance", employeeId, pageParams.selectedDate],
+    queryFn: async () => {
+      if (!pageParams.selectedDate || !employeeQuery.data?.lanid) return null;
+      const startDate = new Date(
+        pageParams.selectedDate.getFullYear(),
+        pageParams.selectedDate.getMonth(),
+        1
+      );
+      const endDate = new Date(pageParams.selectedDate);
+      const [auditsResponse, salesResponse, pointsResponse] = await Promise.all(
+        [
+          supabase
+            .from("audits")
+            .select("*")
+            .eq("salesreps", employeeQuery.data.lanid)
+            .gte("audit_date", format(startDate, "yyyy-MM-dd"))
+            .lte("audit_date", format(endDate, "yyyy-MM-dd")),
+          supabase
+            .from("sales")
+            .select("*")
+            .eq("Lanid", employeeQuery.data.lanid)
+            .gte("Date", format(startDate, "yyyy-MM-dd"))
+            .lte("Date", format(endDate, "yyyy-MM-dd")),
+          supabase.from("points_calculation").select("*"),
+        ]
+      );
+      return {
+        audits: auditsResponse.data || [],
+        sales: salesResponse.data || [],
+        points: pointsResponse.data || [],
+      };
+    },
+    enabled: !!employeeQuery.data?.lanid && !!pageParams.selectedDate,
+  });
+  // Historical data query
+  const historicalQuery = useQuery({
+    queryKey: ["historical", employeeId],
+    queryFn: async () => {
+      if (!employeeQuery.data?.lanid) return [];
+      const { data } = await supabase
+        .from("audits")
+        .select("*")
+        .eq("salesreps", employeeQuery.data.lanid)
+        .order("audit_date", { ascending: false });
+      return data || [];
+    },
+    enabled: !!employeeQuery.data?.lanid,
+  });
+  const summaryTableData = useMemo(() => {
+    if (!performanceQueries.data || !employeeQuery.data) return [];
+    return calculateSummaryData(
+      performanceQueries.data.sales,
+      performanceQueries.data.audits,
+      performanceQueries.data.points,
+      historicalQuery.data || [],
+      [employeeQuery.data], // Pass only the current employee
+      false, // showAllEmployees is always false for profile page
+      employeeQuery.data.lanid
+    );
+  }, [performanceQueries.data, historicalQuery.data, employeeQuery.data]);
 
   const combinedSchedules = useMemo(() => {
     const timeZone = "America/Los_Angeles"; // Adjust this to your desired time zone
@@ -496,10 +1148,7 @@ const EmployeeProfile = () => {
   };
 
   const handleAddAbsence = async () => {
-    if (
-      !absenceDateSelection ||
-      (!selectedAbsenceReason && !customAbsenceReason)
-    )
+    if (!selectedDate || (!selectedAbsenceReason && !customAbsenceReason))
       return;
 
     const status =
@@ -508,16 +1157,18 @@ const EmployeeProfile = () => {
         : selectedAbsenceReason;
 
     try {
-      const formattedDate = format(absenceDateSelection, "yyyy-MM-dd");
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
       await updateScheduleStatus(employeeId, formattedDate, status as string);
+
+      // Refresh the absences list
       await fetchAbsences();
 
-      // Reset form
-      absenceDateMutation.mutate(undefined);
+      // Reset the form
+      setPerformanceDate(null);
       setSelectedAbsenceReason(null);
       setCustomAbsenceReason("");
     } catch (error) {
-      console.error("Failed to add absence:", error);
+      //console.("Failed to add absence:", error);
     }
   };
 
@@ -600,6 +1251,183 @@ const EmployeeProfile = () => {
     }
   };
 
+  const exportToExcel = (
+    data: SummaryRowData[],
+    selectedDate: Date,
+    showAllEmployees: boolean,
+    selectedLanid: string | null
+  ): void => {
+    const exportData = data
+      .filter((row) => !row.isDivider)
+      .map((row) => ({
+        "Sales Rep": sanitizeHtml(row.Lanid),
+        Department: sanitizeHtml(row.Department || ""),
+        "Total DROS": row.TotalDros ?? "",
+        "Minor Mistakes": row.MinorMistakes ?? "",
+        "Major Mistakes": row.MajorMistakes ?? "",
+        "Cancelled DROS": row.CancelledDros ?? "",
+        "Weighted Error Rate": row.WeightedErrorRate
+          ? `${row.WeightedErrorRate.toFixed(2)}%`
+          : "",
+        "Total Weighted Mistakes": row.TotalWeightedMistakes ?? "",
+        Status: sanitizeHtml(row.DisqualificationReason),
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sales Contest Results");
+
+    // Format headers
+    const headerStyle = {
+      font: { bold: true },
+      alignment: { horizontal: "center" },
+      fill: { fgColor: { rgb: "CCCCCC" } },
+    };
+
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (!ws[address]) continue;
+      ws[address].s = headerStyle;
+    }
+
+    // Auto-size columns
+    const colWidths = exportData.reduce((widths: number[], row) => {
+      Object.values(row).forEach((value, i) => {
+        const width = String(value).length;
+        widths[i] = Math.max(widths[i] || 0, width);
+      });
+      return widths;
+    }, []);
+
+    ws["!cols"] = colWidths.map((width) => ({ width }));
+
+    const dateStr = format(selectedDate, "MMM_yyyy");
+    const suffix = showAllEmployees
+      ? "_all_employees"
+      : selectedLanid
+      ? `_${selectedLanid}`
+      : "";
+
+    XLSX.writeFile(wb, `Sales_Contest_Results_${dateStr}${suffix}.xlsx`);
+  };
+
+  const sanitizeHtml = (html: string | null | undefined): string => {
+    if (!html) return "";
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ["p", "b", "i", "em", "strong", "span", "div", "br"],
+      ALLOWED_ATTR: ["class", "style"],
+      ADD_TAGS: [], // Required to avoid type error
+      ADD_ATTR: [], // Required to avoid type error
+      USE_PROFILES: { html: true }, // Required to enable HTML sanitization
+    });
+  };
+
+  const summaryColumns = [
+    {
+      Header: "Sales Rep",
+      accessor: "Lanid",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {sanitizeHtml(original.Lanid)}
+        </div>
+      ),
+    },
+    {
+      Header: "Total DROS",
+      accessor: "TotalDros",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {original.TotalDros === null ? "" : original.TotalDros}
+        </div>
+      ),
+    },
+    {
+      Header: "Minor Mistakes",
+      accessor: "MinorMistakes",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {original.MinorMistakes === null ? "" : original.MinorMistakes}
+        </div>
+      ),
+    },
+    {
+      Header: "Major Mistakes",
+      accessor: "MajorMistakes",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {original.MajorMistakes === null ? "" : original.MajorMistakes}
+        </div>
+      ),
+    },
+    {
+      Header: "Cancelled DROS",
+      accessor: "CancelledDros",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {original.CancelledDros === null ? "" : original.CancelledDros}
+        </div>
+      ),
+    },
+    {
+      Header: "Weighted Error Rate",
+      accessor: "WeightedErrorRate",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {original.isDivider
+            ? ""
+            : original.WeightedErrorRate === null
+            ? ""
+            : `${original.WeightedErrorRate.toFixed(2)}%`}
+        </div>
+      ),
+    },
+    {
+      Header: "Status",
+      accessor: "DisqualificationReason",
+      Cell: ({ row: { original } }: { row: { original: any } }) => (
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-red-500" : "text-green-500"
+          }`}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(original.DisqualificationReason, {
+              ALLOWED_TAGS: [],
+              ALLOWED_ATTR: [],
+              ALLOW_ARIA_ATTR: false,
+              ALLOW_DATA_ATTR: false,
+              USE_PROFILES: { html: false },
+            }),
+          }}
+        />
+      ),
+    },
+  ];
+
   const handleDeleteReview = async (id: number) => {
     const { error } = await supabase
       .from("employee_quarterly_reviews")
@@ -616,7 +1444,7 @@ const EmployeeProfile = () => {
   };
 
   const handleDateChange = (date: Date | undefined) => {
-    setSelectedDate(date || null);
+    setPerformanceDate(date || null);
     fetchAndCalculateSummary(date || null);
   };
 
@@ -639,7 +1467,7 @@ const EmployeeProfile = () => {
       // Get employee department
       const { data: employeeData, error: employeeError } = await supabase
         .from("employees")
-        .select("lanid, department, name")
+        .select("lanid, department")
         .eq("employee_id", employeeId)
         .single();
 
@@ -698,7 +1526,7 @@ const EmployeeProfile = () => {
           ...audit,
           id: audit.audits_id,
         })),
-        pointsCalculation,
+        pointsCalculation: pointsCalculation || [],
         isOperations,
         minimumDros: 20,
       });
@@ -857,17 +1685,17 @@ const EmployeeProfile = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (selectedDate && employee) {
+      if (selectedMonth && employee) {
         const startDate = new Date(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth(),
+          selectedMonth.getFullYear(),
+          selectedMonth.getMonth(),
           1
         )
           .toISOString()
           .split("T")[0];
         const endDate = new Date(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth() + 1,
+          selectedMonth.getFullYear(),
+          selectedMonth.getMonth() + 1,
           0
         )
           .toISOString()
@@ -894,7 +1722,7 @@ const EmployeeProfile = () => {
         } else {
           setSalesData(salesData);
           setAuditData(auditData);
-          calculateSummary(salesData, auditData, selectedDate, [
+          calculateSummary(salesData, auditData, selectedMonth, [
             employee.lanid,
           ]);
         }
@@ -929,7 +1757,7 @@ const EmployeeProfile = () => {
       supabase.removeChannel(salesSubscription);
       supabase.removeChannel(auditsSubscription);
     };
-  }, [employee, pointsCalculation]);
+  }, [employee, selectedMonth, pointsCalculation]);
 
   const fetchEmployeeData = async () => {
     if (!employeeId) return;
@@ -1067,6 +1895,146 @@ const EmployeeProfile = () => {
     }
   };
 
+  // Date range calculation
+  const performanceDateRange = useMemo(() => {
+    if (!performanceDate) return null;
+
+    // Get first day of the selected month
+    const startDate = new Date(
+      performanceDate.getFullYear(),
+      performanceDate.getMonth(),
+      1
+    );
+
+    // Use the actual selected date for end date
+    const endDate = new Date(performanceDate);
+
+    // Ensure we're capturing the full day
+    endDate.setHours(23, 59, 59, 999);
+
+    return {
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
+    };
+  }, [performanceDate]);
+
+  // Use existing queries for performance data
+  const performanceAuditsQuery = useQuery({
+    queryKey: [
+      "audits",
+      "performance",
+      performanceDateRange?.startDate,
+      performanceDateRange?.endDate,
+      employee?.lanid,
+    ],
+    queryFn: async () => {
+      if (!performanceDateRange || !employee?.lanid) return [];
+      return api.fetchAudits({
+        startDate: performanceDateRange.startDate,
+        endDate: performanceDateRange.endDate,
+        lanid: employee.lanid,
+      });
+    },
+    enabled: !!performanceDateRange && !!employee?.lanid,
+  });
+
+  const performanceSalesQuery = useQuery({
+    queryKey: [
+      "salesData",
+      performanceDateRange?.startDate,
+      performanceDateRange?.endDate,
+      employee?.lanid,
+    ],
+    queryFn: async () => {
+      if (!performanceDateRange || !employee?.lanid) return [];
+      return api.fetchSalesData(
+        performanceDateRange.startDate,
+        performanceDateRange.endDate,
+        employee.lanid,
+        false
+      );
+    },
+    enabled: !!performanceDateRange && !!employee?.lanid,
+  });
+
+  const performanceHistoricalQuery = useQuery({
+    queryKey: ["historicalAudits", employee?.lanid],
+    queryFn: () => api.fetchHistoricalAuditData(employee?.lanid || ""),
+    enabled: !!employee?.lanid,
+  });
+
+  // Base queries
+  const employeesQuery = useQuery({
+    queryKey: ["employees"],
+    queryFn: api.fetchEmployees,
+    staleTime: Infinity,
+  });
+
+  const pointsCalculationQuery = useQuery({
+    queryKey: ["pointsCalculation"],
+    queryFn: api.fetchPointsCalculation,
+    staleTime: Infinity,
+  });
+
+  const contestAuditsQuery = useQuery({
+    queryKey: [
+      "audits",
+      "contest",
+      performanceDateRange?.startDate,
+      performanceDateRange?.endDate,
+      selectedLanid,
+    ],
+    queryFn: async () => {
+      if (!performanceDateRange) return [];
+      return api.fetchAudits({
+        startDate: performanceDateRange.startDate,
+        endDate: performanceDateRange.endDate,
+        lanid: selectedLanid || undefined,
+      });
+    },
+    enabled: pageParams.tab === "contest" && !!performanceDateRange, // Only run this query when on contest tab and dateRange exists
+  });
+
+  const salesDataQuery = useQuery({
+    queryKey: [
+      "salesData",
+      performanceDateRange?.startDate,
+      performanceDateRange?.endDate,
+      selectedLanid,
+      showAllEmployees,
+    ],
+    queryFn: async () => {
+      if (!performanceDateRange) return [];
+      return api.fetchSalesData(
+        performanceDateRange.startDate,
+        performanceDateRange.endDate,
+        selectedLanid || undefined,
+        showAllEmployees
+      );
+    },
+    enabled: !!performanceDateRange,
+  });
+
+  // Table Configuration Options
+  const tableOptions = {
+    enableSorting: true,
+    enableFiltering: true,
+    enablePagination: true,
+    enableRowSelection: false,
+    enableColumnResizing: true,
+    enableAutoResetPage: true,
+    manualPagination: false,
+    globalFilterFn: "contains",
+    getRowId: (row: any) => row.audits_id || row.Lanid,
+  };
+
+  const profileTableOptions = {
+    ...tableOptions,
+    enablePagination: false,
+    enableFiltering: false,
+    enableColumnResizing: false,
+  };
+
   const fetchAudits = async (lanid: string) => {
     const { data, error } = await supabase
       .from("Auditsinput")
@@ -1088,13 +2056,27 @@ const EmployeeProfile = () => {
       .channel("custom-all-channel")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "employee_profile_notes" },
-        (payload) => {
-          if (payload.new) {
-            setNotes((prevNotes) => [...prevNotes, payload.new as Note]);
-          } else if (payload.old) {
+        {
+          event: "*",
+          schema: "public",
+          table: "employee_profile_notes",
+          filter: `profile_employee_id=eq.${employeeId}`, // Add filter for specific employee
+        },
+        async (payload) => {
+          if (payload.eventType === "INSERT") {
+            // Add new note to the beginning of the list
+            setNotes((prevNotes) => [payload.new as Note, ...prevNotes]);
+          } else if (payload.eventType === "DELETE") {
+            // Remove deleted note
             setNotes((prevNotes) =>
-              prevNotes.filter((note) => note.id !== (payload.old as Note).id)
+              prevNotes.filter((note) => note.id !== payload.old.id)
+            );
+          } else if (payload.eventType === "UPDATE") {
+            // Update modified note
+            setNotes((prevNotes) =>
+              prevNotes.map((note) =>
+                note.id === payload.new.id ? (payload.new as Note) : note
+              )
             );
           }
         }
@@ -1106,78 +2088,98 @@ const EmployeeProfile = () => {
     };
   };
 
-  const handleAddNote = async (type: string) => {
-    let noteContent = "";
-    switch (type) {
-      case "notes":
-        noteContent = newNote;
-        break;
-      case "reviews":
-        noteContent = newReview;
-        break;
-      case "growth":
-        noteContent = newGrowth;
-        break;
-      case "absence":
-        noteContent = newAbsence;
-        break;
-      case "daily_briefing":
-        noteContent = newDailyBriefing;
-        break;
-      default:
-        return;
-    }
+  const notesApi = {
+    addNote: async ({ employeeId, note, type }: AddNoteParams) => {
+      const { data: userData } = await supabase.auth.getUser();
 
-    if (!employeeId || noteContent.trim() === "") return;
+      // First check if a similar note exists within the last few seconds
+      const { data: existingNotes } = await supabase
+        .from("employee_profile_notes")
+        .select("*")
+        .eq("profile_employee_id", employeeId)
+        .eq("note", note)
+        .eq("type", type)
+        .gte("created_at", new Date(Date.now() - 10000).toISOString()) // Last 10 seconds
+        .order("created_at", { ascending: false });
 
-    const employeeName = await fetchEmployeeNameByUserUUID(user.id);
-    if (!employeeName) return;
-
-    const { data, error } = await supabase
-      .from("employee_profile_notes")
-      .insert([
-        {
-          profile_employee_id: employeeId,
-          employee_id: parseInt(user.id, 10),
-          note: noteContent,
-          type,
-          created_by: employeeName,
-        },
-      ])
-      .select();
-
-    if (error) {
-      //console.("Error adding note:", error);
-    } else if (data) {
-      setNotes((prevNotes) => [data[0], ...prevNotes]);
-      switch (type) {
-        case "notes":
-          setNewNote("");
-          break;
-        case "reviews":
-          setNewReview("");
-          break;
-        case "growth":
-          setNewGrowth("");
-          break;
-        case "absence":
-          setNewAbsence("");
-          setAbsences((prevAbsences) => [
-            ...prevAbsences,
-            {
-              id: data[0].id,
-              schedule_date: noteContent.split(" ")[0],
-              status: noteContent.split(" ").slice(1).join(" "),
-              created_by: data[0].created_by,
-              created_at: data[0].created_at,
-              employee_id: employeeId, // Add employee_id here
-            },
-          ]);
-          break;
-        case "daily_briefing":
-          setNewDailyBriefing("");
-          break;
+      // If a similar note exists, don't create a duplicate
+      if (existingNotes && existingNotes.length > 0) {
+        return existingNotes[0];
       }
+
+      const { data, error } = await supabase
+        .from("employee_profile_notes")
+        .insert({
+          profile_employee_id: employeeId,
+          employee_id: employeeId,
+          note: note,
+          type: type,
+          created_by: userData.user?.email || "",
+          reviewed: false,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Error adding note:", error);
+        throw error;
+      }
+
+      return data;
+    },
+  };
+
+  // Update the mutation to use optimistic updates
+  const addNoteMutation = useMutation({
+    mutationFn: notesApi.addNote,
+    onMutate: async (newNote) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["notes", employeeId],
+      });
+
+      // Snapshot the previous value
+      const previousNotes = queryClient.getQueryData(["notes", employeeId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(["notes", employeeId], (old: any[]) => {
+        const optimisticNote = {
+          id: `temp-${Date.now()}`,
+          ...newNote,
+          created_at: new Date().toISOString(),
+        };
+        return [optimisticNote, ...(old || [])];
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousNotes };
+    },
+    onError: (err, newNote, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(["notes", employeeId], context?.previousNotes);
+      toast.error("Failed to add note");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", employeeId] });
+      setNewNote("");
+      setNewDailyBriefing("");
+      toast.success("Note added successfully");
+    },
+  });
+
+  // Update the handleAddNote function to be more defensive
+  const handleAddNote = async (type: string) => {
+    const noteText = type === "daily_briefing" ? newDailyBriefing : newNote;
+    if (!noteText.trim() || addNoteMutation.isPending) return;
+
+    try {
+      await addNoteMutation.mutateAsync({
+        employeeId,
+        note: noteText,
+        type,
+      });
+    } catch (error) {
+      console.error("Error in handleAddNote:", error);
     }
   };
 
@@ -1358,16 +2360,45 @@ const EmployeeProfile = () => {
     setRecognition([""]);
   };
 
-  const sanitizeHtml = (html: string | null | undefined): string => {
-    if (!html) return "";
-    return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ["p", "b", "i", "em", "strong", "span", "div", "br"],
-      ALLOWED_ATTR: ["class", "style"],
-      ADD_TAGS: [], // Required to avoid type error
-      ADD_ATTR: [], // Required to avoid type error
-      USE_PROFILES: { html: true }, // Required to enable HTML sanitization
-    });
+  const fetchHistoricalAuditData = async (lanid: string | null = null) => {
+    let query = supabase
+      .from("Auditsinput")
+      .select("*")
+      .order("audit_date", { ascending: true });
+
+    if (lanid) {
+      query = query.eq("salesreps", lanid);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
   };
+
+  const historicalAuditsQuery = useQuery({
+    queryKey: ["historicalAudits", selectedLanid],
+    queryFn: () => fetchHistoricalAuditData(selectedLanid),
+    enabled: !!selectedLanid,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const handleReset = useCallback(() => {
+    pageParams.setParams({
+      date: undefined,
+      lanid: undefined,
+      showAll: undefined,
+      search: undefined,
+    });
+  }, [pageParams.setParams]);
+
+  const handleExport = useCallback(() => {
+    if (selectedDate) {
+      exportToExcel(summaryData, selectedDate, showAllEmployees, selectedLanid);
+    } else {
+      toast.error("Please select a date before exporting");
+    }
+  }, [summaryData, selectedDate, showAllEmployees, selectedLanid]);
+
   const calculateSummary = (
     salesData: SalesData[],
     auditData: AuditInput[],
@@ -1422,374 +2453,6 @@ const EmployeeProfile = () => {
     summary.sort((a, b) => b.TotalPoints - a.TotalPoints);
     setSummaryData(summary);
   };
-
-  const columnHelper = createColumnHelper<SummaryRowData>();
-
-  // Remove the columnHelper and existing summaryColumns definition and replace with:
-  const summaryColumns = [
-    // {
-    //   Header: "Sales Rep",
-    //   accessor: "Lanid",
-    //   Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-    //     <div
-    //       className={`text-left align-left ${
-    //         !original.Qualified ? "text-gray-400 italic" : ""
-    //       }`}
-    //     >
-    //       {sanitizeHtml(original.Lanid)}
-    //     </div>
-    //   ),
-    // },
-    {
-      Header: "Name",
-      accessor: "Name",
-      Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
-        >
-          {sanitizeHtml(original.name)}
-        </div>
-      ),
-    },
-    {
-      Header: "Total DROS",
-      accessor: "TotalDros",
-      Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
-        >
-          {original.TotalDros === null ? "" : original.TotalDros}
-        </div>
-      ),
-    },
-    {
-      Header: "Minor Mistakes",
-      accessor: "MinorMistakes",
-      Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
-        >
-          {original.MinorMistakes === null ? "" : original.MinorMistakes}
-        </div>
-      ),
-    },
-    {
-      Header: "Major Mistakes",
-      accessor: "MajorMistakes",
-      Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
-        >
-          {original.MajorMistakes === null ? "" : original.MajorMistakes}
-        </div>
-      ),
-    },
-    {
-      Header: "Cancelled DROS",
-      accessor: "CancelledDros",
-      Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
-        >
-          {original.CancelledDros === null ? "" : original.CancelledDros}
-        </div>
-      ),
-    },
-    {
-      Header: "Error Rate",
-      accessor: "WeightedErrorRate",
-      Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-gray-400 italic" : ""
-          }`}
-        >
-          {original.WeightedErrorRate === null
-            ? "0.00%"
-            : `${original.WeightedErrorRate.toFixed(2)}%`}
-        </div>
-      ),
-    },
-  ];
-
-  const auditDateMutation = useMutation({
-    mutationFn: (date: Date | undefined) => Promise.resolve(date),
-    onSuccess: (date) => {
-      queryClient.setQueryData(["auditDateSelection"], date);
-      if (date) {
-        fetchAndCalculateSummary(date);
-      }
-    },
-  });
-
-  const performanceDateMutation = useMutation({
-    mutationFn: (date: Date | undefined) => Promise.resolve(date),
-    onSuccess: (date) => {
-      queryClient.setQueryData(["performanceDateSelection"], date);
-      setSelectedDate(date || null);
-      if (date) {
-        fetchAndCalculateSummary(date);
-      }
-    },
-  });
-
-  const absenceDateMutation = useMutation({
-    mutationFn: (date: Date | undefined) => Promise.resolve(date),
-    onSuccess: (date) => {
-      queryClient.setQueryData(["absenceDateSelection"], date);
-    },
-  });
-
-  const { data: auditDateSelection } = useQuery({
-    queryKey: ["auditDateSelection"],
-    queryFn: () => null as Date | null,
-    initialData: null,
-  });
-
-  const { data: performanceDateSelection } = useQuery({
-    queryKey: ["performanceDateSelection"],
-    queryFn: () => null as Date | null,
-    initialData: null,
-  });
-
-  const { data: absenceDateSelection } = useQuery({
-    queryKey: ["absenceDateSelection"],
-    queryFn: () => null as Date | null,
-    initialData: null,
-  });
-
-  const salesDataQuery = useQuery({
-    queryKey: ["salesData", employeeId, selectedDate],
-    queryFn: async () => {
-      if (!selectedDate || !employee?.lanid) return [];
-
-      const startDate = new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        1
-      )
-        .toISOString()
-        .split("T")[0];
-      const endDate = selectedDate.toISOString().split("T")[0];
-
-      const { data, error } = await supabase
-        .from("sales_data")
-        .select("*")
-        .eq("Lanid", employee.lanid)
-        .gte("Date", startDate)
-        .lte("Date", endDate)
-        .not("subcategory_label", "is", null)
-        .not("subcategory_label", "eq", "");
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedDate && !!employee?.lanid,
-  });
-
-  const contestAuditsQuery = useQuery({
-    queryKey: ["contestAudits", employeeId, selectedDate],
-    queryFn: async () => {
-      if (!selectedDate || !employee?.lanid) return [];
-
-      const startDate = new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        1
-      )
-        .toISOString()
-        .split("T")[0];
-      const endDate = selectedDate.toISOString().split("T")[0];
-
-      const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", employee.lanid)
-        .gte("audit_date", startDate)
-        .lte("audit_date", endDate);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedDate && !!employee?.lanid,
-  });
-
-  const historicalAuditsQuery = useQuery({
-    queryKey: ["historicalAudits", employeeId, employee?.lanid],
-    queryFn: async () => {
-      if (!employee?.lanid) return [];
-
-      const { data, error } = await supabase
-        .from("Auditsinput")
-        .select("*")
-        .eq("salesreps", employee.lanid)
-        .order("audit_date", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching historical audits:", error);
-        throw error;
-      }
-
-      // Transform the data to ensure all required fields are present
-      return (data || []).map((audit) => ({
-        ...audit,
-        audit_date: audit.audit_date,
-        error_location: audit.error_location || "",
-        dros_cancel: audit.dros_cancel || "No",
-      }));
-    },
-    enabled: !!employee?.lanid, // Only run query when we have the lanid
-  });
-
-  const auditDetailsQuery = useQuery({
-    queryKey: ['auditDetails', employeeId, auditDateSelection],
-    queryFn: async () => {
-      if (!employee?.lanid || !auditDateSelection) return [];
-      
-      const startDate = startOfMonth(auditDateSelection);
-      const endDate = endOfMonth(auditDateSelection);
-      
-      const { data, error } = await supabase
-        .from('Auditsinput')
-        .select(`
-          dros_number,
-          salesreps,
-          trans_date,
-          error_location,
-          error_details,
-          error_notes,
-          dros_cancel
-        `)
-        .eq('salesreps', employee.lanid)
-        .gte('trans_date', startDate.toISOString())
-        .lte('trans_date', endDate.toISOString())
-        .order('trans_date', { ascending: true });
-  
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!employee?.lanid && !!auditDateSelection
-  });
-
-  const pointsCalculationQuery = useQuery({
-    queryKey: ["pointsCalculation"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("points_calculation")
-        .select("*");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const handleAuditDateChange = (date: Date) => {
-    auditDateMutation.mutate(date);
-  };
-
-  const handlePerformanceDateChange = (date: Date) => {
-    performanceDateMutation.mutate(date);
-  };
-
-  const handleAbsenceDateChange = (date: Date | undefined) => {
-    absenceDateMutation.mutate(date || undefined);
-  };
-
-  const handleReset = () => {
-    auditDateMutation.mutate(undefined);
-    performanceDateMutation.mutate(undefined);
-    absenceDateMutation.mutate(undefined);
-    // Also reset selectedDate
-    setSelectedDate(null);
-  };
-
-  const tableOptions = {
-    enableSorting: true,
-    enableFiltering: true,
-  };
-
-  const calculateSummaryData = (
-    salesData: SalesData[],
-    auditData: Audit[],
-    pointsCalculation: PointsCalculation[],
-    employee: any
-  ): SummaryRowData[] => {
-    if (!employee?.lanid || !employee?.name || !salesData || !auditData)
-      return [];
-
-    try {
-      const isOperations = employee.department?.toString() === "Operations";
-
-      const calculator = new WeightedScoringCalculator({
-        salesData: salesData.map((sale) => ({
-          ...sale,
-          dros_cancel:
-            sale.dros_cancel !== undefined && sale.dros_cancel !== null
-              ? sale.dros_cancel.toString()
-              : "0",
-        })),
-        auditData: auditData.map((audit) => ({
-          ...audit,
-          id: audit.audits_id,
-        })),
-        pointsCalculation,
-        isOperations,
-        minimumDros: 20,
-      });
-
-      const summaryData: SummaryRowData = {
-        ...calculator.metrics,
-        Department: employee.department || "Unknown",
-        Lanid: employee.lanid,
-        name: employee.name,
-        TotalWeightedMistakes: calculator.metrics.TotalWeightedMistakes || null,
-      };
-
-      // Verify all required properties exist
-      if (
-        "Lanid" in summaryData &&
-        "name" in summaryData &&
-        "Department" in summaryData &&
-        "TotalDros" in summaryData &&
-        "MinorMistakes" in summaryData &&
-        "MajorMistakes" in summaryData &&
-        "CancelledDros" in summaryData &&
-        "WeightedErrorRate" in summaryData &&
-        "Qualified" in summaryData &&
-        "DisqualificationReason" in summaryData &&
-        "TotalWeightedMistakes" in summaryData
-      ) {
-        return [summaryData];
-      }
-    } catch (error) {
-      console.error(`Error calculating metrics for ${employee.lanid}:`, error);
-    }
-
-    return [];
-  };
-
-  const summaryTableData = useMemo(() => {
-    return calculateSummaryData(
-      salesDataQuery.data || [],
-      contestAuditsQuery.data || [],
-      pointsCalculationQuery.data || [],
-      employee
-    );
-  }, [
-    salesDataQuery.data,
-    contestAuditsQuery.data,
-    pointsCalculationQuery.data,
-    employee,
-  ]);
 
   if (!employee) return <div></div>;
 
@@ -1923,7 +2586,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -1938,7 +2601,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -1999,7 +2662,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -2014,7 +2677,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -2092,7 +2755,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -2105,7 +2768,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -2134,8 +2797,8 @@ const EmployeeProfile = () => {
                                   variant="outline"
                                   className="w-full pl-3 text-left font-normal"
                                 >
-                                  {absenceDateSelection ? (
-                                    format(absenceDateSelection, "PPP")
+                                  {selectedDate ? (
+                                    format(selectedDate, "PPP")
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -2147,10 +2810,8 @@ const EmployeeProfile = () => {
                                 align="start"
                               >
                                 <CustomCalendar
-                                  selectedDate={
-                                    absenceDateSelection ?? new Date()
-                                  }
-                                  onDateChange={handleAbsenceDateChange}
+                                  selectedDate={selectedDate ?? new Date()}
+                                  onDateChange={handleDateChange}
                                   disabledDays={() => false}
                                 />
                               </PopoverContent>
@@ -2204,7 +2865,7 @@ const EmployeeProfile = () => {
                               variant="linkHover1"
                               onClick={handleAddAbsence}
                               disabled={
-                                !absenceDateSelection ||
+                                !selectedDate ||
                                 (!selectedAbsenceReason && !customAbsenceReason)
                               }
                             >
@@ -2342,7 +3003,7 @@ const EmployeeProfile = () => {
                               </div>
                               <div className="flex space-x-2">
                                 <Button
-                                  variant="linkHover1"
+                                  variant="ghost"
                                   onClick={() => handleEditReview(review.id)}
                                 >
                                   <Pencil1Icon />
@@ -2969,7 +3630,7 @@ const EmployeeProfile = () => {
 
                     <TabsContent value="audits">
                       <h1 className="text-xl font-bold mb-2 ml-2">
-                        <TextGenerateEffect words="Audits" />
+                        <TextGenerateEffect words="Sales Insight" />
                       </h1>
                       <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                         <Card className="mt-4">
@@ -2977,6 +3638,7 @@ const EmployeeProfile = () => {
                             <CardTitle className="text-2xl font-bold mb-6">
                               Select A Date
                             </CardTitle>
+                            {/* Add any icons or elements you want here */}
                           </CardHeader>
                           <CardContent>
                             <Popover>
@@ -2985,8 +3647,8 @@ const EmployeeProfile = () => {
                                   variant="outline"
                                   className="w-full pl-3 text-left font-normal"
                                 >
-                                  {auditDateSelection ? (
-                                    format(auditDateSelection, "PPP")
+                                  {selectedDate ? (
+                                    format(selectedDate, "PPP")
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -2998,12 +3660,8 @@ const EmployeeProfile = () => {
                                 align="start"
                               >
                                 <CustomCalendar
-                                  selectedDate={
-                                    auditDateSelection || new Date()
-                                  }
-                                  onDateChange={(date: Date | undefined) =>
-                                    handleAuditDateChange(date || new Date())
-                                  }
+                                  selectedDate={selectedDate ?? new Date()}
+                                  onDateChange={handleDateChange}
                                   disabledDays={() => false}
                                 />
                               </PopoverContent>
@@ -3086,12 +3744,6 @@ const EmployeeProfile = () => {
                         </Card>
                       </div>
 
-                      <AuditDetailsChart
-                        data={auditDetailsQuery.data || []}
-                        isLoading={auditDetailsQuery.isLoading}
-                        selectedDate={auditDateSelection}
-                      />
-
                       <Card>
                         <CardContent>
                           <table className="w-full">
@@ -3144,17 +3796,10 @@ const EmployeeProfile = () => {
                           </table>
                         </CardContent>
                       </Card>
-
-                      
                     </TabsContent>
 
                     <TabsContent value="performance">
-                      <h1 className="text-xl font-bold mb-2 ml-2">
-                        <TextGenerateEffect words="Sales Performance Insight" />
-                      </h1>
-
-                      {/* Controls Grid */}
-                      <div className="grid p-2 gap-4 md:grid-cols-2">
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                         {/* Date Selection Card */}
                         <Card className="mt-4">
                           <CardHeader>
@@ -3167,11 +3812,8 @@ const EmployeeProfile = () => {
                                   variant="outline"
                                   className="w-full pl-3 text-left font-normal"
                                 >
-                                  {performanceDateSelection ? (
-                                    format(
-                                      performanceDateSelection,
-                                      "MMMM yyyy"
-                                    )
+                                  {pageParams.selectedDate ? (
+                                    format(pageParams.selectedDate, "MMMM yyyy")
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -3184,13 +3826,9 @@ const EmployeeProfile = () => {
                               >
                                 <CustomCalendar
                                   selectedDate={
-                                    performanceDateSelection || new Date()
+                                    pageParams.selectedDate || new Date()
                                   }
-                                  onDateChange={(date: Date | undefined) =>
-                                    handlePerformanceDateChange(
-                                      date || new Date()
-                                    )
-                                  }
+                                  onDateChange={handlePerformanceDateChange}
                                   disabledDays={() => false}
                                 />
                               </PopoverContent>
@@ -3210,7 +3848,14 @@ const EmployeeProfile = () => {
                                 className="w-full"
                                 onClick={handleReset}
                               >
-                                Clear Date Selection
+                                Clear All Selections
+                              </Button>
+                              <Button
+                                onClick={handleExport}
+                                className="w-full"
+                                disabled={!selectedDate}
+                              >
+                                Export to Excel
                               </Button>
                             </div>
                           </CardContent>
@@ -3220,35 +3865,27 @@ const EmployeeProfile = () => {
                       {/* Summary Table */}
                       <Card>
                         <CardContent>
-                          {selectedDate && (
+                          {pageParams.selectedDate && (
                             <div className="text-left">
                               <DataTableProfile
                                 columns={summaryColumns}
                                 data={summaryTableData}
-                                {...tableOptions}
                               />
                             </div>
                           )}
                         </CardContent>
                       </Card>
-
-                      {/* Performance Charts */}
-                      {selectedDate && (
-                        <>
-                          <AuditChart
-                            data={contestAuditsQuery.data || []}
-                            isLoading={
-                              contestAuditsQuery.isLoading ||
-                              salesDataQuery.isLoading
-                            }
-                            showTimeRangeSelector={false}
-                          />
-                          <HistoricalAuditChart
-                            data={historicalAuditsQuery.data || []}
-                            selectedLanid={employee?.lanid}
-                          />
-                        </>
+                      {pageParams.selectedDate && (
+                        <AuditChart
+                          data={performanceQueries.data?.audits || []}
+                          isLoading={performanceQueries.isLoading}
+                          showTimeRangeSelector={false}
+                        />
                       )}
+                      <HistoricalAuditChart
+                        data={historicalQuery.data || []}
+                        selectedLanid={employeeQuery.data?.lanid}
+                      />
                     </TabsContent>
                   </Suspense>
                 </main>
