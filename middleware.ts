@@ -1,82 +1,73 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse, type NextRequest } from 'next/server'
-import { protectedPaths } from '@/lib/constant'
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { NextResponse, type NextRequest } from "next/server";
+import { protectedPaths } from "@/lib/constant";
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next()
-  const supabase = createMiddlewareClient({ req: request, res: response })
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req: request, res: res });
 
-  // Get session instead of user directly
+  // Refresh session if it exists
+  await supabase.auth.getUser();
+
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const user = session?.user
-
-  // Handle unauthenticated access to protected routes
-  if (!session || !user || !user.email) {
-    console.error(
-      "No session or user found:",
-      !session ? "No session" : "No user or email"
-    )
-    
-    // If trying to access protected paths, redirect to auth
+  if (!user?.email) {
     if (protectedPaths.includes(new URL(request.url).pathname)) {
       return NextResponse.redirect(
         new URL("/auth?next=" + new URL(request.url).pathname, request.url)
-      )
+      );
     }
-    return response
+    return res;
   }
 
-  // If authenticated user tries to access auth pages, redirect appropriately
-  if (session && new URL(request.url).pathname.startsWith('/auth')) {
-    // Check employee role before deciding redirect
-    const { data: employeeData } = await supabase
-      .from("employees")
-      .select("role, employee_id")
-      .eq("user_uuid", user.id)
-      .maybeSingle()
+  // Use a single database query with error handling
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .select("role, employee_id")
+    .eq("user_uuid", user.id)
+    .maybeSingle();
 
-    if (employeeData?.role in ['admin', 'super admin', 'dev']) {
-      return NextResponse.redirect(
-        new URL("/admin/reports/dashboard", request.url)
-      )
-    } else if (employeeData?.employee_id) {
-      return NextResponse.redirect(
-        new URL(`/TGR/crew/profile/${employeeData.employee_id}`, request.url)
-      )
-    }
+  if (employeeError) {
+    console.error("Error fetching employee role:", employeeError.message);
+    return res;
   }
 
-  // For authenticated users accessing root or auth paths
-  if (new URL(request.url).pathname === "/auth" || new URL(request.url).pathname === "/") {
-    const { data: employeeData } = await supabase
-      .from("employees")
-      .select("role, employee_id")
-      .eq("user_uuid", user.id)
-      .maybeSingle()
+  if (employeeData) {
+    const dbRole = employeeData.role;
+    const employeeId = employeeData.employee_id;
 
-    if (employeeData?.role in ['admin', 'super admin', 'dev']) {
-      return NextResponse.redirect(
-        new URL("/admin/reports/dashboard", request.url)
-      )
-    } else if (employeeData?.employee_id) {
-      return NextResponse.redirect(
-        new URL(`/TGR/crew/profile/${employeeData.employee_id}`, request.url)
-      )
+    // Verify JWT role matches database role
+    if (user.app_metadata?.role !== dbRole) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
+
+    // Handle redirects for authenticated employees
+    const pathname = new URL(request.url).pathname;
+    if (pathname === "/auth" || pathname === "/") {
+      if (["admin", "super admin", "dev"].includes(dbRole)) {
+        return NextResponse.redirect(
+          new URL("/admin/reports/dashboard", request.url)
+        );
+      } else {
+        return NextResponse.redirect(
+          new URL(`/TGR/crew/profile/${employeeId}`, request.url)
+        );
+      }
     }
   }
 
-  return response
+  return res;
 }
 
 export const config = {
   matcher: [
-    "/admin(.*)",
-    "/api/(.*)",
-    "/TGR(.*)",
-    "/sales(.*)",
+    "/admin/:path*",
+    "/api/:path*",
+    "/TGR/:path*",
+    "/sales/:path*",
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
