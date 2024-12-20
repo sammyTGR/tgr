@@ -57,10 +57,7 @@ const Dashboard = () => {
               >
                 <AvatarIcon className="w-8 h-8 mb-2" />
                 <Link href={`/admin/team/profiles/${employee.employee_id}`}>
-                  <Button
-                    variant="linkHover1"
-                    className="text-xl font-semibold"
-                  >
+                  <Button variant="ghost" className="text-xl font-semibold">
                     {employee.name}
                   </Button>
                 </Link>

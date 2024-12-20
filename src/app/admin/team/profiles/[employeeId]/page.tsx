@@ -1090,11 +1090,18 @@ const EmployeeProfile = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "employee_profile_notes" },
         (payload) => {
-          if (payload.new) {
-            setNotes((prevNotes) => [...prevNotes, payload.new as Note]);
-          } else if (payload.old) {
+          // Modify this section to handle updates more carefully
+          if (payload.eventType === "INSERT") {
+            // Only add if not already present
+            setNotes((prevNotes) => {
+              const exists = prevNotes.some(
+                (note) => note.id === payload.new.id
+              );
+              return exists ? prevNotes : [payload.new as Note, ...prevNotes];
+            });
+          } else if (payload.eventType === "DELETE") {
             setNotes((prevNotes) =>
-              prevNotes.filter((note) => note.id !== (payload.old as Note).id)
+              prevNotes.filter((note) => note.id !== payload.old.id)
             );
           }
         }
@@ -1147,9 +1154,11 @@ const EmployeeProfile = () => {
       .select();
 
     if (error) {
-      //console.("Error adding note:", error);
+      console.error("Error adding note:", error);
     } else if (data) {
-      setNotes((prevNotes) => [data[0], ...prevNotes]);
+      // Remove this line as the subscription will handle the update
+      // setNotes((prevNotes) => [data[0], ...prevNotes]);
+
       switch (type) {
         case "notes":
           setNewNote("");
@@ -1170,7 +1179,7 @@ const EmployeeProfile = () => {
               status: noteContent.split(" ").slice(1).join(" "),
               created_by: data[0].created_by,
               created_at: data[0].created_at,
-              employee_id: employeeId, // Add employee_id here
+              employee_id: employeeId,
             },
           ]);
           break;
@@ -1819,7 +1828,7 @@ const EmployeeProfile = () => {
               </div>
               <div className="flex ml-auto">
                 <Link href="/admin/dashboard">
-                  <Button variant="linkHover1">Back To Profiles</Button>
+                  <Button variant="gooeyLeft">Back To Profiles</Button>
                 </Link>
               </div>
             </div>
@@ -2001,7 +2010,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -2016,7 +2025,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -2094,7 +2103,7 @@ const EmployeeProfile = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() =>
                                       handleEditNote(
@@ -2107,7 +2116,7 @@ const EmployeeProfile = () => {
                                     <Pencil1Icon />
                                   </Button>
                                   <Button
-                                    variant="linkHover1"
+                                    variant="ghost"
                                     size="icon"
                                     onClick={() => handleDeleteNote(note.id)}
                                   >
@@ -2203,7 +2212,7 @@ const EmployeeProfile = () => {
                             )}
                             <Button
                               className="mt-2"
-                              variant="linkHover1"
+                              variant="ghost"
                               onClick={handleAddAbsence}
                               disabled={
                                 !absenceDateSelection ||
@@ -2344,7 +2353,7 @@ const EmployeeProfile = () => {
                               </div>
                               <div className="flex space-x-2">
                                 <Button
-                                  variant="linkHover1"
+                                  variant="ghost"
                                   onClick={() => handleEditReview(review.id)}
                                 >
                                   <Pencil1Icon />
