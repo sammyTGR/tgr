@@ -39,7 +39,7 @@ function DeptId({ className }: { className?: string }) {
               <ul className="list-none pl-4">
                 <li>- &quot;John Henry&quot;</li>
               </ul>
-              <li>Otherwise, First Name Can Be Shortned</li>
+              <li>Otherwise, First Name Can Be Shortened</li>
               <ul className="list-none pl-4">
                 <li>- &quot;Nicholas&quot; -&gt; &quot;Nick&quot;</li>
               </ul>

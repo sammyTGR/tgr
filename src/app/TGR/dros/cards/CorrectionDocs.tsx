@@ -36,11 +36,15 @@ function CorrectionDocs({ className }: { className?: string }) {
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
-            <h2>
+            <p>
               Customer Must Have A Valid FSC Card OR Valid CA CCW Permit In
               Addition To:
-            </h2>
+            </p>
             <ul className="list-disc pl-4">
+              <li>
+                A Valid CA CCW Permit Can Be Used As An Address Corrector &
+                Second Proof Of Address
+              </li>
               <li>
                 Valid CA Registration With The Current Physical Address For Any
                 Of The Following:

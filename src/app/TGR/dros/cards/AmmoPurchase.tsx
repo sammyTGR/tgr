@@ -78,6 +78,7 @@ function AmmoPurchase({ className }: { className?: string }) {
                 <h2>Customer Must Have One Of The Following Docs:</h2>
                 <ul className="list-none pl-4">
                   <li>Valid Passport</li>
+                  <li>Valid Passport Card</li>
                   <li>Certified Birth Certificate</li>
                 </ul>
                 <p>

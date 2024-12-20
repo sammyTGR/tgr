@@ -26,18 +26,18 @@ function ProofDocs({ className }: { className?: string }) {
               Address, Even If It Is A REAL ID.
             </p>
             <p className="text-blue-500">
-              All Docs Must Have The Full First & Last Names, Middle Names &
-              Suffixes Are Not Always Printed
+              All Docs Must Have The Full First & Last Names. (Middle Names &
+              Suffixes Are Not Always Printed On Documents)
             </p>
           </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
-            <h2>Customer Must Have A Valid FSC Card OR Valid CA CCW Permit</h2>
-            <h2>
+            <p>Customer Must Have A Valid FSC Card OR Valid CA CCW Permit</p>
+            <p>
               AND Any ONE Of The Following Docs Below Will Suffice For A Handgun
               Purchase:
-            </h2>
+            </p>
             <ul className="list-disc pl-4">
               <li>LEO Requirements:</li>
               <ul className="list-none list-inside pl-4">
@@ -72,18 +72,19 @@ function ProofDocs({ className }: { className?: string }) {
               <li>Current & Valid CA DMV Disabled Placard</li>
               <li>Valid CA CCW Permit</li>
               <li>Valid CA Hunting License</li>
-              <li>Valid CA Fishing License</li>
+              <li>Valid CA Fishing License (Must Be Valid For 1 Year)</li>
               <li>
                 Current & Valid Guard Card + Exposed Carry Card With Current
                 Physical Address
               </li>
+              <ul className="list-none list-inside pl-4">
+                <li>- Both Must Have The Same Address</li>
+              </ul>
               <li>
                 Current & Valid CA ID | DL + Retired Peace Officer Department ID
-                (Addresses Must Match)
               </li>
               <li>
                 Current & Valid CA ID | DL + Active Peace Officer Department ID
-                (Addresses Must Match)
               </li>
             </ul>
           </div>
