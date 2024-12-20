@@ -57,9 +57,9 @@ function EmpAuth({ className }: { className?: string }) {
             </p>
             <hr className="my-4" />
             <p className="font-light">
-              Note: "Asylum Seekers" & "Asylum Status Approved" Are NOT Equal To
-              A Permanent Resident Card - They Must Still Apply & Wait For A
-              Green Card To Be Issued
+              Note: &quot;Asylum Seekers&quot; & &quot;Asylum Status
+              Approved&quot; Are NOT Equal To A Permanent Resident Card - They
+              Must Still Apply & Wait For A Green Card To Be Issued
             </p>
             <hr className="my-4" />
           </div>
