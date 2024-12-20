@@ -1505,23 +1505,12 @@ const EmployeeProfile = () => {
       ),
     },
     {
-      Header: "Status",
-      accessor: "DisqualificationReason",
+      Header: "Error Rate",
+      accessor: "WeightedErrorRate",
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div
-          className={`text-left align-left ${
-            !original.Qualified ? "text-red-500" : "text-green-500"
-          }`}
-          dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(original.DisqualificationReason, {
-              ALLOWED_TAGS: [],
-              ALLOWED_ATTR: [],
-              ALLOW_ARIA_ATTR: false,
-              ALLOW_DATA_ATTR: false,
-              USE_PROFILES: { html: false },
-            }),
-          }}
-        />
+        <div className={`text-left align-left ${!original.Qualified ? "text-gray-400 italic" : ""}`}>
+          {original.WeightedErrorRate === null ? "0.00%" : `${original.WeightedErrorRate.toFixed(2)}%`}
+        </div>
       ),
     },
   ];
