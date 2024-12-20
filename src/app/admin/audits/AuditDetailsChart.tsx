@@ -2,8 +2,8 @@
 
 import React from "react";
 import {
-  Area,
-  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -11,6 +11,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { TooltipProps } from "recharts";
+import {
+  NameType,
+  ValueType,
+} from "recharts/types/component/DefaultTooltipContent";
 import {
   Card,
   CardContent,
@@ -19,6 +24,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+} from "@/components/ui/chart";
 
 interface ChartDataPoint {
   date: string;
@@ -35,6 +47,21 @@ interface AuditDetailsChartProps {
   selectedDate?: Date | null;
 }
 
+const chartConfig = {
+  location: {
+    label: "Location",
+    color: "hsl(217, 91%, 60%)", // blue-500
+  },
+  details: {
+    label: "Details",
+    color: "hsl(43, 96%, 47%)", // yellow-500
+  },
+  cancelledDros: {
+    label: "Cancelled DROS",
+    color: "hsl(0, 84%, 60%)", // red-500
+  },
+} satisfies ChartConfig;
+
 const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
   data = [],
   isLoading = false,
@@ -45,15 +72,14 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
 
     const startDate = startOfMonth(selectedDate);
     const endDate = endOfMonth(selectedDate);
-    
-    const filteredData = data.filter(audit => {
+
+    const filteredData = data.filter((audit) => {
       const transDate = new Date(audit.trans_date);
       return transDate >= startDate && transDate <= endDate;
     });
 
     const auditsByDate = new Map<string, ChartDataPoint>();
 
-    // Process each audit entry
     filteredData.forEach((audit) => {
       if (!audit.trans_date) return;
 
@@ -64,10 +90,9 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
         details: 0,
         cancelledDros: 0,
         error_locations: [],
-        error_details: []
+        error_details: [],
       };
 
-      // Increment counters and store error details
       if (audit.error_location) {
         existingData.location += 1;
         existingData.error_locations.push(audit.error_location);
@@ -102,108 +127,98 @@ const AuditDetailsChart: React.FC<AuditDetailsChartProps> = ({
       </CardHeader>
       <CardContent className="pt-6">
         <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="location" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="details" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#EAB308" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#EAB308" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="cancelledDros" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[400px] w-full"
+          >
+            <BarChart data={chartData}>
+              <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="date"
                 tickFormatter={(date) => format(new Date(date), "MMM d")}
                 tickMargin={8}
                 minTickGap={20}
+                tickLine={false}
+                axisLine={false}
               />
               <YAxis />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--background)",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  padding: "12px",
-                  maxWidth: "400px",
-                  whiteSpace: "normal"
-                }}
-                labelFormatter={(label) => format(new Date(label), "MMMM d, yyyy")}
-                itemSorter={() => -1}
-                formatter={(value: number, name: string, props: any) => {
-                  const item = props.payload;
-                  switch (name) {
-                    case "Location":
-                      return [
-                        <div key="location" className="space-y-1">
-                          <div className="font-semibold">{`${value} Location Errors:`}</div>
-                          {item.error_locations.map((loc: string, index: number) => (
-                            <div key={index} className="pl-2 border-l-2 border-blue-500">
-                              {loc}
-                            </div>
-                          ))}
-                        </div>,
-                        ""
-                      ];
-                    case "Details":
-                      return [
-                        <div key="details" className="space-y-1">
-                          <div className="font-semibold">{`${value} Detail Errors:`}</div>
-                          {item.error_details.map((detail: string, index: number) => (
-                            <div key={index} className="pl-2 border-l-2 border-yellow-500">
-                              {detail}
-                            </div>
-                          ))}
-                        </div>,
-                        ""
-                      ];
-                    case "Cancelled DROS":
-                      return [`${value} Cancelled DROS`, ""];
-                    default:
-                      return [value, ""];
-                  }
-                }}
-                wrapperStyle={{ zIndex: 1000 }}
-              />
-              <Legend />
+              <ChartTooltip
+                content={({
+                  active,
+                  payload,
+                  label,
+                }: TooltipProps<ValueType, NameType>) => {
+                  if (!active || !payload) return null;
+                  const item = payload[0]?.payload as ChartDataPoint;
+                  if (!item) return null;
 
-              <Area
-                type="monotone"
+                  return (
+                    <div className="space-y-2 rounded-lg border bg-background p-2 shadow-sm">
+                      <div className="font-semibold">
+                        {format(new Date(item.date), "MMMM d, yyyy")}
+                      </div>
+                      {item.location > 0 && (
+                        <div className="space-y-1">
+                          <div className="font-semibold">{`${item.location} Location Errors:`}</div>
+                          {item.error_locations.map(
+                            (loc: string, index: number) => (
+                              <div
+                                key={index}
+                                className="pl-2 border-l-2 border-blue-500"
+                              >
+                                {loc}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
+                      {item.details > 0 && (
+                        <div className="space-y-1">
+                          <div className="font-semibold">{`${item.details} Detail Errors:`}</div>
+                          {item.error_details.map(
+                            (detail: string, index: number) => (
+                              <div
+                                key={index}
+                                className="pl-2 border-l-2 border-yellow-500"
+                              >
+                                {detail}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
+                      {item.cancelledDros > 0 && (
+                        <div className="space-y-1">
+                          <div className="font-semibold">
+                            {`${item.cancelledDros} Cancelled DROS`}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }}
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar
                 dataKey="location"
-                name="Location"
-                stroke="#3B82F6"
-                fill="url(#location)"
-                stackId="1"
+                stackId="a"
+                fill="var(--color-location)"
+                radius={[4, 4, 0, 0]}
               />
-              <Area
-                type="monotone"
+              <Bar
                 dataKey="details"
-                name="Details"
-                stroke="#EAB308"
-                fill="url(#details)"
-                stackId="1"
+                stackId="a"
+                fill="var(--color-details)"
+                radius={[0, 0, 0, 0]}
               />
-              <Area
-                type="monotone"
+              <Bar
                 dataKey="cancelledDros"
-                name="Cancelled DROS"
-                stroke="#EF4444"
-                fill="url(#cancelledDros)"
-                stackId="1"
+                stackId="a"
+                fill="var(--color-cancelledDros)"
+                radius={[0, 0, 4, 4]}
               />
-            </AreaChart>
-          </ResponsiveContainer>
+            </BarChart>
+          </ChartContainer>
         </div>
       </CardContent>
     </Card>
