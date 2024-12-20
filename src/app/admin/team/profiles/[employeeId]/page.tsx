@@ -46,7 +46,7 @@ import {
   ColumnDef,
   ScheduleData,
 } from "@/app/admin/schedules/columns";
-import { format, parseISO } from "date-fns";
+import { endOfMonth, format, parseISO, startOfMonth } from "date-fns";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import styles from "./profiles.module.css";
@@ -65,6 +65,7 @@ import { WeightedScoringCalculator } from "../../../audits/contest/WeightedScori
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AuditChart from "../../../audits/AuditChart";
+import AuditDetailsChart from "../../../audits/AuditDetailsChart";
 import { HistoricalAuditChart } from "../../../audits/HistoricalAuditChart";
 import { Switch } from "@/components/ui/switch";
 import { createColumnHelper } from "@tanstack/react-table";
@@ -1508,8 +1509,14 @@ const EmployeeProfile = () => {
       Header: "Error Rate",
       accessor: "WeightedErrorRate",
       Cell: ({ row: { original } }: { row: { original: SummaryRowData } }) => (
-        <div className={`text-left align-left ${!original.Qualified ? "text-gray-400 italic" : ""}`}>
-          {original.WeightedErrorRate === null ? "0.00%" : `${original.WeightedErrorRate.toFixed(2)}%`}
+        <div
+          className={`text-left align-left ${
+            !original.Qualified ? "text-gray-400 italic" : ""
+          }`}
+        >
+          {original.WeightedErrorRate === null
+            ? "0.00%"
+            : `${original.WeightedErrorRate.toFixed(2)}%`}
         </div>
       ),
     },
@@ -1518,29 +1525,29 @@ const EmployeeProfile = () => {
   const auditDateMutation = useMutation({
     mutationFn: (date: Date | undefined) => Promise.resolve(date),
     onSuccess: (date) => {
-      queryClient.setQueryData(['auditDateSelection'], date);
+      queryClient.setQueryData(["auditDateSelection"], date);
       if (date) {
         fetchAndCalculateSummary(date);
       }
-    }
+    },
   });
-  
+
   const performanceDateMutation = useMutation({
     mutationFn: (date: Date | undefined) => Promise.resolve(date),
     onSuccess: (date) => {
-      queryClient.setQueryData(['performanceDateSelection'], date);
+      queryClient.setQueryData(["performanceDateSelection"], date);
       setSelectedDate(date || null);
       if (date) {
         fetchAndCalculateSummary(date);
       }
-    }
+    },
   });
-  
+
   const absenceDateMutation = useMutation({
     mutationFn: (date: Date | undefined) => Promise.resolve(date),
     onSuccess: (date) => {
-      queryClient.setQueryData(['absenceDateSelection'], date);
-    }
+      queryClient.setQueryData(["absenceDateSelection"], date);
+    },
   });
 
   const { data: auditDateSelection } = useQuery({
@@ -1644,6 +1651,36 @@ const EmployeeProfile = () => {
     enabled: !!employee?.lanid, // Only run query when we have the lanid
   });
 
+  const auditDetailsQuery = useQuery({
+    queryKey: ['auditDetails', employeeId, auditDateSelection],
+    queryFn: async () => {
+      if (!employee?.lanid || !auditDateSelection) return [];
+      
+      const startDate = startOfMonth(auditDateSelection);
+      const endDate = endOfMonth(auditDateSelection);
+      
+      const { data, error } = await supabase
+        .from('Auditsinput')
+        .select(`
+          dros_number,
+          salesreps,
+          trans_date,
+          error_location,
+          error_details,
+          error_notes,
+          dros_cancel
+        `)
+        .eq('salesreps', employee.lanid)
+        .gte('trans_date', startDate.toISOString())
+        .lte('trans_date', endDate.toISOString())
+        .order('trans_date', { ascending: true });
+  
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!employee?.lanid && !!auditDateSelection
+  });
+
   const pointsCalculationQuery = useQuery({
     queryKey: ["pointsCalculation"],
     queryFn: async () => {
@@ -1686,7 +1723,8 @@ const EmployeeProfile = () => {
     pointsCalculation: PointsCalculation[],
     employee: any
   ): SummaryRowData[] => {
-    if (!employee?.lanid || !employee?.name || !salesData || !auditData) return [];
+    if (!employee?.lanid || !employee?.name || !salesData || !auditData)
+      return [];
 
     try {
       const isOperations = employee.department?.toString() === "Operations";
@@ -2931,7 +2969,7 @@ const EmployeeProfile = () => {
 
                     <TabsContent value="audits">
                       <h1 className="text-xl font-bold mb-2 ml-2">
-                        <TextGenerateEffect words="Sales Insight" />
+                        <TextGenerateEffect words="Audits" />
                       </h1>
                       <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                         <Card className="mt-4">
@@ -2939,7 +2977,6 @@ const EmployeeProfile = () => {
                             <CardTitle className="text-2xl font-bold mb-6">
                               Select A Date
                             </CardTitle>
-                            {/* Add any icons or elements you want here */}
                           </CardHeader>
                           <CardContent>
                             <Popover>
@@ -3049,6 +3086,12 @@ const EmployeeProfile = () => {
                         </Card>
                       </div>
 
+                      <AuditDetailsChart
+                        data={auditDetailsQuery.data || []}
+                        isLoading={auditDetailsQuery.isLoading}
+                        selectedDate={auditDateSelection}
+                      />
+
                       <Card>
                         <CardContent>
                           <table className="w-full">
@@ -3101,11 +3144,13 @@ const EmployeeProfile = () => {
                           </table>
                         </CardContent>
                       </Card>
+
+                      
                     </TabsContent>
 
                     <TabsContent value="performance">
                       <h1 className="text-xl font-bold mb-2 ml-2">
-                        <TextGenerateEffect words="Monthly Sales" />
+                        <TextGenerateEffect words="Sales Performance Insight" />
                       </h1>
 
                       {/* Controls Grid */}
