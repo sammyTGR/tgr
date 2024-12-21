@@ -62,6 +62,9 @@ function CorrectionDocs({ className }: { className?: string }) {
                 Current & Valid Guard Card + Exposed Carry Card With Current
                 Physical Address
               </li>
+              <ul className="list-none list-inside pl-4">
+                <li>- Both Must Have The Same Address</li>
+              </ul>
               <li>
                 Most Recent Property Tax Bill (Meets ATF Federal Req), With One
                 Of The Following:
