@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,10 +16,221 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/utils/supabase/client";
+import { useMemo } from "react";
+import { useForm, UseFormSetValue } from "react-hook-form";
+
+type FormData = {
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  suffix?: string;
+  streetAddress: string;
+  zipCode: string;
+  city: string;
+  state: string;
+  gender: string;
+  hairColor: string;
+  eyeColor: string;
+  heightFeet: string;
+  heightInches: string;
+  weight?: string;
+  dateOfBirth: string;
+  idType: string;
+  idNumber: string;
+  race: string;
+  isUsCitizen: string;
+  placeOfBirth: string;
+  phoneNumber?: string;
+  aliasFirstName?: string;
+  aliasMiddleName?: string;
+  aliasLastName?: string;
+  aliasSuffix?: string;
+  hscFscNumber?: string;
+  exemptionCode: string;
+  eligibilityQ1: string;
+  eligibilityQ2: string;
+  eligibilityQ3: string;
+  eligibilityQ4: string;
+  isGunShowTransaction: string;
+  waitingPeriodExemption?: string;
+  restrictionExemption?: string;
+  make: string;
+  model: string;
+  serialNumber: string;
+  otherNumber?: string;
+  color: string;
+  isNewGun: string;
+  firearmSafetyDevice: string;
+  comments?: string;
+};
+
+type ZipCodeData = {
+  primary_city: string;
+  state: string;
+  acceptable_cities: string[] | null;
+};
+
+const initialFormState: Partial<FormData> = {
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  suffix: "",
+  streetAddress: "",
+  zipCode: "",
+  city: "",
+  state: "",
+  gender: "",
+  hairColor: "",
+  eyeColor: "",
+  heightFeet: "",
+  heightInches: "",
+  weight: "",
+  dateOfBirth: "",
+  idType: "",
+  idNumber: "",
+  race: "",
+  isUsCitizen: "",
+  placeOfBirth: "",
+  phoneNumber: "",
+  aliasFirstName: "",
+  aliasMiddleName: "",
+  aliasLastName: "",
+  aliasSuffix: "",
+  hscFscNumber: "",
+  exemptionCode: "",
+  eligibilityQ1: "",
+  eligibilityQ2: "",
+  eligibilityQ3: "",
+  eligibilityQ4: "",
+  isGunShowTransaction: "",
+  waitingPeriodExemption: "",
+  restrictionExemption: "",
+  make: "",
+  model: "",
+  serialNumber: "",
+  otherNumber: "",
+  color: "",
+  isNewGun: "",
+  firearmSafetyDevice: "",
+  comments: "",
+};
+
+const useZipCodeLookup = (
+  zipCode: string,
+  setValue: UseFormSetValue<FormData>
+) => {
+  return useQuery({
+    queryKey: ["zipCode", zipCode],
+    queryFn: async (): Promise<ZipCodeData | null> => {
+      if (zipCode.length !== 5) return null;
+
+      const { data, error } = await supabase
+        .from("zip_codes")
+        .select("primary_city, state, acceptable_cities")
+        .eq("zip", zipCode)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setValue("city", data.primary_city, { shouldValidate: true });
+        setValue("state", data.state, { shouldValidate: true });
+      }
+
+      return data;
+    },
+    enabled: zipCode?.length === 5,
+    staleTime: 30000, // Cache results for 30 seconds
+  });
+};
+
+interface HandgunRoster {
+  [make: string]: string[];
+}
+
+const useHandgunDetails = (make: string, model: string) => {
+  return useQuery({
+    queryKey: ["handgunDetails", make, model],
+    queryFn: async () => {
+      if (!make || !model) return null;
+      const response = await fetch(
+        `/api/fetchRoster?make=${make}&model=${model}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    },
+    enabled: !!make && !!model,
+  });
+};
 
 const DealerHandgunSalePage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues: initialFormState,
+    mode: "onBlur",
+    reValidateMode: "onBlur",
+  });
+
+  // Watch the zipCode field
+  const zipCode = watch("zipCode");
+
+  // Pass setValue to the hook
+  const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
+    zipCode || "",
+    setValue
+  );
+
+  // Replace form state management with react-hook-form
+  const onSubmit = (data: FormData) => {
+    submitForm(data);
+  };
+
+  // Form submission mutation
+  const { mutate: submitForm, isPending: isSubmitting } = useMutation({
+    mutationFn: async (data: FormData) => {
+      const response = await fetch("/api/dealerHandgun", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to submit form");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Form submitted successfully" });
+      router.push("/TGR/dros/training");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Dialog state mutation
+  const { data: isDialogOpen, mutate: setDialogOpen } = useMutation({
+    mutationKey: ["previewDialog"],
+    mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
+  });
 
   const { mutate: handleReset } = useMutation({
     mutationFn: () => Promise.resolve(),
@@ -47,8 +257,19 @@ const DealerHandgunSalePage = () => {
     queryFn: async () => {
       // Replace with your actual API call
       return {
-        genders: ["Male", "Female"],
-        eyeColors: ["Brown", "Blue", "Green", "Hazel"],
+        genders: ["Male", "Female", "Nonbinary / Unspecified"],
+        eyeColors: [
+          "BLACK",
+          "BLUE",
+          "BROWN",
+          "GRAY",
+          "GREEN",
+          "HAZEL",
+          "MAROON",
+          "MULTICOLOR",
+          "PINK",
+          "UNKNOWN",
+        ],
         exemptionCodes: [
           "X01 SPECIAL WEAPONS PERMIT",
           "X02 OPERATION OF LAW REPRESENTATIVE",
@@ -107,19 +328,34 @@ const DealerHandgunSalePage = () => {
           "OEM",
           "SAFE AFFIDAVIT",
         ],
-        hairColors: ["Black", "Brown", "Blonde", "Red"],
-        heightFeet: ["4", "5", "6", "7", "8", "9", "10", "11", "12"],
+        hairColors: [
+          "BALD",
+          "BLACK",
+          "BLONDE",
+          "BLUE",
+          "BROWN",
+          "GRAY",
+          "GREEN",
+          "ORANGE",
+          "PINK",
+          "PURPLE",
+          "RED",
+          "SANDY",
+          "UNKNOWN",
+          "WHITE",
+        ],
+        heightFeet: ["3", "4", "5", "6", "7", "8"],
         heightInches: [
-          "0",
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
+          "00",
+          "01",
+          "02",
+          "03",
+          "04",
+          "05",
+          "06",
+          "07",
+          "08",
+          "09",
           "10",
           "11",
         ],
@@ -127,11 +363,377 @@ const DealerHandgunSalePage = () => {
         placesOfBirth: [
           "AFGHANISTAN",
           "AGUASCALIENTES",
-          "TEXAS",
-          "CALIFORNIA",
+          "ALABAMA",
+          "ALASKA",
+          "ALBANIA",
           "ALBERTA",
+          "ALGERIA",
+          "AMERICAN SAMOA ISLANDS",
+          "ANDORRA",
+          "ANGOLA",
+          "ANGUILLA",
+          "ANTIGUA",
+          "ARGENTINA",
+          "ARIZONA",
+          "ARKANSAS",
+          "ARMENIA",
+          "ARUBA",
+          "ASHMORE AND CARTIER ISLANDS",
+          "AUSTRALIA",
+          "AUSTRIA",
+          "AZERBAIJAN",
+          "AZORES ISLANDS",
+          "BAHAMAS",
+          "BAHRAIN",
+          "BAJA CALIFORNIA NORTE",
+          "BAJA CALIFORNIA SUR",
+          "BAKER ISLAND",
+          "BALEARIC ISLANDS",
+          "BANGLADESH",
+          "BARBADOS",
+          "BASSAS DA INDIA",
+          "BELGIUM",
+          "BELIZE",
+          "BENIN",
+          "BERMUDA",
+          "BHUTAN",
+          "BOLIVIA",
+          "BOSNIA HERCEGOVENA",
+          "BOTSWANA",
+          "BOUVET ISLAND",
+          "BRAZIL",
+          "BRITISH COLUMBIA",
+          "BRITISH INDIAN OCEAN TERR",
+          "BRITISH VIRGIN ISLANDS",
+          "BRUNEI",
+          "BULGARIA",
+          "BURKINA FASO",
+          "BURMA",
+          "BURUNDI",
+          "BYELARUS",
+          "CALIFORNIA",
+          "CAMBODIA (KHMER AND KAMPUCHEA)",
+          "CAMEROON",
+          "CAMPECHE",
+          "CANADA",
+          "CANAL ZONE",
+          "CANARY ISLANDS",
+          "CAPE VERDE ISLANDS",
+          "CAROLINE ISLANDS",
+          "CAYMAN ISLANDS",
+          "CENTRAL AFRICAN REPUBLIC",
+          "CHAD",
+          "CHIAPAS",
+          "CHIHUAHUA",
+          "CHILE",
+          "CHRISTMAS ISLAND",
+          "CLIPPERTON ISLAND",
+          "COAHUILA",
+          "COCOS (KEELING) ISLANDS",
+          "COLIMA",
+          "COLOMBIA",
+          "COLORADO",
+          "COMOROS ISLANDS",
+          "CONNECTICUT",
+          "COOK ISLANDS",
+          "CORAL SEA ISLANDS",
+          "COSTA RICA",
+          "CROATIA",
+          "CUBA",
+          "CYPRUS",
+          "CZECH REPUBLIC",
+          "DELAWARE",
+          "DENMARK",
+          "DISTRICT OF COLUMBIA",
+          "DISTRITO FEDERAL",
+          "DJIBOUTI",
+          "DOMINICA",
+          "DOMINICAN REPUBLIC",
+          "DURANGO",
+          "EAST GERMANY",
+          "ECUADOR",
+          "EGYPT",
+          "EL SALVADOR",
+          "ENGLAND",
+          "EQUATORIAL GUINEA",
+          "ERETRIA",
+          "ESTONIA",
+          "ETHIOPIA",
+          "EUROPA ISLAND",
+          "FALKLAND ISLANDS",
+          "FAROE ISLANDS",
+          "FEDERATED STATES OF MICRONESIA",
+          "FIJI",
+          "FINLAND",
+          "FLORIDA",
+          "FRANCE",
+          "FRENCH GUIANA",
+          "FRENCH POLYNESIA",
+          "FRENCH SOUTHERN AND ANTARTIC LANDS",
+          "GABON",
+          "GAMBIA",
+          "GAZA",
+          "GEORGIA (COUNTRY)",
+          "GEORGIA (STATE)",
+          "GERMANY",
+          "GHANA",
+          "GIBRALTAR",
+          "GREECE",
+          "GREENLAND",
+          "GRENADA",
+          "GUADELOUPE",
           "GUAM",
+          "GUANAJUATO",
+          "GUATEMALA",
+          "GUERNSEY",
+          "GUERRERO",
+          "GUINEA",
+          "GUINEA/BISSAU",
+          "GUYANA",
+          "HAITI",
+          "HAWAII",
+          "HEARD ISLAND & MCDONALD ISLAND",
+          "HIDALGO",
+          "HONDURAS",
+          "HONG KONG",
+          "HOWLAND ISLAND",
+          "HUNGARY",
+          "ICELAND",
+          "IDAHO",
+          "ILLINOIS",
+          "INDIA",
+          "INDIANA",
+          "INDONESIA",
+          "IOWA",
+          "IRAN",
+          "IRAQ",
+          "IRELAND (NOT NORTHERN IRELAND)",
+          "ISLE OF MAN",
+          "ISRAEL",
+          "ITALY",
+          "IVORY COAST",
+          "JALISCO",
+          "JAMAICA",
+          "JAN MAYEN",
+          "JAPAN",
+          "JARVIS ISLAND",
+          "JERSEY",
+          "JOHNSTON ISLANDS",
+          "JORDAN",
+          "JUAN DE NOVA ISLAND",
+          "KANSAS",
+          "KAZAKHSTAN",
+          "KENTUCKY",
+          "KENYA",
+          "KINGMAN REEF",
+          "KIRIBATI",
+          "KOSOVO",
+          "KUWAIT",
+          "KYRGYZSTAN",
+          "LAOS",
+          "LATVIA",
+          "LEBANON",
+          "LESOTHO",
+          "LIBERIA",
+          "LIBYA",
+          "LIECHTENSTEIN",
+          "LITHUANIA",
+          "LOUISIANA",
+          "LUXEMBOURG",
+          "MACAU",
+          "MADEIRA ISLANDS",
+          "MAINE",
+          "MALAGASY REPUBLIC",
+          "MALAWI",
+          "MALAYSIA",
+          "MALDIVES",
+          "MALI",
+          "MALTA",
+          "MANAHIKI ISLAND",
+          "MANITOBA",
+          "MARIANA ISLANDS",
+          "MARSHALL ISLANDS",
+          "MARTINIQUE",
+          "MARYLAND",
+          "MASSACHUSETTS",
+          "MAURITANIA",
+          "MAURITIUS",
+          "MAYOTTE",
+          "MEXICO",
+          "MICHIGAN",
+          "MICHOACAN",
+          "MIDWAY ISLANDS",
+          "MINNESOTA",
+          "MISSISSIPPI",
+          "MISSOURI",
+          "MOLDOVA",
+          "MONACO",
+          "MONGOLIA",
+          "MONTANA",
+          "MONTSERRAT",
+          "MORELOS",
+          "MOROCCO",
+          "MOZAMBIQUE",
+          "NAMIBIA/SOUTHWEST AFRICA",
+          "NAURU",
+          "NAVASSA ISLAND",
+          "NAYARIT",
+          "NEBRASKA",
+          "NEPAL",
+          "NETHERLANDS",
+          "NETHERLANDS ANTILLES",
+          "NEVADA",
+          "NEVIS/SAINT CHRISTOPHER/SAINT KITTS",
+          "NEW BRUNSWICK",
+          "NEW CALEDONIA",
+          "NEW HAMPSHIRE",
+          "NEW JERSEY",
+          "NEW MEXICO",
+          "NEW YORK",
+          "NEW ZEALAND",
+          "NEWFOUNDLAND",
+          "NICARAGUA",
+          "NIGER",
+          "NIGERIA",
+          "NORFOLK ISLAND",
+          "NORTH CAROLINA",
+          "NORTH DAKOTA",
+          "NORTH KOREA",
+          "NORTH VIETNAM",
+          "NORTHERN IRELAND",
+          "NORTHWEST TERRITORIES",
+          "NORWAY",
+          "NOVA SCOTIA",
+          "NUEVO LEON",
+          "OAXACA",
+          "OHIO",
+          "OKINAWA",
+          "OKLAHOMA",
+          "OMAN",
+          "ONTARIO",
+          "OREGON",
+          "OTHER NOT LISTED",
+          "PAKISTAN",
+          "PALAU, REPUBLIC OF",
+          "PALMYRA ATOLL",
+          "PANAMA",
+          "PAPUA NEW GUINEA",
+          "PARAGUAY",
+          "PARCEL ISLANDS",
+          "PENNSYLVANIA",
+          "PEOPLES REPUBLIC OF CHINA",
+          "PERU",
+          "PHILIPPINES",
+          "PITCAIRN HENDERSON DUCIE OENO",
+          "POLAND",
+          "PORTUGAL",
+          "PRINCE EDWARD ISLAND",
+          "PUEBLA",
           "PUERTO RICO",
+          "QATAR",
+          "QUEBEC",
+          "QUERETARO",
+          "QUINTANA ROO",
+          "REPUBLIC OF CONGO/BRAZZAVILLE",
+          "REPUBLIC OF MACEDONIA",
+          "REPUBLIC OF YEMEN",
+          "REUNION",
+          "RHODE ISLAND",
+          "ROMANIA/RUMANIA",
+          "RUSSIA (FORMERLY USSR)",
+          "RUSSIAN FEDERATION",
+          "RWANDA",
+          "SAINT HELENA",
+          "SAINT LUCIA",
+          "SAINT PIERRE/MIGUELON",
+          "SAINT VINCENT",
+          "SAN LUIS POTOSI",
+          "SAN MARINO",
+          "SAO TOMER/PRINCIPE",
+          "SASKATCHEWAN",
+          "SAUDI ARABIA",
+          "SCOTLAND",
+          "SENEGAL",
+          "SERBIA",
+          "SEYCHELLES",
+          "SIERRA LEONE",
+          "SINALOA",
+          "SINGAPORE",
+          "SLOVAKIA",
+          "SLOVENIA",
+          "SOCIALIST REPUBLIC OF VIETNAM",
+          "SOLOMON ISLANDS",
+          "SOMALIA",
+          "SONORA",
+          "SOUTH AFRICA",
+          "SOUTH CAROLINA",
+          "SOUTH DAKOTA",
+          "SOUTH GEORGIA & SOUTH SANDWICH ISLAN",
+          "SOUTH KOREA",
+          "SPAIN",
+          "SPRATLY ISLANDS",
+          "SRI LANKA (CEYLON)",
+          "SUDAN",
+          "SURINAM",
+          "SVALBARD",
+          "SWAZILAND",
+          "SWEDEN",
+          "SWITZERLAND",
+          "SYRIA",
+          "TABASCO",
+          "TAIWAN",
+          "TAJIKISTAN",
+          "TAMAULIPAS",
+          "TANZANIA",
+          "TENNESSEE",
+          "TEXAS",
+          "THAILAND",
+          "TLAXCALA",
+          "TOGO",
+          "TOKELAU",
+          "TONGA",
+          "TONGAREVA ISLAND",
+          "TRINIDAD/TOBAGO",
+          "TROMELIN ISLAND",
+          "TRUST TERRITORY OF PACIFIC ISLANDS",
+          "TUAMOTU ARCHIPELAGO",
+          "TUNISIA",
+          "TURKEY",
+          "TURKMENISTAN",
+          "TURKS/CALCOS ISLANDS",
+          "TUVALU",
+          "UGANDA",
+          "UKRAINE",
+          "UNITED ARAB EMIRATES",
+          "UNITED STATES OF AMERICA",
+          "URUGUAY",
+          "US VIRGIN ISLANDS",
+          "UTAH",
+          "UZBEKISTAN",
+          "VANTUATU",
+          "VATICAN CITY",
+          "VENEZUELA",
+          "VERACRUZ",
+          "VERMONT",
+          "VIRGINIA",
+          "WAKE ISLAND",
+          "WALES",
+          "WALLIS AND FUTUNA",
+          "WASHINGTON",
+          "WEST BANK",
+          "WEST GERMANY",
+          "WEST INDIES",
+          "WEST VIRGINIA",
+          "WESTERN SAHARA",
+          "WESTERN SAMOA",
+          "WISCONSIN",
+          "WYOMING",
+          "YUCATAN",
+          "YUGOSLAVIA",
+          "YUKON TERRITORY",
+          "ZACATECAS",
+          "ZAIRE",
+          "ZAMBIA",
           "ZIMBABWE",
         ],
         restrictionsExemptions: [
@@ -214,14 +816,13 @@ const DealerHandgunSalePage = () => {
           "SAMOAN",
           "VIETNAMESE",
           "UNKNOWN",
-          "VIETNAMESE",
           "WHITE",
         ],
       };
     },
   });
 
-  // New query for handgun roster data
+  // Update the handgun roster query
   const { data: handgunData, isLoading: isLoadingHandguns } = useQuery({
     queryKey: ["handgunRoster"],
     queryFn: async () => {
@@ -233,14 +834,131 @@ const DealerHandgunSalePage = () => {
     },
   });
 
-  // Mutation for selected make (instead of useState)
-  const { data: selectedMake, mutate: setSelectedMake } = useMutation({
-    mutationFn: (make: string) => Promise.resolve(make),
+  // Watch the make and model fields
+  const selectedMake = watch("make");
+  const selectedModel = watch("model");
+
+  // Update the handgun details query
+  const { data: handgunDetails } = useQuery({
+    queryKey: ["handgunDetails", selectedMake, selectedModel],
+    queryFn: async () => {
+      if (!selectedMake || !selectedModel) return null;
+      const response = await fetch(
+        `/api/fetchRoster?make=${selectedMake}&model=${selectedModel}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    },
+    enabled: !!selectedMake && !!selectedModel,
   });
 
   // Get models for selected manufacturer
-  const models =
-    selectedMake && handgunData ? handgunData[selectedMake].sort() : [];
+  const models = useMemo(() => {
+    if (!handgunData || !selectedMake) return [];
+    return handgunData[selectedMake]?.sort() || [];
+  }, [handgunData, selectedMake]);
+
+  // Mutation for selected make (instead of useState)
+  const { mutate: setSelectedMake } = useMutation({
+    mutationKey: ["selectedMake"],
+    mutationFn: async (make: string) => {
+      // First update the form state
+      const updatedForm = {
+        ...initialFormState,
+        make: make,
+        model: "",
+      } as Partial<FormData>;
+
+      setValue("make", make);
+      setValue("model", "");
+      return make;
+    },
+  });
+
+  // Preview Dialog Component
+  const PreviewDialog = () => {
+    const formValues = watch(); // Get all current form values
+
+    return (
+      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger asChild>
+          <Button>Preview</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Preview Submission</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h3 className="font-bold">Purchaser Information</h3>
+                <p>
+                  Name: {formValues.firstName} {formValues.middleName}{" "}
+                  {formValues.lastName} {formValues.suffix}
+                </p>
+                <p>Address: {formValues.streetAddress}</p>
+                <p>
+                  Location: {formValues.city}, {formValues.state}{" "}
+                  {formValues.zipCode}
+                </p>
+                <p>Phone: {formValues.phoneNumber}</p>
+                <p>ID Type: {formValues.idType}</p>
+                <p>ID Number: {formValues.idNumber}</p>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-bold">Physical Characteristics</h3>
+                <p>Gender: {formValues.gender}</p>
+                <p>Hair Color: {formValues.hairColor}</p>
+                <p>Eye Color: {formValues.eyeColor}</p>
+                <p>
+                  Height: {formValues.heightFeet}'{formValues.heightInches}"
+                </p>
+                <p>Weight: {formValues.weight} lbs</p>
+                <p>Date of Birth: {formValues.dateOfBirth}</p>
+                <p>Race: {formValues.race}</p>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-bold">Firearm Information</h3>
+                <p>Make: {formValues.make}</p>
+                <p>Model: {formValues.model}</p>
+                <p>Serial Number: {formValues.serialNumber}</p>
+                <p>Other Number: {formValues.otherNumber}</p>
+                <p>Color: {formValues.color}</p>
+                <p>
+                  Condition: {formValues.isNewGun === "new" ? "New" : "Used"}
+                </p>
+                <p>Safety Device: {formValues.firearmSafetyDevice}</p>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-bold">Additional Information</h3>
+                <p>Gun Show Transaction: {formValues.isGunShowTransaction}</p>
+                <p>
+                  Waiting Period Exemption: {formValues.waitingPeriodExemption}
+                </p>
+                <p>Restriction Exemption: {formValues.restrictionExemption}</p>
+                <p>Comments: {formValues.comments}</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 mt-4">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Edit
+              </Button>
+              <Button
+                onClick={() => submitForm(formValues)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Confirm & Submit"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
@@ -269,10 +987,7 @@ const DealerHandgunSalePage = () => {
               <Input
                 type="text"
                 placeholder="Swipe or enter ID"
-                onChange={(e) => {
-                  const sanitizedValue = DOMPurify.sanitize(e.target.value);
-                  // Handle the sanitized value
-                }}
+                {...register("idNumber")}
               />
             </div>
           </div>
@@ -283,21 +998,21 @@ const DealerHandgunSalePage = () => {
               <Label htmlFor="firstName" className="required">
                 Purchaser First Name
               </Label>
-              <Input id="firstName" required />
+              <Input {...register("firstName")} id="firstName" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="middleName">Purchaser Middle Name</Label>
-              <Input id="middleName" />
+              <Input {...register("middleName")} id="middleName" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName" className="required">
                 Purchaser Last Name
               </Label>
-              <Input id="lastName" required />
+              <Input {...register("lastName")} id="lastName" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="suffix">Suffix</Label>
-              <Input id="suffix" />
+              <Input {...register("suffix")} id="suffix" />
             </div>
           </div>
 
@@ -307,13 +1022,68 @@ const DealerHandgunSalePage = () => {
               <Label htmlFor="address" className="required">
                 Purchaser Street Address
               </Label>
-              <Input id="address" required />
+              <Input {...register("streetAddress")} id="address" required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="zipCode" className="required">
-                Zip Code
-              </Label>
-              <Input id="zipCode" required maxLength={5} />
+            <div className="flex gap-4 items-start">
+              <div className="space-y-2">
+                <Label>Zip Code</Label>
+                <Input
+                  {...register("zipCode", {
+                    onChange: (e) => {
+                      const value = e.target.value
+                        .slice(0, 5)
+                        .replace(/\D/g, "");
+                      e.target.value = value;
+                    },
+                    maxLength: 5,
+                  })}
+                  className="w-24"
+                />
+              </div>
+
+              {zipCode?.length === 5 && (
+                <>
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Select
+                      {...register("city")}
+                      onValueChange={(value) => setValue("city", value)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select city" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {zipData?.primary_city && (
+                          <SelectItem value={zipData.primary_city}>
+                            {zipData.primary_city}
+                          </SelectItem>
+                        )}
+                        {zipData?.acceptable_cities?.map((city) => (
+                          <SelectItem
+                            key={city}
+                            value={city}
+                            className={
+                              city === zipData?.primary_city ? "hidden" : ""
+                            }
+                          >
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>State</Label>
+                    <Input
+                      {...register("state")}
+                      value={zipData?.state || ""}
+                      disabled
+                      className="w-16 bg-muted"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -321,7 +1091,10 @@ const DealerHandgunSalePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label className="required">Gender</Label>
-              <Select>
+              <Select
+                {...register("gender")}
+                onValueChange={(value) => setValue("gender", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
@@ -337,7 +1110,10 @@ const DealerHandgunSalePage = () => {
 
             <div className="space-y-2">
               <Label className="required">Hair Color</Label>
-              <Select>
+              <Select
+                {...register("hairColor")}
+                onValueChange={(value) => setValue("hairColor", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Color" />
                 </SelectTrigger>
@@ -353,7 +1129,10 @@ const DealerHandgunSalePage = () => {
 
             <div className="space-y-2">
               <Label className="required">Eye Color</Label>
-              <Select>
+              <Select
+                {...register("eyeColor")}
+                onValueChange={(value) => setValue("eyeColor", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Color" />
                 </SelectTrigger>
@@ -370,25 +1149,31 @@ const DealerHandgunSalePage = () => {
             <div className="space-y-2">
               <Label className="required">Height (Feet / Inches)</Label>
               <div className="flex gap-2">
-                <Select>
+                <Select
+                  {...register("heightFeet")}
+                  onValueChange={(value) => setValue("heightFeet", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Feet" />
                   </SelectTrigger>
                   <SelectContent>
                     {formData?.heightFeet.map((feet) => (
-                      <SelectItem key={feet} value={feet.toLowerCase()}>
+                      <SelectItem key={feet} value={feet}>
                         {feet}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select>
+                <Select
+                  {...register("heightInches")}
+                  onValueChange={(value) => setValue("heightInches", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Inches" />
                   </SelectTrigger>
                   <SelectContent>
                     {formData?.heightInches.map((inches) => (
-                      <SelectItem key={inches} value={inches.toLowerCase()}>
+                      <SelectItem key={inches} value={inches}>
                         {inches}
                       </SelectItem>
                     ))}
@@ -399,23 +1184,23 @@ const DealerHandgunSalePage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="weight">Weight</Label>
-              <Input id="weight" />
+              <Input {...register("weight")} id="weight" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
-              <Input id="dob" />
+              <Input {...register("dateOfBirth")} id="dob" type="date" />
             </div>
-
-            {/* Add remaining fields similarly */}
-            {/* Height, Weight, DOB fields */}
           </div>
 
           {/* ID Information */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label className="required">Purchaser ID Type</Label>
-              <Select>
+              <Select
+                {...register("idType")}
+                onValueChange={(value) => setValue("idType", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select ID Type" />
                 </SelectTrigger>
@@ -431,12 +1216,15 @@ const DealerHandgunSalePage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="purchaserId">Purchaser ID Number</Label>
-              <Input id="purchaserId" />
+              <Input {...register("idNumber")} id="purchaserId" />
             </div>
 
             <div className="space-y-2">
               <Label className="required">Race</Label>
-              <Select>
+              <Select
+                {...register("race")}
+                onValueChange={(value) => setValue("race", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Race" />
                 </SelectTrigger>
@@ -452,7 +1240,10 @@ const DealerHandgunSalePage = () => {
 
             <div className="space-y-2">
               <Label className="required">U.S. Citizen</Label>
-              <Select>
+              <Select
+                {...register("isUsCitizen")}
+                onValueChange={(value) => setValue("isUsCitizen", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
@@ -470,7 +1261,10 @@ const DealerHandgunSalePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="required">Place of Birth</Label>
-              <Select>
+              <Select
+                {...register("placeOfBirth")}
+                onValueChange={(value) => setValue("placeOfBirth", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Place of Birth" />
                 </SelectTrigger>
@@ -486,46 +1280,50 @@ const DealerHandgunSalePage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Telephone Number</Label>
-              <Input id="phoneNumber" />
+              <Input {...register("phoneNumber")} id="phoneNumber" />
               <div className="text-sm text-gray-500">
                 (Format as: ##########)
               </div>
             </div>
           </div>
 
+          {/* Alias Information */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="aliasFirstName">Purchaser Alias First Name</Label>
-              <Input id="aliasFirstName" />
+              <Input {...register("aliasFirstName")} id="aliasFirstName" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="aliasMiddleName">
                 Purchaser Alias Middle Name
               </Label>
-              <Input id="aliasMiddleName" />
+              <Input {...register("aliasMiddleName")} id="aliasMiddleName" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="aliasLastName">Purchaser Alias Last Name</Label>
-              <Input id="aliasLastName" />
+              <Input {...register("aliasLastName")} id="aliasLastName" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
-              <Input id="aliasSuffix" />
+              <Input {...register("aliasSuffix")} id="aliasSuffix" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
-              <Input id="hscFscNumber" />
+              <Input {...register("hscFscNumber")} id="hscFscNumber" />
             </div>
 
             <div className="space-y-2">
               <Label className="required">HSC / FSX Exemption Code</Label>
-              <Select>
+              <Select
+                {...register("exemptionCode")}
+                onValueChange={(value) => setValue("exemptionCode", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Exemption Code" />
                 </SelectTrigger>
@@ -539,6 +1337,7 @@ const DealerHandgunSalePage = () => {
               </Select>
             </div>
           </div>
+
           {/* Eligibility Questions */}
           <div className="space-y-6">
             <CardContent className="space-y-6">
@@ -557,7 +1356,10 @@ const DealerHandgunSalePage = () => {
                   offense specified in PC 29805 and is not 30 years of age or
                   older?
                 </Label>
-                <Select>
+                <Select
+                  {...register("eligibilityQ1")}
+                  onValueChange={(value) => setValue("eligibilityQ1", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -567,6 +1369,7 @@ const DealerHandgunSalePage = () => {
                   </SelectContent>
                 </Select>
               </div>
+
               {/* Question 2 */}
               <div className="space-y-2">
                 <Label className="required block text-sm font-medium">
@@ -580,7 +1383,10 @@ const DealerHandgunSalePage = () => {
                   incompetent to stand trial, or gravely disabled to be placed
                   under a conservatorship?
                 </Label>
-                <Select>
+                <Select
+                  {...register("eligibilityQ2")}
+                  onValueChange={(value) => setValue("eligibilityQ2", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -603,7 +1409,10 @@ const DealerHandgunSalePage = () => {
                   facility as a danger to self or others at least twice within 1
                   year or admitted once within the past 5 years?
                 </Label>
-                <Select>
+                <Select
+                  {...register("eligibilityQ3")}
+                  onValueChange={(value) => setValue("eligibilityQ3", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -624,7 +1433,10 @@ const DealerHandgunSalePage = () => {
                   Order, or a probation condition prohibiting firearm
                   possession?
                 </Label>
-                <Select>
+                <Select
+                  {...register("eligibilityQ4")}
+                  onValueChange={(value) => setValue("eligibilityQ4", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -646,7 +1458,12 @@ const DealerHandgunSalePage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Gun Show Transaction</Label>
-                  <Select>
+                  <Select
+                    {...register("isGunShowTransaction")}
+                    onValueChange={(value) =>
+                      setValue("isGunShowTransaction", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
@@ -658,7 +1475,12 @@ const DealerHandgunSalePage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Waiting Period Exemption</Label>
-                  <Select>
+                  <Select
+                    {...register("waitingPeriodExemption")}
+                    onValueChange={(value) =>
+                      setValue("waitingPeriodExemption", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Waiting Period Exemption" />
                     </SelectTrigger>
@@ -677,7 +1499,12 @@ const DealerHandgunSalePage = () => {
               {/* 30-Day Restriction Row */}
               <div className="space-y-2">
                 <Label>30-Day Restriction Exemption</Label>
-                <Select>
+                <Select
+                  {...register("restrictionExemption")}
+                  onValueChange={(value) =>
+                    setValue("restrictionExemption", value)
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select 30-Day Restriction Exemption" />
                   </SelectTrigger>
@@ -695,8 +1522,12 @@ const DealerHandgunSalePage = () => {
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
                   <Select
+                    {...register("make")}
                     disabled={isLoadingHandguns}
-                    onValueChange={(value) => setSelectedMake(value)}
+                    onValueChange={(value) => {
+                      setValue("make", value);
+                      setValue("model", ""); // Reset model when make changes
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue
@@ -721,7 +1552,10 @@ const DealerHandgunSalePage = () => {
                 {selectedMake && (
                   <div className="space-y-2">
                     <Label className="required">Model</Label>
-                    <Select>
+                    <Select
+                      {...register("model")}
+                      onValueChange={(value) => setValue("model", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select Model" />
                       </SelectTrigger>
@@ -736,23 +1570,65 @@ const DealerHandgunSalePage = () => {
                   </div>
                 )}
               </div>
+
+              {/* Handgun Details Section */}
+              {handgunDetails && (
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 border rounded-md bg-muted">
+                  <div className="space-y-2">
+                    <Label>Caliber</Label>
+                    <Input value={handgunDetails.caliber || ""} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Barrel Length</Label>
+                    <Input value={handgunDetails.barrelLength || ""} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Unit</Label>
+                    <Input value={handgunDetails.unit || ""} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Material</Label>
+                    <Input value={handgunDetails.material || ""} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Input value={handgunDetails.category || ""} readOnly />
+                  </div>
+                </div>
+              )}
+
               {/* Serial Numbers Row */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Serial Number</Label>
-                  <Input />
+                  <Input {...register("serialNumber")} />
                 </div>
                 <div className="space-y-2">
                   <Label className="required">Re-enter Serial Number</Label>
-                  <Input />
+                  <Input
+                    onChange={(e) => {
+                      const reenteredSerial = e.target.value;
+                      if (reenteredSerial === initialFormState?.serialNumber) {
+                        // Serial numbers match - you could add visual feedback here
+                      } else {
+                        // Serial numbers don't match - you could add visual feedback here
+                      }
+                    }}
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    Please re-enter the serial number to verify
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Other Number</Label>
-                  <Input />
+                  <Input {...register("otherNumber")} />
                 </div>
                 <div className="space-y-2">
                   <Label className="required">Color</Label>
-                  <Select>
+                  <Select
+                    {...register("color")}
+                    onValueChange={(value) => setValue("color", value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Color" />
                     </SelectTrigger>
@@ -770,7 +1646,10 @@ const DealerHandgunSalePage = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="required">New/Used Gun</Label>
-                  <Select>
+                  <Select
+                    {...register("isNewGun")}
+                    onValueChange={(value) => setValue("isNewGun", value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
@@ -784,7 +1663,12 @@ const DealerHandgunSalePage = () => {
                   <Label className="required">
                     Firearm Safety Device (FSD)
                   </Label>
-                  <Select>
+                  <Select
+                    {...register("firearmSafetyDevice")}
+                    onValueChange={(value) =>
+                      setValue("firearmSafetyDevice", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Firearm Safety Device (FSD)" />
                     </SelectTrigger>
@@ -808,15 +1692,13 @@ const DealerHandgunSalePage = () => {
               <div className="space-y-2">
                 <Label>Comments</Label>
                 <Textarea
+                  {...register("comments")}
                   className="w-full min-h-[100px] p-2 border rounded-md"
                   maxLength={200}
-                  onChange={(e) => {
-                    const remaining = 200 - e.target.value.length;
-                    // Update remaining characters count
-                  }}
                 />
                 <div className="text-sm text-gray-500">
-                  200 character limit. Characters remaining: 200
+                  200 character limit. Characters remaining:{" "}
+                  {200 - (initialFormState?.comments?.length || 0)}
                 </div>
               </div>
             </CardContent>
@@ -828,11 +1710,11 @@ const DealerHandgunSalePage = () => {
       <div className="flex justify-center gap-4 mt-6">
         <Button
           variant="outline"
-          onClick={() => handleNavigation("/TGR/dros/training")}
+          onClick={() => router.push("/TGR/dros/training")}
         >
           Back
         </Button>
-        <Button>Preview</Button>
+        <PreviewDialog />
         <Button variant="outline" onClick={() => window.location.reload()}>
           Refresh
         </Button>
