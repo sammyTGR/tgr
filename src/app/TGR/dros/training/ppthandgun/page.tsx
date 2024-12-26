@@ -63,6 +63,7 @@ type FormData = {
   isGunShowTransaction: string;
   waitingPeriodExemption?: string;
   restrictionExemption?: string;
+  frameOnly?: string;
   make: string;
   model: string;
   serialNumber: string;
@@ -72,6 +73,31 @@ type FormData = {
   firearmSafetyDevice: string;
   comments?: string;
   transaction_type: string;
+  sellerFirstName: string;
+  sellerMiddleName: string;
+  sellerLastName: string;
+  sellerSuffix: string;
+  sellerStreetAddress: string;
+  sellerZipCode: string;
+  sellerCity: string;
+  sellerState: string;
+  sellerGender: string;
+  sellerHairColor: string;
+  sellerEyeColor: string;
+  sellerHeightFeet: string;
+  sellerHeightInches: string;
+  sellerWeight: string;
+  sellerDateOfBirth: string;
+  sellerIdType: string;
+  sellerIdNumber: string;
+  sellerRace: string;
+  sellerIsUsCitizen: string;
+  sellerPlaceOfBirth: string;
+  sellerPhoneNumber: string;
+  sellerAliasFirstName: string;
+  sellerAliasMiddleName: string;
+  sellerAliasLastName: string;
+  sellerAliasSuffix: string;
 };
 
 type ZipCodeData = {
@@ -124,6 +150,31 @@ const initialFormState: Partial<FormData> = {
   firearmSafetyDevice: "",
   comments: "",
   transaction_type: "dealer-handgun",
+  sellerFirstName: "",
+  sellerMiddleName: "",
+  sellerLastName: "",
+  sellerSuffix: "",
+  sellerStreetAddress: "",
+  sellerZipCode: "",
+  sellerCity: "",
+  sellerState: "",
+  sellerGender: "",
+  sellerHairColor: "",
+  sellerEyeColor: "",
+  sellerHeightFeet: "",
+  sellerHeightInches: "",
+  sellerWeight: "",
+  sellerDateOfBirth: "",
+  sellerIdType: "",
+  sellerIdNumber: "",
+  sellerRace: "",
+  sellerIsUsCitizen: "",
+  sellerPlaceOfBirth: "",
+  sellerPhoneNumber: "",
+  sellerAliasFirstName: "",
+  sellerAliasMiddleName: "",
+  sellerAliasLastName: "",
+  sellerAliasSuffix: "",
 };
 
 const useZipCodeLookup = (
@@ -155,6 +206,35 @@ const useZipCodeLookup = (
   });
 };
 
+const useSellerZipCodeLookup = (
+  sellerZipCode: string,
+  setValue: UseFormSetValue<FormData>
+) => {
+  return useQuery({
+    queryKey: ["sellerZipCode", sellerZipCode],
+    queryFn: async (): Promise<ZipCodeData | null> => {
+      if (sellerZipCode.length !== 5) return null;
+
+      const { data, error } = await supabase
+        .from("zip_codes")
+        .select("primary_city, state, acceptable_cities")
+        .eq("zip", sellerZipCode)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setValue("sellerCity", data.primary_city, { shouldValidate: true });
+        setValue("sellerState", data.state, { shouldValidate: true });
+      }
+
+      return data;
+    },
+    enabled: sellerZipCode?.length === 5,
+    staleTime: 30000,
+  });
+};
+
 interface HandgunRoster {
   [make: string]: string[];
 }
@@ -174,7 +254,7 @@ const useHandgunDetails = (make: string, model: string) => {
   });
 };
 
-const DealerHandgunSalePage = () => {
+const PptHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -190,14 +270,18 @@ const DealerHandgunSalePage = () => {
     reValidateMode: "onBlur",
   });
 
-  // Watch the zipCode field
+  // Watch both zip code fields
   const zipCode = watch("zipCode");
+  const sellerZipCode = watch("sellerZipCode");
 
-  // Pass setValue to the hook
+  // Use both zip code lookup hooks
   const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
     zipCode || "",
     setValue
   );
+
+  const { data: sellerZipData, isLoading: isSellerZipLoading } =
+    useSellerZipCodeLookup(sellerZipCode || "", setValue);
 
   // Replace form state management with react-hook-form
   const onSubmit = (data: FormData) => {
@@ -823,6 +907,13 @@ const DealerHandgunSalePage = () => {
           "UNKNOWN",
           "WHITE",
         ],
+        waitingPeriodExemption: [
+          "CFD NUMBER",
+          "COLLECTOR",
+          "PEACE OFFICER (LETTER REQUIRED)",
+          "SPECIAL WEAPON PERMIT",
+        ],
+        frameOnly: ["YES", "NO"],
       };
     },
   });
@@ -894,6 +985,7 @@ const DealerHandgunSalePage = () => {
             <DialogTitle>Preview Submission</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Purchaser Information */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <h3 className="font-bold">Purchaser Information</h3>
@@ -909,13 +1001,6 @@ const DealerHandgunSalePage = () => {
                 <p>Phone: {formValues.phoneNumber}</p>
                 <p>ID Type: {formValues.idType}</p>
                 <p>ID Number: {formValues.idNumber}</p>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-bold">Physical Characteristics</h3>
-                <p>Gender: {formValues.gender}</p>
-                <p>Hair Color: {formValues.hairColor}</p>
-                <p>Eye Color: {formValues.eyeColor}</p>
                 <p>
                   Height: {formValues.heightFeet}&apos;{formValues.heightInches}
                   &quot;
@@ -923,30 +1008,61 @@ const DealerHandgunSalePage = () => {
                 <p>Weight: {formValues.weight} lbs</p>
                 <p>Date of Birth: {formValues.dateOfBirth}</p>
                 <p>Race: {formValues.race}</p>
+                <p>Gender: {formValues.gender}</p>
+                <p>Hair Color: {formValues.hairColor}</p>
+                <p>Eye Color: {formValues.eyeColor}</p>
+                <p>U.S. Citizen: {formValues.isUsCitizen}</p>
+                <p>Place of Birth: {formValues.placeOfBirth}</p>
               </div>
 
+              {/* Seller Information */}
               <div className="space-y-2">
-                <h3 className="font-bold">Firearm Information</h3>
-                <p>Make: {formValues.make}</p>
-                <p>Model: {formValues.model}</p>
-                <p>Serial Number: {formValues.serialNumber}</p>
-                <p>Other Number: {formValues.otherNumber}</p>
-                <p>Color: {formValues.color}</p>
+                <h3 className="font-bold">Seller Information</h3>
                 <p>
-                  Condition: {formValues.isNewGun === "new" ? "New" : "Used"}
+                  Name: {formValues.sellerFirstName}{" "}
+                  {formValues.sellerMiddleName} {formValues.sellerLastName}{" "}
+                  {formValues.sellerSuffix}
                 </p>
-                <p>Safety Device: {formValues.firearmSafetyDevice}</p>
+                <p>Address: {formValues.sellerStreetAddress}</p>
+                <p>
+                  Location: {formValues.sellerCity}, {formValues.sellerState}{" "}
+                  {formValues.sellerZipCode}
+                </p>
+                <p>Phone: {formValues.sellerPhoneNumber}</p>
+                <p>ID Type: {formValues.sellerIdType}</p>
+                <p>ID Number: {formValues.sellerIdNumber}</p>
+                <p>
+                  Height: {formValues.sellerHeightFeet}&apos;
+                  {formValues.sellerHeightInches}
+                  &quot;
+                </p>
+                <p>Weight: {formValues.sellerWeight} lbs</p>
+                <p>Date of Birth: {formValues.sellerDateOfBirth}</p>
+                <p>Race: {formValues.sellerRace}</p>
+                <p>Gender: {formValues.sellerGender}</p>
+                <p>Hair Color: {formValues.sellerHairColor}</p>
+                <p>Eye Color: {formValues.sellerEyeColor}</p>
+                <p>U.S. Citizen: {formValues.sellerIsUsCitizen}</p>
+                <p>Place of Birth: {formValues.sellerPlaceOfBirth}</p>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <h3 className="font-bold">Additional Information</h3>
-                <p>Gun Show Transaction: {formValues.isGunShowTransaction}</p>
-                <p>
-                  Waiting Period Exemption: {formValues.waitingPeriodExemption}
-                </p>
-                <p>Restriction Exemption: {formValues.restrictionExemption}</p>
-                <p>Comments: {formValues.comments}</p>
-              </div>
+            {/* Firearm Information */}
+            <div className="space-y-2">
+              <h3 className="font-bold">Firearm Information</h3>
+              <p>Make: {formValues.make}</p>
+              <p>Model: {formValues.model}</p>
+              <p>Serial Number: {formValues.serialNumber}</p>
+              <p>Other Number: {formValues.otherNumber}</p>
+              <p>Color: {formValues.color}</p>
+              <p>Condition: {formValues.isNewGun === "new" ? "New" : "Used"}</p>
+              <p>Safety Device: {formValues.firearmSafetyDevice}</p>
+              <p>Gun Show Transaction: {formValues.isGunShowTransaction}</p>
+              <p>
+                Waiting Period Exemption: {formValues.waitingPeriodExemption}
+              </p>
+              <p>Restriction Exemption: {formValues.restrictionExemption}</p>
+              <p>Comments: {formValues.comments}</p>
             </div>
 
             <div className="flex justify-end gap-4 mt-4">
@@ -1285,11 +1401,8 @@ const DealerHandgunSalePage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Telephone Number</Label>
-              <Input {...register("phoneNumber")} id="phoneNumber" />
-              <div className="text-sm text-gray-500">
-                (Format as: ##########)
-              </div>
+              <Label>Purchaser Phone Number</Label>
+              <Input {...register("phoneNumber")} />
             </div>
           </div>
 
@@ -1454,6 +1567,339 @@ const DealerHandgunSalePage = () => {
               </div>
             </CardContent>
           </div>
+
+          {/* Seller Information Section */}
+          <div className="space-y-6">
+            <CardHeader>
+              <CardTitle>Seller Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Seller Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Seller First Name</Label>
+                  <Input {...register("sellerFirstName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seller Middle Name</Label>
+                  <Input {...register("sellerMiddleName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="required">Seller Last Name</Label>
+                  <Input {...register("sellerLastName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seller Suffix</Label>
+                  <Input {...register("sellerSuffix")} />
+                </div>
+              </div>
+
+              {/* Seller Address Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Seller Street Address</Label>
+                  <Input {...register("sellerStreetAddress")} required />
+                </div>
+                <div className="flex gap-4 items-start">
+                  <div className="space-y-2">
+                    <Label>Zip Code</Label>
+                    <Input
+                      {...register("sellerZipCode", {
+                        onChange: (e) => {
+                          const value = e.target.value
+                            .slice(0, 5)
+                            .replace(/\D/g, "");
+                          e.target.value = value;
+                        },
+                        maxLength: 5,
+                      })}
+                      className="w-24"
+                    />
+                  </div>
+
+                  {sellerZipCode?.length === 5 && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Seller City</Label>
+                        <Select
+                          {...register("sellerCity")}
+                          onValueChange={(value) =>
+                            setValue("sellerCity", value)
+                          }
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select city" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sellerZipData?.primary_city && (
+                              <SelectItem value={sellerZipData.primary_city}>
+                                {sellerZipData.primary_city}
+                              </SelectItem>
+                            )}
+                            {sellerZipData?.acceptable_cities?.map((city) => (
+                              <SelectItem
+                                key={city}
+                                value={city}
+                                className={
+                                  city === sellerZipData?.primary_city
+                                    ? "hidden"
+                                    : ""
+                                }
+                              >
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Seller State</Label>
+                        <Input
+                          {...register("sellerState")}
+                          value={sellerZipData?.state || ""}
+                          disabled
+                          className="w-16 bg-muted"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Seller Physical Characteristics */}
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Seller Gender</Label>
+                  <Select
+                    {...register("sellerGender")}
+                    onValueChange={(value) => setValue("sellerGender", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.genders.map((gender) => (
+                        <SelectItem key={gender} value={gender.toLowerCase()}>
+                          {gender}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">Seller Hair Color</Label>
+                  <Select
+                    {...register("sellerHairColor")}
+                    onValueChange={(value) =>
+                      setValue("sellerHairColor", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Hair Color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.hairColors.map((color) => (
+                        <SelectItem key={color} value={color.toLowerCase()}>
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">Seller Eye Color</Label>
+                  <Select
+                    {...register("sellerEyeColor")}
+                    onValueChange={(value) => setValue("sellerEyeColor", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Eye Color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.eyeColors.map((color) => (
+                        <SelectItem key={color} value={color.toLowerCase()}>
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Seller Height/Weight/DOB */}
+
+                <div className="space-y-2">
+                  <Label className="required">Seller Height</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      {...register("sellerHeightFeet")}
+                      onValueChange={(value) =>
+                        setValue("sellerHeightFeet", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Feet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData?.heightFeet.map((feet) => (
+                          <SelectItem key={feet} value={feet}>
+                            {feet}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      {...register("sellerHeightInches")}
+                      onValueChange={(value) =>
+                        setValue("sellerHeightInches", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Inches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData?.heightInches.map((inches) => (
+                          <SelectItem key={inches} value={inches}>
+                            {inches}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Seller Weight</Label>
+                  <Input {...register("sellerWeight")} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">Seller Date of Birth</Label>
+                  <Input {...register("sellerDateOfBirth")} type="date" />
+                </div>
+              </div>
+
+              {/* Seller ID Information */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Seller ID Type</Label>
+                  <Select
+                    {...register("sellerIdType")}
+                    onValueChange={(value) => setValue("sellerIdType", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ID Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.idTypes.map((type) => (
+                        <SelectItem key={type} value={type.toLowerCase()}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">Seller ID Number</Label>
+                  <Input {...register("sellerIdNumber")} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">Seller Race</Label>
+                  <Select
+                    {...register("sellerRace")}
+                    onValueChange={(value) => setValue("sellerRace", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Race" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.race.map((race) => (
+                        <SelectItem key={race} value={race.toLowerCase()}>
+                          {race}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Seller Additional Information */}
+
+                <div className="space-y-2">
+                  <Label className="required">Seller U.S. Citizen</Label>
+                  <Select
+                    {...register("sellerIsUsCitizen")}
+                    onValueChange={(value) =>
+                      setValue("sellerIsUsCitizen", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.citizenship.map((option) => (
+                        <SelectItem key={option} value={option.toLowerCase()}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Seller Place of Birth</Label>
+                  <Select
+                    {...register("sellerPlaceOfBirth")}
+                    onValueChange={(value) =>
+                      setValue("sellerPlaceOfBirth", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Place of Birth" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.placesOfBirth.map((place) => (
+                        <SelectItem key={place} value={place.toLowerCase()}>
+                          {place}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Seller Phone Number</Label>
+                  <Input {...register("sellerPhoneNumber")} />
+                </div>
+              </div>
+
+              {/* Seller Alias Information */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>Seller Alias First Name</Label>
+                  <Input {...register("sellerAliasFirstName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seller Alias Middle Name</Label>
+                  <Input {...register("sellerAliasMiddleName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seller Alias Last Name</Label>
+                  <Input {...register("sellerAliasLastName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seller Alias Suffix</Label>
+                  <Input {...register("sellerAliasSuffix")} />
+                </div>
+              </div>
+            </CardContent>
+          </div>
+
           {/* Transaction and Firearm Information */}
           <div className="space-y-6">
             <CardHeader>
@@ -1461,7 +1907,7 @@ const DealerHandgunSalePage = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* First Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Gun Show Transaction</Label>
                   <Select
@@ -1491,40 +1937,63 @@ const DealerHandgunSalePage = () => {
                       <SelectValue placeholder="Select Waiting Period Exemption" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cfd">CFD NUMBER</SelectItem>
-                      <SelectItem value="peaceofficer">
-                        PEACE OFFICER (LETTER REQUIRED)
-                      </SelectItem>
-                      <SelectItem value="specialweaponspermit">
-                        SPECIAL WEAPONS PERMIT
+                      {formData?.waitingPeriodExemption.map((waitingPeriod) => (
+                        <SelectItem
+                          key={waitingPeriod}
+                          value={waitingPeriod.toLowerCase()}
+                        >
+                          {waitingPeriod}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>30-Day Restriction Exemption</Label>
+
+                  <Select
+                    {...register("restrictionExemption")}
+                    onValueChange={(value) =>
+                      setValue("restrictionExemption", value)
+                    }
+                    disabled
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Private Party Transfer Through Licensed Firearms Dealer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="private_party_transfer">
+                        Private Party Transfer Through Licensed Firearms Dealer
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              {/* 30-Day Restriction Row */}
-              <div className="space-y-2">
-                <Label>30-Day Restriction Exemption</Label>
-                <Select
-                  {...register("restrictionExemption")}
-                  onValueChange={(value) =>
-                    setValue("restrictionExemption", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select 30-Day Restriction Exemption" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData?.restrictionsExemptions.map((type) => (
-                      <SelectItem key={type} value={type.toLowerCase()}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Make and Model Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Frame Only Question */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Frame Only</Label>
+                  <Select
+                    {...register("frameOnly")}
+                    onValueChange={(value) => setValue("frameOnly", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.frameOnly.map((frameOnly) => (
+                        <SelectItem
+                          key={frameOnly}
+                          value={frameOnly.toLowerCase()}
+                        >
+                          {frameOnly}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Make and Model*/}
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
                   <Select
@@ -1729,4 +2198,4 @@ const DealerHandgunSalePage = () => {
   );
 };
 
-export default DealerHandgunSalePage;
+export default PptHandgunPage;

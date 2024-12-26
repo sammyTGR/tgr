@@ -68,16 +68,91 @@ type DealerHandgunSale = {
   firearm_safety_device: string;
   comments?: string;
   status: "draft" | "submitted" | "approved" | "rejected";
+  transaction_type: string;
+};
+
+// Add a type for the transaction type
+type TransactionType = {
+  title: string;
+  table: string;
+};
+
+const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
+  "dealer-handgun": {
+    title: "Dealer Handgun Sale",
+    table: "dealer_handgun_sales",
+  },
+  // Add other transaction types as needed
+  "ppt-handgun": {
+    title: "Private Party Handgun Transfer",
+    table: "private_handgun_transfers",
+  },
+  "peace-officer-ppt": {
+    title: "Peace Officer Non-Roster Handgun Private Party Transfer",
+    table: "peace_officer_ppt",
+  },
+  "peace-officer-handgun-sale-letter": {
+    title: "Peace Officer Handgun Sale (Letter Required)",
+    table: "peace_officer_handgun_sale_letter",
+  },
+  "exempt-handgun": {
+    title: "Exempt Handgun Sale",
+    table: "exempt_handgun",
+  },
+  "consignment-handgun-redemption": {
+    title: "Consignment Handgun Redemption",
+    table: "consignment_handgun_redemption",
+  },
+  "curio-handgun": {
+    title: "Curio / Relic Handgun Sale",
+    table: "curio_handgun",
+  },
+  "olympic-pistol": {
+    title: "Olympic Pistol Sale",
+    table: "olympic_pistol",
+  },
+  "handgun-loan": {
+    title: "Handgun Loan",
+    table: "handgun_loan",
+  },
+  "handgun-temporary-storage-return": {
+    title: "Handgun Temporary Storage Return",
+    table: "handgun_temporary_storage_return",
+  },
+  "dealer-longgun": {
+    title: "Dealer Long Gun Sale",
+    table: "dealer_longgun",
+  },
+  "ppt-longgun": {
+    title: "Private Party Long Gun Transfer",
+    table: "private_longgun_transfers",
+  },
+  "consignment-longgun-redemption": {
+    title: "Consignment Long Gun Redemption",
+    table: "consignment_longgun_redemption",
+  },
+  "curio-longgun": {
+    title: "Curio / Relic Long Gun Sale",
+    table: "curio_longgun",
+  },
+  "longgun-loan": {
+    title: "Long Gun Loan",
+    table: "longgun_loan",
+  },
+  "longgun-temporary-storage-return": {
+    title: "Long Gun Temporary Storage Return",
+    table: "longgun_temporary_storage_return",
+  },
 };
 
 const ReviewPage = () => {
-  // Fetch all submissions
+  // Fetch all submissions from dealer handgun sales
   const { data: submissions, isLoading } = useQuery({
-    queryKey: ["dealerHandgunSubmissions"],
+    queryKey: ["drosSubmissions"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("dealer_handgun_sales")
-        .select("*")
+        .from("dealer_handgun_sales") // This will need to be dynamic based on transaction type
+        .select("*, transaction_type")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -270,7 +345,7 @@ const ReviewPage = () => {
     <div className="container mx-auto py-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Dealer Handgun Sale Submissions</CardTitle>
+          <CardTitle>DROS Training Submissions</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -278,6 +353,7 @@ const ReviewPage = () => {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Transaction Type</TableHead>
                 <TableHead>Firearm</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -291,6 +367,10 @@ const ReviewPage = () => {
                   </TableCell>
                   <TableCell>
                     {submission.first_name} {submission.last_name}
+                  </TableCell>
+                  <TableCell>
+                    {TRANSACTION_TYPES[submission.transaction_type]?.title ||
+                      "Dealer Handgun Sale"}
                   </TableCell>
                   <TableCell>
                     {submission.make} {submission.model}

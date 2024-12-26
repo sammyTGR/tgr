@@ -11,57 +11,57 @@ const TransactionTypePage = () => {
     { title: "Dealer Handgun Sale", path: "/TGR/dros/training/dealerhandgun" },
     {
       title: "Private Party Handgun Transfer",
-      path: "/dros/training/dros/privatehandgun",
+      path: "/TGR/dros/training/ppthandgun",
     },
     {
       title: "Peace Officer Non-Roster Handgun Private Party Transfer",
-      path: "/dros/training/dros/peaceofficerhandgun",
+      path: "/TGR/dros/training/peaceofficerhandgun",
     },
     {
       title: "Peace Officer Non-Roster Handgun Sale(Letter Required)",
-      path: "/dros/training/dros/peaceofficersale",
+      path: "/TGR/dros/training/peaceofficersale",
     },
-    { title: "Exempt Handgun Sale", path: "/dros/training/dros/exempthandgun" },
+    { title: "Exempt Handgun Sale", path: "/TGR/dros/training/exempthandgun" },
     {
       title: "Pawn/Consignment Handgun Redemption",
-      path: "/dros/training/dros/pawnhandgun",
+      path: "/TGR/dros/training/pawnhandgun",
     },
     {
       title: "Curio/Relic Handgun Sale",
-      path: "/dros/training/dros/curiohandgun",
+      path: "/TGR/dros/training/curiohandgun",
     },
     {
       title: "Olympic Pistol Sale",
-      path: "/dros/training/dros/olympichandgun",
+      path: "/TGR/dros/training/olympichandgun",
     },
-    { title: "Handgun Loan", path: "/dros/training/dros/handgunloan" },
+    { title: "Handgun Loan", path: "/TGR/dros/training/handgunloan" },
     {
       title: "Handgun Temporary Storage Return",
-      path: "/dros/training/dros/handgunstorage",
+      path: "/TGR/dros/training/handgunstorage",
     },
   ];
 
   const longGunTransactions = [
     {
       title: "Dealer Long Gun Sale",
-      path: "/dros/training/dros/dealerlonggun",
+      path: "/TGR/dros/training/dealerlonggun",
     },
     {
       title: "Private Party Long Gun Transfer",
-      path: "/dros/training/dros/privatelonggun",
+      path: "/TGR/dros/training/privatelonggun",
     },
     {
       title: "Pawn/Consignment Long Gun Redemption",
-      path: "/dros/training/dros/pawnlonggun",
+      path: "/TGR/dros/training/pawnlonggun",
     },
     {
       title: "Curio/Relic Long Gun Sale",
-      path: "/dros/training/dros/curiolonggun",
+      path: "/TGR/dros/training/curiolonggun",
     },
-    { title: "Long Gun Loan", path: "/dros/training/dros/longgunloan" },
+    { title: "Long Gun Loan", path: "/TGR/dros/training/longgunloan" },
     {
       title: "Long Gun Temporary Storage Return",
-      path: "/dros/training/dros/longgunstorage",
+      path: "/TGR/dros/training/longgunstorage",
     },
   ];
 
