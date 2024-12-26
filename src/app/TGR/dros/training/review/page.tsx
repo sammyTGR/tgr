@@ -142,7 +142,7 @@ const ReviewPage = () => {
               </p>
               <p>
                 <strong>Height:</strong> {submission.height_feet}'{" "}
-                {submission.height_inches}"
+                {submission.height_inches}&quot;
               </p>
               <p>
                 <strong>Weight:</strong> {submission.weight} lbs
