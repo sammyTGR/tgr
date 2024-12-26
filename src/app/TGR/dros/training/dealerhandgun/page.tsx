@@ -912,7 +912,7 @@ const DealerHandgunSalePage = () => {
                 <p>Hair Color: {formValues.hairColor}</p>
                 <p>Eye Color: {formValues.eyeColor}</p>
                 <p>
-                  Height: {formValues.heightFeet}'{formValues.heightInches}
+                  Height: {formValues.heightFeet}&apos;{formValues.heightInches}
                   &quot;
                 </p>
                 <p>Weight: {formValues.weight} lbs</p>

@@ -141,7 +141,7 @@ const ReviewPage = () => {
                 <strong>Eye Color:</strong> {submission.eye_color}
               </p>
               <p>
-                <strong>Height:</strong> {submission.height_feet}'{" "}
+                <strong>Height:</strong> {submission.height_feet}&apos;{" "}
                 {submission.height_inches}&quot;
               </p>
               <p>
