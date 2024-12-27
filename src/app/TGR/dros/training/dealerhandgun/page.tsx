@@ -27,6 +27,14 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/utils/supabase/client";
 import { useMemo } from "react";
 import { useForm, UseFormSetValue } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 type FormData = {
   firstName: string;
@@ -144,14 +152,13 @@ const useZipCodeLookup = (
       if (error) throw error;
 
       if (data) {
-        setValue("city", data.primary_city, { shouldValidate: true });
         setValue("state", data.state, { shouldValidate: true });
       }
 
       return data;
     },
     enabled: zipCode?.length === 5,
-    staleTime: 30000, // Cache results for 30 seconds
+    staleTime: 30000,
   });
 };
 
@@ -178,25 +185,19 @@ const DealerHandgunSalePage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<FormData>({
+  const form = useForm<FormData>({
     defaultValues: initialFormState,
     mode: "onBlur",
     reValidateMode: "onBlur",
   });
 
   // Watch the zipCode field
-  const zipCode = watch("zipCode");
+  const zipCode = form.watch("zipCode");
 
   // Pass setValue to the hook
   const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
     zipCode || "",
-    setValue
+    form.setValue
   );
 
   // Replace form state management with react-hook-form
@@ -840,8 +841,8 @@ const DealerHandgunSalePage = () => {
   });
 
   // Watch the make and model fields
-  const selectedMake = watch("make");
-  const selectedModel = watch("model");
+  const selectedMake = form.watch("make");
+  const selectedModel = form.watch("model");
 
   // Update the handgun details query
   const { data: handgunDetails } = useQuery({
@@ -874,15 +875,15 @@ const DealerHandgunSalePage = () => {
         model: "",
       } as Partial<FormData>;
 
-      setValue("make", make);
-      setValue("model", "");
+      form.setValue("make", make);
+      form.setValue("model", "");
       return make;
     },
   });
 
   // Preview Dialog Component
   const PreviewDialog = () => {
-    const formValues = watch(); // Get all current form values
+    const formValues = form.watch(); // Get all current form values
 
     return (
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
@@ -967,716 +968,492 @@ const DealerHandgunSalePage = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <h1 className="text-2xl font-bold text-center mb-8">
-        Submit Dealer Handgun Sale
-      </h1>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="container mx-auto py-8 max-w-6xl">
+          <h1 className="text-2xl font-bold text-center mb-8">
+            Submit Dealer Handgun Sale
+          </h1>
 
-      <Alert variant="destructive" className="mb-6">
-        <AlertDescription>
-          ATTENTION: NAVIGATING AWAY FROM THIS PAGE BEFORE SUBMITTING THE
-          TRANSACTION MAY RESULT IN DATA LOSS.
-        </AlertDescription>
-      </Alert>
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>
+              ATTENTION: NAVIGATING AWAY FROM THIS PAGE BEFORE SUBMITTING THE
+              TRANSACTION MAY RESULT IN DATA LOSS.
+            </AlertDescription>
+          </Alert>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Purchaser Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* ID Card Swipe Section */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <div className="flex max-w-lg">
-                <Label>Swipe CA Driver License or ID Card</Label>
-              </div>
-              <Input
-                type="text"
-                placeholder="Swipe or enter ID"
-                {...register("idNumber")}
-              />
-            </div>
-          </div>
-
-          {/* Name Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName" className="required">
-                Purchaser First Name
-              </Label>
-              <Input {...register("firstName")} id="firstName" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="middleName">Purchaser Middle Name</Label>
-              <Input {...register("middleName")} id="middleName" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName" className="required">
-                Purchaser Last Name
-              </Label>
-              <Input {...register("lastName")} id="lastName" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="suffix">Suffix</Label>
-              <Input {...register("suffix")} id="suffix" />
-            </div>
-          </div>
-
-          {/* Address Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="address" className="required">
-                Purchaser Street Address
-              </Label>
-              <Input {...register("streetAddress")} id="address" required />
-            </div>
-            <div className="flex gap-4 items-start">
-              <div className="space-y-2">
-                <Label>Zip Code</Label>
-                <Input
-                  {...register("zipCode", {
-                    onChange: (e) => {
-                      const value = e.target.value
-                        .slice(0, 5)
-                        .replace(/\D/g, "");
-                      e.target.value = value;
-                    },
-                    maxLength: 5,
-                  })}
-                  className="w-24"
+          <Card>
+            <CardHeader>
+              <CardTitle>Purchaser Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* ID Card Swipe Section */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField
+                  control={form.control}
+                  name="idNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Swipe CA Driver License or ID Card</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Swipe or enter ID" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
 
-              {zipCode?.length === 5 && (
-                <>
-                  <div className="space-y-2">
-                    <Label>City</Label>
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">
+                        Purchaser First Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="middleName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Purchaser Middle Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">
+                        Purchaser Last Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="suffix"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Suffix</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Address Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField
+                  control={form.control}
+                  name="streetAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">Street Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="zipCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">ZIP Code</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">City</FormLabel>
+                      <FormControl>
+                        <Select
+                          disabled={!zipData}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            // Don't auto-set the city when zip code is entered
+                          }}
+                          value={field.value || ""}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select City" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {zipData?.primary_city && (
+                              <SelectItem value={zipData.primary_city}>
+                                {zipData.primary_city}
+                              </SelectItem>
+                            )}
+                            {zipData?.acceptable_cities?.map((city: string) => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">State</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Physical Characteristics */}
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">Gender</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formData?.genders.map((gender) => (
+                              <SelectItem
+                                key={gender}
+                                value={gender.toLowerCase()}
+                              >
+                                {gender}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hairColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">Hair Color</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Color" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formData?.hairColors.map((color) => (
+                              <SelectItem
+                                key={color}
+                                value={color.toLowerCase()}
+                              >
+                                {color}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="eyeColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="required">Eye Color</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Color" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formData?.eyeColors.map((color) => (
+                              <SelectItem
+                                key={color}
+                                value={color.toLowerCase()}
+                              >
+                                {color}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-2">
+                  <Label className="required">Height (Feet / Inches)</Label>
+                  <div className="flex gap-2">
                     <Select
-                      {...register("city")}
-                      onValueChange={(value) => setValue("city", value)}
+                      {...form.register("heightFeet")}
+                      onValueChange={(value) =>
+                        form.setValue("heightFeet", value)
+                      }
                     >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select city" />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Feet" />
                       </SelectTrigger>
                       <SelectContent>
-                        {zipData?.primary_city && (
-                          <SelectItem value={zipData.primary_city}>
-                            {zipData.primary_city}
+                        {formData?.heightFeet.map((feet) => (
+                          <SelectItem key={feet} value={feet}>
+                            {feet}
                           </SelectItem>
-                        )}
-                        {zipData?.acceptable_cities?.map((city) => (
-                          <SelectItem
-                            key={city}
-                            value={city}
-                            className={
-                              city === zipData?.primary_city ? "hidden" : ""
-                            }
-                          >
-                            {city}
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      {...form.register("heightInches")}
+                      onValueChange={(value) =>
+                        form.setValue("heightInches", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Inches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData?.heightInches.map((inches) => (
+                          <SelectItem key={inches} value={inches}>
+                            {inches}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>State</Label>
-                    <Input
-                      {...register("state")}
-                      value={zipData?.state || ""}
-                      disabled
-                      className="w-16 bg-muted"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Physical Characteristics */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label className="required">Gender</Label>
-              <Select
-                {...register("gender")}
-                onValueChange={(value) => setValue("gender", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.genders.map((gender) => (
-                    <SelectItem key={gender} value={gender.toLowerCase()}>
-                      {gender}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Hair Color</Label>
-              <Select
-                {...register("hairColor")}
-                onValueChange={(value) => setValue("hairColor", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.hairColors.map((color) => (
-                    <SelectItem key={color} value={color.toLowerCase()}>
-                      {color}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Eye Color</Label>
-              <Select
-                {...register("eyeColor")}
-                onValueChange={(value) => setValue("eyeColor", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.eyeColors.map((color) => (
-                    <SelectItem key={color} value={color.toLowerCase()}>
-                      {color}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Height (Feet / Inches)</Label>
-              <div className="flex gap-2">
-                <Select
-                  {...register("heightFeet")}
-                  onValueChange={(value) => setValue("heightFeet", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Feet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData?.heightFeet.map((feet) => (
-                      <SelectItem key={feet} value={feet}>
-                        {feet}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  {...register("heightInches")}
-                  onValueChange={(value) => setValue("heightInches", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Inches" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData?.heightInches.map((inches) => (
-                      <SelectItem key={inches} value={inches}>
-                        {inches}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="weight">Weight</Label>
-              <Input {...register("weight")} id="weight" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth</Label>
-              <Input {...register("dateOfBirth")} id="dob" type="date" />
-            </div>
-          </div>
-
-          {/* ID Information */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label className="required">Purchaser ID Type</Label>
-              <Select
-                {...register("idType")}
-                onValueChange={(value) => setValue("idType", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select ID Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.idTypes.map((type) => (
-                    <SelectItem key={type} value={type.toLowerCase()}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="purchaserId">Purchaser ID Number</Label>
-              <Input {...register("idNumber")} id="purchaserId" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Race</Label>
-              <Select
-                {...register("race")}
-                onValueChange={(value) => setValue("race", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Race" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.race.map((race) => (
-                    <SelectItem key={race} value={race.toLowerCase()}>
-                      {race}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">U.S. Citizen</Label>
-              <Select
-                {...register("isUsCitizen")}
-                onValueChange={(value) => setValue("isUsCitizen", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.citizenship.map((type) => (
-                    <SelectItem key={type} value={type.toLowerCase()}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="required">Place of Birth</Label>
-              <Select
-                {...register("placeOfBirth")}
-                onValueChange={(value) => setValue("placeOfBirth", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Place of Birth" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.placesOfBirth.map((place) => (
-                    <SelectItem key={place} value={place.toLowerCase()}>
-                      {place}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Telephone Number</Label>
-              <Input {...register("phoneNumber")} id="phoneNumber" />
-              <div className="text-sm text-gray-500">
-                (Format as: ##########)
-              </div>
-            </div>
-          </div>
-
-          {/* Alias Information */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="aliasFirstName">Purchaser Alias First Name</Label>
-              <Input {...register("aliasFirstName")} id="aliasFirstName" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aliasMiddleName">
-                Purchaser Alias Middle Name
-              </Label>
-              <Input {...register("aliasMiddleName")} id="aliasMiddleName" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aliasLastName">Purchaser Alias Last Name</Label>
-              <Input {...register("aliasLastName")} id="aliasLastName" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
-              <Input {...register("aliasSuffix")} id="aliasSuffix" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
-              <Input {...register("hscFscNumber")} id="hscFscNumber" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">HSC / FSX Exemption Code</Label>
-              <Select
-                {...register("exemptionCode")}
-                onValueChange={(value) => setValue("exemptionCode", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Exemption Code" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.exemptionCodes.map((code) => (
-                    <SelectItem key={code} value={code.toLowerCase()}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Eligibility Questions */}
-          <div className="space-y-6">
-            <CardContent className="space-y-6">
-              {/* Question 1 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 1:
-                  </span>{" "}
-                  Has purchaser: (1) ever been convicted of a felony, any
-                  offense specified in Penal Code (PC) section 29905, an offense
-                  specified in PC 23515(a), (b), or (d), a misdemeanor PC 273.5
-                  offense, (2) been convicted in the last 10 years of a
-                  misdemeanor offense specified in PC 29805, or (3) been
-                  adjudged a ward of the juvenile court for committing an
-                  offense specified in PC 29805 and is not 30 years of age or
-                  older?
-                </Label>
-                <Select
-                  {...register("eligibilityQ1")}
-                  onValueChange={(value) => setValue("eligibilityQ1", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Question 2 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 2:
-                  </span>{" "}
-                  Has a court ever found, as specified in Welfare and
-                  Institutions Code (WIC) section 8103, the purchaser to be a
-                  danger to others from mental illness, a mentally disordered
-                  sex offender, not guilty by reason of insanity, mentally
-                  incompetent to stand trial, or gravely disabled to be placed
-                  under a conservatorship?
-                </Label>
-                <Select
-                  {...register("eligibilityQ2")}
-                  onValueChange={(value) => setValue("eligibilityQ2", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Question 3 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 3:
-                  </span>{" "}
-                  Is purchaser a danger/threat to self or others under WIC
-                  section 8100, a person certified for intensive treatment as
-                  described in WIC section 5103(g), or a person described in WIC
-                  section 8103(f) who has ever been admitted to a mental health
-                  facility as a danger to self or others at least twice within 1
-                  year or admitted once within the past 5 years?
-                </Label>
-                <Select
-                  {...register("eligibilityQ3")}
-                  onValueChange={(value) => setValue("eligibilityQ3", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Question 4 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 4:
-                  </span>{" "}
-                  Is purchaser currently the subject of any restraining order
-                  specified in PC section 29825, a Gun Violence Restraining
-                  Order, or a probation condition prohibiting firearm
-                  possession?
-                </Label>
-                <Select
-                  {...register("eligibilityQ4")}
-                  onValueChange={(value) => setValue("eligibilityQ4", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </div>
-          {/* Transaction and Firearm Information */}
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle>Transaction and Firearm Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* First Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="required">Gun Show Transaction</Label>
+                  <Label htmlFor="weight">Weight</Label>
+                  <Input {...form.register("weight")} id="weight" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Input
+                    {...form.register("dateOfBirth")}
+                    id="dob"
+                    type="date"
+                  />
+                </div>
+              </div>
+
+              {/* ID Information */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Purchaser ID Type</Label>
                   <Select
-                    {...register("isGunShowTransaction")}
+                    {...form.register("idType")}
+                    onValueChange={(value) => form.setValue("idType", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ID Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.idTypes.map((type) => (
+                        <SelectItem key={type} value={type.toLowerCase()}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="purchaserId">Purchaser ID Number</Label>
+                  <Input {...form.register("idNumber")} id="purchaserId" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">Race</Label>
+                  <Select
+                    {...form.register("race")}
+                    onValueChange={(value) => form.setValue("race", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Race" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.race.map((race) => (
+                        <SelectItem key={race} value={race.toLowerCase()}>
+                          {race}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">U.S. Citizen</Label>
+                  <Select
+                    {...form.register("isUsCitizen")}
                     onValueChange={(value) =>
-                      setValue("isGunShowTransaction", value)
+                      form.setValue("isUsCitizen", value)
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Waiting Period Exemption</Label>
-                  <Select
-                    {...register("waitingPeriodExemption")}
-                    onValueChange={(value) =>
-                      setValue("waitingPeriodExemption", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Waiting Period Exemption" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cfd">CFD NUMBER</SelectItem>
-                      <SelectItem value="peaceofficer">
-                        PEACE OFFICER (LETTER REQUIRED)
-                      </SelectItem>
-                      <SelectItem value="specialweaponspermit">
-                        SPECIAL WEAPONS PERMIT
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {/* 30-Day Restriction Row */}
-              <div className="space-y-2">
-                <Label>30-Day Restriction Exemption</Label>
-                <Select
-                  {...register("restrictionExemption")}
-                  onValueChange={(value) =>
-                    setValue("restrictionExemption", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select 30-Day Restriction Exemption" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData?.restrictionsExemptions.map((type) => (
-                      <SelectItem key={type} value={type.toLowerCase()}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Make and Model Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Make</Label>
-                  <Select
-                    {...register("make")}
-                    disabled={isLoadingHandguns}
-                    onValueChange={(value) => {
-                      setValue("make", value);
-                      setValue("model", ""); // Reset model when make changes
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          isLoadingHandguns ? "Loading..." : "Select Make"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {handgunData &&
-                        Object.keys(handgunData)
-                          .sort()
-                          .map((make) => (
-                            <SelectItem key={make} value={make}>
-                              {make}
-                            </SelectItem>
-                          ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedMake && (
-                  <div className="space-y-2">
-                    <Label className="required">Model</Label>
-                    <Select
-                      {...register("model")}
-                      onValueChange={(value) => setValue("model", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {models.map((model: string) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-
-              {/* Handgun Details Section */}
-              {handgunDetails && (
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 border rounded-md bg-muted">
-                  <div className="space-y-2">
-                    <Label>Caliber</Label>
-                    <Input value={handgunDetails.caliber || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Barrel Length</Label>
-                    <Input value={handgunDetails.barrelLength || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Unit</Label>
-                    <Input value={handgunDetails.unit || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Material</Label>
-                    <Input value={handgunDetails.material || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Input value={handgunDetails.category || ""} readOnly />
-                  </div>
-                </div>
-              )}
-
-              {/* Serial Numbers Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Serial Number</Label>
-                  <Input {...register("serialNumber")} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">Re-enter Serial Number</Label>
-                  <Input
-                    onChange={(e) => {
-                      const reenteredSerial = e.target.value;
-                      if (reenteredSerial === initialFormState?.serialNumber) {
-                        // Serial numbers match - you could add visual feedback here
-                      } else {
-                        // Serial numbers don't match - you could add visual feedback here
-                      }
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Other Number</Label>
-                  <Input {...register("otherNumber")} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">Color</Label>
-                  <Select
-                    {...register("color")}
-                    onValueChange={(value) => setValue("color", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.colors.map((color) => (
-                        <SelectItem key={color} value={color.toLowerCase()}>
-                          {color}
+                      {formData?.citizenship.map((type) => (
+                        <SelectItem key={type} value={type.toLowerCase()}>
+                          {type}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              {/* Gun Details Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="required">New/Used Gun</Label>
+                  <Label className="required">Place of Birth</Label>
                   <Select
-                    {...register("isNewGun")}
-                    onValueChange={(value) => setValue("isNewGun", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="used">Used</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">
-                    Firearm Safety Device (FSD)
-                  </Label>
-                  <Select
-                    {...register("firearmSafetyDevice")}
+                    {...form.register("placeOfBirth")}
                     onValueChange={(value) =>
-                      setValue("firearmSafetyDevice", value)
+                      form.setValue("placeOfBirth", value)
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Firearm Safety Device (FSD)" />
+                      <SelectValue placeholder="Select Place of Birth" />
                     </SelectTrigger>
                     <SelectContent>
-                      {formData?.fsd.map((code) => (
+                      {formData?.placesOfBirth.map((place) => (
+                        <SelectItem key={place} value={place.toLowerCase()}>
+                          {place}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Telephone Number</Label>
+                  <Input {...form.register("phoneNumber")} id="phoneNumber" />
+                  <div className="text-sm text-gray-500">
+                    (Format as: ##########)
+                  </div>
+                </div>
+              </div>
+
+              {/* Alias Information */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="aliasFirstName">
+                    Purchaser Alias First Name
+                  </Label>
+                  <Input
+                    {...form.register("aliasFirstName")}
+                    id="aliasFirstName"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="aliasMiddleName">
+                    Purchaser Alias Middle Name
+                  </Label>
+                  <Input
+                    {...form.register("aliasMiddleName")}
+                    id="aliasMiddleName"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="aliasLastName">
+                    Purchaser Alias Last Name
+                  </Label>
+                  <Input
+                    {...form.register("aliasLastName")}
+                    id="aliasLastName"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
+                  <Input {...form.register("aliasSuffix")} id="aliasSuffix" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
+                  <Input {...form.register("hscFscNumber")} id="hscFscNumber" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="required">HSC / FSX Exemption Code</Label>
+                  <Select
+                    {...form.register("exemptionCode")}
+                    onValueChange={(value) =>
+                      form.setValue("exemptionCode", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Exemption Code" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.exemptionCodes.map((code) => (
                         <SelectItem key={code} value={code.toLowerCase()}>
                           {code}
                         </SelectItem>
@@ -1684,45 +1461,416 @@ const DealerHandgunSalePage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Gun Type (Read Only) */}
-                <div className="space-y-2">
-                  <Label>Gun Type</Label>
-                  <Input value="HANDGUN" disabled />
-                </div>
               </div>
 
-              {/* Comments Section */}
-              <div className="space-y-2">
-                <Label>Comments</Label>
-                <Textarea
-                  {...register("comments")}
-                  className="w-full min-h-[100px] p-2 border rounded-md"
-                  maxLength={200}
-                />
-                <div className="text-sm text-gray-500">
-                  200 character limit. Characters remaining:{" "}
-                  {200 - (initialFormState?.comments?.length || 0)}
-                </div>
+              {/* Eligibility Questions */}
+              <div className="space-y-6">
+                <CardContent className="space-y-6">
+                  {/* Question 1 */}
+                  <div className="space-y-2">
+                    <Label className="required block text-sm font-medium">
+                      <span className="font-bold">
+                        Firearms Eligibility Question 1:
+                      </span>{" "}
+                      Has purchaser: (1) ever been convicted of a felony, any
+                      offense specified in Penal Code (PC) section 29905, an
+                      offense specified in PC 23515(a), (b), or (d), a
+                      misdemeanor PC 273.5 offense, (2) been convicted in the
+                      last 10 years of a misdemeanor offense specified in PC
+                      29805, or (3) been adjudged a ward of the juvenile court
+                      for committing an offense specified in PC 29805 and is not
+                      30 years of age or older?
+                    </Label>
+                    <Select
+                      {...form.register("eligibilityQ1")}
+                      onValueChange={(value) =>
+                        form.setValue("eligibilityQ1", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Question 2 */}
+                  <div className="space-y-2">
+                    <Label className="required block text-sm font-medium">
+                      <span className="font-bold">
+                        Firearms Eligibility Question 2:
+                      </span>{" "}
+                      Has a court ever found, as specified in Welfare and
+                      Institutions Code (WIC) section 8103, the purchaser to be
+                      a danger to others from mental illness, a mentally
+                      disordered sex offender, not guilty by reason of insanity,
+                      mentally incompetent to stand trial, or gravely disabled
+                      to be placed under a conservatorship?
+                    </Label>
+                    <Select
+                      {...form.register("eligibilityQ2")}
+                      onValueChange={(value) =>
+                        form.setValue("eligibilityQ2", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Question 3 */}
+                  <div className="space-y-2">
+                    <Label className="required block text-sm font-medium">
+                      <span className="font-bold">
+                        Firearms Eligibility Question 3:
+                      </span>{" "}
+                      Is purchaser a danger/threat to self or others under WIC
+                      section 8100, a person certified for intensive treatment
+                      as described in WIC section 5103(g), or a person described
+                      in WIC section 8103(f) who has ever been admitted to a
+                      mental health facility as a danger to self or others at
+                      least twice within 1 year or admitted once within the past
+                      5 years?
+                    </Label>
+                    <Select
+                      {...form.register("eligibilityQ3")}
+                      onValueChange={(value) =>
+                        form.setValue("eligibilityQ3", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Question 4 */}
+                  <div className="space-y-2">
+                    <Label className="required block text-sm font-medium">
+                      <span className="font-bold">
+                        Firearms Eligibility Question 4:
+                      </span>{" "}
+                      Is purchaser currently the subject of any restraining
+                      order specified in PC section 29825, a Gun Violence
+                      Restraining Order, or a probation condition prohibiting
+                      firearm possession?
+                    </Label>
+                    <Select
+                      {...form.register("eligibilityQ4")}
+                      onValueChange={(value) =>
+                        form.setValue("eligibilityQ4", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
               </div>
+              {/* Transaction and Firearm Information */}
+              <div className="space-y-6">
+                <CardHeader>
+                  <CardTitle>Transaction and Firearm Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* First Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="required">Gun Show Transaction</Label>
+                      <Select
+                        {...form.register("isGunShowTransaction")}
+                        onValueChange={(value) =>
+                          form.setValue("isGunShowTransaction", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="yes">Yes</SelectItem>
+                          <SelectItem value="no">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Waiting Period Exemption</Label>
+                      <Select
+                        {...form.register("waitingPeriodExemption")}
+                        onValueChange={(value) =>
+                          form.setValue("waitingPeriodExemption", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Waiting Period Exemption" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cfd">CFD NUMBER</SelectItem>
+                          <SelectItem value="peaceofficer">
+                            PEACE OFFICER (LETTER REQUIRED)
+                          </SelectItem>
+                          <SelectItem value="specialweaponspermit">
+                            SPECIAL WEAPONS PERMIT
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {/* 30-Day Restriction Row */}
+                  <div className="space-y-2">
+                    <Label>30-Day Restriction Exemption</Label>
+                    <Select
+                      {...form.register("restrictionExemption")}
+                      onValueChange={(value) =>
+                        form.setValue("restrictionExemption", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select 30-Day Restriction Exemption" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData?.restrictionsExemptions.map((type) => (
+                          <SelectItem key={type} value={type.toLowerCase()}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Make and Model Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="required">Make</Label>
+                      <Select
+                        {...form.register("make")}
+                        disabled={isLoadingHandguns}
+                        onValueChange={(value) => {
+                          form.setValue("make", value);
+                          form.setValue("model", ""); // Reset model when make changes
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              isLoadingHandguns ? "Loading..." : "Select Make"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {handgunData &&
+                            Object.keys(handgunData)
+                              .sort()
+                              .map((make) => (
+                                <SelectItem key={make} value={make}>
+                                  {make}
+                                </SelectItem>
+                              ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedMake && (
+                      <div className="space-y-2">
+                        <Label className="required">Model</Label>
+                        <Select
+                          {...form.register("model")}
+                          onValueChange={(value) =>
+                            form.setValue("model", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {models.map((model: string) => (
+                              <SelectItem key={model} value={model}>
+                                {model}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Handgun Details Section */}
+                  {handgunDetails && (
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 border rounded-md bg-muted">
+                      <div className="space-y-2">
+                        <Label>Caliber</Label>
+                        <Input value={handgunDetails.caliber || ""} readOnly />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Barrel Length</Label>
+                        <Input
+                          value={handgunDetails.barrelLength || ""}
+                          readOnly
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Unit</Label>
+                        <Input value={handgunDetails.unit || ""} readOnly />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Material</Label>
+                        <Input value={handgunDetails.material || ""} readOnly />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <Input value={handgunDetails.category || ""} readOnly />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Serial Numbers Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label className="required">Serial Number</Label>
+                      <Input {...form.register("serialNumber")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="required">Re-enter Serial Number</Label>
+                      <Input
+                        onChange={(e) => {
+                          const reenteredSerial = e.target.value;
+                          if (
+                            reenteredSerial === initialFormState?.serialNumber
+                          ) {
+                            // Serial numbers match - you could add visual feedback here
+                          } else {
+                            // Serial numbers don't match - you could add visual feedback here
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Other Number</Label>
+                      <Input {...form.register("otherNumber")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="required">Color</Label>
+                      <Select
+                        {...form.register("color")}
+                        onValueChange={(value) => form.setValue("color", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.colors.map((color) => (
+                            <SelectItem key={color} value={color.toLowerCase()}>
+                              {color}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {/* Gun Details Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label className="required">New/Used Gun</Label>
+                      <Select
+                        {...form.register("isNewGun")}
+                        onValueChange={(value) =>
+                          form.setValue("isNewGun", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="used">Used</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="required">
+                        Firearm Safety Device (FSD)
+                      </Label>
+                      <Select
+                        {...form.register("firearmSafetyDevice")}
+                        onValueChange={(value) =>
+                          form.setValue("firearmSafetyDevice", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Firearm Safety Device (FSD)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.fsd.map((code) => (
+                            <SelectItem key={code} value={code.toLowerCase()}>
+                              {code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Gun Type (Read Only) */}
+                    <div className="space-y-2">
+                      <Label>Gun Type</Label>
+                      <Input value="HANDGUN" disabled />
+                    </div>
+                  </div>
+
+                  {/* Comments Section */}
+                  <FormField
+                    control={form.control}
+                    name="comments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comments</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            className="w-full min-h-[100px]"
+                            maxLength={200}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <div className="text-sm text-gray-500">
+                          200 character limit. Characters remaining:{" "}
+                          {200 - (field.value?.length || 0)}
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </div>
+
+              {/* Additional fields can be added following the same pattern */}
             </CardContent>
+          </Card>
+          <div className="flex justify-center gap-4 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/TGR/dros/training")}
+            >
+              Back
+            </Button>
+            <PreviewDialog />
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Refresh
+            </Button>
           </div>
-
-          {/* Additional fields can be added following the same pattern */}
-        </CardContent>
-      </Card>
-      <div className="flex justify-center gap-4 mt-6">
-        <Button
-          variant="outline"
-          onClick={() => router.push("/TGR/dros/training")}
-        >
-          Back
-        </Button>
-        <PreviewDialog />
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Refresh
-        </Button>
-      </div>
-    </div>
+        </div>
+      </form>
+    </Form>
   );
 };
 

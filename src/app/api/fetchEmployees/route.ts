@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 
 export async function GET(request: Request) {
   try {
     const supabase = createRouteHandlerClient({ cookies });
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,9 +17,13 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
 
-    let query = supabase.from("employees").select(
-      searchParams.get("select") || "*"
-    ) as PostgrestFilterBuilder<any, any, any>;
+    let query = supabase
+      .from("employees")
+      .select(searchParams.get("select") || "*") as PostgrestFilterBuilder<
+      any,
+      any,
+      any
+    >;
 
     // Handle ordering
     const order = searchParams.get("order");
@@ -49,9 +56,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(data || []);
   } catch (error: any) {
-    console.error('Error in fetchEmployees:', error);
+    console.error("Error in fetchEmployees:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message }, 
+      { error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }

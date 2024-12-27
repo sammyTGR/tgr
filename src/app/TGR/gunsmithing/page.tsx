@@ -314,40 +314,57 @@ export default function GunsmithingMaintenance() {
     }
   };
 
-  const handleNotesChange = async (id: number, notes: string) => {
+  const handleNotesChange = async (
+    id: number,
+    notes: string,
+    shouldSave = true
+  ) => {
+    // Update local state
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === id ? { ...item, maintenance_notes: notes } : item
+      )
+    );
+
+    // Only save to database if shouldSave is true
+    if (shouldSave) {
+      try {
+        const { error } = await supabase
+          .from("firearms_maintenance")
+          .update({ maintenance_notes: notes })
+          .eq("id", id);
+
+        if (error) throw error;
+
+        await persistData(data);
+        toast.success("Notes saved successfully");
+      } catch (error) {
+        console.error("Error saving notes:", error);
+        toast.error("Failed to save notes");
+      }
+    }
+  };
+
+  const handleSaveNotes = async (id: number) => {
     try {
-      const updatedData = data.map((item) =>
-        item.id === id
-          ? { ...item, status: status !== null ? status : "" }
-          : item
-      );
+      const firearm = data.find((item) => item.id === id);
+      if (!firearm) return;
+
       const { error } = await supabase
         .from("firearms_maintenance")
         .update({
-          maintenance_notes: notes,
+          maintenance_notes: firearm.maintenance_notes,
           last_maintenance_date: new Date().toISOString(),
         })
         .eq("id", id);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setData((prevData) =>
-        prevData.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                maintenance_notes: notes,
-                last_maintenance_date: new Date().toISOString(),
-              }
-            : item
-        )
-      );
-      setData(updatedData);
-      await persistData(updatedData);
+      await persistData(data);
+      toast.success("Notes saved successfully!");
     } catch (error) {
-      console.error("Error updating maintenance notes:", error);
+      console.error("Error saving notes:", error);
+      toast.error("Failed to save notes.");
     }
   };
 
@@ -465,7 +482,6 @@ export default function GunsmithingMaintenance() {
               );
             }
 
-            persistData(updatedData);
             return updatedData;
           });
         }
@@ -475,7 +491,7 @@ export default function GunsmithingMaintenance() {
     return () => {
       supabase.removeChannel(FirearmsMaintenanceTableSubscription);
     };
-  }, [persistData, userUuid]);
+  }, [userUuid]);
 
   const handleSubmit = () => {
     // Check if all firearms have notes and status

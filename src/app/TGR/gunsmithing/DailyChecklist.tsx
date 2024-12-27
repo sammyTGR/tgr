@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil1Icon } from "@radix-ui/react-icons";
 import DOMPurify from "dompurify";
+import { useForm } from "react-hook-form";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 
 interface Employee {
   user_uuid: string;
@@ -72,6 +74,15 @@ interface UIState {
     canEdit: boolean;
     type: "inquiry" | "response" | null;
   };
+}
+
+type MaintenanceNotesForm = {
+  maintenance_notes: string;
+};
+
+interface MaintenanceNotesSectionProps {
+  firearm: FirearmWithGunsmith;
+  onSave: (notes: string) => void;
 }
 
 // Custom hook for managing UI state with React Query
@@ -145,6 +156,111 @@ const formatDate = (dateString: string) => {
         hour: "2-digit",
         minute: "2-digit",
       });
+};
+
+const MaintenanceNotesSection = ({
+  firearm,
+  onSave,
+}: MaintenanceNotesSectionProps) => {
+  const queryClient = useQueryClient();
+  const { data: uiState } = useUIState();
+
+  // Add mutation for updating notes
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: number; note: string }) => {
+      const { error } = await supabase
+        .from("firearms_maintenance")
+        .update({ maintenance_notes: DOMPurify.sanitize(note) })
+        .eq("id", id);
+      if (error) throw error;
+      return { id, note };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["firearms"] });
+      toast.success("Notes updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update notes");
+    },
+  });
+
+  // Add toggle function
+  const toggleEditNote = (id: number) => {
+    queryClient.setQueryData(["uiState"], (old: UIState) => ({
+      ...old,
+      editingNoteId: old.editingNoteId === id ? null : id,
+    }));
+  };
+
+  const form = useForm<MaintenanceNotesForm>({
+    defaultValues: {
+      maintenance_notes: firearm.maintenance_notes || "",
+    },
+  });
+
+  const onSubmit = (data: MaintenanceNotesForm) => {
+    updateNotesMutation.mutate({
+      id: firearm.id,
+      note: data.maintenance_notes,
+    });
+    toggleEditNote(firearm.id);
+  };
+
+  return (
+    <div className="mt-2">
+      <p className="text-small font-small text-muted-foreground">
+        Maintenance Notes:
+      </p>
+      {uiState?.editingNoteId === firearm.id ? (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+            <FormField
+              control={form.control}
+              name="maintenance_notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Update daily note..."
+                      className="mt-2"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <div className="mt-2 space-x-2">
+              <Button type="submit" variant="outline">
+                Save
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => toggleEditNote(firearm.id)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Form>
+      ) : (
+        <>
+          <p className="text-medium font-medium text-foreground">
+            {DOMPurify.sanitize(
+              firearm.maintenance_notes || "No maintenance notes."
+            )}
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => toggleEditNote(firearm.id)}
+            className="mt-2"
+          >
+            Edit Note
+          </Button>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default function DailyChecklist({
@@ -563,62 +679,15 @@ export default function DailyChecklist({
                 </p>
 
                 {/* Maintenance Notes Section */}
-                <div className="mt-2">
-                  <p className="text-small font-small text-muted-foreground">
-                    Maintenance Notes:
-                  </p>
-                  {uiState?.editingNoteId === firearm.id ? (
-                    <>
-                      <Textarea
-                        value={firearm.maintenance_notes || ""}
-                        onChange={(e) =>
-                          updateNotesMutation.mutate({
-                            id: firearm.id,
-                            note: e.target.value,
-                          })
-                        }
-                        placeholder="Update daily note..."
-                        className="mt-2"
-                      />
-                      <div className="mt-2 space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => toggleEditNote(firearm.id)}
-                          className="mt-2"
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            updateNotesMutation.mutate({
-                              id: firearm.id,
-                              note: firearm.maintenance_notes || "",
-                            });
-                            toggleEditNote(firearm.id);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-medium font-medium text-foreground">
-                        {DOMPurify.sanitize(
-                          firearm.maintenance_notes || "No maintenance notes."
-                        )}
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => toggleEditNote(firearm.id)}
-                        className="mt-2"
-                      >
-                        Edit Note
-                      </Button>
-                    </>
-                  )}
-                </div>
+                <MaintenanceNotesSection
+                  firearm={firearm}
+                  onSave={(notes) =>
+                    updateNotesMutation.mutate({
+                      id: firearm.id,
+                      note: notes,
+                    })
+                  }
+                />
 
                 {/* Requests and Responses Section */}
                 <div className="mt-6">

@@ -1,10 +1,43 @@
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { protectedPaths } from "@/lib/constant";
+import { jwtDecode } from "jwt-decode";
+
+// Define the JWT payload type
+interface JWTPayload {
+  aal: string;
+  amr: Array<{ method: string; timestamp: number }>;
+  app_metadata: {
+    provider: string;
+    providers: string[];
+    role?: string;
+  };
+  aud: string;
+  email: string;
+  exp: number;
+  iat: number;
+  is_anonymous: boolean;
+  iss: string;
+  phone: string;
+  role: string;
+  session_id: string;
+  sub: string;
+}
 
 export async function middleware(request: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req: request, res: res });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // Get role from JWT with proper typing
+  let jwtRole = "authenticated";
+  if (session?.access_token) {
+    const jwt = jwtDecode<JWTPayload>(session.access_token);
+    jwtRole = jwt.app_metadata?.role || "authenticated";
+  }
 
   // Refresh session if it exists
   await supabase.auth.getUser();

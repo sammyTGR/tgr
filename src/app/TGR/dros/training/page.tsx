@@ -7,6 +7,43 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { jwtDecode } from "jwt-decode";
+
+// Define the JWT payload type
+interface JWTPayload {
+  aal: string;
+  amr: Array<{ method: string; timestamp: number }>;
+  app_metadata: {
+    provider: string;
+    providers: string[];
+    role?: string;
+  };
+  aud: string;
+  email: string;
+  exp: number;
+  iat: number;
+  is_anonymous: boolean;
+  iss: string;
+  phone: string;
+  role: string;
+  session_id: string;
+  sub: string;
+  user_metadata: {
+    avatar_url: string;
+    email: string;
+    email_verified: boolean;
+    full_name: string;
+    iss: string;
+    name: string;
+    phone_verified: boolean;
+    picture: string;
+    provider_id: string;
+    sub: string;
+    custom_claims: {
+      hd: string;
+    };
+  };
+}
 
 const TransactionTypePage = () => {
   const router = useRouter();
@@ -16,14 +53,46 @@ const TransactionTypePage = () => {
     queryKey: ["user"],
     queryFn: async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      let userRole = "authenticated";
+      if (session?.access_token) {
+        const jwt = jwtDecode<JWTPayload>(session.access_token);
+        // console.log("Decoded JWT:", jwt);
+        userRole = jwt.app_metadata?.role || "authenticated";
+      }
+
+      // Set up auth state listener
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.access_token) {
+          const jwt = jwtDecode<JWTPayload>(session.access_token);
+          // console.log("Auth State Change - JWT:", jwt);
+          userRole = jwt.app_metadata?.role || "authenticated";
+        }
+      });
+
+      // Return user data with role
+      const userData = {
+        ...(session?.user || {}),
+        decodedRole: userRole,
+      };
+
+      // Cleanup subscription
+      subscription.unsubscribe();
+
+      return userData;
     },
   });
 
-  const userRole = userData?.app_metadata?.role;
+  // Check the decoded role from JWT
+  const userRole = userData?.decodedRole;
   const canReviewSubmissions = userRole === "admin" || userRole === "dev";
+
+  // console.log("Final User Role:", userRole);
+  // console.log("Can Review:", canReviewSubmissions);
 
   const handgunTransactions = [
     { title: "Dealer Handgun Sale", path: "/TGR/dros/training/dealerhandgun" },
@@ -140,9 +209,11 @@ const TransactionTypePage = () => {
               <CardTitle className="text-xl">Review Submissions</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button asChild>
-                <Link href="/TGR/dros/training/review">Review Submissions</Link>
-              </Button>
+              <Link href="/TGR/dros/training/review" className="w-full block">
+                <Button variant="gooeyLeft" className="w-full">
+                  Review Submissions
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
