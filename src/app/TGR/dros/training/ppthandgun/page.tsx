@@ -2,19 +2,24 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../../../components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+} from "../../../../../components/ui/select";
+import { Input } from "../../../../../components/ui/input";
+import { Label } from "../../../../../components/ui/label";
+import { Alert, AlertDescription } from "../../../../../components/ui/alert";
+import { Button } from "../../../../../components/ui/button";
+import { Textarea } from "../../../../../components/ui/textarea";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -22,9 +27,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/utils/supabase/client";
+} from "../../../../../components/ui/dialog";
+import { toast } from "../../../../../components/ui/use-toast";
+import { supabase } from "../../../../../utils/supabase/client";
 import { useMemo } from "react";
 import { useForm, UseFormSetValue } from "react-hook-form";
 
@@ -66,6 +71,14 @@ type FormData = {
   frameOnly?: string;
   make: string;
   model: string;
+  calibers: string;
+  additionalCaliber: string;
+  additionalCaliber2: string;
+  additionalCaliber3: string;
+  barrelLength: string;
+  unit: string;
+  gunType: string;
+  category: string;
   serialNumber: string;
   otherNumber?: string;
   color: string;
@@ -378,6 +391,176 @@ const PptHandgunPage = () => {
           "X95 LAW ENFORECEMENT SERVICE GUN TO FAMILY MEMBER",
           "X96 TRANSACTION IS TO REPLACE A BROKEN OR DEFECTIVE HANDGUN FRAME",
           "X99 DOJ CERTIFIED INSTRUCTOR",
+        ],
+        calibers: [
+          ".14 Walker Hornet, .14/221, .14-222, 14-gauge shotgun",
+          ".17 (various)",
+          ".204 Ruger, Remington, Savage",
+          ".218 Bee",
+          ".22 Short/Long/Rifle rim. cart.; .22 Hornet, .22-250, 22-gauge",
+          ".220 Swift",
+          ".221 Remington Fireball",
+          ".222 Remington, .222 Remington Magnum",
+          ".223 Remington",
+          ".224 Weatherby Mag, .224 Valkyrie",
+          ".225 Winchester",
+          ".226 JDJ",
+          ".240 Weatherby Mag",
+          ".243 Winchester",
+          ".25 ACP, .25-06, .25-20, .25-35",
+          ".250-3000 Savage",
+          ".256 Newton, .256 Win Mag",
+          ".257 Roberts, .257 Weatherby Mag, .257 Mini Dreadnaught",
+          ".26 Nosler",
+          ".260 Mag. Res Lone Eagle, .260 Rem, .260 Savage, .260 Thompson/Cen",
+          ".264 Winchester Magnum",
+          ".270 Winchester, .270 Weatherby Magnum",
+          ".276 Enfield, .276 Pederson",
+          ".28 Nosler, 28-gauge shotgun",
+          ".280 Remington, .280 JDJ, .80 British",
+          ".284 Winchester",
+          ".30 M1 Carbine, .30-40 Krag, 30-30 Winchester, .30 Mauser",
+          ".30-06 U.S. (.30 Springfield)",
+          ".300 Win. Mag/.300 Wtherby Mag/.300 Sav/.300 H&H Mag/.300 AAC Blkout",
+          ".303 British, .303 Savage",
+          ".307 Winchester",
+          ".308 Winchester",
+          ".309 JDJ",
+          ".31 Baby Dragoon 1848, 1849 Pocket",
+          ".32 ACP,.32 Short Colt, .32 Long Colt, .32 H&R Mag, 32-gauge shotgun",
+          ".32-20 Winchester",
+          ".32-40 Winchester",
+          ".320 Revolver",
+          ".325 Winchester",
+          ".327 Federal Magnum Cartridge",
+          ".33 Winchester",
+          ".330 Dakota",
+          ".338 Winchester Mag, .338 Federal, .338 Lapua Mag",
+          ".340 Weatherby Magnum",
+          ".348 Winchester",
+          ".35 Whelen, .35 Remington, .350 Remington Mag, .35 S&W",
+          ".35-06 JDJ",
+          ".350 Legend",
+          ".351 Winchester",
+          ".356 Win, SW940",
+          ".357 Remington Magnum, .357 Maximum, .357 AutoMag, .357 Sig",
+          ".358 Win, Remington, RPM, ROP, STA",
+          ".36 caliber markings normally found only on black-powder firearms",
+          ".375 H&H Magnum, .375 Winchester, 375-06 JDJ",
+          ".376 Steyr",
+          ".378 Weatherby Mag",
+          ".38 S&W, .38 (S&W) Special, .38 ACP, .38 Super, etc.",
+          ".38-40 Winchester",
+          ".38-55 Win, .38-55 Ballard",
+          ".380 ACP in U.S.; also known as 9mm Kurz/Corto/Short",
+          ".40 S&W",
+          ".40-44 Woodswalker",
+          ".40-65 Winchester",
+          ".400 Cor-bon",
+          ".401 Winchester, .401 Power Mag",
+          ".404 Jeffery",
+          ".405 Winchester",
+          ".408 Cheytac",
+          ".41 Short Rimfire, .41 Remington Mag, .41 Action Express, .41 AutoMa",
+          ".411 JDJ",
+          ".416 Barrett, .416 Rigby, .416 Rem Mag",
+          ".425 Express",
+          ".44 Russian, .44 Special, .44 Rem. Mag, .44 AutoMag",
+          ".44-40 Winchester",
+          ".440 Cor-bon",
+          ".444 Marlin",
+          ".445",
+          ".45 ACP, .45 AutoRim, .45 Short/Long Colt, .45 Winchester Mag",
+          ".45-70 U.S. Government",
+          ".450 Marlin, .450 Dakota, .450 Revolver, .450 Bushmaster",
+          ".454 Casull-ragin Bull Model with Colt 45",
+          ".455 Webley, or .455 Manstopper, .455 Enfield",
+          ".458 Winchester Mag, .458 Whisper",
+          ".460 Weatherby Mag, .460 A-Square, .460 S&W, .460 Steyr",
+          ".470 Nitro Express, .470 Rigby",
+          ".475 Linebaugh, .475 JDJ",
+          ".476 Enfield",
+          ".480 Ruger",
+          ".485 British",
+          ".495 A-Square",
+          ".50 BMG, .50 Action Exp, .50 Beowolf; black-powder firearm",
+          ".50-70 Gov't",
+          ".500 Linebaugh, .500 S&W Mag, .500 WE",
+          ".510 DTC",
+          ".54 Used in black-powder firearms",
+          ".577 Tyrannosaur, .577/450 Martini Henry, .577 Snyder",
+          ".58 Used in black-powder firearms; .577 Nitro Express Elephant Gun",
+          ".60 Used in black-powder firearms; .600 Nitro Express Elephant Gun",
+          ".653 Scramjet",
+          ".671 Phantom, .671 Blackbrid",
+          ".75 caliber, 7.5mm Nagant (Swedish), 7.5mm Swiss, 7.5mm French MAS",
+          ".909 Eagle",
+          ".953 Hellcat, .953 Saturn",
+          "10.15mm Jermann, 10.15mm Serbian Mauser",
+          "10.4mm Italian, 10.4mm Swiss",
+          "10.57 Maverick, 10.57 Meteor",
+          "10.75mm Russian Berdan",
+          "10mm, 10-gauge shotgun",
+          "11.15mm Spanish Rem., 11.15mm Mauser, 11.15mm Werndl M/77",
+          "11.43mm Egyptian, 11.43mm Turkish",
+          "11.4mm Brazilian, 11.4mm Werndel M/73",
+          "11.75mm Montenegrin",
+          "11.7mm Danish Rem.",
+          "11mm Mauser, 11mm French, 11 Belgian",
+          "12-gauge shotgun",
+          "12.5mm",
+          "13mm Gyrojet rocket pistol/carbine",
+          "16-gauge shotgun",
+          "2.7mm Kolibri",
+          "20-gauge shotgun",
+          "24-gauge shotgun",
+          "3mm Kolibri",
+          "4-gauge shotgun or blank",
+          "410-gauge shotgun",
+          "5.45x39mm, 5.45x18mm Soviet",
+          "5.56x45mm NATO",
+          "5.5mm Velo Dog",
+          "5.6x50mm Mag, 5.6x57mm RWS, 5.6x61mm, 5.6x52 Rmm",
+          "5.7 X 28mm Fabrique Nationale",
+          "5mm Bergmann, 5mm Clement Auto",
+          "6.17 Spitfire, 6.17 Flash",
+          "6.35mm",
+          "6.5mm (various); .65 caliber black-powder firearms",
+          "6.8mm Remington, 6.8x57mm Chinese",
+          "6mm Remington, 6mm SAW",
+          "7-30 Waters",
+          "7.21 Tomahawk, 7.21 Firehawk, 7.21 Firebird",
+          "7.35mm Carcano",
+          "7.62x39 Soviet, 7.62x51 NATO, 7.62x54R Rus. Moisin-Nagant, 7.62x35",
+          "7.63mm Mannlicher, 7.62x25mm Tokarev",
+          "7.65mm Luger, 7.65mm Roth-Sauer, 7.65 MAS (French), .30 Luger",
+          "7.7mm Arisaka",
+          "7.82 Patriot, 7.82 Warbird",
+          "7.92mm Kurz (Short)",
+          "7mm, Rem Weatherby Mag, 7mm Bench Rest, 7x57 Mauser, 7mm-08 Rem",
+          "8.59 Galaxy, 8.59 Titan",
+          "8x57 Mauser, 8mm Lebel, 8mm Remington Mag, 8x56mmR, 8-gauge shotgun",
+          "9.3mm JDJ, 9.3x57mm Mauser",
+          "9.5mm Turkish Mauser",
+          "9.8mm Auto Colt",
+          "9mm L/Para/9x18,9x21,9x23/Largo 9x19, 9mm rimfire shotgun",
+          "Firearm with interchangable barrels",
+        ],
+        category: [
+          "4 OR MORE BARRELS",
+          "BOLT ACTION",
+          "DERRINGER",
+          "DOUBLE BARREL",
+          "LEVER ACTION",
+          "OVER AND UNDER",
+          "REVOLVER",
+          "SEMI-AUTOMATIC",
+          "SINGLE SHOT",
+          "THREE BARRELS",
+        ],
+unit: [
+          "INCH",
+          "CENTIMETER",
         ],
         colors: [
           "ALUMINUM/SILVER",
@@ -922,11 +1105,14 @@ const PptHandgunPage = () => {
   const { data: handgunData, isLoading: isLoadingHandguns } = useQuery({
     queryKey: ["handgunRoster"],
     queryFn: async () => {
-      const response = await fetch("/api/fetchRoster");
+      const response = await fetch("/api/fetchPpt", {
+        credentials: "include",
+      });
       if (!response.ok) {
-        throw new Error("Failed to fetch handgun roster");
+        throw new Error("Failed to fetch manufacturers");
       }
-      return response.json();
+      const data = await response.json();
+      return data;
     },
   });
 
@@ -2013,64 +2199,174 @@ const PptHandgunPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {handgunData &&
-                        Object.keys(handgunData)
-                          .sort()
-                          .map((make) => (
-                            <SelectItem key={make} value={make}>
-                              {make}
-                            </SelectItem>
-                          ))}
+                        Object.keys(handgunData).map((make) => (
+                          <SelectItem key={make} value={make}>
+                            {DOMPurify.sanitize(make)}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {selectedMake && (
-                  <div className="space-y-2">
-                    <Label className="required">Model</Label>
-                    <Select
-                      {...register("model")}
-                      onValueChange={(value) => setValue("model", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {models.map((model: string) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label className="required">Model</Label>
+                  <Input {...register("model")} placeholder="Enter model" />
+                </div>
               </div>
 
-              {/* Handgun Details Section */}
-              {handgunDetails && (
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 border rounded-md bg-muted">
-                  <div className="space-y-2">
-                    <Label>Caliber</Label>
-                    <Input value={handgunDetails.caliber || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Barrel Length</Label>
-                    <Input value={handgunDetails.barrelLength || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Unit</Label>
-                    <Input value={handgunDetails.unit || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Material</Label>
-                    <Input value={handgunDetails.material || ""} readOnly />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Input value={handgunDetails.category || ""} readOnly />
-                  </div>
+              {/* Caliber Additional Caliber Section*/}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Caliber</Label>
+                  <Select
+                    {...register("calibers")}
+                    onValueChange={(value) => setValue("calibers", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Caliber" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.calibers.map((caliber) => (
+                        <SelectItem key={caliber} value={caliber}>
+                          {DOMPurify.sanitize(caliber)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label>Additional Caliber</Label>
+                  <Select
+                    {...register("additionalCaliber")}
+                    onValueChange={(value) =>
+                      setValue("additionalCaliber", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Additional Caliber (Optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.calibers.map((caliber) => (
+                        <SelectItem key={caliber} value={caliber}>
+                          {DOMPurify.sanitize(caliber)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Additional Caliber 2 and 3 Section*/}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Additional Caliber</Label>
+                  <Select
+                    {...register("calibers")}
+                    onValueChange={(value) =>
+                      setValue("additionalCaliber2", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Caliber" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.calibers.map((caliber) => (
+                        <SelectItem key={caliber} value={caliber}>
+                          {DOMPurify.sanitize(caliber)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Additional Caliber</Label>
+                  <Select
+                    {...register("additionalCaliber")}
+                    onValueChange={(value) =>
+                      setValue("additionalCaliber3", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Additional Caliber (Optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.calibers.map((caliber) => (
+                        <SelectItem key={caliber} value={caliber}>
+                          {DOMPurify.sanitize(caliber)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Barrel Length Section*/}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">Barrel Length</Label>
+                  <Input {...register("barrelLength")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Unit</Label>
+                  <Select
+                    {...register("unit")}
+                    onValueChange={(value) =>
+                      setValue("unit", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.unit.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {DOMPurify.sanitize(unit)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Gun Type</Label>
+
+                  <Select
+                    {...register("gunType")}
+                    onValueChange={(value) =>
+                      setValue("gunType", value)
+                    }
+                    disabled
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Handgun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="handgun">
+                        Handgun
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select
+                    {...register("category")}
+                    onValueChange={(value) =>
+                      setValue("category", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.category.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {DOMPurify.sanitize(category)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
               {/* Serial Numbers Row */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

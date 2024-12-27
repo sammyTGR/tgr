@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../../../components/ui/card";
 import {
   Table,
   TableBody,
@@ -10,16 +15,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from "../../../../../components/ui/table";
+import { Button } from "../../../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { supabase } from "@/utils/supabase/client";
+} from "../../../../../components/ui/dialog";
+import { supabase } from "../../../../../utils/supabase/client";
 
 type DealerHandgunSale = {
   id: string;

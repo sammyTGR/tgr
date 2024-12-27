@@ -2,41 +2,31 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const manufacturers = [
-  { id: "-1", name: "Select Make" },
-  { id: "3440", name: ".38 MASTER (AUTO) S&W" },
-  { id: "5266", name: "17 DESIGN & MANUFACTURING" },
-  { id: "712", name: "1991 A1 (BUDGET CIVILIAN .45)" },
-  // ... continue with all manufacturers
-  { id: "4033", name: "ZVI (ZBROJOVKA VSETIN-INDET)" },
-];
-
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    // Insert manufacturers if they don't exist
-    const { error } = await supabase.from("manufacturers").upsert(
-      manufacturers.map((m) => ({
-        id: m.id,
-        name: m.name,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })),
-      { onConflict: "id" }
-    );
-
-    if (error) throw error;
-
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     // Return all manufacturers
     const { data, error: fetchError } = await supabase
       .from("manufacturers")
       .select("*")
-      .order("name");
+      .order("make");
 
     if (fetchError) throw fetchError;
 
-    return NextResponse.json(data);
+    // Transform the data to match the expected format in your component
+    const transformedData = data?.reduce((acc, manufacturer) => {
+      acc[manufacturer.make] = []; // Empty array since we don't have models yet
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     return NextResponse.json(
       { error: "Error fetching manufacturers" },
