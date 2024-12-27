@@ -3,9 +3,27 @@
 import * as React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { supabase } from "@/utils/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const TransactionTypePage = () => {
   const router = useRouter();
+
+  // Fetch user data using TanStack Query
+  const { data: userData } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  const userRole = userData?.app_metadata?.role;
+  const canReviewSubmissions = userRole === "admin" || userRole === "dev";
 
   const handgunTransactions = [
     { title: "Dealer Handgun Sale", path: "/TGR/dros/training/dealerhandgun" },
@@ -114,6 +132,21 @@ const TransactionTypePage = () => {
           </CardContent>
         </Card>
       </div>
+      {/* Review Submissions */}
+      {canReviewSubmissions && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Review Submissions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link href="/TGR/dros/training/review">Review Submissions</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

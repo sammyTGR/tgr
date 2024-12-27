@@ -27,11 +27,32 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
+  DialogFooter,
 } from "../../../../../components/ui/dialog";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
 import { useMemo } from "react";
-import { useForm, UseFormSetValue } from "react-hook-form";
+import { useForm, UseFormSetValue, useWatch, Control } from "react-hook-form";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "../../../../../components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../../../components/ui/popover";
+import { Check } from "lucide-react";
+import { cn } from "../../../../../lib/utils";
+import {
+  ScrollArea,
+  ScrollBar,
+} from "../../../../../components/ui/scroll-area";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 type FormData = {
   firstName: string;
@@ -79,6 +100,7 @@ type FormData = {
   unit: string;
   gunType: string;
   category: string;
+  regulated: string;
   serialNumber: string;
   otherNumber?: string;
   color: string;
@@ -267,6 +289,319 @@ const useHandgunDetails = (make: string, model: string) => {
   });
 };
 
+const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
+  const formValues = useWatch({ control });
+  const router = useRouter();
+
+  // Dialog state mutation
+  const { mutate: setDialogOpen } = useMutation({
+    mutationKey: ["previewDialog"],
+    mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
+  });
+
+  // Form submission mutation
+  const { mutate: submitForm, isPending } = useMutation({
+    mutationFn: async (data: FormData) => {
+      const response = await fetch("/api/pptHandgun", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          transaction_type: "ppt-handgun",
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to submit form");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Form submitted successfully" });
+      router.push("/TGR/dros/training");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Preview</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Preview Submission</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-4">
+          {/* Buyer Information */}
+          <div className="space-y-4">
+            <h3 className="font-bold">Buyer Information</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="font-medium">Name:</span>
+              <span>{`${formValues.firstName} ${formValues.middleName || ""} ${
+                formValues.lastName
+              } ${formValues.suffix || ""}`}</span>
+
+              <span className="font-medium">Address:</span>
+              <span>{`${formValues.streetAddress}, ${formValues.city}, ${formValues.state} ${formValues.zipCode}`}</span>
+
+              <span className="font-medium">Physical Description:</span>
+              <span>{`${formValues.gender}, ${formValues.hairColor} hair, ${formValues.eyeColor} eyes`}</span>
+
+              <span className="font-medium">Height:</span>
+              <span>{`${formValues.heightFeet}'${formValues.heightInches}"`}</span>
+
+              <span className="font-medium">Weight:</span>
+              <span>{formValues.weight || "N/A"}</span>
+
+              <span className="font-medium">Date of Birth:</span>
+              <span>{formValues.dateOfBirth}</span>
+
+              <span className="font-medium">ID Information:</span>
+              <span>{`${formValues.idType} - ${formValues.idNumber}`}</span>
+
+              <span className="font-medium">Race:</span>
+              <span>{formValues.race}</span>
+
+              <span className="font-medium">U.S. Citizen:</span>
+              <span>{formValues.isUsCitizen}</span>
+
+              <span className="font-medium">Place of Birth:</span>
+              <span>{formValues.placeOfBirth}</span>
+
+              <span className="font-medium">Phone Number:</span>
+              <span>{formValues.phoneNumber || "N/A"}</span>
+
+              {/* Alias Information if provided */}
+              {(formValues.aliasFirstName || formValues.aliasLastName) && (
+                <>
+                  <span className="font-medium">Alias:</span>
+                  <span>{`${formValues.aliasFirstName || ""} ${
+                    formValues.aliasMiddleName || ""
+                  } ${formValues.aliasLastName || ""} ${
+                    formValues.aliasSuffix || ""
+                  }`}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Seller Information */}
+          <div className="space-y-4">
+            <h3 className="font-bold">Seller Information</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="font-medium">Name:</span>
+              <span>{`${formValues.sellerFirstName} ${
+                formValues.sellerMiddleName || ""
+              } ${formValues.sellerLastName} ${
+                formValues.sellerSuffix || ""
+              }`}</span>
+
+              <span className="font-medium">Address:</span>
+              <span>{`${formValues.sellerStreetAddress}, ${formValues.sellerCity}, ${formValues.sellerState} ${formValues.sellerZipCode}`}</span>
+
+              <span className="font-medium">Physical Description:</span>
+              <span>{`${formValues.sellerGender}, ${formValues.sellerHairColor} hair, ${formValues.sellerEyeColor} eyes`}</span>
+
+              <span className="font-medium">Height:</span>
+              <span>{`${formValues.sellerHeightFeet}'${formValues.sellerHeightInches}"`}</span>
+
+              <span className="font-medium">Weight:</span>
+              <span>{formValues.sellerWeight || "N/A"}</span>
+
+              <span className="font-medium">Date of Birth:</span>
+              <span>{formValues.sellerDateOfBirth}</span>
+
+              <span className="font-medium">ID Information:</span>
+              <span>{`${formValues.sellerIdType} - ${formValues.sellerIdNumber}`}</span>
+
+              <span className="font-medium">Race:</span>
+              <span>{formValues.sellerRace}</span>
+
+              <span className="font-medium">U.S. Citizen:</span>
+              <span>{formValues.sellerIsUsCitizen}</span>
+
+              <span className="font-medium">Place of Birth:</span>
+              <span>{formValues.sellerPlaceOfBirth}</span>
+
+              <span className="font-medium">Phone Number:</span>
+              <span>{formValues.sellerPhoneNumber || "N/A"}</span>
+
+              {/* Seller Alias Information if provided */}
+              {(formValues.sellerAliasFirstName ||
+                formValues.sellerAliasLastName) && (
+                <>
+                  <span className="font-medium">Alias:</span>
+                  <span>{`${formValues.sellerAliasFirstName || ""} ${
+                    formValues.sellerAliasMiddleName || ""
+                  } ${formValues.sellerAliasLastName || ""} ${
+                    formValues.sellerAliasSuffix || ""
+                  }`}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Firearm Information */}
+          <div className="col-span-2 space-y-4 mt-4">
+            <h3 className="font-bold">Firearm Information</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="font-medium">Frame Only:</span>
+              <span>{formValues.frameOnly}</span>
+
+              <span className="font-medium">Make:</span>
+              <span>{formValues.make}</span>
+
+              <span className="font-medium">Model:</span>
+              <span>{formValues.model}</span>
+
+              {formValues.frameOnly !== "yes" && (
+                <>
+                  <span className="font-medium">Caliber:</span>
+                  <span>{formValues.calibers}</span>
+
+                  {formValues.additionalCaliber && (
+                    <>
+                      <span className="font-medium">Additional Caliber:</span>
+                      <span>{formValues.additionalCaliber}</span>
+                    </>
+                  )}
+
+                  {formValues.additionalCaliber2 && (
+                    <>
+                      <span className="font-medium">Additional Caliber 2:</span>
+                      <span>{formValues.additionalCaliber2}</span>
+                    </>
+                  )}
+
+                  {formValues.additionalCaliber3 && (
+                    <>
+                      <span className="font-medium">Additional Caliber 3:</span>
+                      <span>{formValues.additionalCaliber3}</span>
+                    </>
+                  )}
+
+                  <span className="font-medium">Barrel Length:</span>
+                  <span>{`${formValues.barrelLength} ${formValues.unit}`}</span>
+                </>
+              )}
+
+              <span className="font-medium">Gun Type:</span>
+              <span>{formValues.gunType || "HANDGUN"}</span>
+
+              <span className="font-medium">Category:</span>
+              <span>{formValues.category}</span>
+
+              {formValues.frameOnly === "yes" && (
+                <>
+                  <span className="font-medium">Federally Regulated:</span>
+                  <span>{formValues.regulated}</span>
+                </>
+              )}
+
+              <span className="font-medium">Serial Number:</span>
+              <span>{formValues.serialNumber}</span>
+
+              {formValues.otherNumber && (
+                <>
+                  <span className="font-medium">Other Number:</span>
+                  <span>{formValues.otherNumber}</span>
+                </>
+              )}
+
+              <span className="font-medium">Color:</span>
+              <span>{formValues.color}</span>
+
+              <span className="font-medium">New/Used:</span>
+              <span>{formValues.isNewGun}</span>
+
+              <span className="font-medium">FSD:</span>
+              <span>{formValues.firearmSafetyDevice}</span>
+            </div>
+          </div>
+
+          {/* Transaction Information */}
+          <div className="col-span-2 space-y-4 mt-4">
+            <h3 className="font-bold">Transaction Information</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="font-medium">Gun Show Transaction:</span>
+              <span>{formValues.isGunShowTransaction}</span>
+
+              <span className="font-medium">Waiting Period Exemption:</span>
+              <span>{formValues.waitingPeriodExemption || "N/A"}</span>
+
+              <span className="font-medium">HSC/FSC Number:</span>
+              <span>{formValues.hscFscNumber || "N/A"}</span>
+
+              <span className="font-medium">Exemption Code:</span>
+              <span>{formValues.exemptionCode || "N/A"}</span>
+
+              <span className="font-medium">Comments:</span>
+              <span>{formValues.comments || "N/A"}</span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="mt-4">
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button
+            onClick={() => submitForm(formValues as FormData)}
+            disabled={isPending}
+          >
+            {isPending ? "Submitting..." : "Submit"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const MakeSelect = ({
+  setValue,
+  value,
+  handgunData,
+  isLoadingHandguns,
+}: {
+  setValue: UseFormSetValue<FormData>;
+  value: string;
+  handgunData: Record<string, any>;
+  isLoadingHandguns: boolean;
+}) => {
+  // Query for all makes
+  const { data: makes = [] } = useQuery({
+    queryKey: ["makes"],
+    queryFn: () => (handgunData ? Object.keys(handgunData) : []),
+    enabled: !!handgunData,
+  });
+
+  return (
+    <Select
+      value={value}
+      onValueChange={(newValue) => {
+        setValue("make", newValue);
+        setValue("model", "");
+      }}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select Make" />
+      </SelectTrigger>
+      <SelectContent>
+        <ScrollArea className="h-[200px]">
+          {makes.map((make) => (
+            <SelectItem key={make} value={make}>
+              {DOMPurify.sanitize(make)}
+            </SelectItem>
+          ))}
+        </ScrollArea>
+      </SelectContent>
+    </Select>
+  );
+};
+
 const PptHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -276,6 +611,7 @@ const PptHandgunPage = () => {
     handleSubmit,
     watch,
     setValue,
+    control, // Add this
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: initialFormState,
@@ -286,6 +622,7 @@ const PptHandgunPage = () => {
   // Watch both zip code fields
   const zipCode = watch("zipCode");
   const sellerZipCode = watch("sellerZipCode");
+  const frameOnlySelection = watch("frameOnly");
 
   // Use both zip code lookup hooks
   const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
@@ -558,10 +895,8 @@ const PptHandgunPage = () => {
           "SINGLE SHOT",
           "THREE BARRELS",
         ],
-unit: [
-          "INCH",
-          "CENTIMETER",
-        ],
+        regulated: ["YES", "NO"],
+        unit: ["INCH", "CENTIMETER"],
         colors: [
           "ALUMINUM/SILVER",
           "BEIGE",
@@ -1157,121 +1492,10 @@ unit: [
     },
   });
 
-  // Preview Dialog Component
-  const PreviewDialog = () => {
-    const formValues = watch(); // Get all current form values
-
-    return (
-      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button>Preview</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Preview Submission</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* Purchaser Information */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h3 className="font-bold">Purchaser Information</h3>
-                <p>
-                  Name: {formValues.firstName} {formValues.middleName}{" "}
-                  {formValues.lastName} {formValues.suffix}
-                </p>
-                <p>Address: {formValues.streetAddress}</p>
-                <p>
-                  Location: {formValues.city}, {formValues.state}{" "}
-                  {formValues.zipCode}
-                </p>
-                <p>Phone: {formValues.phoneNumber}</p>
-                <p>ID Type: {formValues.idType}</p>
-                <p>ID Number: {formValues.idNumber}</p>
-                <p>
-                  Height: {formValues.heightFeet}&apos;{formValues.heightInches}
-                  &quot;
-                </p>
-                <p>Weight: {formValues.weight} lbs</p>
-                <p>Date of Birth: {formValues.dateOfBirth}</p>
-                <p>Race: {formValues.race}</p>
-                <p>Gender: {formValues.gender}</p>
-                <p>Hair Color: {formValues.hairColor}</p>
-                <p>Eye Color: {formValues.eyeColor}</p>
-                <p>U.S. Citizen: {formValues.isUsCitizen}</p>
-                <p>Place of Birth: {formValues.placeOfBirth}</p>
-              </div>
-
-              {/* Seller Information */}
-              <div className="space-y-2">
-                <h3 className="font-bold">Seller Information</h3>
-                <p>
-                  Name: {formValues.sellerFirstName}{" "}
-                  {formValues.sellerMiddleName} {formValues.sellerLastName}{" "}
-                  {formValues.sellerSuffix}
-                </p>
-                <p>Address: {formValues.sellerStreetAddress}</p>
-                <p>
-                  Location: {formValues.sellerCity}, {formValues.sellerState}{" "}
-                  {formValues.sellerZipCode}
-                </p>
-                <p>Phone: {formValues.sellerPhoneNumber}</p>
-                <p>ID Type: {formValues.sellerIdType}</p>
-                <p>ID Number: {formValues.sellerIdNumber}</p>
-                <p>
-                  Height: {formValues.sellerHeightFeet}&apos;
-                  {formValues.sellerHeightInches}
-                  &quot;
-                </p>
-                <p>Weight: {formValues.sellerWeight} lbs</p>
-                <p>Date of Birth: {formValues.sellerDateOfBirth}</p>
-                <p>Race: {formValues.sellerRace}</p>
-                <p>Gender: {formValues.sellerGender}</p>
-                <p>Hair Color: {formValues.sellerHairColor}</p>
-                <p>Eye Color: {formValues.sellerEyeColor}</p>
-                <p>U.S. Citizen: {formValues.sellerIsUsCitizen}</p>
-                <p>Place of Birth: {formValues.sellerPlaceOfBirth}</p>
-              </div>
-            </div>
-
-            {/* Firearm Information */}
-            <div className="space-y-2">
-              <h3 className="font-bold">Firearm Information</h3>
-              <p>Make: {formValues.make}</p>
-              <p>Model: {formValues.model}</p>
-              <p>Serial Number: {formValues.serialNumber}</p>
-              <p>Other Number: {formValues.otherNumber}</p>
-              <p>Color: {formValues.color}</p>
-              <p>Condition: {formValues.isNewGun === "new" ? "New" : "Used"}</p>
-              <p>Safety Device: {formValues.firearmSafetyDevice}</p>
-              <p>Gun Show Transaction: {formValues.isGunShowTransaction}</p>
-              <p>
-                Waiting Period Exemption: {formValues.waitingPeriodExemption}
-              </p>
-              <p>Restriction Exemption: {formValues.restrictionExemption}</p>
-              <p>Comments: {formValues.comments}</p>
-            </div>
-
-            <div className="flex justify-end gap-4 mt-4">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Edit
-              </Button>
-              <Button
-                onClick={() => submitForm(formValues)}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Confirm & Submit"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-2xl font-bold text-center mb-8">
-        Submit Dealer Handgun Sale
+        Submit Private Party Handgun Transfer
       </h1>
 
       <Alert variant="destructive" className="mb-6">
@@ -1455,7 +1679,7 @@ unit: [
             </div>
 
             <div className="space-y-2">
-              <Label className="required">Height (Feet / Inches)</Label>
+              <Label className="required">Height</Label>
               <div className="flex gap-2">
                 <Select
                   {...register("heightFeet")}
@@ -1856,7 +2080,7 @@ unit: [
               {/* Seller Physical Characteristics */}
               <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                 <div className="space-y-2">
-                  <Label className="required">Seller Gender</Label>
+                  <Label className="required">Gender</Label>
                   <Select
                     {...register("sellerGender")}
                     onValueChange={(value) => setValue("sellerGender", value)}
@@ -1875,7 +2099,7 @@ unit: [
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="required">Seller Hair Color</Label>
+                  <Label className="required">Hair Color</Label>
                   <Select
                     {...register("sellerHairColor")}
                     onValueChange={(value) =>
@@ -1896,7 +2120,7 @@ unit: [
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="required">Seller Eye Color</Label>
+                  <Label className="required">Eye Color</Label>
                   <Select
                     {...register("sellerEyeColor")}
                     onValueChange={(value) => setValue("sellerEyeColor", value)}
@@ -1917,7 +2141,7 @@ unit: [
                 {/* Seller Height/Weight/DOB */}
 
                 <div className="space-y-2">
-                  <Label className="required">Seller Height</Label>
+                  <Label className="required">Height</Label>
                   <div className="flex gap-2">
                     <Select
                       {...register("sellerHeightFeet")}
@@ -1926,7 +2150,7 @@ unit: [
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Feet" />
+                        <SelectValue placeholder="ft" />
                       </SelectTrigger>
                       <SelectContent>
                         {formData?.heightFeet.map((feet) => (
@@ -1943,7 +2167,7 @@ unit: [
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Inches" />
+                        <SelectValue placeholder="in" />
                       </SelectTrigger>
                       <SelectContent>
                         {formData?.heightInches.map((inches) => (
@@ -1957,12 +2181,12 @@ unit: [
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Seller Weight</Label>
+                  <Label>Weight</Label>
                   <Input {...register("sellerWeight")} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="required">Seller Date of Birth</Label>
+                  <Label className="required">Date of Birth</Label>
                   <Input {...register("sellerDateOfBirth")} type="date" />
                 </div>
               </div>
@@ -1994,7 +2218,7 @@ unit: [
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="required">Seller Race</Label>
+                  <Label className="required">Race</Label>
                   <Select
                     {...register("sellerRace")}
                     onValueChange={(value) => setValue("sellerRace", value)}
@@ -2015,7 +2239,7 @@ unit: [
                 {/* Seller Additional Information */}
 
                 <div className="space-y-2">
-                  <Label className="required">Seller U.S. Citizen</Label>
+                  <Label className="required">U.S. Citizen</Label>
                   <Select
                     {...register("sellerIsUsCitizen")}
                     onValueChange={(value) =>
@@ -2059,7 +2283,7 @@ unit: [
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Seller Phone Number</Label>
+                  <Label>Phone Number</Label>
                   <Input {...register("sellerPhoneNumber")} />
                 </div>
               </div>
@@ -2136,23 +2360,10 @@ unit: [
                 </div>
                 <div className="space-y-2">
                   <Label>30-Day Restriction Exemption</Label>
-
-                  <Select
-                    {...register("restrictionExemption")}
-                    onValueChange={(value) =>
-                      setValue("restrictionExemption", value)
-                    }
+                  <Input
+                    value="Private Party Transfer Through Licensed Firearms Dealer"
                     disabled
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Private Party Transfer Through Licensed Firearms Dealer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="private_party_transfer">
-                        Private Party Transfer Through Licensed Firearms Dealer
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               </div>
 
@@ -2182,30 +2393,12 @@ unit: [
                 {/* Make and Model*/}
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
-                  <Select
-                    {...register("make")}
-                    disabled={isLoadingHandguns}
-                    onValueChange={(value) => {
-                      setValue("make", value);
-                      setValue("model", ""); // Reset model when make changes
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          isLoadingHandguns ? "Loading..." : "Select Make"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {handgunData &&
-                        Object.keys(handgunData).map((make) => (
-                          <SelectItem key={make} value={make}>
-                            {DOMPurify.sanitize(make)}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <MakeSelect
+                    setValue={setValue}
+                    value={watch("make")}
+                    handgunData={handgunData}
+                    isLoadingHandguns={isLoadingHandguns}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -2214,159 +2407,189 @@ unit: [
                 </div>
               </div>
 
-              {/* Caliber Additional Caliber Section*/}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Caliber</Label>
-                  <Select
-                    {...register("calibers")}
-                    onValueChange={(value) => setValue("calibers", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Caliber" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.calibers.map((caliber) => (
-                        <SelectItem key={caliber} value={caliber}>
-                          {DOMPurify.sanitize(caliber)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Additional Caliber</Label>
-                  <Select
-                    {...register("additionalCaliber")}
-                    onValueChange={(value) =>
-                      setValue("additionalCaliber", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Additional Caliber (Optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.calibers.map((caliber) => (
-                        <SelectItem key={caliber} value={caliber}>
-                          {DOMPurify.sanitize(caliber)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              {/* Caliber and Additional Caliber Sections */}
 
-              {/* Additional Caliber 2 and 3 Section*/}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Additional Caliber</Label>
-                  <Select
-                    {...register("calibers")}
-                    onValueChange={(value) =>
-                      setValue("additionalCaliber2", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Caliber" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.calibers.map((caliber) => (
-                        <SelectItem key={caliber} value={caliber}>
-                          {DOMPurify.sanitize(caliber)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Additional Caliber</Label>
-                  <Select
-                    {...register("additionalCaliber")}
-                    onValueChange={(value) =>
-                      setValue("additionalCaliber3", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Additional Caliber (Optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.calibers.map((caliber) => (
-                        <SelectItem key={caliber} value={caliber}>
-                          {DOMPurify.sanitize(caliber)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              {frameOnlySelection !== "yes" ? (
+                <>
+                  {/* Show caliber sections when frame only is not yes */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="required">Caliber</Label>
+                      <Select
+                        {...register("calibers")}
+                        onValueChange={(value) => setValue("calibers", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Caliber" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Additional Caliber</Label>
+                      <Select
+                        {...register("additionalCaliber")}
+                        onValueChange={(value) =>
+                          setValue("additionalCaliber", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Additional Caliber (Optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-              {/* Barrel Length Section*/}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Barrel Length</Label>
-                  <Input {...register("barrelLength")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Unit</Label>
-                  <Select
-                    {...register("unit")}
-                    onValueChange={(value) =>
-                      setValue("unit", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.unit.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {DOMPurify.sanitize(unit)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Gun Type</Label>
+                  {/* Additional Caliber 2 and 3 Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Additional Caliber 2</Label>
+                      <Select
+                        {...register("additionalCaliber2")}
+                        onValueChange={(value) =>
+                          setValue("additionalCaliber2", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Caliber" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Additional Caliber 3</Label>
+                      <Select
+                        {...register("additionalCaliber3")}
+                        onValueChange={(value) =>
+                          setValue("additionalCaliber3", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Additional Caliber (Optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-                  <Select
-                    {...register("gunType")}
-                    onValueChange={(value) =>
-                      setValue("gunType", value)
-                    }
-                    disabled
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Handgun" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="handgun">
-                        Handgun
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Combined row for barrel length, unit, gun type, category */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label className="required">Barrel Length</Label>
+                      <Input {...register("barrelLength")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Unit</Label>
+                      <Select
+                        {...register("unit")}
+                        onValueChange={(value) => setValue("unit", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.unit.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {DOMPurify.sanitize(unit)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Gun Type</Label>
+                      <Input value="HANDGUN" disabled />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Select
+                        {...register("category")}
+                        onValueChange={(value) => setValue("category", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData?.category.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {DOMPurify.sanitize(category)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* When frame only is yes, show gun type, category, and regulated in one row */
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Gun Type</Label>
+                    <Input value="HANDGUN" disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select
+                      {...register("category")}
+                      onValueChange={(value) => setValue("category", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData?.category.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {DOMPurify.sanitize(category)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Federally Regulated Firearm Precursor Part</Label>
+                    <Select
+                      {...register("regulated")}
+                      onValueChange={(value) => setValue("regulated", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData?.regulated.map((regulated) => (
+                          <SelectItem key={regulated} value={regulated}>
+                            {DOMPurify.sanitize(regulated)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select
-                    {...register("category")}
-                    onValueChange={(value) =>
-                      setValue("category", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.category.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {DOMPurify.sanitize(category)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              )}
 
               {/* Serial Numbers Row */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -2386,9 +2609,6 @@ unit: [
                       }
                     }}
                   />
-                  <div className="text-sm text-muted-foreground">
-                    Please re-enter the serial number to verify
-                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Other Number</Label>
@@ -2414,7 +2634,7 @@ unit: [
                 </div>
               </div>
               {/* Gun Details Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="required">New/Used Gun</Label>
                   <Select
@@ -2452,11 +2672,6 @@ unit: [
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Gun Type (Read Only) */}
-                <div className="space-y-2">
-                  <Label>Gun Type</Label>
-                  <Input value="HANDGUN" disabled />
-                </div>
               </div>
 
               {/* Comments Section */}
@@ -2485,7 +2700,7 @@ unit: [
         >
           Back
         </Button>
-        <PreviewDialog />
+        <PreviewDialog control={control} />
         <Button variant="outline" onClick={() => window.location.reload()}>
           Refresh
         </Button>

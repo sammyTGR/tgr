@@ -1621,9 +1621,6 @@ const DealerHandgunSalePage = () => {
                       }
                     }}
                   />
-                  <div className="text-sm text-muted-foreground">
-                    Please re-enter the serial number to verify
-                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Other Number</Label>

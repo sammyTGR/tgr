@@ -30,6 +30,7 @@ type DealerHandgunSale = {
   id: string;
   created_at: string;
   user_id: string;
+  name: string;
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -74,6 +75,31 @@ type DealerHandgunSale = {
   comments?: string;
   status: "draft" | "submitted" | "approved" | "rejected";
   transaction_type: string;
+  seller_first_name?: string;
+  seller_middle_name?: string;
+  seller_last_name?: string;
+  seller_suffix?: string;
+  seller_street_address?: string;
+  seller_zip_code?: string;
+  seller_city?: string;
+  seller_state?: string;
+  seller_gender?: string;
+  seller_hair_color?: string;
+  seller_eye_color?: string;
+  seller_height_feet?: string;
+  seller_height_inches?: string;
+  seller_weight?: string;
+  seller_date_of_birth?: string;
+  seller_id_type?: string;
+  seller_id_number?: string;
+  seller_race?: string;
+  seller_is_us_citizen?: string;
+  seller_place_of_birth?: string;
+  seller_phone_number?: string;
+  seller_alias_first_name?: string;
+  seller_alias_middle_name?: string;
+  seller_alias_last_name?: string;
+  seller_alias_suffix?: string;
 };
 
 // Add a type for the transaction type
@@ -151,19 +177,54 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
 };
 
 const ReviewPage = () => {
-  // Fetch all submissions from dealer handgun sales
+  // Fetch all employees with their user_uuid
+  const { data: employees } = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const response = await fetch("/api/fetchEmployees?select=name,user_uuid");
+      if (!response.ok) {
+        throw new Error("Failed to fetch employees");
+      }
+      return response.json();
+    },
+  });
+
+  // Fetch submissions from both dealer handgun sales and private handgun transfers
   const { data: submissions, isLoading } = useQuery({
     queryKey: ["drosSubmissions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dealer_handgun_sales") // This will need to be dynamic based on transaction type
-        .select("*, transaction_type")
+      // Fetch dealer handgun sales
+      const { data: dealerSales, error: dealerError } = await supabase
+        .from("dealer_handgun_sales")
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as DealerHandgunSale[];
+      if (dealerError) throw dealerError;
+
+      // Fetch private party transfers
+      const { data: pptSales, error: pptError } = await supabase
+        .from("private_handgun_transfers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (pptError) throw pptError;
+
+      // Combine and sort the results
+      const allSubmissions = [...(dealerSales || []), ...(pptSales || [])].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return allSubmissions;
     },
   });
+
+  // Function to get employee name by user_id
+  const getEmployeeName = (userId: string) => {
+    if (!employees) return "Unknown";
+    const employee = employees.find((emp: any) => emp.user_uuid === userId);
+    return employee?.name || "Unknown";
+  };
 
   // Detailed view dialog component
   const DetailedView = ({ submission }: { submission: DealerHandgunSale }) => (
@@ -204,6 +265,38 @@ const ReviewPage = () => {
               </p>
             </CardContent>
           </Card>
+
+          {/* Add Seller Information card for PPT transactions */}
+          {submission.transaction_type === "ppt-handgun" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Seller Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p>
+                  <strong>Name:</strong> {submission.seller_first_name}{" "}
+                  {submission.seller_middle_name} {submission.seller_last_name}{" "}
+                  {submission.seller_suffix}
+                </p>
+                <p>
+                  <strong>Address:</strong> {submission.seller_street_address}
+                </p>
+                <p>
+                  <strong>Location:</strong> {submission.seller_city},{" "}
+                  {submission.seller_state} {submission.seller_zip_code}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {submission.seller_phone_number}
+                </p>
+                <p>
+                  <strong>ID Type:</strong> {submission.seller_id_type}
+                </p>
+                <p>
+                  <strong>ID Number:</strong> {submission.seller_id_number}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Physical Characteristics */}
           <Card>
@@ -357,10 +450,11 @@ const ReviewPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead>Submitted By</TableHead>
                 <TableHead>Transaction Type</TableHead>
+                <TableHead>Purchaser Info</TableHead>
                 <TableHead>Firearm</TableHead>
-                <TableHead>Status</TableHead>
+                {/* <TableHead>Status</TableHead> */}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -370,17 +464,19 @@ const ReviewPage = () => {
                   <TableCell>
                     {new Date(submission.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>
-                    {submission.first_name} {submission.last_name}
-                  </TableCell>
+                  <TableCell>{getEmployeeName(submission.user_id)}</TableCell>
                   <TableCell>
                     {TRANSACTION_TYPES[submission.transaction_type]?.title ||
                       "Dealer Handgun Sale"}
                   </TableCell>
                   <TableCell>
+                    {submission.first_name} {submission.last_name}
+                  </TableCell>
+
+                  <TableCell>
                     {submission.make} {submission.model}
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         submission.status === "approved"
@@ -392,7 +488,7 @@ const ReviewPage = () => {
                     >
                       {submission.status}
                     </span>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <DetailedView submission={submission} />
                   </TableCell>
