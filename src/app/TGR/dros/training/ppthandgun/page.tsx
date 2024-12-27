@@ -53,8 +53,9 @@ import {
   ScrollBar,
 } from "../../../../../components/ui/scroll-area";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import MakeSelect from "@/components/MakeSelect";
 
-type FormData = {
+export type FormData = {
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -560,47 +561,67 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   );
 };
 
-const MakeSelect = ({
-  setValue,
-  value,
-  handgunData,
-  isLoadingHandguns,
-}: {
-  setValue: UseFormSetValue<FormData>;
-  value: string;
-  handgunData: Record<string, any>;
-  isLoadingHandguns: boolean;
-}) => {
-  // Query for all makes
-  const { data: makes = [] } = useQuery({
-    queryKey: ["makes"],
-    queryFn: () => (handgunData ? Object.keys(handgunData) : []),
-    enabled: !!handgunData,
-  });
+// const MakeSelect = ({
+//   setValue,
+//   value,
+//   handgunData,
+//   isLoadingHandguns,
+// }: {
+//   setValue: UseFormSetValue<FormData>;
+//   value: string;
+//   handgunData: Record<string, any>;
+//   isLoadingHandguns: boolean;
+// }) => {
+//   // Query for all makes
+//   const { data: makes = [] } = useQuery({
+//     queryKey: ["makes"],
+//     queryFn: () => (handgunData ? Object.keys(handgunData) : []),
+//     enabled: !!handgunData,
+//   });
 
-  return (
-    <Select
-      value={value}
-      onValueChange={(newValue) => {
-        setValue("make", newValue);
-        setValue("model", "");
-      }}
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select Make" />
-      </SelectTrigger>
-      <SelectContent>
-        <ScrollArea className="h-[200px]">
-          {makes.map((make) => (
-            <SelectItem key={make} value={make}>
-              {DOMPurify.sanitize(make)}
-            </SelectItem>
-          ))}
-        </ScrollArea>
-      </SelectContent>
-    </Select>
-  );
-};
+//   return (
+//     <Select
+//       value={value}
+//       onValueChange={(newValue) => {
+//         setValue("make", newValue);
+//         setValue("model", "");
+//       }}
+//     >
+//       <SelectTrigger className="w-full">
+//         <SelectValue placeholder="Select Make" />
+//       </SelectTrigger>
+//       <SelectContent>
+//         <ScrollArea className="h-[200px]">
+//           {makes.map((make) => (
+//             <SelectItem key={make} value={make}>
+//               {DOMPurify.sanitize(make)}
+//             </SelectItem>
+//           ))}
+//         </ScrollArea>
+//       </SelectContent>
+//     </Select>
+//   );
+// };
+
+const SelectComponent = React.forwardRef<
+  HTMLButtonElement, // Changed from HTMLSelectElement
+  {
+    value: string;
+    onValueChange: (value: string) => void;
+    placeholder: string;
+    children: React.ReactNode;
+    name?: string; // Added to support form names
+  }
+>(({ value, onValueChange, placeholder, children, name }, ref) => (
+  <Select value={value} onValueChange={onValueChange} name={name}>
+    <SelectTrigger ref={ref}>
+      <SelectValue placeholder={placeholder} />
+    </SelectTrigger>
+    <SelectContent>{children}</SelectContent>
+  </Select>
+));
+
+SelectComponent.displayName = "SelectComponent";
 
 const PptHandgunPage = () => {
   const queryClient = useQueryClient();
@@ -1577,32 +1598,28 @@ const PptHandgunPage = () => {
                 <>
                   <div className="space-y-2">
                     <Label>City</Label>
-                    <Select
-                      {...register("city")}
+                    <SelectComponent
+                      value={watch("city") || ""}
                       onValueChange={(value) => setValue("city", value)}
+                      placeholder="Select city"
                     >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {zipData?.primary_city && (
-                          <SelectItem value={zipData.primary_city}>
-                            {zipData.primary_city}
-                          </SelectItem>
-                        )}
-                        {zipData?.acceptable_cities?.map((city) => (
-                          <SelectItem
-                            key={city}
-                            value={city}
-                            className={
-                              city === zipData?.primary_city ? "hidden" : ""
-                            }
-                          >
-                            {city}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {zipData?.primary_city && (
+                        <SelectItem value={zipData.primary_city}>
+                          {zipData.primary_city}
+                        </SelectItem>
+                      )}
+                      {zipData?.acceptable_cities?.map((city) => (
+                        <SelectItem
+                          key={city}
+                          value={city}
+                          className={
+                            city === zipData?.primary_city ? "hidden" : ""
+                          }
+                        >
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
                   </div>
 
                   <div className="space-y-2">
@@ -1623,94 +1640,79 @@ const PptHandgunPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label className="required">Gender</Label>
-              <Select
-                {...register("gender")}
+              <SelectComponent
+                name="gender"
+                value={watch("gender") || ""}
                 onValueChange={(value) => setValue("gender", value)}
+                placeholder="Select Gender"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.genders.map((gender) => (
-                    <SelectItem key={gender} value={gender.toLowerCase()}>
-                      {gender}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.genders.map((gender) => (
+                  <SelectItem key={gender} value={gender.toLowerCase()}>
+                    {gender}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
 
             <div className="space-y-2">
               <Label className="required">Hair Color</Label>
-              <Select
-                {...register("hairColor")}
+              <SelectComponent
+                name="hairColor"
+                value={watch("hairColor") || ""}
                 onValueChange={(value) => setValue("hairColor", value)}
+                placeholder="Select Hair Color"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.hairColors.map((color) => (
-                    <SelectItem key={color} value={color.toLowerCase()}>
-                      {color}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.hairColors.map((color) => (
+                  <SelectItem key={color} value={color.toLowerCase()}>
+                    {color}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
 
             <div className="space-y-2">
               <Label className="required">Eye Color</Label>
-              <Select
-                {...register("eyeColor")}
+              <SelectComponent
+                name="eyeColor"
+                value={watch("eyeColor") || ""}
                 onValueChange={(value) => setValue("eyeColor", value)}
+                placeholder="Select Eye Color"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.eyeColors.map((color) => (
-                    <SelectItem key={color} value={color.toLowerCase()}>
-                      {color}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.eyeColors.map((color) => (
+                  <SelectItem key={color} value={color.toLowerCase()}>
+                    {color}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
 
             <div className="space-y-2">
               <Label className="required">Height</Label>
               <div className="flex gap-2">
-                <Select
-                  {...register("heightFeet")}
+                <SelectComponent
+                  name="heightFeet"
+                  value={watch("heightFeet") || ""}
                   onValueChange={(value) => setValue("heightFeet", value)}
+                  placeholder="Feet"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Feet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData?.heightFeet.map((feet) => (
-                      <SelectItem key={feet} value={feet}>
-                        {feet}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  {...register("heightInches")}
+                  {formData?.heightFeet.map((feet) => (
+                    <SelectItem key={feet} value={feet}>
+                      {feet}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+                <SelectComponent
+                  name="heightInches"
+                  value={watch("heightInches") || ""}
                   onValueChange={(value) => setValue("heightInches", value)}
+                  placeholder="Inches"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Inches" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formData?.heightInches.map((inches) => (
-                      <SelectItem key={inches} value={inches}>
-                        {inches}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {formData?.heightInches.map((inches) => (
+                    <SelectItem key={inches} value={inches}>
+                      {inches}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
               </div>
             </div>
 
@@ -1729,21 +1731,18 @@ const PptHandgunPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label className="required">Purchaser ID Type</Label>
-              <Select
-                {...register("idType")}
+              <SelectComponent
+                name="idType"
+                value={watch("idType") || ""}
                 onValueChange={(value) => setValue("idType", value)}
+                placeholder="Select ID Type"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select ID Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.idTypes.map((type) => (
-                    <SelectItem key={type} value={type.toLowerCase()}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.idTypes.map((type) => (
+                  <SelectItem key={type} value={type.toLowerCase()}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
 
             <div className="space-y-2">
@@ -1753,61 +1752,52 @@ const PptHandgunPage = () => {
 
             <div className="space-y-2">
               <Label className="required">Race</Label>
-              <Select
-                {...register("race")}
+              <SelectComponent
+                name="race"
+                value={watch("race") || ""}
                 onValueChange={(value) => setValue("race", value)}
+                placeholder="Select Race"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Race" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.race.map((race) => (
-                    <SelectItem key={race} value={race.toLowerCase()}>
-                      {race}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.race.map((race) => (
+                  <SelectItem key={race} value={race.toLowerCase()}>
+                    {race}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
 
             <div className="space-y-2">
               <Label className="required">U.S. Citizen</Label>
-              <Select
-                {...register("isUsCitizen")}
+              <SelectComponent
+                name="isUsCitizen"
+                value={watch("isUsCitizen") || ""}
                 onValueChange={(value) => setValue("isUsCitizen", value)}
+                placeholder="Select"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.citizenship.map((type) => (
-                    <SelectItem key={type} value={type.toLowerCase()}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.citizenship.map((type) => (
+                  <SelectItem key={type} value={type.toLowerCase()}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="required">Place of Birth</Label>
-              <Select
-                {...register("placeOfBirth")}
+              <SelectComponent
+                name="placeOfBirth"
+                value={watch("placeOfBirth") || ""}
                 onValueChange={(value) => setValue("placeOfBirth", value)}
+                placeholder="Select Place of Birth"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Place of Birth" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.placesOfBirth.map((place) => (
-                    <SelectItem key={place} value={place.toLowerCase()}>
-                      {place}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.placesOfBirth.map((place) => (
+                  <SelectItem key={place} value={place.toLowerCase()}>
+                    {place}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
 
             <div className="space-y-2">
@@ -1849,21 +1839,18 @@ const PptHandgunPage = () => {
 
             <div className="space-y-2">
               <Label className="required">HSC / FSX Exemption Code</Label>
-              <Select
-                {...register("exemptionCode")}
+              <SelectComponent
+                name="exemptionCode"
+                value={watch("exemptionCode") || ""}
                 onValueChange={(value) => setValue("exemptionCode", value)}
+                placeholder="Select Exemption Code"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Exemption Code" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formData?.exemptionCodes.map((code) => (
-                    <SelectItem key={code} value={code.toLowerCase()}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {formData?.exemptionCodes.map((code) => (
+                  <SelectItem key={code} value={code.toLowerCase()}>
+                    {code}
+                  </SelectItem>
+                ))}
+              </SelectComponent>
             </div>
           </div>
 
@@ -1885,18 +1872,15 @@ const PptHandgunPage = () => {
                   offense specified in PC 29805 and is not 30 years of age or
                   older?
                 </Label>
-                <Select
-                  {...register("eligibilityQ1")}
+                <SelectComponent
+                  name="eligibilityQ1"
+                  value={watch("eligibilityQ1") || ""}
                   onValueChange={(value) => setValue("eligibilityQ1", value)}
+                  placeholder="Select"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectComponent>
               </div>
 
               {/* Question 2 */}
@@ -1912,18 +1896,15 @@ const PptHandgunPage = () => {
                   incompetent to stand trial, or gravely disabled to be placed
                   under a conservatorship?
                 </Label>
-                <Select
-                  {...register("eligibilityQ2")}
+                <SelectComponent
+                  name="eligibilityQ2"
+                  value={watch("eligibilityQ2") || ""}
                   onValueChange={(value) => setValue("eligibilityQ2", value)}
+                  placeholder="Select"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectComponent>
               </div>
               {/* Question 3 */}
               <div className="space-y-2">
@@ -1938,18 +1919,15 @@ const PptHandgunPage = () => {
                   facility as a danger to self or others at least twice within 1
                   year or admitted once within the past 5 years?
                 </Label>
-                <Select
-                  {...register("eligibilityQ3")}
+                <SelectComponent
+                  name="eligibilityQ3"
+                  value={watch("eligibilityQ3") || ""}
                   onValueChange={(value) => setValue("eligibilityQ3", value)}
+                  placeholder="Select"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectComponent>
               </div>
               {/* Question 4 */}
               <div className="space-y-2">
@@ -1962,18 +1940,15 @@ const PptHandgunPage = () => {
                   Order, or a probation condition prohibiting firearm
                   possession?
                 </Label>
-                <Select
-                  {...register("eligibilityQ4")}
+                <SelectComponent
+                  name="eligibilityQ4"
+                  value={watch("eligibilityQ4") || ""}
                   onValueChange={(value) => setValue("eligibilityQ4", value)}
+                  placeholder="Select"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectComponent>
               </div>
             </CardContent>
           </div>
@@ -2031,36 +2006,33 @@ const PptHandgunPage = () => {
                     <>
                       <div className="space-y-2">
                         <Label>Seller City</Label>
-                        <Select
-                          {...register("sellerCity")}
+                        <SelectComponent
+                          name="sellerCity"
+                          value={watch("sellerCity") || ""}
                           onValueChange={(value) =>
                             setValue("sellerCity", value)
                           }
+                          placeholder="Select city"
                         >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select city" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sellerZipData?.primary_city && (
-                              <SelectItem value={sellerZipData.primary_city}>
-                                {sellerZipData.primary_city}
-                              </SelectItem>
-                            )}
-                            {sellerZipData?.acceptable_cities?.map((city) => (
-                              <SelectItem
-                                key={city}
-                                value={city}
-                                className={
-                                  city === sellerZipData?.primary_city
-                                    ? "hidden"
-                                    : ""
-                                }
-                              >
-                                {city}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          {sellerZipData?.primary_city && (
+                            <SelectItem value={sellerZipData.primary_city}>
+                              {sellerZipData.primary_city}
+                            </SelectItem>
+                          )}
+                          {sellerZipData?.acceptable_cities?.map((city) => (
+                            <SelectItem
+                              key={city}
+                              value={city}
+                              className={
+                                city === sellerZipData?.primary_city
+                                  ? "hidden"
+                                  : ""
+                              }
+                            >
+                              {city}
+                            </SelectItem>
+                          ))}
+                        </SelectComponent>
                       </div>
 
                       <div className="space-y-2">
@@ -2081,61 +2053,52 @@ const PptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Gender</Label>
-                  <Select
-                    {...register("sellerGender")}
+                  <SelectComponent
+                    name="sellerGender"
+                    value={watch("sellerGender") || ""}
                     onValueChange={(value) => setValue("sellerGender", value)}
+                    placeholder="Select Gender"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.genders.map((gender) => (
-                        <SelectItem key={gender} value={gender.toLowerCase()}>
-                          {gender}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.genders.map((gender) => (
+                      <SelectItem key={gender} value={gender.toLowerCase()}>
+                        {gender}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="required">Hair Color</Label>
-                  <Select
-                    {...register("sellerHairColor")}
+                  <SelectComponent
+                    name="sellerHairColor"
+                    value={watch("sellerHairColor") || ""}
                     onValueChange={(value) =>
                       setValue("sellerHairColor", value)
                     }
+                    placeholder="Select Hair Color"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Hair Color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.hairColors.map((color) => (
-                        <SelectItem key={color} value={color.toLowerCase()}>
-                          {color}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.hairColors.map((color) => (
+                      <SelectItem key={color} value={color.toLowerCase()}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="required">Eye Color</Label>
-                  <Select
-                    {...register("sellerEyeColor")}
+                  <SelectComponent
+                    name="sellerEyeColor"
+                    value={watch("sellerEyeColor") || ""}
                     onValueChange={(value) => setValue("sellerEyeColor", value)}
+                    placeholder="Select Eye Color"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Eye Color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.eyeColors.map((color) => (
-                        <SelectItem key={color} value={color.toLowerCase()}>
-                          {color}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.eyeColors.map((color) => (
+                      <SelectItem key={color} value={color.toLowerCase()}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
 
                 {/* Seller Height/Weight/DOB */}
@@ -2143,40 +2106,34 @@ const PptHandgunPage = () => {
                 <div className="space-y-2">
                   <Label className="required">Height</Label>
                   <div className="flex gap-2">
-                    <Select
-                      {...register("sellerHeightFeet")}
+                    <SelectComponent
+                      name="sellerHeightFeet"
+                      value={watch("sellerHeightFeet") || ""}
                       onValueChange={(value) =>
                         setValue("sellerHeightFeet", value)
                       }
+                      placeholder="ft"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="ft" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData?.heightFeet.map((feet) => (
-                          <SelectItem key={feet} value={feet}>
-                            {feet}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      {...register("sellerHeightInches")}
+                      {formData?.heightFeet.map((feet) => (
+                        <SelectItem key={feet} value={feet}>
+                          {feet}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
+                    <SelectComponent
+                      name="sellerHeightInches"
+                      value={watch("sellerHeightInches") || ""}
                       onValueChange={(value) =>
                         setValue("sellerHeightInches", value)
                       }
+                      placeholder="in"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="in" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData?.heightInches.map((inches) => (
-                          <SelectItem key={inches} value={inches}>
-                            {inches}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {formData?.heightInches.map((inches) => (
+                        <SelectItem key={inches} value={inches}>
+                          {inches}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
                   </div>
                 </div>
 
@@ -2195,21 +2152,18 @@ const PptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Seller ID Type</Label>
-                  <Select
-                    {...register("sellerIdType")}
+                  <SelectComponent
+                    name="sellerIdType"
+                    value={watch("sellerIdType") || ""}
                     onValueChange={(value) => setValue("sellerIdType", value)}
+                    placeholder="Select ID Type"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select ID Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.idTypes.map((type) => (
-                        <SelectItem key={type} value={type.toLowerCase()}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.idTypes.map((type) => (
+                      <SelectItem key={type} value={type.toLowerCase()}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
 
                 <div className="space-y-2">
@@ -2219,67 +2173,58 @@ const PptHandgunPage = () => {
 
                 <div className="space-y-2">
                   <Label className="required">Race</Label>
-                  <Select
-                    {...register("sellerRace")}
+                  <SelectComponent
+                    name="sellerRace"
+                    value={watch("sellerRace") || ""}
                     onValueChange={(value) => setValue("sellerRace", value)}
+                    placeholder="Select Race"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Race" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.race.map((race) => (
-                        <SelectItem key={race} value={race.toLowerCase()}>
-                          {race}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.race.map((race) => (
+                      <SelectItem key={race} value={race.toLowerCase()}>
+                        {race}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
 
                 {/* Seller Additional Information */}
 
                 <div className="space-y-2">
                   <Label className="required">U.S. Citizen</Label>
-                  <Select
-                    {...register("sellerIsUsCitizen")}
+                  <SelectComponent
+                    name="sellerIsUsCitizen"
+                    value={watch("sellerIsUsCitizen") || ""}
                     onValueChange={(value) =>
                       setValue("sellerIsUsCitizen", value)
                     }
+                    placeholder="Select"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.citizenship.map((option) => (
-                        <SelectItem key={option} value={option.toLowerCase()}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.citizenship.map((option) => (
+                      <SelectItem key={option} value={option.toLowerCase()}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Seller Place of Birth</Label>
-                  <Select
-                    {...register("sellerPlaceOfBirth")}
+                  <SelectComponent
+                    name="sellerPlaceOfBirth"
+                    value={watch("sellerPlaceOfBirth") || ""}
                     onValueChange={(value) =>
                       setValue("sellerPlaceOfBirth", value)
                     }
+                    placeholder="Select Place of Birth"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Place of Birth" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.placesOfBirth.map((place) => (
-                        <SelectItem key={place} value={place.toLowerCase()}>
-                          {place}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.placesOfBirth.map((place) => (
+                      <SelectItem key={place} value={place.toLowerCase()}>
+                        {place}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
 
                 <div className="space-y-2">
@@ -2320,43 +2265,37 @@ const PptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Gun Show Transaction</Label>
-                  <Select
-                    {...register("isGunShowTransaction")}
+                  <SelectComponent
+                    name="isGunShowTransaction"
+                    value={watch("isGunShowTransaction") || ""}
                     onValueChange={(value) =>
                       setValue("isGunShowTransaction", value)
                     }
+                    placeholder="Select"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectComponent>
                 </div>
                 <div className="space-y-2">
                   <Label>Waiting Period Exemption</Label>
-                  <Select
-                    {...register("waitingPeriodExemption")}
+                  <SelectComponent
+                    name="waitingPeriodExemption"
+                    value={watch("waitingPeriodExemption") || ""}
                     onValueChange={(value) =>
                       setValue("waitingPeriodExemption", value)
                     }
+                    placeholder="Select Waiting Period Exemption"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Waiting Period Exemption" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.waitingPeriodExemption.map((waitingPeriod) => (
-                        <SelectItem
-                          key={waitingPeriod}
-                          value={waitingPeriod.toLowerCase()}
-                        >
-                          {waitingPeriod}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.waitingPeriodExemption.map((waitingPeriod) => (
+                      <SelectItem
+                        key={waitingPeriod}
+                        value={waitingPeriod.toLowerCase()}
+                      >
+                        {waitingPeriod}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
                 <div className="space-y-2">
                   <Label>30-Day Restriction Exemption</Label>
@@ -2371,24 +2310,15 @@ const PptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Frame Only</Label>
-                  <Select
-                    {...register("frameOnly")}
+                  <SelectComponent
+                    name="frameOnly"
+                    value={watch("frameOnly") || ""}
                     onValueChange={(value) => setValue("frameOnly", value)}
+                    placeholder="Select"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.frameOnly.map((frameOnly) => (
-                        <SelectItem
-                          key={frameOnly}
-                          value={frameOnly.toLowerCase()}
-                        >
-                          {frameOnly}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectComponent>
                 </div>
                 {/* Make and Model*/}
                 <div className="space-y-2">
@@ -2415,41 +2345,35 @@ const PptHandgunPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="required">Caliber</Label>
-                      <Select
-                        {...register("calibers")}
+                      <SelectComponent
+                        name="calibers"
+                        value={watch("calibers") || ""}
                         onValueChange={(value) => setValue("calibers", value)}
+                        placeholder="Select Caliber"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Caliber" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData?.calibers.map((caliber) => (
-                            <SelectItem key={caliber} value={caliber}>
-                              {DOMPurify.sanitize(caliber)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {formData?.calibers.map((caliber) => (
+                          <SelectItem key={caliber} value={caliber}>
+                            {DOMPurify.sanitize(caliber)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
                     </div>
                     <div className="space-y-2">
                       <Label>Additional Caliber</Label>
-                      <Select
-                        {...register("additionalCaliber")}
+                      <SelectComponent
+                        name="additionalCaliber"
+                        value={watch("additionalCaliber") || ""}
                         onValueChange={(value) =>
                           setValue("additionalCaliber", value)
                         }
+                        placeholder="Select Additional Caliber (Optional)"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Additional Caliber (Optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData?.calibers.map((caliber) => (
-                            <SelectItem key={caliber} value={caliber}>
-                              {DOMPurify.sanitize(caliber)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {formData?.calibers.map((caliber) => (
+                          <SelectItem key={caliber} value={caliber}>
+                            {DOMPurify.sanitize(caliber)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
                     </div>
                   </div>
 
@@ -2457,43 +2381,37 @@ const PptHandgunPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Additional Caliber 2</Label>
-                      <Select
-                        {...register("additionalCaliber2")}
+                      <SelectComponent
+                        name="additionalCaliber2"
+                        value={watch("additionalCaliber2") || ""}
                         onValueChange={(value) =>
                           setValue("additionalCaliber2", value)
                         }
+                        placeholder="Select Caliber"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Caliber" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData?.calibers.map((caliber) => (
-                            <SelectItem key={caliber} value={caliber}>
-                              {DOMPurify.sanitize(caliber)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {formData?.calibers.map((caliber) => (
+                          <SelectItem key={caliber} value={caliber}>
+                            {DOMPurify.sanitize(caliber)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
                     </div>
                     <div className="space-y-2">
                       <Label>Additional Caliber 3</Label>
-                      <Select
-                        {...register("additionalCaliber3")}
+                      <SelectComponent
+                        name="additionalCaliber3"
+                        value={watch("additionalCaliber3") || ""}
                         onValueChange={(value) =>
                           setValue("additionalCaliber3", value)
                         }
+                        placeholder="Select Additional Caliber (Optional)"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Additional Caliber (Optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData?.calibers.map((caliber) => (
-                            <SelectItem key={caliber} value={caliber}>
-                              {DOMPurify.sanitize(caliber)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {formData?.calibers.map((caliber) => (
+                          <SelectItem key={caliber} value={caliber}>
+                            {DOMPurify.sanitize(caliber)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
                     </div>
                   </div>
 
@@ -2505,21 +2423,18 @@ const PptHandgunPage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Unit</Label>
-                      <Select
-                        {...register("unit")}
+                      <SelectComponent
+                        name="unit"
+                        value={watch("unit") || ""}
                         onValueChange={(value) => setValue("unit", value)}
+                        placeholder="Select Unit"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Unit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData?.unit.map((unit) => (
-                            <SelectItem key={unit} value={unit}>
-                              {DOMPurify.sanitize(unit)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {formData?.unit.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {DOMPurify.sanitize(unit)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
                     </div>
                     <div className="space-y-2">
                       <Label>Gun Type</Label>
@@ -2527,21 +2442,18 @@ const PptHandgunPage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Category</Label>
-                      <Select
-                        {...register("category")}
+                      <SelectComponent
+                        name="category"
+                        value={watch("category") || ""}
                         onValueChange={(value) => setValue("category", value)}
+                        placeholder="Select Category"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {formData?.category.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {DOMPurify.sanitize(category)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {formData?.category.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {DOMPurify.sanitize(category)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
                     </div>
                   </div>
                 </>
@@ -2554,39 +2466,33 @@ const PptHandgunPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Category</Label>
-                    <Select
-                      {...register("category")}
+                    <SelectComponent
+                      name="category"
+                      value={watch("category") || ""}
                       onValueChange={(value) => setValue("category", value)}
+                      placeholder="Select Category"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData?.category.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {DOMPurify.sanitize(category)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {formData?.category.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {DOMPurify.sanitize(category)}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
                   </div>
                   <div className="space-y-2">
                     <Label>Federally Regulated Firearm Precursor Part</Label>
-                    <Select
-                      {...register("regulated")}
+                    <SelectComponent
+                      name="regulated"
+                      value={watch("regulated") || ""}
                       onValueChange={(value) => setValue("regulated", value)}
+                      placeholder="Select"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData?.regulated.map((regulated) => (
-                          <SelectItem key={regulated} value={regulated}>
-                            {DOMPurify.sanitize(regulated)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {formData?.regulated.map((regulated) => (
+                        <SelectItem key={regulated} value={regulated}>
+                          {DOMPurify.sanitize(regulated)}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
                   </div>
                 </div>
               )}
@@ -2616,61 +2522,52 @@ const PptHandgunPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="required">Color</Label>
-                  <Select
-                    {...register("color")}
+                  <SelectComponent
+                    name="color"
+                    value={watch("color") || ""}
                     onValueChange={(value) => setValue("color", value)}
+                    placeholder="Select Color"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.colors.map((color) => (
-                        <SelectItem key={color} value={color.toLowerCase()}>
-                          {color}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.colors.map((color) => (
+                      <SelectItem key={color} value={color.toLowerCase()}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
               </div>
               {/* Gun Details Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="required">New/Used Gun</Label>
-                  <Select
-                    {...register("isNewGun")}
+                  <SelectComponent
+                    name="isNewGun"
+                    value={watch("isNewGun") || ""}
                     onValueChange={(value) => setValue("isNewGun", value)}
+                    placeholder="Select"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="used">Used</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
+                  </SelectComponent>
                 </div>
                 <div className="space-y-2">
                   <Label className="required">
                     Firearm Safety Device (FSD)
                   </Label>
-                  <Select
-                    {...register("firearmSafetyDevice")}
+                  <SelectComponent
+                    name="firearmSafetyDevice"
+                    value={watch("firearmSafetyDevice") || ""}
                     onValueChange={(value) =>
                       setValue("firearmSafetyDevice", value)
                     }
+                    placeholder="Select Firearm Safety Device (FSD)"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Firearm Safety Device (FSD)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData?.fsd.map((code) => (
-                        <SelectItem key={code} value={code.toLowerCase()}>
-                          {code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {formData?.fsd.map((code) => (
+                      <SelectItem key={code} value={code.toLowerCase()}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
                 </div>
               </div>
 

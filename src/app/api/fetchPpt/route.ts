@@ -1,43 +1,46 @@
-"use server";
-
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export const runtime = "edge";
+export const fetchCache = "force-cache";
+export const revalidate = 3600; // Cache for 1 hour
+
+export async function GET(req: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Return all manufacturers without a limit
+    // Set higher range and add order and filter conditions
     const { data, error: fetchError } = await supabase
       .from("manufacturers")
-      .select("*")
+      .select("make")
       .order("make")
-      .limit(100000); // Set a very high limit to get all records
+      .range(0, 10000);
 
     if (fetchError) {
       console.error("Error fetching manufacturers:", fetchError);
       throw fetchError;
     }
 
-    // Log the number of manufacturers returned
-    console.log(`Number of manufacturers returned: ${data?.length}`);
-
-    // Transform the data to match the expected format in your component
-    const transformedData = data?.reduce((acc, manufacturer) => {
-      acc[manufacturer.make] = []; // Empty array since we don't have models yet
+    // Transform the data more efficiently
+    const transformedData = data?.reduce((acc, { make }) => {
+      acc[make] = [];
       return acc;
     }, {} as Record<string, string[]>);
 
-    return NextResponse.json(transformedData);
+    return new NextResponse(JSON.stringify(transformedData), {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      },
+    });
   } catch (error) {
     console.error("Error in GET route:", error);
     return NextResponse.json(
