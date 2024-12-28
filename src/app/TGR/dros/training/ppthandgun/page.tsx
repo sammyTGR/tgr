@@ -2307,7 +2307,7 @@ const PptHandgunPage = () => {
                   <MakeSelect
                     setValue={setValue}
                     value={watch("make")}
-                    handgunData={handgunData}
+                    makes={formData?.makes || []} // Pass the makes array directly
                     isLoadingHandguns={isLoadingHandguns}
                   />
                 </div>

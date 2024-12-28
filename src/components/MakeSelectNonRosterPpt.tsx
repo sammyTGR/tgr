@@ -1,5 +1,4 @@
-import React, { useRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Select,
@@ -11,7 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import DOMPurify from "isomorphic-dompurify";
 import { UseFormSetValue } from "react-hook-form";
-import type { FormData } from "../app/TGR/dros/training/officerppthandgun/page"; // Update this path
+import type { FormData } from "../app/TGR/dros/training/officerppthandgun/page";
 
 interface MakeSelectProps {
   setValue: UseFormSetValue<FormData>;
@@ -26,26 +25,17 @@ const MakeSelectNonRosterPpt = ({
   handgunData,
   isLoadingHandguns,
 }: MakeSelectProps) => {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const makes = handgunData ? Object.keys(handgunData) : [];
-
-  const rowVirtualizer = useVirtualizer({
-    count: makes.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 35,
-    overscan: 5,
+  // Query for all makes and filter out empty values
+  const { data: makes = [] } = useQuery({
+    queryKey: ["makes"],
+    queryFn: () =>
+      handgunData
+        ? Object.keys(handgunData)
+            .filter((make) => make && make.trim() !== "") // Filter out empty or whitespace-only values
+            .sort((a, b) => a.localeCompare(b)) // Sort alphabetically
+        : [],
+    enabled: !!handgunData,
   });
-
-  if (isLoadingHandguns) {
-    return (
-      <Select disabled>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Loading makes..." />
-        </SelectTrigger>
-      </Select>
-    );
-  }
 
   return (
     <Select
@@ -59,34 +49,12 @@ const MakeSelectNonRosterPpt = ({
         <SelectValue placeholder="Select Make" />
       </SelectTrigger>
       <SelectContent>
-        <ScrollArea className="h-[300px] overflow-auto" ref={parentRef}>
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const make = makes[virtualRow.index];
-              return (
-                <SelectItem
-                  key={virtualRow.key}
-                  value={make}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  {DOMPurify.sanitize(make)}
-                </SelectItem>
-              );
-            })}
-          </div>
+        <ScrollArea className="h-[200px]">
+          {makes.map((make) => (
+            <SelectItem key={make} value={make}>
+              {DOMPurify.sanitize(make)}
+            </SelectItem>
+          ))}
         </ScrollArea>
       </SelectContent>
     </Select>

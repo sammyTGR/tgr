@@ -635,6 +635,37 @@ const SelectComponent = React.forwardRef<
 
 SelectComponent.displayName = "SelectComponent";
 
+// Move this outside of the component
+const AgencyDepartmentSelect = ({
+  agencyType,
+  value,
+  onChange,
+}: {
+  agencyType: string | null;
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  const { data: agencies, isLoading } = useAgencyDepartments(agencyType);
+
+  return (
+    <div className="space-y-2">
+      <Label>Agency Department</Label>
+      <SelectComponent
+        name="agencyDepartment"
+        value={value}
+        onValueChange={onChange}
+        placeholder={isLoading ? "Loading..." : "Select Agency"}
+      >
+        {agencies?.map((agency) => (
+          <SelectItem key={agency.value} value={agency.value}>
+            {agency.label}
+          </SelectItem>
+        ))}
+      </SelectComponent>
+    </div>
+  );
+};
+
 const OfficerPptHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -724,7 +755,7 @@ const OfficerPptHandgunPage = () => {
   });
 
   // Example query - replace with your actual data fetching logic
-  const { data: formData } = useQuery({
+  const { data: formData, isLoading: isLoadingFormData } = useQuery({
     queryKey: ["formOptions"],
     queryFn: async () => {
       // Replace with your actual API call
@@ -2373,7 +2404,7 @@ const OfficerPptHandgunPage = () => {
                   <MakeSelectNonRosterPpt
                     setValue={setValue}
                     value={watch("make")}
-                    handgunData={handgunData}
+                    handgunData={handgunData || {}}
                     isLoadingHandguns={isLoadingHandguns}
                   />
                 </div>
@@ -2624,23 +2655,40 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">
                     Purchaser Non-Roster Exemption
                   </Label>
-                  <SelectComponent
-                    name="nonRosterExemption"
-                    value={watch("nonRosterExemption") || ""}
-                    onValueChange={(value) =>
-                      setValue("nonRosterExemption", value)
-                    }
-                    placeholder="Select Purchaser Non-Roster Exemption"
-                  >
-                    {formData?.nonRosterExemption.map((exemption) => (
-                      <SelectItem key={exemption} value={exemption}>
-                        {exemption}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
+                  {isLoadingFormData ? (
+                    <SelectComponent
+                      name="nonRosterExemption"
+                      value=""
+                      onValueChange={() => {}}
+                      placeholder="Loading..."
+                    >
+                      <SelectItem value="loading">Loading...</SelectItem>
+                    </SelectComponent>
+                  ) : (
+                    <SelectComponent
+                      name="nonRosterExemption"
+                      value={watch("nonRosterExemption") || ""}
+                      onValueChange={(value) =>
+                        setValue("nonRosterExemption", value)
+                      }
+                      placeholder="Select Purchaser Non-Roster Exemption"
+                    >
+                      {(formData?.nonRosterExemption || [])
+                        .filter(
+                          (exemption) => exemption && exemption.trim() !== ""
+                        ) // Filter out empty values
+                        .map((exemption) => (
+                          <SelectItem
+                            key={exemption}
+                            value={exemption || `exemption-${Date.now()}`} // Ensure unique non-empty value
+                          >
+                            {exemption}
+                          </SelectItem>
+                        ))}
+                    </SelectComponent>
+                  )}
                 </div>
 
-                {/* Dynamic Agency Department */}
                 {(() => {
                   const selectedExemption = watch("nonRosterExemption");
                   let agencyType = null;
@@ -2654,31 +2702,18 @@ const OfficerPptHandgunPage = () => {
                   )
                     agencyType = "DA";
 
-                  const { data: agencies, isLoading } =
-                    useAgencyDepartments(agencyType);
-
                   if (!agencyType) return null;
 
                   return (
-                    <div className="space-y-2">
-                      <Label>Agency Department</Label>
-                      <SelectComponent
-                        name="agencyDepartment"
-                        value={watch("agencyDepartment") ?? ""}
-                        onValueChange={(value: string) => {
-                          setValue("agencyDepartment", value, {
-                            shouldValidate: true,
-                          });
-                        }}
-                        placeholder={isLoading ? "Loading..." : "Select Agency"}
-                      >
-                        {agencies?.map((agency) => (
-                          <SelectItem key={agency.value} value={agency.value}>
-                            {agency.label}
-                          </SelectItem>
-                        ))}
-                      </SelectComponent>
-                    </div>
+                    <AgencyDepartmentSelect
+                      agencyType={agencyType}
+                      value={watch("agencyDepartment") ?? ""}
+                      onChange={(value) => {
+                        setValue("agencyDepartment", value, {
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
                   );
                 })()}
               </div>

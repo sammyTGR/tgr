@@ -17,25 +17,24 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Set higher range and add order and filter conditions
     const { data, error: fetchError } = await supabase
       .from("manufacturers")
       .select("make")
       .order("make")
-      .range(0, 10000);
+      .not("make", "eq", "")
+      .range(0, 5000);
 
-    if (fetchError) {
-      console.error("Error fetching manufacturers:", fetchError);
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
-    // Transform the data more efficiently
-    const transformedData = data?.reduce((acc, { make }) => {
-      acc[make] = [];
-      return acc;
-    }, {} as Record<string, string[]>);
+    // Filter and clean the makes array
+    const makes =
+      data
+        ?.map((item) => item.make)
+        .filter(
+          (make): make is string => Boolean(make) && make.trim() !== ""
+        ) || [];
 
-    return new NextResponse(JSON.stringify(transformedData), {
+    return new NextResponse(JSON.stringify({ makes }), {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
