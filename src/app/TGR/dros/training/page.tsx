@@ -102,7 +102,7 @@ const TransactionTypePage = () => {
     },
     {
       title: "Peace Officer Non-Roster Handgun Private Party Transfer",
-      path: "/TGR/dros/training/peaceofficerhandgun",
+      path: "/TGR/dros/training/officerppthandgun",
     },
     {
       title: "Peace Officer Non-Roster Handgun Sale(Letter Required)",

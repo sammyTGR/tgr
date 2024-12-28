@@ -25,6 +25,7 @@ import {
   DialogTrigger,
 } from "../../../../../components/ui/dialog";
 import { supabase } from "../../../../../utils/supabase/client";
+import type { FormData as OfficerPptHandgunFormData } from "../officerppthandgun/page";
 
 type DealerHandgunSale = {
   id: string;
@@ -100,6 +101,8 @@ type DealerHandgunSale = {
   seller_alias_middle_name?: string;
   seller_alias_last_name?: string;
   seller_alias_suffix?: string;
+  agency_department?: string;
+  non_roster_exemption?: string;
 };
 
 // Add a type for the transaction type
@@ -115,12 +118,12 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
   },
   // Add other transaction types as needed
   "ppt-handgun": {
-    title: "Private Party Handgun Transfer",
+    title: "Handgun PPT",
     table: "private_handgun_transfers",
   },
-  "peace-officer-ppt": {
-    title: "Peace Officer Non-Roster Handgun Private Party Transfer",
-    table: "peace_officer_ppt",
+  "officer-ppt-handgun": {
+    title: "Officer Non-Roster Handgun PPT",
+    table: "officer_ppt_handgun_transfers",
   },
   "peace-officer-handgun-sale-letter": {
     title: "Peace Officer Handgun Sale (Letter Required)",
@@ -176,6 +179,20 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
   },
 };
 
+// Add this query hook at the component level
+const useAgencyDepartment = (agencyId: string | undefined) => {
+  return useQuery({
+    queryKey: ["agencyDepartment", agencyId],
+    queryFn: async () => {
+      if (!agencyId) return null;
+      const response = await fetch(`/api/fetchAgencyPd?id=${agencyId}`);
+      if (!response.ok) throw new Error("Failed to fetch agency");
+      return response.json();
+    },
+    enabled: !!agencyId,
+  });
+};
+
 const ReviewPage = () => {
   // Fetch all employees with their user_uuid
   const { data: employees } = useQuery({
@@ -209,8 +226,20 @@ const ReviewPage = () => {
 
       if (pptError) throw pptError;
 
-      // Combine and sort the results
-      const allSubmissions = [...(dealerSales || []), ...(pptSales || [])].sort(
+      // Fetch officer PPT handgun transfers
+      const { data: officerPptSales, error: officerPptError } = await supabase
+        .from("officer_ppt_handgun_transfers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (officerPptError) throw officerPptError;
+
+      // Combine and sort all results
+      const allSubmissions = [
+        ...(dealerSales || []),
+        ...(pptSales || []),
+        ...(officerPptSales || []),
+      ].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -227,213 +256,233 @@ const ReviewPage = () => {
   };
 
   // Detailed view dialog component
-  const DetailedView = ({ submission }: { submission: DealerHandgunSale }) => (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline">View Details</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Submission Details</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-4">
-          {/* Purchaser Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Purchaser Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                <strong>Name:</strong> {submission.first_name}{" "}
-                {submission.middle_name} {submission.last_name}
-              </p>
-              <p>
-                <strong>Address:</strong> {submission.street_address}
-              </p>
-              <p>
-                <strong>Location:</strong> {submission.city}, {submission.state}{" "}
-                {submission.zip_code}
-              </p>
-              <p>
-                <strong>Phone:</strong> {submission.phone_number}
-              </p>
-              <p>
-                <strong>ID Type:</strong> {submission.id_type}
-              </p>
-              <p>
-                <strong>ID Number:</strong> {submission.id_number}
-              </p>
-            </CardContent>
-          </Card>
+  const DetailedView = ({ submission }: { submission: DealerHandgunSale }) => {
+    // Add the agency department query
+    const { data: agencyData } = useAgencyDepartment(
+      submission.agency_department
+    );
 
-          {/* Add Seller Information card for PPT transactions */}
-          {submission.transaction_type === "ppt-handgun" && (
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline">View Details</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Submission Details</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Purchaser Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Seller Information</CardTitle>
+                <CardTitle>Purchaser Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Name:</strong> {submission.seller_first_name}{" "}
-                  {submission.seller_middle_name} {submission.seller_last_name}{" "}
-                  {submission.seller_suffix}
+                  <strong>Name:</strong> {submission.first_name}{" "}
+                  {submission.middle_name} {submission.last_name}
                 </p>
                 <p>
-                  <strong>Address:</strong> {submission.seller_street_address}
+                  <strong>Address:</strong> {submission.street_address}
                 </p>
                 <p>
-                  <strong>Location:</strong> {submission.seller_city},{" "}
-                  {submission.seller_state} {submission.seller_zip_code}
+                  <strong>Location:</strong> {submission.city},{" "}
+                  {submission.state} {submission.zip_code}
                 </p>
                 <p>
-                  <strong>Phone:</strong> {submission.seller_phone_number}
+                  <strong>Phone:</strong> {submission.phone_number}
                 </p>
                 <p>
-                  <strong>ID Type:</strong> {submission.seller_id_type}
+                  <strong>ID Type:</strong> {submission.id_type}
                 </p>
                 <p>
-                  <strong>ID Number:</strong> {submission.seller_id_number}
+                  <strong>ID Number:</strong> {submission.id_number}
                 </p>
               </CardContent>
             </Card>
-          )}
 
-          {/* Physical Characteristics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Physical Characteristics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                <strong>Gender:</strong> {submission.gender}
-              </p>
-              <p>
-                <strong>Hair Color:</strong> {submission.hair_color}
-              </p>
-              <p>
-                <strong>Eye Color:</strong> {submission.eye_color}
-              </p>
-              <p>
-                <strong>Height:</strong> {submission.height_feet}&apos;{" "}
-                {submission.height_inches}&quot;
-              </p>
-              <p>
-                <strong>Weight:</strong> {submission.weight} lbs
-              </p>
-              <p>
-                <strong>Date of Birth:</strong> {submission.date_of_birth}
-              </p>
-              <p>
-                <strong>Race:</strong> {submission.race}
-              </p>
-            </CardContent>
-          </Card>
+            {/* Show Seller Information for PPT and Officer PPT transactions */}
+            {(submission.transaction_type === "ppt-handgun" ||
+              submission.transaction_type === "officer-ppt-handgun") && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Seller Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p>
+                    <strong>Name:</strong> {submission.seller_first_name}{" "}
+                    {submission.seller_middle_name}{" "}
+                    {submission.seller_last_name} {submission.seller_suffix}
+                  </p>
+                  <p>
+                    <strong>Address:</strong> {submission.seller_street_address}
+                  </p>
+                  <p>
+                    <strong>Location:</strong> {submission.seller_city},{" "}
+                    {submission.seller_state} {submission.seller_zip_code}
+                  </p>
+                  <p>
+                    <strong>Phone:</strong> {submission.seller_phone_number}
+                  </p>
+                  <p>
+                    <strong>ID Type:</strong> {submission.seller_id_type}
+                  </p>
+                  <p>
+                    <strong>ID Number:</strong> {submission.seller_id_number}
+                  </p>
+                  {submission.transaction_type === "officer-ppt-handgun" && (
+                    <>
+                      <p>
+                        <strong>Agency Department:</strong>{" "}
+                        {agencyData?.label || "Loading..."}
+                      </p>
+                      <p>
+                        <strong>Non-Roster Exemption:</strong>{" "}
+                        {submission.non_roster_exemption}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Firearm Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Firearm Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                <strong>Make:</strong> {submission.make}
-              </p>
-              <p>
-                <strong>Model:</strong> {submission.model}
-              </p>
-              <p>
-                <strong>Serial Number:</strong> {submission.serial_number}
-              </p>
-              <p>
-                <strong>Color:</strong> {submission.color}
-              </p>
-              <p>
-                <strong>Condition:</strong>{" "}
-                {submission.is_new_gun ? "New" : "Used"}
-              </p>
-              <p>
-                <strong>Safety Device:</strong>{" "}
-                {submission.firearm_safety_device}
-              </p>
-              <p>
-                <strong>Gun Show Transaction:</strong>{" "}
-                {submission.is_gun_show_transaction ? "Yes" : "No"}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Additional Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                <strong>HSC/FSC Number:</strong> {submission.hsc_fsc_number}
-              </p>
-              <p>
-                <strong>Exemption Code:</strong> {submission.exemption_code}
-              </p>
-              <p>
-                <strong>Waiting Period Exemption:</strong>{" "}
-                {submission.waiting_period_exemption}
-              </p>
-              <p>
-                <strong>Restriction Exemption:</strong>{" "}
-                {submission.restriction_exemption}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Eligibility Questions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Eligibility Questions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                <strong>Question 1:</strong>{" "}
-                {submission.eligibility_q1 ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Question 2:</strong>{" "}
-                {submission.eligibility_q2 ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Question 3:</strong>{" "}
-                {submission.eligibility_q3 ? "Yes" : "No"}
-              </p>
-              <p>
-                <strong>Question 4:</strong>{" "}
-                {submission.eligibility_q4 ? "Yes" : "No"}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Status Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Status Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>
-                <strong>Status:</strong> {submission.status}
-              </p>
-              <p>
-                <strong>Submitted:</strong>{" "}
-                {new Date(submission.created_at).toLocaleString()}
-              </p>
-              {submission.comments && (
+            {/* Physical Characteristics */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Physical Characteristics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
                 <p>
-                  <strong>Comments:</strong> {submission.comments}
+                  <strong>Gender:</strong> {submission.gender}
                 </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+                <p>
+                  <strong>Hair Color:</strong> {submission.hair_color}
+                </p>
+                <p>
+                  <strong>Eye Color:</strong> {submission.eye_color}
+                </p>
+                <p>
+                  <strong>Height:</strong> {submission.height_feet}&apos;{" "}
+                  {submission.height_inches}&quot;
+                </p>
+                <p>
+                  <strong>Weight:</strong> {submission.weight} lbs
+                </p>
+                <p>
+                  <strong>Date of Birth:</strong> {submission.date_of_birth}
+                </p>
+                <p>
+                  <strong>Race:</strong> {submission.race}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Firearm Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Firearm Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p>
+                  <strong>Make:</strong> {submission.make}
+                </p>
+                <p>
+                  <strong>Model:</strong> {submission.model}
+                </p>
+                <p>
+                  <strong>Serial Number:</strong> {submission.serial_number}
+                </p>
+                <p>
+                  <strong>Color:</strong> {submission.color}
+                </p>
+                <p>
+                  <strong>Condition:</strong>{" "}
+                  {submission.is_new_gun ? "New" : "Used"}
+                </p>
+                <p>
+                  <strong>Safety Device:</strong>{" "}
+                  {submission.firearm_safety_device}
+                </p>
+                <p>
+                  <strong>Gun Show Transaction:</strong>{" "}
+                  {submission.is_gun_show_transaction ? "Yes" : "No"}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Additional Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p>
+                  <strong>HSC/FSC Number:</strong> {submission.hsc_fsc_number}
+                </p>
+                <p>
+                  <strong>Exemption Code:</strong> {submission.exemption_code}
+                </p>
+                <p>
+                  <strong>Waiting Period Exemption:</strong>{" "}
+                  {submission.waiting_period_exemption}
+                </p>
+                <p>
+                  <strong>Restriction Exemption:</strong>{" "}
+                  {submission.restriction_exemption}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Eligibility Questions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Eligibility Questions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p>
+                  <strong>Question 1:</strong>{" "}
+                  {submission.eligibility_q1 ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Question 2:</strong>{" "}
+                  {submission.eligibility_q2 ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Question 3:</strong>{" "}
+                  {submission.eligibility_q3 ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Question 4:</strong>{" "}
+                  {submission.eligibility_q4 ? "Yes" : "No"}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Status Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Status Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p>
+                  <strong>Status:</strong> {submission.status}
+                </p>
+                <p>
+                  <strong>Submitted:</strong>{" "}
+                  {new Date(submission.created_at).toLocaleString()}
+                </p>
+                {submission.comments && (
+                  <p>
+                    <strong>Comments:</strong> {submission.comments}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   if (isLoading) {
     return <div>Loading submissions...</div>;
@@ -466,8 +515,7 @@ const ReviewPage = () => {
                   </TableCell>
                   <TableCell>{getEmployeeName(submission.user_id)}</TableCell>
                   <TableCell>
-                    {TRANSACTION_TYPES[submission.transaction_type]?.title ||
-                      "Dealer Handgun Sale"}
+                    {TRANSACTION_TYPES[submission.transaction_type]?.title}
                   </TableCell>
                   <TableCell>
                     {submission.first_name} {submission.last_name}

@@ -36,7 +36,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-type FormData = {
+export type FormData = {
   firstName: string;
   middleName?: string;
   lastName: string;

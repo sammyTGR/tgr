@@ -1,5 +1,5 @@
 "use client";
-import MakeSelect from "@/components/MakeSelect";
+import MakeSelectNonRosterPpt from "@/components/MakeSelectNonRosterPpt";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,12 @@ import {
 import { Textarea } from "../../../../../components/ui/textarea";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
+
+type AgencyDepartment = {
+  value: string;
+  label: string;
+  department: string;
+};
 
 export type FormData = {
   firstName: string;
@@ -88,6 +94,8 @@ export type FormData = {
   color: string;
   isNewGun: string;
   firearmSafetyDevice: string;
+  nonRosterExemption: string;
+  agencyGroup: string;
   comments?: string;
   transaction_type: string;
   sellerFirstName: string;
@@ -115,6 +123,7 @@ export type FormData = {
   sellerAliasMiddleName: string;
   sellerAliasLastName: string;
   sellerAliasSuffix: string;
+  agencyDepartment: string; // Add this field
 };
 
 type ZipCodeData = {
@@ -165,6 +174,8 @@ const initialFormState: Partial<FormData> = {
   color: "",
   isNewGun: "",
   firearmSafetyDevice: "",
+  nonRosterExemption: "",
+  agencyDepartment: "",
   comments: "",
   transaction_type: "dealer-handgun",
   sellerFirstName: "",
@@ -192,6 +203,21 @@ const initialFormState: Partial<FormData> = {
   sellerAliasMiddleName: "",
   sellerAliasLastName: "",
   sellerAliasSuffix: "",
+};
+
+const useAgencyDepartments = (agencyType: string | null) => {
+  return useQuery({
+    queryKey: ["agencyDepartments", agencyType],
+    queryFn: async (): Promise<AgencyDepartment[]> => {
+      if (!agencyType) return [];
+      const response = await fetch(
+        `/api/fetchAgencyPd?department=${agencyType}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    },
+    enabled: !!agencyType,
+  });
 };
 
 const useZipCodeLookup = (
@@ -256,21 +282,6 @@ interface HandgunRoster {
   [make: string]: string[];
 }
 
-const useHandgunDetails = (make: string, model: string) => {
-  return useQuery({
-    queryKey: ["handgunDetails", make, model],
-    queryFn: async () => {
-      if (!make || !model) return null;
-      const response = await fetch(
-        `/api/fetchRoster?make=${make}&model=${model}`
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
-      return response.json();
-    },
-    enabled: !!make && !!model,
-  });
-};
-
 const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   const formValues = useWatch({ control });
   const router = useRouter();
@@ -281,10 +292,24 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
     mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
   });
 
+  const { data: agencyName } = useQuery({
+    queryKey: ["agencyName", formValues.agencyDepartment],
+    queryFn: async () => {
+      if (!formValues.agencyDepartment) return null;
+      const response = await fetch(
+        `/api/fetchAgencyPd?id=${formValues.agencyDepartment}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch agency name");
+      const data = await response.json();
+      return data.label;
+    },
+    enabled: !!formValues.agencyDepartment,
+  });
+
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/pptHandgun", {
+      const response = await fetch("/api/officerPptHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -502,6 +527,12 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
 
               <span className="font-medium">FSD:</span>
               <span>{formValues.firearmSafetyDevice}</span>
+
+              <span className="font-medium">Non-Roster Exemption:</span>
+              <span>{formValues.nonRosterExemption}</span>
+
+              <span className="font-medium">Agency Department:</span>
+              <span>{agencyName || formValues.agencyDepartment}</span>
             </div>
           </div>
 
@@ -604,7 +635,7 @@ const SelectComponent = React.forwardRef<
 
 SelectComponent.displayName = "SelectComponent";
 
-const PptHandgunPage = () => {
+const OfficerPptHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -643,12 +674,12 @@ const PptHandgunPage = () => {
   // Form submission mutation
   const { mutate: submitForm, isPending: isSubmitting } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/dealerHandgun", {
+      const response = await fetch("/api/officer_ppt_handgun_transfers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          transaction_type: "dealer-handgun",
+          transaction_type: "officer-ppt-handgun",
         }),
       });
       if (!response.ok) throw new Error("Failed to submit form");
@@ -897,6 +928,41 @@ const PptHandgunPage = () => {
           "SINGLE SHOT",
           "THREE BARRELS",
         ],
+        nonRosterExemption: [
+          "Department of Justice",
+          "Police Department",
+          "Sheriff's Office",
+          "Marshal's Office",
+          "Department of Corrections and Rehabilitation",
+          "Department of the California Highway Patrol",
+          "Any District Attorney's Office",
+          "Any Federal Law Enforcement Agency",
+          "Military or Naval Forces of the State or the United States",
+          "The Department of Parks and Recreation",
+          "Department of Alcoholic Beverage Control",
+          "Division of Investigation of the Department of Consumer Affairs",
+          "Department of Motor Vehicles",
+          "Fraud Division of the Department of Insurance",
+          "State Department of State Hospitals",
+          "Department of Fish and Wildlife",
+          "State Department of Developmental Services",
+          "Department of Forestry and Fire Protection",
+          "A County Probation Department",
+          "The Los Angeles World Airports",
+          "K-12 Public School District use by a School Police Officer",
+          "A Municipal Water District for use by a Park Ranger",
+          "A County for use by a Welfare Fraud Investigator or Inspector",
+          "A County for use by the Coroner or the Deputy Coroner",
+          "The Supreme Court and the Courts of Appeal",
+          "A Fire Department or Fire Protection Agency",
+          "The University of California/California State University Police Department",
+          "A California Community College Police Department",
+          "A Harbor or Port District or other entity",
+          "None",
+          "Department of Cannabis Control",
+          "A local Agency employing Park Rangers",
+        ],
+
         regulated: ["YES", "NO"],
         unit: ["INCH", "CENTIMETER"],
         colors: [
@@ -1497,7 +1563,7 @@ const PptHandgunPage = () => {
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-2xl font-bold text-center mb-8">
-        Submit Private Party Handgun Transfer
+        Submit Peace Officer Non-Roster Handgun Private Party Transfer
       </h1>
 
       <Alert variant="destructive" className="mb-6">
@@ -2304,7 +2370,7 @@ const PptHandgunPage = () => {
                 {/* Make and Model*/}
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
-                  <MakeSelect
+                  <MakeSelectNonRosterPpt
                     setValue={setValue}
                     value={watch("make")}
                     handgunData={handgunData}
@@ -2552,6 +2618,71 @@ const PptHandgunPage = () => {
                 </div>
               </div>
 
+              {/* Non-Roster Exemption Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="required">
+                    Purchaser Non-Roster Exemption
+                  </Label>
+                  <SelectComponent
+                    name="nonRosterExemption"
+                    value={watch("nonRosterExemption") || ""}
+                    onValueChange={(value) =>
+                      setValue("nonRosterExemption", value)
+                    }
+                    placeholder="Select Purchaser Non-Roster Exemption"
+                  >
+                    {formData?.nonRosterExemption.map((exemption) => (
+                      <SelectItem key={exemption} value={exemption}>
+                        {exemption}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
+                </div>
+
+                {/* Dynamic Agency Department */}
+                {(() => {
+                  const selectedExemption = watch("nonRosterExemption");
+                  let agencyType = null;
+
+                  if (selectedExemption === "Police Department")
+                    agencyType = "PD";
+                  else if (selectedExemption === "Sheriff's Office")
+                    agencyType = "SO";
+                  else if (
+                    selectedExemption === "Any District Attorney's Office"
+                  )
+                    agencyType = "DA";
+
+                  const { data: agencies, isLoading } =
+                    useAgencyDepartments(agencyType);
+
+                  if (!agencyType) return null;
+
+                  return (
+                    <div className="space-y-2">
+                      <Label>Agency Department</Label>
+                      <SelectComponent
+                        name="agencyDepartment"
+                        value={watch("agencyDepartment") ?? ""}
+                        onValueChange={(value: string) => {
+                          setValue("agencyDepartment", value, {
+                            shouldValidate: true,
+                          });
+                        }}
+                        placeholder={isLoading ? "Loading..." : "Select Agency"}
+                      >
+                        {agencies?.map((agency) => (
+                          <SelectItem key={agency.value} value={agency.value}>
+                            {agency.label}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Comments Section */}
               <div className="space-y-2">
                 <Label>Comments</Label>
@@ -2587,4 +2718,4 @@ const PptHandgunPage = () => {
   );
 };
 
-export default PptHandgunPage;
+export default OfficerPptHandgunPage;
