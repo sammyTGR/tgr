@@ -30,16 +30,18 @@ export async function GET(req: Request) {
     const makes =
       data
         ?.map((item) => item.make)
-        .filter(
-          (make): make is string => Boolean(make) && make.trim() !== ""
-        ) || [];
+        .filter((make): make is string => Boolean(make) && make.trim() !== "")
+        .sort((a, b) => a.localeCompare(b)) || [];
 
-    return new NextResponse(JSON.stringify({ makes }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      },
-    });
+    return NextResponse.json(
+      { makes },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error in GET route:", error);
     return NextResponse.json(

@@ -1591,6 +1591,17 @@ const OfficerPptHandgunPage = () => {
     },
   });
 
+  // Add this query to fetch makes
+  const { data: makesData, isLoading: isLoadingMakes } = useQuery({
+    queryKey: ["makes"],
+    queryFn: async () => {
+      const response = await fetch("/api/fetchPpt");
+      if (!response.ok) throw new Error("Failed to fetch makes");
+      const data = await response.json();
+      return data;
+    },
+  });
+
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-2xl font-bold text-center mb-8">
@@ -2403,9 +2414,9 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Make</Label>
                   <MakeSelectNonRosterPpt
                     setValue={setValue}
-                    value={watch("make")}
-                    handgunData={handgunData || {}}
-                    isLoadingHandguns={isLoadingHandguns}
+                    value={watch("make") || ""}
+                    handgunData={makesData?.makes || []}
+                    isLoadingHandguns={isLoadingMakes}
                   />
                 </div>
 

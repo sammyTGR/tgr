@@ -15,7 +15,7 @@ import type { FormData } from "../app/TGR/dros/training/officerppthandgun/page";
 interface MakeSelectProps {
   setValue: UseFormSetValue<FormData>;
   value: string;
-  handgunData: Record<string, any>;
+  handgunData: string[];
   isLoadingHandguns: boolean;
 }
 
@@ -25,17 +25,15 @@ const MakeSelectNonRosterPpt = ({
   handgunData,
   isLoadingHandguns,
 }: MakeSelectProps) => {
-  // Query for all makes and filter out empty values
-  const { data: makes = [] } = useQuery({
-    queryKey: ["makes"],
-    queryFn: () =>
-      handgunData
-        ? Object.keys(handgunData)
-            .filter((make) => make && make.trim() !== "") // Filter out empty or whitespace-only values
-            .sort((a, b) => a.localeCompare(b)) // Sort alphabetically
-        : [],
-    enabled: !!handgunData,
-  });
+  if (isLoadingHandguns) {
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Loading makes..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
 
   return (
     <Select
@@ -50,7 +48,7 @@ const MakeSelectNonRosterPpt = ({
       </SelectTrigger>
       <SelectContent>
         <ScrollArea className="h-[200px]">
-          {makes.map((make) => (
+          {handgunData.map((make) => (
             <SelectItem key={make} value={make}>
               {DOMPurify.sanitize(make)}
             </SelectItem>

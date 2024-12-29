@@ -333,12 +333,12 @@ const ReviewPage = () => {
                   {submission.transaction_type === "officer-ppt-handgun" && (
                     <>
                       <p>
-                        <strong>Agency Department:</strong>{" "}
-                        {agencyData?.label || "Loading..."}
-                      </p>
-                      <p>
                         <strong>Non-Roster Exemption:</strong>{" "}
                         {submission.non_roster_exemption}
+                      </p>
+                      <p>
+                        <strong>Agency:</strong>{" "}
+                        {agencyData?.label || "Loading..."}
                       </p>
                     </>
                   )}
