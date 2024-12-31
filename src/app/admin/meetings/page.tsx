@@ -353,48 +353,30 @@ export default function TeamWeeklyNotes() {
     itemId: string,
     content: string
   ) => {
-    const optimisticUpdate = {
-      type: "updateNote",
-      noteId,
-      topic,
-      itemId,
-      content: DOMPurify.sanitize(content),
-    };
-
-    // Store previous data for rollback
-    const previousData = queryClient.getQueryData<TeamMember[]>([
-      "teamMembers",
-    ]);
-
-    // Apply optimistic update
-    queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
-      if (!oldData) return oldData;
-      return oldData.map((member) => {
-        if (member.note_id === noteId) {
-          const updatedNotes =
-            member[topic]?.map((item) =>
-              item.id === itemId
-                ? { ...item, content: optimisticUpdate.content }
-                : item
-            ) || [];
-          return { ...member, [topic]: updatedNotes };
-        }
-        return member;
+    // Debounce the queryClient updates to prevent rapid re-renders
+    const debouncedUpdate = debounce(() => {
+      queryClient.setQueryData<TeamMember[]>(["teamMembers"], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map((member) => {
+          if (member.note_id === noteId) {
+            const updatedNotes =
+              member[topic]?.map((item) =>
+                item.id === itemId
+                  ? { ...item, content: DOMPurify.sanitize(content) }
+                  : item
+              ) || [];
+            return { ...member, [topic]: updatedNotes };
+          }
+          return member;
+        });
       });
-    });
+    }, 100); // 100ms delay
 
-    // Track optimistic update
-    queryClient.setQueryData(["optimisticUpdates"], (old: any[] = []) => [
-      ...old,
-      optimisticUpdate,
-    ]);
+    debouncedUpdate();
 
-    // Return rollback function
+    // Clean up the debounce on component unmount
     return () => {
-      queryClient.setQueryData<TeamMember[]>(["teamMembers"], previousData);
-      queryClient.setQueryData(["optimisticUpdates"], (updates: any[] = []) =>
-        updates.filter((u) => u !== optimisticUpdate)
-      );
+      debouncedUpdate.cancel();
     };
   };
 
@@ -677,15 +659,16 @@ export default function TeamWeeklyNotes() {
                                       className="mt-1 flex items-center gap-2"
                                     >
                                       <Textarea
-                                        value={item.content}
-                                        onChange={(e) =>
+                                        defaultValue={item.content}
+                                        onChange={(e) => {
+                                          const newValue = e.target.value;
                                           updateLocalNote(
                                             member.note_id,
                                             topic,
                                             item.id,
-                                            e.target.value
-                                          )
-                                        }
+                                            newValue
+                                          );
+                                        }}
                                         placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
                                         className="flex-grow"
                                       />
