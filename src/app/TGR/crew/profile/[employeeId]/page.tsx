@@ -1,7 +1,7 @@
 // TGR\crew\profile\[employeeId]\page.tsx
 "use client";
 import { Suspense, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Card,
   CardHeader,
@@ -190,6 +190,7 @@ const EmployeeProfilePage = () => {
     : parseInt(employeeIdParam, 10);
   const userUuid = params?.userUuid ?? "";
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Queries
 
@@ -439,62 +440,120 @@ const EmployeeProfilePage = () => {
     enabled: !!employee?.lanid,
   });
 
+  // Update the unacknowledged bulletins query
+  const { data: unacknowledgedBulletins } = useQuery({
+    queryKey: ["unacknowledgedBulletins", employeeId],
+    queryFn: async () => {
+      console.log(
+        "Checking unacknowledged bulletins for employee:",
+        employeeId
+      );
+
+      // First get all bulletins that require acknowledgment
+      const { data: bulletins, error: bulletinsError } = await supabase
+        .from("bulletin_posts")
+        .select("*")
+        .eq("requires_acknowledgment", true);
+
+      if (bulletinsError) {
+        console.error("Error fetching bulletins:", bulletinsError);
+        throw bulletinsError;
+      }
+
+      console.log("Bulletins requiring acknowledgment:", bulletins);
+
+      if (!bulletins || bulletins.length === 0) return [];
+
+      // Then get all acknowledgments for this employee
+      const { data: acknowledgments, error: acksError } = await supabase
+        .from("bulletin_acknowledgments")
+        .select("post_id") // Changed from bulletin_id to post_id
+        .eq("employee_id", employeeId);
+
+      if (acksError) {
+        console.error("Error fetching acknowledgments:", acksError);
+        throw acksError;
+      }
+
+      console.log("Employee acknowledgments:", acknowledgments);
+
+      // Create a set of acknowledged bulletin IDs
+      const acknowledgedIds = new Set(
+        acknowledgments?.map((ack) => ack.post_id)
+      );
+
+      // Filter out bulletins that have been acknowledged
+      const unacknowledged = bulletins.filter(
+        (bulletin) => !acknowledgedIds.has(bulletin.id)
+      );
+
+      console.log("Unacknowledged bulletins:", unacknowledged);
+
+      return unacknowledged;
+    },
+    staleTime: 0,
+  });
+
   // Mutations
   const clockInMutation = useMutation({
     mutationFn: async () => {
+      // Check for unacknowledged bulletins first
+      if (unacknowledgedBulletins && unacknowledgedBulletins.length > 0) {
+        router.push("/TGR/crew/bulletin");
+        return;
+      }
+
       const timeZone = "America/Los_Angeles";
       const now = toZonedTime(new Date(), timeZone);
       const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
       const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
 
-      const { data: existingData, error: fetchError } = await supabase
+      // Check for existing clock-in for today
+      const { data: existingClockIn, error: fetchError } = await supabase
         .from("employee_clock_events")
         .select("*")
         .eq("employee_id", employeeId)
         .eq("event_date", eventDate)
+        .not("start_time", "is", null)
         .single();
 
       if (fetchError && fetchError.code !== "PGRST116") {
         throw fetchError;
       }
 
-      if (existingData) {
-        if (existingData.start_time) {
-          throw new Error("Already clocked in for today.");
-        }
-
-        const { error: updateError } = await supabase
-          .from("employee_clock_events")
-          .update({
-            start_time: startTime,
-          })
-          .eq("id", existingData.id);
-
-        if (updateError) throw updateError;
-        return { ...existingData, start_time: startTime };
-      } else {
-        const { data: insertData, error: insertError } = await supabase
-          .from("employee_clock_events")
-          .insert({
-            employee_id: employeeId,
-            employee_name: employee?.name,
-            event_date: eventDate,
-            start_time: startTime,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        return insertData;
+      // If there's already a clock-in for today, prevent another one
+      if (existingClockIn) {
+        throw new Error("Already clocked in for today");
       }
+
+      // If no existing clock-in, create a new one
+      const { data: insertData, error: insertError } = await supabase
+        .from("employee_clock_events")
+        .insert({
+          employee_id: employeeId,
+          employee_name: employee?.name,
+          event_date: eventDate,
+          start_time: startTime,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      return insertData;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["currentShift", employeeId], data);
       toast.success(`Welcome Back ${employee?.name}!`);
       scheduleOvertimeAlert(new Date(data.start_time));
     },
-    onError: (error) => {
-      toast.error("Failed to clock in. Please try again.");
+    onError: (error: Error) => {
+      if (error.message === "Already clocked in for today") {
+        toast.error("You have already clocked in for today.");
+      } else if (error.message === "UNACKNOWLEDGED_BULLETINS") {
+        router.push("/TGR/crew/bulletin");
+      } else {
+        toast.error("Failed to clock in. Please try again.");
+      }
     },
   });
 
@@ -870,7 +929,7 @@ const EmployeeProfilePage = () => {
       const { data: admins, error: employeesError } = await supabase
         .from("employees")
         .select("contact_info, name")
-        .in("name", ["Sammy", "Russ", "Slim Jim", "Sam"]);
+        .in("name", ["Sammy", "Russ", "Slim Jim"]);
 
       if (employeesError) throw employeesError;
 
@@ -1061,7 +1120,7 @@ const EmployeeProfilePage = () => {
                       <h1 className="text-xl font-bold mb-2 ml-2">
                         <TextGenerateEffect words="Time Clock" />
                       </h1>
-                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
                         {/* Time Card */}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
@@ -1071,12 +1130,69 @@ const EmployeeProfilePage = () => {
                           </CardHeader>
                           <CardContent className="mx-auto">
                             {!currentShift?.start_time && (
-                              <Button
-                                className="w-full mx-auto"
-                                onClick={() => clockInMutation.mutate()}
-                              >
-                                Clock In
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button className="w-full mx-auto">
+                                    Clock In
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    {unacknowledgedBulletins &&
+                                    unacknowledgedBulletins.length > 0 ? (
+                                      <>
+                                        <AlertDialogTitle>
+                                          Unacknowledged Bulletins
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          You have{" "}
+                                          {unacknowledgedBulletins.length}{" "}
+                                          bulletin
+                                          {unacknowledgedBulletins.length === 1
+                                            ? ""
+                                            : "s"}{" "}
+                                          that require
+                                          {unacknowledgedBulletins.length === 1
+                                            ? "s"
+                                            : ""}{" "}
+                                          your acknowledgment. Please review and
+                                          acknowledge them before clocking in.
+                                        </AlertDialogDescription>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AlertDialogTitle>
+                                          Clock In Confirmation
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you ready to start your shift?
+                                        </AlertDialogDescription>
+                                      </>
+                                    )}
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    {unacknowledgedBulletins &&
+                                    unacknowledgedBulletins.length > 0 ? (
+                                      <AlertDialogAction
+                                        onClick={() =>
+                                          router.push("/TGR/crew/bulletin")
+                                        }
+                                      >
+                                        View Bulletins
+                                      </AlertDialogAction>
+                                    ) : (
+                                      <AlertDialogAction
+                                        onClick={() => clockInMutation.mutate()}
+                                      >
+                                        Clock In
+                                      </AlertDialogAction>
+                                    )}
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                             {currentShift?.start_time &&
                               !currentShift?.end_time && (
@@ -1205,7 +1321,9 @@ const EmployeeProfilePage = () => {
                               )}
                           </CardContent>
                         </Card>
+                      </div>
 
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
                         {/* Start of Shift */}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
@@ -1349,7 +1467,9 @@ const EmployeeProfilePage = () => {
                             )}
                           </CardContent>
                         </Card>
+                      </div>
 
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
                         {/* Daily Summary Card*/}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
@@ -2393,7 +2513,9 @@ const scheduleOvertimeAlert = (
             formatTZ(clockInTime, "h:mm a", {
               timeZone: "America/Los_Angeles",
             }),
-            formatTZ(new Date(), "h:mm a", { timeZone: "America/Los_Angeles" }),
+            formatTZ(new Date(), "h:mm a", {
+              timeZone: "America/Los_Angeles",
+            }),
             "EmployeeOvertimeAlert"
           ),
           sendOvertimeAlertToAdmins(

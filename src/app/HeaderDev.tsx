@@ -315,6 +315,11 @@ const comboComps = [
     href: "/TGR/dros/training/review",
     description: "Review DROS Training Submissions",
   },
+  {
+    title: "Bulletin Board",
+    href: "/TGR/crew/bulletin",
+    description: "Bulletin Board",
+  },
 ];
 
 // Auth state subscription query
