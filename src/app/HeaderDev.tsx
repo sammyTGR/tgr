@@ -311,11 +311,6 @@ const comboComps = [
     description: "DROS Simulation",
   },
   {
-    title: "DROS Training Review",
-    href: "/TGR/dros/training/review",
-    description: "Review DROS Training Submissions",
-  },
-  {
     title: "Bulletin Board",
     href: "/TGR/crew/bulletin",
     description: "Bulletin Board",
