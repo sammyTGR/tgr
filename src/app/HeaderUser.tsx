@@ -102,6 +102,11 @@ const formComps = [
     href: "/TGR/rentals/checklist",
     description: "Daily Rental Checklist",
   },
+  {
+    title: "Bulletin Board",
+    href: "/TGR/crew/bulletin",
+    description: "Bulletin Board",
+  },
 ];
 
 const LazyNavigationMenu = dynamic(

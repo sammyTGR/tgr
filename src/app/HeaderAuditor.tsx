@@ -117,6 +117,11 @@ const formComps = [
     href: "/TGR/rentals/checklist",
     description: "Daily Rental Checklist",
   },
+  {
+    title: "Bulletin Board",
+    href: "/TGR/crew/bulletin",
+    description: "Bulletin Board",
+  },
 ];
 
 const reportsComps = [
@@ -212,18 +217,18 @@ const HeaderAuditor = React.memo(() => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-const { isLoading } = useQuery({
-  queryKey: ["navigation", pathname, searchParams],
-  queryFn: () => {
-    return Promise.resolve(
-      new Promise((resolve) => {
-        setTimeout(() => resolve(null), 100);
-      })
-    );
-  },
-  staleTime: 0, // Always refetch on route change
-  refetchInterval: 0, // Disable automatic refetching
-});
+  const { isLoading } = useQuery({
+    queryKey: ["navigation", pathname, searchParams],
+    queryFn: () => {
+      return Promise.resolve(
+        new Promise((resolve) => {
+          setTimeout(() => resolve(null), 100);
+        })
+      );
+    },
+    staleTime: 0, // Always refetch on route change
+    refetchInterval: 0, // Disable automatic refetching
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
