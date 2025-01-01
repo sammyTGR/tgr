@@ -689,7 +689,8 @@ export default function BulletinBoard() {
                                 <p className="text-sm text-muted-foreground">
                                   Please provide a brief summary of this
                                   bulletin to acknowledge that you have read and
-                                  understood it.
+                                  understood it. Typing &quot;Ok / Okay&quot; is
+                                  NOT accepted as acknowledgment.
                                 </p>
                                 <FormField
                                   control={form.control}
