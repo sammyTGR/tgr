@@ -1,5 +1,5 @@
 "use client";
-import MakeSelectNonRoster from "@/components/MakeSelectNonRoster";
+import MakeSelectExempt from "@/components/MakeSelectExempt";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
 import { useRouter } from "next/navigation";
@@ -141,7 +141,7 @@ const initialFormState: Partial<FormData> = {
   eligibilityQ4: "",
   isGunShowTransaction: "",
   waitingPeriodExemption: "",
-  restrictionExemption: "Peace Officer - Active - Letter Required",
+  restrictionExemption: "",
   make: "",
   model: "",
   serialNumber: "",
@@ -152,7 +152,7 @@ const initialFormState: Partial<FormData> = {
   nonRosterExemption: "",
   agencyDepartment: "",
   comments: "",
-  transaction_type: "officer-handgun",
+  transaction_type: "exempt-handgun",
 };
 
 const useAgencyDepartments = (agencyType: string | null) => {
@@ -230,12 +230,12 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/officerHandgun", {
+      const response = await fetch("/api/exemptHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          transaction_type: "officer-handgun",
+          transaction_type: "exempt-handgun",
         }),
       });
       if (!response.ok) throw new Error("Failed to submit form");
@@ -531,7 +531,7 @@ const AgencyDepartmentSelect = ({
   );
 };
 
-const OfficerHandgunPage = () => {
+const ExemptHandgun = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -570,12 +570,12 @@ const OfficerHandgunPage = () => {
   // Form submission mutation
   const { mutate: submitForm, isPending: isSubmitting } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/officerHandgun", {
+      const response = await fetch("/api/exemptHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          transaction_type: "officer-ppt-handgun",
+          transaction_type: "exempt-handgun",
         }),
       });
       if (!response.ok) throw new Error("Failed to submit form");
@@ -1470,7 +1470,7 @@ const OfficerHandgunPage = () => {
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-2xl font-bold text-center mb-8">
-        Submit Peace Officer Non-Roster Handgun Sale
+        Submit Exempt Handgun Sale
       </h1>
 
       <Alert variant="destructive" className="mb-6">
@@ -1931,7 +1931,7 @@ const OfficerHandgunPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Waiting Period Exemption</Label>
-                  {/* <SelectComponent
+                  <SelectComponent
                     name="waitingPeriodExemption"
                     value={watch("waitingPeriodExemption") || ""}
                     onValueChange={(value) =>
@@ -1947,14 +1947,27 @@ const OfficerHandgunPage = () => {
                         {waitingPeriod}
                       </SelectItem>
                     ))}
-                  </SelectComponent> */}
+                  </SelectComponent>
                 </div>
                 <div className="space-y-2">
                   <Label>30-Day Restriction Exemption</Label>
-                  <Input
-                    value="Peace Officer - Active - Letter Required"
-                    disabled
-                  />
+                  <Select
+                    {...register("restrictionExemption")}
+                    onValueChange={(value) =>
+                      setValue("restrictionExemption", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select 30-Day Restriction Exemption" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData?.restrictionsExemptions.map((type) => (
+                        <SelectItem key={type} value={type.toLowerCase()}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -1975,7 +1988,7 @@ const OfficerHandgunPage = () => {
                 {/* Make and Model*/}
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
-                  <MakeSelectNonRoster
+                  <MakeSelectExempt
                     setValue={setValue}
                     value={watch("make") || ""}
                     handgunData={makesData?.manufacturers || []}
@@ -2327,4 +2340,4 @@ const OfficerHandgunPage = () => {
   );
 };
 
-export default OfficerHandgunPage;
+export default ExemptHandgun;

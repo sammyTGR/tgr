@@ -27,6 +27,8 @@ import {
 import { supabase } from "../../../../../utils/supabase/client";
 import type { FormData as OfficerPptHandgunFormData } from "../officerppthandgun/page";
 import type { FormData as OfficerHandgunFormData } from "../officerhandgun/page";
+import type { FormData as ExemptHandgunFormData } from "../exempthandgun/page";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 type DealerHandgunSale = {
   id: string;
@@ -258,12 +260,21 @@ const ReviewPage = () => {
 
       if (officerHandgunError) throw officerHandgunError;
 
+      // Fetch exempt handgun
+      const { data: exemptHandgun, error: exemptHandgunError } = await supabase
+        .from("exempt_handgun")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (exemptHandgunError) throw exemptHandgunError;
+
       // Combine and sort all results
       const allSubmissions = [
         ...(dealerSales || []),
         ...(pptSales || []),
         ...(officerPptSales || []),
         ...(officerHandgun || []),
+        ...(exemptHandgun || []),
       ].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -324,7 +335,60 @@ const ReviewPage = () => {
               {submission.non_roster_exemption}
             </p>
             <p>
-              <strong>Agency:</strong> {agencyData?.label || "Loading..."}
+              <strong>Agency:</strong> {agencyData?.label || ""}
+            </p>
+          </CardContent>
+        </Card>
+      );
+    };
+
+    // Add exempt handgun specific information
+    const renderExemptHandgunInfo = () => {
+      if (submission.transaction_type !== "exempt-handgun") return null;
+
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Exempt Handgun Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {submission.frame_only ? (
+              <>
+                <p>
+                  <strong>Frame Only:</strong> Yes
+                </p>
+                <p>
+                  <strong>Category:</strong> {submission.category}
+                </p>
+                <p>
+                  <strong>Regulated:</strong> {submission.regulated}
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  <strong>Caliber:</strong> {submission.calibers}
+                  {submission.additional_caliber &&
+                    `, ${submission.additional_caliber}`}
+                  {submission.additional_caliber2 &&
+                    `, ${submission.additional_caliber2}`}
+                  {submission.additional_caliber3 &&
+                    `, ${submission.additional_caliber3}`}
+                </p>
+                {submission.barrel_length && (
+                  <p>
+                    <strong>Barrel Length:</strong> {submission.barrel_length}{" "}
+                    {submission.unit}
+                  </p>
+                )}
+              </>
+            )}
+            <p>
+              <strong>Non-Roster Exemption:</strong>{" "}
+              {submission.non_roster_exemption}
+            </p>
+            <p>
+              <strong>Agency:</strong> {agencyData?.label || ""}
             </p>
           </CardContent>
         </Card>
@@ -406,8 +470,7 @@ const ReviewPage = () => {
                         {submission.non_roster_exemption}
                       </p>
                       <p>
-                        <strong>Agency:</strong>{" "}
-                        {agencyData?.label || "Loading..."}
+                        <strong>Agency:</strong> {agencyData?.label || ""}
                       </p>
                     </>
                   )}
@@ -551,6 +614,9 @@ const ReviewPage = () => {
 
           {/* Add officer handgun specific information */}
           {renderOfficerHandgunInfo()}
+
+          {/* Add exempt handgun specific information */}
+          {renderExemptHandgunInfo()}
         </DialogContent>
       </Dialog>
     );
@@ -561,42 +627,43 @@ const ReviewPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-12 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>DROS Training Submissions</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Submitted By</TableHead>
-                <TableHead>Transaction Type</TableHead>
-                <TableHead>Purchaser Info</TableHead>
-                <TableHead>Firearm</TableHead>
-                {/* <TableHead>Status</TableHead> */}
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions?.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell>
-                    {new Date(submission.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{getEmployeeName(submission.user_id)}</TableCell>
-                  <TableCell>
-                    {TRANSACTION_TYPES[submission.transaction_type]?.title}
-                  </TableCell>
-                  <TableCell>
-                    {submission.first_name} {submission.last_name}
-                  </TableCell>
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Submitted By</TableHead>
+                  <TableHead>Transaction Type</TableHead>
+                  <TableHead>Purchaser Info</TableHead>
+                  <TableHead>Firearm</TableHead>
+                  {/* <TableHead>Status</TableHead> */}
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {submissions?.map((submission) => (
+                  <TableRow key={submission.id}>
+                    <TableCell>
+                      {new Date(submission.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{getEmployeeName(submission.user_id)}</TableCell>
+                    <TableCell>
+                      {TRANSACTION_TYPES[submission.transaction_type]?.title}
+                    </TableCell>
+                    <TableCell>
+                      {submission.first_name} {submission.last_name}
+                    </TableCell>
 
-                  <TableCell>
-                    {submission.make} {submission.model}
-                  </TableCell>
-                  {/* <TableCell>
+                    <TableCell>
+                      {submission.make} {submission.model}
+                    </TableCell>
+                    {/* <TableCell>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         submission.status === "approved"
@@ -609,12 +676,14 @@ const ReviewPage = () => {
                       {submission.status}
                     </span>
                   </TableCell> */}
-                  <TableCell>
-                    <DetailedView submission={submission} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+                    <TableCell>
+                      <DetailedView submission={submission} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
           </Table>
         </CardContent>
       </Card>
