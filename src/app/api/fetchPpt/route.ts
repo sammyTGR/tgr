@@ -6,6 +6,12 @@ export const runtime = "edge";
 export const fetchCache = "force-cache";
 export const revalidate = 3600; // Cache for 1 hour
 
+// Add interface for manufacturer data
+interface Manufacturer {
+  id: number;
+  make: string;
+}
+
 export async function GET(req: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
@@ -19,22 +25,27 @@ export async function GET(req: Request) {
 
     const { data, error: fetchError } = await supabase
       .from("manufacturers")
-      .select("make")
+      .select("id, make")
       .order("make")
-      .not("make", "eq", "")
-      .range(0, 5000);
+      .not("make", "eq", "");
 
     if (fetchError) throw fetchError;
 
-    // Filter and clean the makes array
-    const makes =
-      data
-        ?.map((item) => item.make)
-        .filter((make): make is string => Boolean(make) && make.trim() !== "")
-        .sort((a, b) => a.localeCompare(b)) || [];
+    // console.log("Database response:", data);
+
+    const manufacturers =
+      data?.map((item) => ({
+        value: item.id.toString(),
+        label: item.make.trim(),
+      })) || [];
+
+    manufacturers.sort((a, b) => a.label.localeCompare(b.label));
+
+    // console.log("Transformed manufacturers:", manufacturers);
+    // console.log(`Total manufacturers: ${manufacturers.length}`);
 
     return NextResponse.json(
-      { makes },
+      { manufacturers },
       {
         headers: {
           "Content-Type": "application/json",

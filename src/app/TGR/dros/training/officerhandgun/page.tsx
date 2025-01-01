@@ -1978,7 +1978,7 @@ const OfficerHandgunPage = () => {
                   <MakeSelectNonRoster
                     setValue={setValue}
                     value={watch("make") || ""}
-                    handgunData={makesData?.makes || []}
+                    handgunData={makesData?.manufacturers || []}
                     isLoadingHandguns={isLoadingMakes}
                   />
                 </div>

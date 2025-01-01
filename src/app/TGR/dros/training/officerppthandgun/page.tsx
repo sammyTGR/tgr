@@ -1592,16 +1592,27 @@ const OfficerPptHandgunPage = () => {
     },
   });
 
-  // Add this query to fetch makes
+  // First, add the manufacturers query
   const { data: makesData, isLoading: isLoadingMakes } = useQuery({
-    queryKey: ["makes"],
+    queryKey: ["manufacturers"],
     queryFn: async () => {
-      const response = await fetch("/api/fetchPpt");
-      if (!response.ok) throw new Error("Failed to fetch makes");
+      const response = await fetch("/api/fetchPpt", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch manufacturers");
       const data = await response.json();
+      // console.log("API Response:", data);
       return data;
     },
   });
+
+  // Then update where you render the MakeSelectNonRosterPpt component
+  <MakeSelectNonRosterPpt
+    setValue={setValue}
+    value={watch("make") || ""}
+    handgunData={makesData?.manufacturers || []} // Pass the manufacturers array directly
+    isLoadingHandguns={isLoadingMakes}
+  />;
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
@@ -2416,7 +2427,7 @@ const OfficerPptHandgunPage = () => {
                   <MakeSelectNonRosterPpt
                     setValue={setValue}
                     value={watch("make") || ""}
-                    handgunData={makesData?.makes || []}
+                    handgunData={makesData?.manufacturers || []} // Pass the manufacturers array directly
                     isLoadingHandguns={isLoadingMakes}
                   />
                 </div>

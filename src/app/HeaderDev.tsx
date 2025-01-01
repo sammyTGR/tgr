@@ -202,7 +202,7 @@ const manageComps = [
   {
     title: "Onboarding",
     href: "/admin/onboarding",
-    description: "Trial Onboarding",
+    description: "New Member Onboarding",
   },
   {
     title: "Products & Pricing",

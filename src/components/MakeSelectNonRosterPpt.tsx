@@ -1,5 +1,4 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -12,10 +11,15 @@ import DOMPurify from "isomorphic-dompurify";
 import { UseFormSetValue } from "react-hook-form";
 import type { FormData } from "../app/TGR/dros/training/officerppthandgun/page";
 
+interface Manufacturer {
+  value: string;
+  label: string;
+}
+
 interface MakeSelectProps {
   setValue: UseFormSetValue<FormData>;
   value: string;
-  handgunData: string[];
+  handgunData: Manufacturer[];
   isLoadingHandguns: boolean;
 }
 
@@ -25,7 +29,15 @@ const MakeSelectNonRosterPpt = ({
   handgunData,
   isLoadingHandguns,
 }: MakeSelectProps) => {
+  // console.log("MakeSelect Props:", {
+  //   value,
+  //   isLoadingHandguns,
+  //   handgunDataLength: handgunData?.length,
+  //   handgunData,
+  // });
+
   if (isLoadingHandguns) {
+    console.log("Loading state triggered");
     return (
       <Select disabled>
         <SelectTrigger className="w-full">
@@ -35,10 +47,23 @@ const MakeSelectNonRosterPpt = ({
     );
   }
 
+  if (!handgunData || handgunData.length === 0) {
+    // console.log("No data state triggered", { handgunData });
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="No manufacturers available" />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
+  // console.log("Rendering with data:", handgunData);
   return (
     <Select
       value={value}
       onValueChange={(newValue) => {
+        // console.log("Selected new value:", newValue);
         setValue("make", newValue);
         setValue("model", "");
       }}
@@ -48,9 +73,13 @@ const MakeSelectNonRosterPpt = ({
       </SelectTrigger>
       <SelectContent>
         <ScrollArea className="h-[200px]">
-          {handgunData.map((make) => (
-            <SelectItem key={make} value={make}>
-              {DOMPurify.sanitize(make)}
+          {handgunData.map((manufacturer) => (
+            <SelectItem
+              key={manufacturer.value}
+              value={manufacturer.value}
+              className="px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+            >
+              {manufacturer.label}
             </SelectItem>
           ))}
         </ScrollArea>

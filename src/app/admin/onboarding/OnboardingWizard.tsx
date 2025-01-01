@@ -156,7 +156,9 @@ const OnboardingWizard = () => {
         return (
           data.name.trim() !== "" &&
           data.last_name.trim() !== "" &&
-          data.contact_info.trim() !== ""
+          data.contact_info.trim() !== "" &&
+          data.birthday.trim() !== "" &&
+          data.hire_date.trim() !== ""
         );
       case 2:
         return data.department !== "" && data.role !== "";
@@ -249,7 +251,9 @@ const OnboardingWizard = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="birthday">Birthday</Label>
+              <Label htmlFor="birthday" className="flex items-center gap-1">
+                Birthday <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="birthday"
                 type="date"
@@ -258,7 +262,9 @@ const OnboardingWizard = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="hire_date">Hire Date</Label>
+              <Label htmlFor="hire_date" className="flex items-center gap-1">
+                Hire Date <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="hire_date"
                 type="date"
@@ -424,25 +430,27 @@ const OnboardingWizard = () => {
 
   const employeeMutation = useMutation({
     mutationFn: async (employeeData: Partial<OnboardingData>) => {
+      const sanitizedData = {
+        name: employeeData.name,
+        last_name: employeeData.last_name,
+        department: employeeData.department,
+        role: employeeData.role,
+        contact_info: employeeData.contact_info,
+        rank: employeeData.rank,
+        pay_type: employeeData.pay_type,
+        pay_rate: employeeData.pay_rate,
+        hire_date: employeeData.hire_date || null,
+        birthday: employeeData.birthday || null,
+        phone_number: employeeData.phone_number,
+        street_address: employeeData.street_address,
+        city: employeeData.city,
+        state: employeeData.state,
+        zip: employeeData.zip,
+      };
+
       const { data, error } = await supabase
         .from("employees")
-        .insert({
-          name: employeeData.name,
-          last_name: employeeData.last_name,
-          department: employeeData.department,
-          role: employeeData.role,
-          contact_info: employeeData.contact_info,
-          rank: employeeData.rank,
-          pay_type: employeeData.pay_type,
-          pay_rate: employeeData.pay_rate,
-          hire_date: employeeData.hire_date,
-          birthday: employeeData.birthday,
-          phone_number: employeeData.phone_number,
-          street_address: employeeData.street_address,
-          city: employeeData.city,
-          state: employeeData.state,
-          zip: employeeData.zip,
-        })
+        .insert(sanitizedData)
         .select();
 
       if (error) {
@@ -453,7 +461,7 @@ const OnboardingWizard = () => {
     onError: (error) => {
       console.error("Error inserting employee:", error);
       toast.error(
-        "Failed to add employee. Please check if the name or employee number is unique."
+        "Failed to add employee. Please ensure all required fields are filled correctly."
       );
     },
   });

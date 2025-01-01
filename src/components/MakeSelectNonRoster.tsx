@@ -12,10 +12,15 @@ import DOMPurify from "isomorphic-dompurify";
 import { UseFormSetValue } from "react-hook-form";
 import type { FormData } from "../app/TGR/dros/training/officerhandgun/page";
 
+interface Manufacturer {
+  value: string;
+  label: string;
+}
+
 interface MakeSelectProps {
   setValue: UseFormSetValue<FormData>;
   value: string;
-  handgunData: string[];
+  handgunData: Manufacturer[];
   isLoadingHandguns: boolean;
 }
 
@@ -35,6 +40,16 @@ const MakeSelectNonRoster = ({
     );
   }
 
+  if (!handgunData || handgunData.length === 0) {
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="No manufacturers available" />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
   return (
     <Select
       value={value}
@@ -48,9 +63,13 @@ const MakeSelectNonRoster = ({
       </SelectTrigger>
       <SelectContent>
         <ScrollArea className="h-[200px]">
-          {handgunData.map((make) => (
-            <SelectItem key={make} value={make}>
-              {DOMPurify.sanitize(make)}
+          {handgunData.map((manufacturer) => (
+            <SelectItem
+              key={manufacturer.value}
+              value={manufacturer.value}
+              className="px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+            >
+              {DOMPurify.sanitize(manufacturer.label)}
             </SelectItem>
           ))}
         </ScrollArea>
