@@ -106,7 +106,7 @@ const TransactionTypePage = () => {
     },
     {
       title: "Peace Officer Non-Roster Handgun Sale(Letter Required)",
-      path: "/TGR/dros/training/peaceofficersale",
+      path: "/TGR/dros/training/officerhandgun",
     },
     { title: "Exempt Handgun Sale", path: "/TGR/dros/training/exempthandgun" },
     {

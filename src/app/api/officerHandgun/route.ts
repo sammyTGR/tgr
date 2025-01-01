@@ -46,35 +46,6 @@ export async function POST(request: Request) {
       alias_last_name: formData.aliasLastName,
       alias_suffix: formData.aliasSuffix,
 
-      // Seller Information
-      seller_first_name: formData.sellerFirstName,
-      seller_middle_name: formData.sellerMiddleName,
-      seller_last_name: formData.sellerLastName,
-      seller_suffix: formData.sellerSuffix,
-      seller_street_address: formData.sellerStreetAddress,
-      seller_zip_code: formData.sellerZipCode,
-      seller_city: formData.sellerCity,
-      seller_state: formData.sellerState?.toUpperCase(),
-      seller_gender: formData.sellerGender,
-      seller_hair_color: formData.sellerHairColor,
-      seller_eye_color: formData.sellerEyeColor,
-      seller_height_feet: parseInt(formData.sellerHeightFeet),
-      seller_height_inches: parseInt(formData.sellerHeightInches),
-      seller_weight: formData.sellerWeight
-        ? parseInt(formData.sellerWeight)
-        : null,
-      seller_date_of_birth: formData.sellerDateOfBirth,
-      seller_id_type: formData.sellerIdType,
-      seller_id_number: formData.sellerIdNumber,
-      seller_race: formData.sellerRace,
-      seller_is_us_citizen: formData.sellerIsUsCitizen?.toLowerCase(),
-      seller_place_of_birth: formData.sellerPlaceOfBirth,
-      seller_phone_number: formData.sellerPhoneNumber,
-      seller_alias_first_name: formData.sellerAliasFirstName,
-      seller_alias_middle_name: formData.sellerAliasMiddleName,
-      seller_alias_last_name: formData.sellerAliasLastName,
-      seller_alias_suffix: formData.sellerAliasSuffix,
-
       // Transaction Information
       hsc_fsc_number: formData.hscFscNumber,
       exemption_code: formData.exemptionCode,
@@ -84,13 +55,13 @@ export async function POST(request: Request) {
       eligibility_q4: formData.eligibilityQ4?.toLowerCase(),
       is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase(),
       waiting_period_exemption: formData.waitingPeriodExemption,
-      restriction_exemption:
-        "Private Party Transfer Through Licensed Firearms Dealer",
+      restriction_exemption: "Peace Officer - Active - Letter Required",
 
-      // Firearm Information
+      // Common Firearm Information
       make: formData.make,
       model: formData.model,
       serial_number: formData.serialNumber,
+      other_number: formData.otherNumber,
       color: formData.color,
       is_new_gun: formData.isNewGun,
       firearm_safety_device: formData.firearmSafetyDevice,
@@ -98,7 +69,7 @@ export async function POST(request: Request) {
       agency_department: formData.agencyDepartment,
       comments: formData.comments,
       status: "submitted",
-      transaction_type: "officer-ppt-handgun",
+      transaction_type: "officer-handgun",
     };
 
     // Frame-only specific data
@@ -140,7 +111,7 @@ export async function POST(request: Request) {
     console.log("Submitting data:", dbData); // Add this for debugging
 
     const { data, error } = await supabase
-      .from("officer_ppt_handgun_transfers")
+      .from("officer_handgun")
       .insert(dbData)
       .select()
       .single();

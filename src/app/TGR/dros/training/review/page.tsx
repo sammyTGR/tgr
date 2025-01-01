@@ -26,6 +26,7 @@ import {
 } from "../../../../../components/ui/dialog";
 import { supabase } from "../../../../../utils/supabase/client";
 import type { FormData as OfficerPptHandgunFormData } from "../officerppthandgun/page";
+import type { FormData as OfficerHandgunFormData } from "../officerhandgun/page";
 
 type DealerHandgunSale = {
   id: string;
@@ -103,6 +104,16 @@ type DealerHandgunSale = {
   seller_alias_suffix?: string;
   agency_department?: string;
   non_roster_exemption?: string;
+  calibers?: string;
+  additional_caliber?: string;
+  additional_caliber2?: string;
+  additional_caliber3?: string;
+  barrel_length?: number;
+  unit?: string;
+  gun_type?: string;
+  category?: string;
+  regulated?: string;
+  frame_only?: boolean;
 };
 
 // Add a type for the transaction type
@@ -127,7 +138,7 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
   },
   "peace-officer-handgun-sale-letter": {
     title: "Peace Officer Handgun Sale (Letter Required)",
-    table: "peace_officer_handgun_sale_letter",
+    table: "officer_handgun",
   },
   "exempt-handgun": {
     title: "Exempt Handgun Sale",
@@ -176,6 +187,10 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
   "longgun-temporary-storage-return": {
     title: "Long Gun Temporary Storage Return",
     table: "longgun_temporary_storage_return",
+  },
+  "officer-handgun": {
+    title: "Officer Non-Roster Handgun",
+    table: "officer_handgun",
   },
 };
 
@@ -234,11 +249,21 @@ const ReviewPage = () => {
 
       if (officerPptError) throw officerPptError;
 
+      // Fetch officer handgun
+      const { data: officerHandgun, error: officerHandgunError } =
+        await supabase
+          .from("officer_handgun")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+      if (officerHandgunError) throw officerHandgunError;
+
       // Combine and sort all results
       const allSubmissions = [
         ...(dealerSales || []),
         ...(pptSales || []),
         ...(officerPptSales || []),
+        ...(officerHandgun || []),
       ].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -261,6 +286,50 @@ const ReviewPage = () => {
     const { data: agencyData } = useAgencyDepartment(
       submission.agency_department
     );
+
+    // Add officer handgun specific information
+    const renderOfficerHandgunInfo = () => {
+      if (submission.transaction_type !== "officer-handgun") return null;
+
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Officer Handgun Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p>
+              <strong>Caliber:</strong> {submission.calibers}
+              {submission.additional_caliber &&
+                `, ${submission.additional_caliber}`}
+              {submission.additional_caliber2 &&
+                `, ${submission.additional_caliber2}`}
+              {submission.additional_caliber3 &&
+                `, ${submission.additional_caliber3}`}
+            </p>
+            {submission.barrel_length && (
+              <p>
+                <strong>Barrel Length:</strong> {submission.barrel_length}{" "}
+                {submission.unit}
+              </p>
+            )}
+            <p>
+              <strong>Frame Only:</strong>{" "}
+              {submission.frame_only ? "Yes" : "No"}
+            </p>
+            <p>
+              <strong>Category:</strong> {submission.category}
+            </p>
+            <p>
+              <strong>Non-Roster Exemption:</strong>{" "}
+              {submission.non_roster_exemption}
+            </p>
+            <p>
+              <strong>Agency:</strong> {agencyData?.label || "Loading..."}
+            </p>
+          </CardContent>
+        </Card>
+      );
+    };
 
     return (
       <Dialog>
@@ -479,6 +548,9 @@ const ReviewPage = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Add officer handgun specific information */}
+          {renderOfficerHandgunInfo()}
         </DialogContent>
       </Dialog>
     );

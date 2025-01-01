@@ -1,5 +1,5 @@
 "use client";
-import MakeSelectNonRosterPpt from "@/components/MakeSelectNonRosterPpt";
+import MakeSelectNonRoster from "@/components/MakeSelectNonRoster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
 import { useRouter } from "next/navigation";
@@ -98,31 +98,6 @@ export type FormData = {
   agencyGroup: string;
   comments?: string;
   transaction_type: string;
-  sellerFirstName: string;
-  sellerMiddleName: string;
-  sellerLastName: string;
-  sellerSuffix: string;
-  sellerStreetAddress: string;
-  sellerZipCode: string;
-  sellerCity: string;
-  sellerState: string;
-  sellerGender: string;
-  sellerHairColor: string;
-  sellerEyeColor: string;
-  sellerHeightFeet: string;
-  sellerHeightInches: string;
-  sellerWeight: string;
-  sellerDateOfBirth: string;
-  sellerIdType: string;
-  sellerIdNumber: string;
-  sellerRace: string;
-  sellerIsUsCitizen: string;
-  sellerPlaceOfBirth: string;
-  sellerPhoneNumber: string;
-  sellerAliasFirstName: string;
-  sellerAliasMiddleName: string;
-  sellerAliasLastName: string;
-  sellerAliasSuffix: string;
   agencyDepartment: string; // Add this field
 };
 
@@ -166,8 +141,7 @@ const initialFormState: Partial<FormData> = {
   eligibilityQ4: "",
   isGunShowTransaction: "",
   waitingPeriodExemption: "",
-  restrictionExemption:
-    "Private Party Transfer Through Licensed Firearms Dealer",
+  restrictionExemption: "Peace Officer - Active - Letter Required",
   make: "",
   model: "",
   serialNumber: "",
@@ -178,32 +152,7 @@ const initialFormState: Partial<FormData> = {
   nonRosterExemption: "",
   agencyDepartment: "",
   comments: "",
-  transaction_type: "dealer-handgun",
-  sellerFirstName: "",
-  sellerMiddleName: "",
-  sellerLastName: "",
-  sellerSuffix: "",
-  sellerStreetAddress: "",
-  sellerZipCode: "",
-  sellerCity: "",
-  sellerState: "",
-  sellerGender: "",
-  sellerHairColor: "",
-  sellerEyeColor: "",
-  sellerHeightFeet: "",
-  sellerHeightInches: "",
-  sellerWeight: "",
-  sellerDateOfBirth: "",
-  sellerIdType: "",
-  sellerIdNumber: "",
-  sellerRace: "",
-  sellerIsUsCitizen: "",
-  sellerPlaceOfBirth: "",
-  sellerPhoneNumber: "",
-  sellerAliasFirstName: "",
-  sellerAliasMiddleName: "",
-  sellerAliasLastName: "",
-  sellerAliasSuffix: "",
+  transaction_type: "officer-handgun",
 };
 
 const useAgencyDepartments = (agencyType: string | null) => {
@@ -250,35 +199,6 @@ const useZipCodeLookup = (
   });
 };
 
-const useSellerZipCodeLookup = (
-  sellerZipCode: string,
-  setValue: UseFormSetValue<FormData>
-) => {
-  return useQuery({
-    queryKey: ["sellerZipCode", sellerZipCode],
-    queryFn: async (): Promise<ZipCodeData | null> => {
-      if (sellerZipCode.length !== 5) return null;
-
-      const { data, error } = await supabase
-        .from("zip_codes")
-        .select("primary_city, state, acceptable_cities")
-        .eq("zip", sellerZipCode)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setValue("sellerCity", data.primary_city, { shouldValidate: true });
-        setValue("sellerState", data.state, { shouldValidate: true });
-      }
-
-      return data;
-    },
-    enabled: sellerZipCode?.length === 5,
-    staleTime: 30000,
-  });
-};
-
 interface HandgunRoster {
   [make: string]: string[];
 }
@@ -310,7 +230,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/officerPptHandgun", {
+      const response = await fetch("/api/officerHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -391,62 +311,6 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
                     formValues.aliasMiddleName || ""
                   } ${formValues.aliasLastName || ""} ${
                     formValues.aliasSuffix || ""
-                  }`}</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Seller Information */}
-          <div className="space-y-4">
-            <h3 className="font-bold">Seller Information</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="font-medium">Name:</span>
-              <span>{`${formValues.sellerFirstName} ${
-                formValues.sellerMiddleName || ""
-              } ${formValues.sellerLastName} ${
-                formValues.sellerSuffix || ""
-              }`}</span>
-
-              <span className="font-medium">Address:</span>
-              <span>{`${formValues.sellerStreetAddress}, ${formValues.sellerCity}, ${formValues.sellerState} ${formValues.sellerZipCode}`}</span>
-
-              <span className="font-medium">Physical Description:</span>
-              <span>{`${formValues.sellerGender}, ${formValues.sellerHairColor} hair, ${formValues.sellerEyeColor} eyes`}</span>
-
-              <span className="font-medium">Height:</span>
-              <span>{`${formValues.sellerHeightFeet}'${formValues.sellerHeightInches}"`}</span>
-
-              <span className="font-medium">Weight:</span>
-              <span>{formValues.sellerWeight || "N/A"}</span>
-
-              <span className="font-medium">Date of Birth:</span>
-              <span>{formValues.sellerDateOfBirth}</span>
-
-              <span className="font-medium">ID Information:</span>
-              <span>{`${formValues.sellerIdType} - ${formValues.sellerIdNumber}`}</span>
-
-              <span className="font-medium">Race:</span>
-              <span>{formValues.sellerRace}</span>
-
-              <span className="font-medium">U.S. Citizen:</span>
-              <span>{formValues.sellerIsUsCitizen}</span>
-
-              <span className="font-medium">Place of Birth:</span>
-              <span>{formValues.sellerPlaceOfBirth}</span>
-
-              <span className="font-medium">Phone Number:</span>
-              <span>{formValues.sellerPhoneNumber || "N/A"}</span>
-
-              {/* Seller Alias Information if provided */}
-              {(formValues.sellerAliasFirstName ||
-                formValues.sellerAliasLastName) && (
-                <>
-                  <span className="font-medium">Alias:</span>
-                  <span>{`${formValues.sellerAliasFirstName || ""} ${
-                    formValues.sellerAliasMiddleName || ""
-                  } ${formValues.sellerAliasLastName || ""} ${
-                    formValues.sellerAliasSuffix || ""
                   }`}</span>
                 </>
               )}
@@ -667,7 +531,7 @@ const AgencyDepartmentSelect = ({
   );
 };
 
-const OfficerPptHandgunPage = () => {
+const OfficerHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -686,7 +550,7 @@ const OfficerPptHandgunPage = () => {
 
   // Watch both zip code fields
   const zipCode = watch("zipCode");
-  const sellerZipCode = watch("sellerZipCode");
+  //   const sellerZipCode = watch("sellerZipCode");
   const frameOnlySelection = watch("frameOnly");
 
   // Use both zip code lookup hooks
@@ -695,8 +559,8 @@ const OfficerPptHandgunPage = () => {
     setValue
   );
 
-  const { data: sellerZipData, isLoading: isSellerZipLoading } =
-    useSellerZipCodeLookup(sellerZipCode || "", setValue);
+  // const { data: sellerZipData, isLoading: isSellerZipLoading } =
+  //     useSellerZipCodeLookup(sellerZipCode || "", setValue);
 
   // Replace form state management with react-hook-form
   const onSubmit = (data: FormData) => {
@@ -706,7 +570,7 @@ const OfficerPptHandgunPage = () => {
   // Form submission mutation
   const { mutate: submitForm, isPending: isSubmitting } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/officer_ppt_handgun_transfers", {
+      const response = await fetch("/api/officerHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1606,7 +1470,7 @@ const OfficerPptHandgunPage = () => {
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-2xl font-bold text-center mb-8">
-        Submit Peace Officer Non-Roster Handgun Private Party Transfer
+        Submit Peace Officer Non-Roster Handgun Sale
       </h1>
 
       <Alert variant="destructive" className="mb-6">
@@ -2043,308 +1907,6 @@ const OfficerPptHandgunPage = () => {
             </CardContent>
           </div>
 
-          {/* Seller Information Section */}
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle>Seller Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Seller Name Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller First Name</Label>
-                  <Input {...register("sellerFirstName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Middle Name</Label>
-                  <Input {...register("sellerMiddleName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">Seller Last Name</Label>
-                  <Input {...register("sellerLastName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Suffix</Label>
-                  <Input {...register("sellerSuffix")} />
-                </div>
-              </div>
-
-              {/* Seller Address Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller Street Address</Label>
-                  <Input {...register("sellerStreetAddress")} required />
-                </div>
-                <div className="flex gap-4 items-start">
-                  <div className="space-y-2">
-                    <Label>Zip Code</Label>
-                    <Input
-                      {...register("sellerZipCode", {
-                        onChange: (e) => {
-                          const value = e.target.value
-                            .slice(0, 5)
-                            .replace(/\D/g, "");
-                          e.target.value = value;
-                        },
-                        maxLength: 5,
-                      })}
-                      className="w-24"
-                    />
-                  </div>
-
-                  {sellerZipCode?.length === 5 && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Seller City</Label>
-                        <SelectComponent
-                          name="sellerCity"
-                          value={watch("sellerCity") || ""}
-                          onValueChange={(value) =>
-                            setValue("sellerCity", value)
-                          }
-                          placeholder="Select city"
-                        >
-                          {sellerZipData?.primary_city && (
-                            <SelectItem value={sellerZipData.primary_city}>
-                              {sellerZipData.primary_city}
-                            </SelectItem>
-                          )}
-                          {sellerZipData?.acceptable_cities?.map((city) => (
-                            <SelectItem
-                              key={city}
-                              value={city}
-                              className={
-                                city === sellerZipData?.primary_city
-                                  ? "hidden"
-                                  : ""
-                              }
-                            >
-                              {city}
-                            </SelectItem>
-                          ))}
-                        </SelectComponent>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Seller State</Label>
-                        <Input
-                          {...register("sellerState")}
-                          value={sellerZipData?.state || ""}
-                          disabled
-                          className="w-16 bg-muted"
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Seller Physical Characteristics */}
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Gender</Label>
-                  <SelectComponent
-                    name="sellerGender"
-                    value={watch("sellerGender") || ""}
-                    onValueChange={(value) => setValue("sellerGender", value)}
-                    placeholder="Select Gender"
-                  >
-                    {formData?.genders.map((gender) => (
-                      <SelectItem key={gender} value={gender.toLowerCase()}>
-                        {gender}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Hair Color</Label>
-                  <SelectComponent
-                    name="sellerHairColor"
-                    value={watch("sellerHairColor") || ""}
-                    onValueChange={(value) =>
-                      setValue("sellerHairColor", value)
-                    }
-                    placeholder="Select Hair Color"
-                  >
-                    {formData?.hairColors.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Eye Color</Label>
-                  <SelectComponent
-                    name="sellerEyeColor"
-                    value={watch("sellerEyeColor") || ""}
-                    onValueChange={(value) => setValue("sellerEyeColor", value)}
-                    placeholder="Select Eye Color"
-                  >
-                    {formData?.eyeColors.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                {/* Seller Height/Weight/DOB */}
-
-                <div className="space-y-2">
-                  <Label className="required">Height</Label>
-                  <div className="flex gap-2">
-                    <SelectComponent
-                      name="sellerHeightFeet"
-                      value={watch("sellerHeightFeet") || ""}
-                      onValueChange={(value) =>
-                        setValue("sellerHeightFeet", value)
-                      }
-                      placeholder="ft"
-                    >
-                      {formData?.heightFeet.map((feet) => (
-                        <SelectItem key={feet} value={feet}>
-                          {feet}
-                        </SelectItem>
-                      ))}
-                    </SelectComponent>
-                    <SelectComponent
-                      name="sellerHeightInches"
-                      value={watch("sellerHeightInches") || ""}
-                      onValueChange={(value) =>
-                        setValue("sellerHeightInches", value)
-                      }
-                      placeholder="in"
-                    >
-                      {formData?.heightInches.map((inches) => (
-                        <SelectItem key={inches} value={inches}>
-                          {inches}
-                        </SelectItem>
-                      ))}
-                    </SelectComponent>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Weight</Label>
-                  <Input {...register("sellerWeight")} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Date of Birth</Label>
-                  <Input {...register("sellerDateOfBirth")} type="date" />
-                </div>
-              </div>
-
-              {/* Seller ID Information */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller ID Type</Label>
-                  <SelectComponent
-                    name="sellerIdType"
-                    value={watch("sellerIdType") || ""}
-                    onValueChange={(value) => setValue("sellerIdType", value)}
-                    placeholder="Select ID Type"
-                  >
-                    {formData?.idTypes.map((type) => (
-                      <SelectItem key={type} value={type.toLowerCase()}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Seller ID Number</Label>
-                  <Input {...register("sellerIdNumber")} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Race</Label>
-                  <SelectComponent
-                    name="sellerRace"
-                    value={watch("sellerRace") || ""}
-                    onValueChange={(value) => setValue("sellerRace", value)}
-                    placeholder="Select Race"
-                  >
-                    {formData?.race.map((race) => (
-                      <SelectItem key={race} value={race.toLowerCase()}>
-                        {race}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                {/* Seller Additional Information */}
-
-                <div className="space-y-2">
-                  <Label className="required">U.S. Citizen</Label>
-                  <SelectComponent
-                    name="sellerIsUsCitizen"
-                    value={watch("sellerIsUsCitizen") || ""}
-                    onValueChange={(value) =>
-                      setValue("sellerIsUsCitizen", value)
-                    }
-                    placeholder="Select"
-                  >
-                    {formData?.citizenship.map((option) => (
-                      <SelectItem key={option} value={option.toLowerCase()}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller Place of Birth</Label>
-                  <SelectComponent
-                    name="sellerPlaceOfBirth"
-                    value={watch("sellerPlaceOfBirth") || ""}
-                    onValueChange={(value) =>
-                      setValue("sellerPlaceOfBirth", value)
-                    }
-                    placeholder="Select Place of Birth"
-                  >
-                    {formData?.placesOfBirth.map((place) => (
-                      <SelectItem key={place} value={place.toLowerCase()}>
-                        {place}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input {...register("sellerPhoneNumber")} />
-                </div>
-              </div>
-
-              {/* Seller Alias Information */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Seller Alias First Name</Label>
-                  <Input {...register("sellerAliasFirstName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Alias Middle Name</Label>
-                  <Input {...register("sellerAliasMiddleName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Alias Last Name</Label>
-                  <Input {...register("sellerAliasLastName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Alias Suffix</Label>
-                  <Input {...register("sellerAliasSuffix")} />
-                </div>
-              </div>
-            </CardContent>
-          </div>
-
           {/* Transaction and Firearm Information */}
           <div className="space-y-6">
             <CardHeader>
@@ -2369,7 +1931,7 @@ const OfficerPptHandgunPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Waiting Period Exemption</Label>
-                  <SelectComponent
+                  {/* <SelectComponent
                     name="waitingPeriodExemption"
                     value={watch("waitingPeriodExemption") || ""}
                     onValueChange={(value) =>
@@ -2385,12 +1947,12 @@ const OfficerPptHandgunPage = () => {
                         {waitingPeriod}
                       </SelectItem>
                     ))}
-                  </SelectComponent>
+                  </SelectComponent> */}
                 </div>
                 <div className="space-y-2">
                   <Label>30-Day Restriction Exemption</Label>
                   <Input
-                    value="Private Party Transfer Through Licensed Firearms Dealer"
+                    value="Peace Officer - Active - Letter Required"
                     disabled
                   />
                 </div>
@@ -2413,7 +1975,7 @@ const OfficerPptHandgunPage = () => {
                 {/* Make and Model*/}
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
-                  <MakeSelectNonRosterPpt
+                  <MakeSelectNonRoster
                     setValue={setValue}
                     value={watch("make") || ""}
                     handgunData={makesData?.makes || []}
@@ -2765,4 +2327,4 @@ const OfficerPptHandgunPage = () => {
   );
 };
 
-export default OfficerPptHandgunPage;
+export default OfficerHandgunPage;
