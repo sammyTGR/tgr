@@ -45,6 +45,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 
 type BulletinPost = {
   id: number;
@@ -71,6 +81,13 @@ type NewBulletin = {
   category: string;
   requires_acknowledgment: boolean;
 };
+
+// Add acknowledgment schema
+const acknowledgmentSchema = z.object({
+  summary: z.string().min(5, "Summary must be at least 5 characters long"),
+});
+
+type AcknowledgmentFormValues = z.infer<typeof acknowledgmentSchema>;
 
 export default function BulletinBoard() {
   const queryClient = useQueryClient();
@@ -264,6 +281,13 @@ export default function BulletinBoard() {
       editBulletinOpen: false,
     }),
     staleTime: Infinity,
+  });
+
+  const form = useForm<AcknowledgmentFormValues>({
+    resolver: zodResolver(acknowledgmentSchema),
+    defaultValues: {
+      summary: "",
+    },
   });
 
   return (
@@ -652,34 +676,41 @@ export default function BulletinBoard() {
                             <DialogHeader>
                               <DialogTitle>Acknowledge Bulletin</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <p className="text-sm text-muted-foreground">
-                                Please provide a brief summary of this bulletin
-                                to acknowledge that you have read and understood
-                                it.
-                              </p>
-                              <Textarea
-                                placeholder="Enter your summary..."
-                                value={acknowledgmentSummaryQuery.data}
-                                onChange={(e) => {
-                                  queryClient.setQueryData(
-                                    ["acknowledgmentSummary"],
-                                    e.target.value
-                                  );
-                                }}
-                              />
-                              <Button
-                                onClick={() =>
+                            <Form {...form}>
+                              <form
+                                onSubmit={form.handleSubmit((data) => {
                                   acknowledgeMutation.mutate({
                                     postId: post.id,
-                                    summary:
-                                      acknowledgmentSummaryQuery.data || "",
-                                  })
-                                }
+                                    summary: data.summary,
+                                  });
+                                })}
+                                className="space-y-4 py-4"
                               >
-                                Submit Acknowledgment
-                              </Button>
-                            </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Please provide a brief summary of this
+                                  bulletin to acknowledge that you have read and
+                                  understood it.
+                                </p>
+                                <FormField
+                                  control={form.control}
+                                  name="summary"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Textarea
+                                          placeholder="Enter your summary..."
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <Button type="submit">
+                                  Submit Acknowledgment
+                                </Button>
+                              </form>
+                            </Form>
                           </DialogContent>
                         </Dialog>
                       </CardFooter>
