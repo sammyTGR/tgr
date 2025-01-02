@@ -25,16 +25,21 @@ function FedsCard({ className }: { className?: string }) {
           <CardTitle>Federal Limits Apply</CardTitle>
           <div className="space-y-1">
             <p>
-              If The Purchaser&apos;s VALID CA DL | CA ID States{" "}
+              When CA DL | CA ID Shows{" "}
               <span className="text-blue-500">
                 &quot;Federal Limits Apply&quot;{" "}
               </span>
-              In The Top Right Corner, We Need One Of The Docs Below
+              In The Top Right Corner
             </p>
             <p className="text-red-500">
               If There Is A Suffix On One Of The Docs Below, It Must Be Included
               On The DL | ID, Otherwise They Are Required To Get An Interim DL |
               ID To Match
+            </p>
+            <p>
+              If The DL | ID Shows A Middle Initial or No Middle Name, But The
+              Doc Shows The Full Middle Name, We Can Accept It, But All Other
+              Docs (Fishing License, DMV Reg, etc.) Must Match The DL | ID
             </p>
           </div>
         </CardHeader>

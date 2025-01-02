@@ -363,11 +363,12 @@ const EmployeeProfilePage = () => {
         .select("*")
         .eq("employee_id", employeeId)
         .eq("event_date", eventDate)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") throw error;
       return data;
     },
+    staleTime: 1000, // Add a small stale time to prevent excessive refetching
   });
 
   const updateTimeOffForm = useMutation({
@@ -444,10 +445,10 @@ const EmployeeProfilePage = () => {
   const { data: unacknowledgedBulletins } = useQuery({
     queryKey: ["unacknowledgedBulletins", employeeId],
     queryFn: async () => {
-      console.log(
-        "Checking unacknowledged bulletins for employee:",
-        employeeId
-      );
+      // console.log(
+      //   "Checking unacknowledged bulletins for employee:",
+      //   employeeId
+      // );
 
       // First get all bulletins that require acknowledgment
       const { data: bulletins, error: bulletinsError } = await supabase
@@ -460,7 +461,7 @@ const EmployeeProfilePage = () => {
         throw bulletinsError;
       }
 
-      console.log("Bulletins requiring acknowledgment:", bulletins);
+      // console.log("Bulletins requiring acknowledgment:", bulletins);
 
       if (!bulletins || bulletins.length === 0) return [];
 
@@ -475,7 +476,7 @@ const EmployeeProfilePage = () => {
         throw acksError;
       }
 
-      console.log("Employee acknowledgments:", acknowledgments);
+      // console.log("Employee acknowledgments:", acknowledgments);
 
       // Create a set of acknowledged bulletin IDs
       const acknowledgedIds = new Set(
@@ -487,7 +488,7 @@ const EmployeeProfilePage = () => {
         (bulletin) => !acknowledgedIds.has(bulletin.id)
       );
 
-      console.log("Unacknowledged bulletins:", unacknowledged);
+      // console.log("Unacknowledged bulletins:", unacknowledged);
 
       return unacknowledged;
     },
@@ -497,39 +498,27 @@ const EmployeeProfilePage = () => {
   // Mutations
   const clockInMutation = useMutation({
     mutationFn: async () => {
-      // Check for unacknowledged bulletins first
-      if (unacknowledgedBulletins && unacknowledgedBulletins.length > 0) {
-        router.push("/TGR/crew/bulletin");
-        return;
-      }
-
       const timeZone = "America/Los_Angeles";
       const now = toZonedTime(new Date(), timeZone);
       const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
       const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
 
-      // Check for existing clock-in for today
-      const { data: existingClockIn, error: fetchError } = await supabase
+      // Check for existing clock-in
+      const { data: existingClockIn } = await supabase
         .from("employee_clock_events")
         .select("*")
         .eq("employee_id", employeeId)
         .eq("event_date", eventDate)
-        .not("start_time", "is", null)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== "PGRST116") {
-        throw fetchError;
-      }
-
-      // If there's already a clock-in for today, prevent another one
-      if (existingClockIn) {
+      if (existingClockIn?.start_time) {
         throw new Error("Already clocked in for today");
       }
 
-      // If no existing clock-in, create a new one
-      const { data: insertData, error: insertError } = await supabase
+      // Create new clock-in record
+      const { data: clockInData, error: clockInError } = await supabase
         .from("employee_clock_events")
-        .insert({
+        .upsert({
           employee_id: employeeId,
           employee_name: employee?.name,
           event_date: eventDate,
@@ -538,20 +527,26 @@ const EmployeeProfilePage = () => {
         .select()
         .single();
 
-      if (insertError) throw insertError;
-      return insertData;
+      if (clockInError) throw clockInError;
+      return clockInData;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["currentShift", employeeId], data);
       toast.success(`Welcome Back ${employee?.name}!`);
-      scheduleOvertimeAlert(new Date(data.start_time));
+      if (data.start_time) {
+        scheduleOvertimeAlert(
+          new Date(data.start_time),
+          employeeId,
+          employee?.name || "",
+          employee?.contact_info || ""
+        );
+      }
     },
     onError: (error: Error) => {
       if (error.message === "Already clocked in for today") {
         toast.error("You have already clocked in for today.");
-      } else if (error.message === "UNACKNOWLEDGED_BULLETINS") {
-        router.push("/TGR/crew/bulletin");
       } else {
+        console.error("Clock in error:", error);
         toast.error("Failed to clock in. Please try again.");
       }
     },
@@ -782,21 +777,24 @@ const EmployeeProfilePage = () => {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const scheduleOvertimeAlert = (clockInTime: Date) => {
+  const scheduleOvertimeAlert = (
+    clockInTime: Date,
+    employeeId: number,
+    employeeName: string,
+    employeeEmail: string
+  ) => {
     const alertTime = new Date(clockInTime.getTime() + 9 * 60 * 60 * 1000);
     const now = new Date();
     const timeUntilAlert = alertTime.getTime() - now.getTime();
 
     if (timeUntilAlert > 0) {
       setTimeout(async () => {
-        const hasClockedOut = await checkIfClockedOut(
-          employee?.employee_id.toString() || ""
-        );
+        const hasClockedOut = await checkIfClockedOut(employeeId.toString());
         if (!hasClockedOut) {
           Promise.all([
             sendOvertimeAlert(
-              employee?.name || "",
-              employee?.contact_info || "",
+              employeeName,
+              employeeEmail,
               formatTZ(clockInTime, "h:mm a", {
                 timeZone: "America/Los_Angeles",
               }),
@@ -806,8 +804,8 @@ const EmployeeProfilePage = () => {
               "EmployeeOvertimeAlert"
             ),
             sendOvertimeAlertToAdmins(
-              employee?.employee_id.toString() || "",
-              employee?.name || "",
+              employeeId.toString(),
+              employeeName,
               formatTZ(clockInTime, "h:mm a", {
                 timeZone: "America/Los_Angeles",
               }),
@@ -1051,6 +1049,47 @@ const EmployeeProfilePage = () => {
     enabled: !!dialogState?.reviewId,
   });
 
+  const handleClockInAndBulletin = async () => {
+    try {
+      const timeZone = "America/Los_Angeles";
+      const now = toZonedTime(new Date(), timeZone);
+      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
+      const startTime = formatTZ(now, "HH:mm:ss", { timeZone });
+
+      // Create the clock-in record first
+      const { data: clockInData, error: clockInError } = await supabase
+        .from("employee_clock_events")
+        .insert({
+          employee_id: employeeId,
+          employee_name: employee?.name,
+          event_date: eventDate,
+          start_time: startTime,
+        })
+        .select()
+        .single();
+
+      if (clockInError) throw clockInError;
+
+      // Update the UI with the new clock-in data
+      queryClient.setQueryData(["currentShift", employeeId], clockInData);
+      toast.success(
+        `You're clocked in ${employee?.name}, getting you to the bulletins...`
+      );
+      // Schedule overtime alert if needed
+      scheduleOvertimeAlert(
+        new Date(clockInData.start_time),
+        employeeId,
+        clockInData.event_date,
+        clockInData.start_time
+      );
+
+      // Redirect to bulletin page
+      router.push("/TGR/crew/bulletin");
+    } catch (error) {
+      toast.error("Failed to clock in. Please try again.");
+    }
+  };
+
   if (employee === undefined)
     return <ProgressBar value={100} showAnimation={true} />;
 
@@ -1156,7 +1195,7 @@ const EmployeeProfilePage = () => {
                                             ? "s"
                                             : ""}{" "}
                                           your acknowledgment. Please review and
-                                          acknowledge them before clocking in.
+                                          acknowledge them.
                                         </AlertDialogDescription>
                                       </>
                                     ) : (
@@ -1177,11 +1216,9 @@ const EmployeeProfilePage = () => {
                                     {unacknowledgedBulletins &&
                                     unacknowledgedBulletins.length > 0 ? (
                                       <AlertDialogAction
-                                        onClick={() =>
-                                          router.push("/TGR/crew/bulletin")
-                                        }
+                                        onClick={handleClockInAndBulletin}
                                       >
-                                        View Bulletins
+                                        Clock In & View Bulletin
                                       </AlertDialogAction>
                                     ) : (
                                       <AlertDialogAction
