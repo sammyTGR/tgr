@@ -143,7 +143,12 @@ export default function Home() {
         const role = roleQuery.data?.role;
         const employeeId = roleQuery.data?.employee_id;
 
-        if (role === "admin" || role === "super admin" || role === "dev") {
+        if (
+          role === "admin" ||
+          role === "super admin" ||
+          role === "dev" ||
+          role === "ceo"
+        ) {
           router.push("/admin/reports/dashboard");
         } else if (employeeId) {
           router.push(`/TGR/crew/profile/${employeeId}`);

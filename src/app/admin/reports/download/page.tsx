@@ -310,7 +310,7 @@ const AdminReportsPage = () => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
         <CardHeader className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">

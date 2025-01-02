@@ -664,7 +664,7 @@ function AdminDashboardContent() {
   }
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div className="container max-w-[calc(100vw-90px)] py-4">
         <Card className="mb-6">
           <CardHeader>

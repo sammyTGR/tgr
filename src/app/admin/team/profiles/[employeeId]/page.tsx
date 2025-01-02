@@ -1805,7 +1805,7 @@ const EmployeeProfile = () => {
   if (!employee) return <div></div>;
 
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div className="section w-full">
         <Card className="h-full max-w-6xl mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">

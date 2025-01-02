@@ -26,12 +26,19 @@ export const fetchEmployees = async (role: string | null) => {
       .select("employee_id, name, pay_rate, status")
       .eq("status", "active");
 
-    // If the user's role is 'admin', filter out other 'admin' and 'super admin'
-    if (role === "admin" || role === "auditor") {
+    // Restrict view for admin, super admin, and auditor
+    if (role === "admin" || role === "super admin" || role === "auditor") {
       query = query
         .neq("role", "admin")
         .neq("role", "super admin")
-        .neq("role", "dev");
+        .neq("role", "auditor")
+        .neq("role", "dev")
+        .neq("role", "ceo");
+    } else if (role === "ceo") {
+      // CEO can see everything except devs
+      query = query.neq("role", "dev");
+    } else if (role === "dev") {
+      // Devs can see everything
     }
 
     const { data, error } = await query;

@@ -346,7 +346,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <RoleBasedWrapper allowedRoles={["super admin", "dev", "admin"]}>
+    <RoleBasedWrapper allowedRoles={["super admin", "ceo", "dev", "admin"]}>
       <div className="container mx-auto py-10 max-w-full">
         <h1 className="text-2xl font-bold mt-8">Manage Employees</h1>
         <div className="flex ml-10 mr-2 space-x-2 items-center justify-end mb-5">

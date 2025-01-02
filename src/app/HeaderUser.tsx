@@ -175,7 +175,7 @@ const HeaderUser = React.memo(() => {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["user", "admin", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={["user"]}>
       {isLoading && <LoadingIndicator />}
       <header className="flex justify-between items-center p-2">
         <LazyNavigationMenu>
