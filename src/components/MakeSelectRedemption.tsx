@@ -75,4 +75,6 @@ const MakeSelectRedemption = React.memo(
   }
 );
 
+MakeSelectRedemption.displayName = "MakeSelectRedemption";
+
 export default MakeSelectRedemption;
