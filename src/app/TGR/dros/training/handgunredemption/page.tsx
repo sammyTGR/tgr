@@ -35,6 +35,7 @@ import {
 import { Textarea } from "../../../../../components/ui/textarea";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type AgencyDepartment = {
   value: string;
@@ -93,12 +94,8 @@ export type FormData = {
   otherNumber?: string;
   color: string;
   isNewGun: string;
-  firearmSafetyDevice: string;
-  nonRosterExemption: string;
-  agencyGroup: string;
   comments?: string;
   transaction_type: string;
-  agencyDepartment: string; // Add this field
 };
 
 type ZipCodeData = {
@@ -147,12 +144,9 @@ const initialFormState: Partial<FormData> = {
   serialNumber: "",
   otherNumber: "",
   color: "",
-  isNewGun: "",
-  firearmSafetyDevice: "",
-  nonRosterExemption: "",
-  agencyDepartment: "",
+  isNewGun: "Used",
   comments: "",
-  transaction_type: "officer-handgun",
+  transaction_type: "handgun-redemption",
 };
 
 const useAgencyDepartments = (agencyType: string | null) => {
@@ -188,14 +182,13 @@ const useZipCodeLookup = (
       if (error) throw error;
 
       if (data) {
-        setValue("city", data.primary_city, { shouldValidate: true });
         setValue("state", data.state, { shouldValidate: true });
       }
 
       return data;
     },
     enabled: zipCode?.length === 5,
-    staleTime: 30000, // Cache results for 30 seconds
+    staleTime: 30000,
   });
 };
 
@@ -213,19 +206,19 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
     mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
   });
 
-  const { data: agencyName } = useQuery({
-    queryKey: ["agencyName", formValues.agencyDepartment],
-    queryFn: async () => {
-      if (!formValues.agencyDepartment) return null;
-      const response = await fetch(
-        `/api/fetchAgencyPd?id=${formValues.agencyDepartment}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch agency name");
-      const data = await response.json();
-      return data.label;
-    },
-    enabled: !!formValues.agencyDepartment,
-  });
+  // const { data: agencyName } = useQuery({
+  //   queryKey: ["agencyName", formValues.agencyDepartment],
+  //   queryFn: async () => {
+  //     if (!formValues.agencyDepartment) return null;
+  //     const response = await fetch(
+  //       `/api/fetchAgencyPd?id=${formValues.agencyDepartment}`
+  //     );
+  //     if (!response.ok) throw new Error("Failed to fetch agency name");
+  //     const data = await response.json();
+  //     return data.label;
+  //   },
+  //   enabled: !!formValues.agencyDepartment,
+  // });
 
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
@@ -257,7 +250,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Preview</Button>
+        <Button>Preview</Button>
       </DialogTrigger>
       <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
@@ -388,16 +381,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               <span>{formValues.color}</span>
 
               <span className="font-medium">New/Used:</span>
-              <span>{formValues.isNewGun}</span>
-
-              <span className="font-medium">FSD:</span>
-              <span>{formValues.firearmSafetyDevice}</span>
-
-              <span className="font-medium">Non-Roster Exemption:</span>
-              <span>{formValues.nonRosterExemption}</span>
-
-              <span className="font-medium">Agency Department:</span>
-              <span>{agencyName || formValues.agencyDepartment}</span>
+              <span>{"Used"}</span>
             </div>
           </div>
 
@@ -415,7 +399,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               <span>{formValues.hscFscNumber || "N/A"}</span>
 
               <span className="font-medium">Exemption Code:</span>
-              <span>{formValues.exemptionCode || "N/A"}</span>
+              <span>{"Return to Owner"}</span>
 
               <span className="font-medium">Comments:</span>
               <span>{formValues.comments || "N/A"}</span>
@@ -438,65 +422,32 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   );
 };
 
-// const MakeSelect = ({
-//   setValue,
-//   value,
-//   handgunData,
-//   isLoadingHandguns,
-// }: {
-//   setValue: UseFormSetValue<FormData>;
-//   value: string;
-//   handgunData: Record<string, any>;
-//   isLoadingHandguns: boolean;
-// }) => {
-//   // Query for all makes
-//   const { data: makes = [] } = useQuery({
-//     queryKey: ["makes"],
-//     queryFn: () => (handgunData ? Object.keys(handgunData) : []),
-//     enabled: !!handgunData,
-//   });
-
-//   return (
-//     <Select
-//       value={value}
-//       onValueChange={(newValue) => {
-//         setValue("make", newValue);
-//         setValue("model", "");
-//       }}
-//     >
-//       <SelectTrigger className="w-full">
-//         <SelectValue placeholder="Select Make" />
-//       </SelectTrigger>
-//       <SelectContent>
-//         <ScrollArea className="h-[200px]">
-//           {makes.map((make) => (
-//             <SelectItem key={make} value={make}>
-//               {DOMPurify.sanitize(make)}
-//             </SelectItem>
-//           ))}
-//         </ScrollArea>
-//       </SelectContent>
-//     </Select>
-//   );
-// };
-
-const SelectComponent = React.forwardRef<
-  HTMLButtonElement, // Changed from HTMLSelectElement
-  {
+const SelectComponent = React.memo(
+  ({
+    value,
+    onValueChange,
+    placeholder,
+    children,
+    name,
+  }: {
     value: string;
     onValueChange: (value: string) => void;
     placeholder: string;
     children: React.ReactNode;
-    name?: string; // Added to support form names
+    name: string;
+  }) => {
+    return (
+      <Select value={value} onValueChange={onValueChange} name={name}>
+        <SelectTrigger>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <ScrollArea className="max-h-[200px]">{children}</ScrollArea>
+        </SelectContent>
+      </Select>
+    );
   }
->(({ value, onValueChange, placeholder, children, name }, ref) => (
-  <Select value={value} onValueChange={onValueChange} name={name}>
-    <SelectTrigger ref={ref}>
-      <SelectValue placeholder={placeholder} />
-    </SelectTrigger>
-    <SelectContent>{children}</SelectContent>
-  </Select>
-));
+);
 
 SelectComponent.displayName = "SelectComponent";
 
@@ -540,12 +491,14 @@ const HandgunRedemptionPage = () => {
     handleSubmit,
     watch,
     setValue,
-    control, // Add this
+    control,
     formState: { errors },
+    getValues,
   } = useForm<FormData>({
     defaultValues: initialFormState,
     mode: "onBlur",
     reValidateMode: "onBlur",
+    shouldUnregister: false,
   });
 
   // Watch both zip code fields
@@ -1542,20 +1495,30 @@ const HandgunRedemptionPage = () => {
                         .replace(/\D/g, "");
                       e.target.value = value;
                     },
+                    onBlur: (e) => {
+                      if (e.target.value.length === 5) {
+                        queryClient.invalidateQueries({
+                          queryKey: ["zipCode", e.target.value],
+                        });
+                      }
+                    },
                     maxLength: 5,
                   })}
                   className="w-24"
                 />
               </div>
 
-              {zipCode?.length === 5 && (
+              {zipData && (
                 <>
                   <div className="space-y-2">
                     <Label>City</Label>
                     <SelectComponent
-                      value={watch("city") || ""}
+                      name="city"
+                      value={getValues("city") || ""}
                       onValueChange={(value) => setValue("city", value)}
-                      placeholder="Select city"
+                      placeholder={
+                        isZipLoading ? "Loading cities..." : "Select city"
+                      }
                     >
                       {zipData?.primary_city && (
                         <SelectItem value={zipData.primary_city}>
@@ -1579,7 +1542,6 @@ const HandgunRedemptionPage = () => {
                   <div className="space-y-2">
                     <Label>State</Label>
                     <Input
-                      {...register("state")}
                       value={zipData?.state || ""}
                       disabled
                       className="w-16 bg-muted"
@@ -2147,7 +2109,7 @@ const HandgunRedemptionPage = () => {
               )}
 
               {/* Serial Numbers Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Serial Number</Label>
                   <Input {...register("serialNumber")} />
@@ -2184,12 +2146,10 @@ const HandgunRedemptionPage = () => {
                     ))}
                   </SelectComponent>
                 </div>
-              </div>
-              {/* Gun Details Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <div className="space-y-2">
                   <Label className="required">New/Used Gun</Label>
-                  <SelectComponent
+                  {/* <SelectComponent
                     name="isNewGun"
                     value={watch("isNewGun") || ""}
                     onValueChange={(value) => setValue("isNewGun", value)}
@@ -2197,9 +2157,10 @@ const HandgunRedemptionPage = () => {
                   >
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="used">Used</SelectItem>
-                  </SelectComponent>
+                  </SelectComponent> */}
+                  <Input value="Used" disabled />
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label className="required">
                     Firearm Safety Device (FSD)
                   </Label>
@@ -2217,11 +2178,11 @@ const HandgunRedemptionPage = () => {
                       </SelectItem>
                     ))}
                   </SelectComponent>
-                </div>
+                </div> */}
               </div>
 
               {/* Non-Roster Exemption Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="required">
                     Purchaser Non-Roster Exemption
@@ -2287,7 +2248,7 @@ const HandgunRedemptionPage = () => {
                     />
                   );
                 })()}
-              </div>
+              </div> */}
 
               {/* Comments Section */}
               <div className="space-y-2">

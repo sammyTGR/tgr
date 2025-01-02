@@ -188,14 +188,13 @@ const useZipCodeLookup = (
       if (error) throw error;
 
       if (data) {
-        setValue("city", data.primary_city, { shouldValidate: true });
         setValue("state", data.state, { shouldValidate: true });
       }
 
       return data;
     },
     enabled: zipCode?.length === 5,
-    staleTime: 30000, // Cache results for 30 seconds
+    staleTime: 30000,
   });
 };
 
@@ -257,7 +256,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Preview</Button>
+        <Button>Preview</Button>
       </DialogTrigger>
       <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
@@ -540,6 +539,7 @@ const OfficerHandgunPage = () => {
     handleSubmit,
     watch,
     setValue,
+    getValues,
     control, // Add this
     formState: { errors },
   } = useForm<FormData>({
@@ -1542,20 +1542,30 @@ const OfficerHandgunPage = () => {
                         .replace(/\D/g, "");
                       e.target.value = value;
                     },
+                    onBlur: (e) => {
+                      if (e.target.value.length === 5) {
+                        queryClient.invalidateQueries({
+                          queryKey: ["zipCode", e.target.value],
+                        });
+                      }
+                    },
                     maxLength: 5,
                   })}
                   className="w-24"
                 />
               </div>
 
-              {zipCode?.length === 5 && (
+              {zipData && (
                 <>
                   <div className="space-y-2">
                     <Label>City</Label>
                     <SelectComponent
-                      value={watch("city") || ""}
+                      name="city"
+                      value={getValues("city") || ""}
                       onValueChange={(value) => setValue("city", value)}
-                      placeholder="Select city"
+                      placeholder={
+                        isZipLoading ? "Loading cities..." : "Select city"
+                      }
                     >
                       {zipData?.primary_city && (
                         <SelectItem value={zipData.primary_city}>
@@ -1579,7 +1589,6 @@ const OfficerHandgunPage = () => {
                   <div className="space-y-2">
                     <Label>State</Label>
                     <Input
-                      {...register("state")}
                       value={zipData?.state || ""}
                       disabled
                       className="w-16 bg-muted"

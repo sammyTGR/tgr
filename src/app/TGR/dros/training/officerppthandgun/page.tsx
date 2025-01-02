@@ -239,14 +239,13 @@ const useZipCodeLookup = (
       if (error) throw error;
 
       if (data) {
-        setValue("city", data.primary_city, { shouldValidate: true });
         setValue("state", data.state, { shouldValidate: true });
       }
 
       return data;
     },
     enabled: zipCode?.length === 5,
-    staleTime: 30000, // Cache results for 30 seconds
+    staleTime: 30000,
   });
 };
 
@@ -337,7 +336,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Preview</Button>
+        <Button>Preview</Button>
       </DialogTrigger>
       <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
@@ -676,6 +675,7 @@ const OfficerPptHandgunPage = () => {
     handleSubmit,
     watch,
     setValue,
+    getValues,
     control, // Add this
     formState: { errors },
   } = useForm<FormData>({
@@ -2090,12 +2090,19 @@ const OfficerPptHandgunPage = () => {
                   <div className="space-y-2">
                     <Label>Zip Code</Label>
                     <Input
-                      {...register("sellerZipCode", {
+                      {...register("zipCode", {
                         onChange: (e) => {
                           const value = e.target.value
                             .slice(0, 5)
                             .replace(/\D/g, "");
                           e.target.value = value;
+                        },
+                        onBlur: (e) => {
+                          if (e.target.value.length === 5) {
+                            queryClient.invalidateQueries({
+                              queryKey: ["zipCode", e.target.value],
+                            });
+                          }
                         },
                         maxLength: 5,
                       })}
@@ -2103,31 +2110,29 @@ const OfficerPptHandgunPage = () => {
                     />
                   </div>
 
-                  {sellerZipCode?.length === 5 && (
+                  {zipData && (
                     <>
                       <div className="space-y-2">
-                        <Label>Seller City</Label>
+                        <Label>City</Label>
                         <SelectComponent
-                          name="sellerCity"
-                          value={watch("sellerCity") || ""}
-                          onValueChange={(value) =>
-                            setValue("sellerCity", value)
+                          name="city"
+                          value={getValues("city") || ""}
+                          onValueChange={(value) => setValue("city", value)}
+                          placeholder={
+                            isZipLoading ? "Loading cities..." : "Select city"
                           }
-                          placeholder="Select city"
                         >
-                          {sellerZipData?.primary_city && (
-                            <SelectItem value={sellerZipData.primary_city}>
-                              {sellerZipData.primary_city}
+                          {zipData?.primary_city && (
+                            <SelectItem value={zipData.primary_city}>
+                              {zipData.primary_city}
                             </SelectItem>
                           )}
-                          {sellerZipData?.acceptable_cities?.map((city) => (
+                          {zipData?.acceptable_cities?.map((city) => (
                             <SelectItem
                               key={city}
                               value={city}
                               className={
-                                city === sellerZipData?.primary_city
-                                  ? "hidden"
-                                  : ""
+                                city === zipData?.primary_city ? "hidden" : ""
                               }
                             >
                               {city}
@@ -2137,10 +2142,9 @@ const OfficerPptHandgunPage = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Seller State</Label>
+                        <Label>State</Label>
                         <Input
-                          {...register("sellerState")}
-                          value={sellerZipData?.state || ""}
+                          value={zipData?.state || ""}
                           disabled
                           className="w-16 bg-muted"
                         />

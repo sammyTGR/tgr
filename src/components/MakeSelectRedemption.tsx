@@ -24,58 +24,55 @@ interface MakeSelectProps {
   isLoadingHandguns: boolean;
 }
 
-const MakeSelectRedemption = ({
-  setValue,
-  value,
-  handgunData,
-  isLoadingHandguns,
-}: MakeSelectProps) => {
-  if (isLoadingHandguns) {
+const MakeSelectRedemption = React.memo(
+  ({ setValue, value, handgunData, isLoadingHandguns }: MakeSelectProps) => {
+    if (isLoadingHandguns) {
+      return (
+        <Select disabled>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Loading makes..." />
+          </SelectTrigger>
+        </Select>
+      );
+    }
+
+    if (!handgunData || handgunData.length === 0) {
+      return (
+        <Select disabled>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="No manufacturers available" />
+          </SelectTrigger>
+        </Select>
+      );
+    }
+
     return (
-      <Select disabled>
+      <Select
+        value={value}
+        onValueChange={(newValue) => {
+          setValue("make", newValue);
+          setValue("model", "");
+        }}
+      >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Loading makes..." />
+          <SelectValue placeholder="Select Make" />
         </SelectTrigger>
+        <SelectContent>
+          <ScrollArea className="h-[200px]">
+            {handgunData.map((manufacturer) => (
+              <SelectItem
+                key={manufacturer.value}
+                value={manufacturer.value}
+                className="px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+              >
+                {DOMPurify.sanitize(manufacturer.label)}
+              </SelectItem>
+            ))}
+          </ScrollArea>
+        </SelectContent>
       </Select>
     );
   }
-
-  if (!handgunData || handgunData.length === 0) {
-    return (
-      <Select disabled>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="No manufacturers available" />
-        </SelectTrigger>
-      </Select>
-    );
-  }
-
-  return (
-    <Select
-      value={value}
-      onValueChange={(newValue) => {
-        setValue("make", newValue);
-        setValue("model", "");
-      }}
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select Make" />
-      </SelectTrigger>
-      <SelectContent>
-        <ScrollArea className="h-[200px]">
-          {handgunData.map((manufacturer) => (
-            <SelectItem
-              key={manufacturer.value}
-              value={manufacturer.value}
-              className="px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground"
-            >
-              {DOMPurify.sanitize(manufacturer.label)}
-            </SelectItem>
-          ))}
-        </ScrollArea>
-      </SelectContent>
-    </Select>
-  );
-};
+);
 
 export default MakeSelectRedemption;

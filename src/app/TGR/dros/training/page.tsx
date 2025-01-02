@@ -110,8 +110,8 @@ const TransactionTypePage = () => {
     },
     { title: "Exempt Handgun Sale", path: "/TGR/dros/training/exempthandgun" },
     {
-      title: "Pawn/Consignment Handgun Redemption",
-      path: "/TGR/dros/training/pawnhandgun",
+      title: "Pawn / Consignment Handgun Redemption",
+      path: "/TGR/dros/training/handgunredemption",
     },
     {
       title: "Curio/Relic Handgun Sale",
@@ -138,7 +138,7 @@ const TransactionTypePage = () => {
       path: "/TGR/dros/training/privatelonggun",
     },
     {
-      title: "Pawn/Consignment Long Gun Redemption",
+      title: "Pawn / Consignment Long Gun Redemption",
       path: "/TGR/dros/training/pawnlonggun",
     },
     {

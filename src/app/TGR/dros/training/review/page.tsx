@@ -28,7 +28,9 @@ import { supabase } from "../../../../../utils/supabase/client";
 import type { FormData as OfficerPptHandgunFormData } from "../officerppthandgun/page";
 import type { FormData as OfficerHandgunFormData } from "../officerhandgun/page";
 import type { FormData as ExemptHandgunFormData } from "../exempthandgun/page";
+import type { FormData as HandgunRedemptionFormData } from "../handgunredemption/page";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import Link from "next/link";
 
 type DealerHandgunSale = {
   id: string;
@@ -146,9 +148,9 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
     title: "Exempt Handgun Sale",
     table: "exempt_handgun",
   },
-  "consignment-handgun-redemption": {
+  "handgun-redemption": {
     title: "Consignment Handgun Redemption",
-    table: "consignment_handgun_redemption",
+    table: "handgun_redemption",
   },
   "curio-handgun": {
     title: "Curio / Relic Handgun Sale",
@@ -268,6 +270,15 @@ const ReviewPage = () => {
 
       if (exemptHandgunError) throw exemptHandgunError;
 
+      // Fetch handgun redemption
+      const { data: handgunRedemption, error: handgunRedemptionError } =
+        await supabase
+          .from("handgun_redemption")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+      if (handgunRedemptionError) throw handgunRedemptionError;
+
       // Combine and sort all results
       const allSubmissions = [
         ...(dealerSales || []),
@@ -275,6 +286,7 @@ const ReviewPage = () => {
         ...(officerPptSales || []),
         ...(officerHandgun || []),
         ...(exemptHandgun || []),
+        ...(handgunRedemption || []),
       ].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -389,6 +401,56 @@ const ReviewPage = () => {
             </p>
             <p>
               <strong>Agency:</strong> {agencyData?.label || ""}
+            </p>
+          </CardContent>
+        </Card>
+      );
+    };
+
+    // Add handgun redemption specific information
+    const renderHandgunRedemptionInfo = () => {
+      if (submission.transaction_type !== "handgun-redemption") return null;
+
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Handgun Redemption Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {submission.frame_only ? (
+              <>
+                <p>
+                  <strong>Frame Only:</strong> Yes
+                </p>
+                <p>
+                  <strong>Category:</strong> {submission.category}
+                </p>
+                <p>
+                  <strong>Regulated:</strong> {submission.regulated}
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  <strong>Caliber:</strong> {submission.calibers}
+                  {submission.additional_caliber &&
+                    `, ${submission.additional_caliber}`}
+                  {submission.additional_caliber2 &&
+                    `, ${submission.additional_caliber2}`}
+                  {submission.additional_caliber3 &&
+                    `, ${submission.additional_caliber3}`}
+                </p>
+                {submission.barrel_length && (
+                  <p>
+                    <strong>Barrel Length:</strong> {submission.barrel_length}{" "}
+                    {submission.unit}
+                  </p>
+                )}
+              </>
+            )}
+            <p>
+              <strong>Return to Owner:</strong>{" "}
+              {submission.restriction_exemption}
             </p>
           </CardContent>
         </Card>
@@ -617,6 +679,9 @@ const ReviewPage = () => {
 
           {/* Add exempt handgun specific information */}
           {renderExemptHandgunInfo()}
+
+          {/* Add handgun redemption specific information */}
+          {renderHandgunRedemptionInfo()}
         </DialogContent>
       </Dialog>
     );
@@ -627,10 +692,17 @@ const ReviewPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-12 space-y-6">
+    <div className="container min-w-[calc(100vw-300px)] mx-auto py-12 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>DROS Training Submissions</CardTitle>
+          <CardTitle>
+            <div className="flex justify-between">
+              DROS Training Submissions
+              <Link href="/TGR/dros/training">
+                <Button variant="gooeyRight">Back To Training</Button>
+              </Link>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
