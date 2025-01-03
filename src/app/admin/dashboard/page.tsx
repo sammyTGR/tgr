@@ -56,21 +56,21 @@ const Dashboard = () => {
             {filteredEmployees.map((employee) => (
               <div
                 key={employee.employee_id}
-                className="flex flex-col items-center justify-center p-4 shadow-md"
+                className="flex flex-col items-center justify-between p-4 shadow-md h-[300px]"
               >
-                <Avatar
-                  className={
-                    employee.avatar_url ? "w-48 h-48 mb-1" : "w-12 h-12 mb-1"
-                  }
-                >
-                  <AvatarImage
-                    src={employee.avatar_url || ""}
-                    alt={employee.name}
-                  />
-                  <AvatarFallback>
-                    <User className="w-6 h-6" />
-                  </AvatarFallback>
-                </Avatar>
+                <div className="flex items-center justify-center flex-1">
+                  <Avatar
+                    className={employee.avatar_url ? "w-48 h-48" : "w-24 h-24"}
+                  >
+                    <AvatarImage
+                      src={employee.avatar_url || ""}
+                      alt={employee.name}
+                    />
+                    <AvatarFallback>
+                      <User className="w-6 h-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
                 <Link href={`/admin/team/profiles/${employee.employee_id}`}>
                   <Button variant="ghost" className="text-xl font-semibold">
                     {employee.name}
