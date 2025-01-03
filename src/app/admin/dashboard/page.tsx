@@ -3,11 +3,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
-import { AvatarIcon } from "@radix-ui/react-icons";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/context/RoleContext";
 import { Input } from "@/components/ui/input";
 import { fetchEmployees, Employee } from "./actions";
+import { User } from "lucide-react";
 
 const Dashboard = () => {
   const { role } = useRole();
@@ -55,9 +56,21 @@ const Dashboard = () => {
             {filteredEmployees.map((employee) => (
               <div
                 key={employee.employee_id}
-                className="flex flex-col items-center justify-center p-4 border rounded-lg shadow-md"
+                className="flex flex-col items-center justify-center p-4 shadow-md"
               >
-                <AvatarIcon className="w-8 h-8 mb-2" />
+                <Avatar
+                  className={
+                    employee.avatar_url ? "w-48 h-48 mb-1" : "w-12 h-12 mb-1"
+                  }
+                >
+                  <AvatarImage
+                    src={employee.avatar_url || ""}
+                    alt={employee.name}
+                  />
+                  <AvatarFallback>
+                    <User className="w-6 h-6" />
+                  </AvatarFallback>
+                </Avatar>
                 <Link href={`/admin/team/profiles/${employee.employee_id}`}>
                   <Button variant="ghost" className="text-xl font-semibold">
                     {employee.name}

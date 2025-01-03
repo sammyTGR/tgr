@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 export interface Employee {
   employee_id: number;
   name: string;
+  avatar_url: string | null;
   pay_rate: string;
   status: string;
 }
@@ -23,7 +24,7 @@ export const fetchEmployees = async (role: string | null) => {
 
     let query = supabase
       .from("employees")
-      .select("employee_id, name, pay_rate, status")
+      .select("employee_id, name, pay_rate, status, avatar_url")
       .eq("status", "active");
 
     // Restrict view for admin, super admin, and auditor
