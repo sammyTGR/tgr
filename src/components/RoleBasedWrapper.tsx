@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProgressBar } from "@/components/ProgressBar";
 
 interface RoleBasedWrapperProps {
@@ -8,11 +8,16 @@ interface RoleBasedWrapperProps {
   allowedRoles: string[];
 }
 
+interface UserData {
+  role: string;
+}
+
 function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['userRole'],
+  const { data, isLoading, error } = useQuery<UserData>({
+    queryKey: ["userRole"],
     queryFn: async () => {
       // First check cookie
       const roleHeader = document.cookie
@@ -25,23 +30,29 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
       }
 
       // If no cookie, fetch from API
-      const response = await fetch('/api/getUserRole');
+      const response = await fetch("/api/getUserRole");
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch user role');
+        throw new Error(error.error || "Failed to fetch user role");
       }
-      
-      const userData = await response.json();
-      
+
+      const userData: UserData = await response.json();
+
       // Set cookie for future use
       if (userData.role) {
         document.cookie = `X-User-Role=${userData.role}; path=/; max-age=3600`; // 1 hour expiry
       }
-      
+
+      // Check access immediately after getting the role
+      if (!allowedRoles.includes(userData.role)) {
+        router.replace("/");
+        return userData;
+      }
+
       return userData;
     },
     retry: false,
-
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   // Handle loading state
@@ -53,16 +64,13 @@ function RoleBasedWrapper({ children, allowedRoles }: RoleBasedWrapperProps) {
     );
   }
 
-  // Handle error state
-  if (error) {
-    console.error("Error fetching role:", error);
-    router.push("/");
-    return null;
-  }
-
-  // Handle unauthorized access
-  if (!data?.role || !allowedRoles.includes(data.role)) {
-    router.push("/");
+  // Check if user has access
+  if (error || !data?.role || !allowedRoles.includes(data.role)) {
+    // console.log("Access denied:", {
+    //   error,
+    //   role: data?.role,
+    //   allowedRoles,
+    // });
     return null;
   }
 

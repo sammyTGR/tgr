@@ -13,12 +13,12 @@ import HeaderAuditor from "./HeaderAuditor";
 
 export default function Header() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['userRole'],
+    queryKey: ["userRole"],
     queryFn: async () => {
-      const response = await fetch('/api/getUserRole');
+      const response = await fetch("/api/getUserRole");
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch user role');
+        throw new Error(error.error || "Failed to fetch user role");
       }
       return response.json();
     },
@@ -32,37 +32,56 @@ export default function Header() {
   );
 
   const LazyHeaderAdmin = dynamic(
-    () => import("./HeaderAdmin").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderAdmin").then((module) => ({ default: module.default })),
+    { loading: () => <LoadingIndicator /> }
+  );
+
+  const LazyHeaderCeo = dynamic(
+    () =>
+      import("./HeaderAdmin").then((module) => ({ default: module.default })),
     { loading: () => <LoadingIndicator /> }
   );
 
   const LazyHeaderSuperAdmin = dynamic(
-    () => import("./HeaderSuperAdmin").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderSuperAdmin").then((module) => ({
+        default: module.default,
+      })),
     { loading: () => <LoadingIndicator /> }
   );
 
   const LazyHeaderPublic = dynamic(
-    () => import("./HeaderPublic").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderPublic").then((module) => ({ default: module.default })),
     { loading: () => <LoadingIndicator /> }
   );
 
   const LazyHeaderCustomer = dynamic(
-    () => import("./HeaderCustomer").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderCustomer").then((module) => ({
+        default: module.default,
+      })),
     { loading: () => <LoadingIndicator /> }
   );
 
   const LazyHeaderGunsmith = dynamic(
-    () => import("./HeaderGunsmith").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderGunsmith").then((module) => ({
+        default: module.default,
+      })),
     { loading: () => <LoadingIndicator /> }
   );
 
   const LazyHeaderAuditor = dynamic(
-    () => import("./HeaderAuditor").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderAuditor").then((module) => ({ default: module.default })),
     { loading: () => <LoadingIndicator /> }
   );
 
   const LazyHeaderUser = dynamic(
-    () => import("./HeaderUser").then((module) => ({ default: module.default })),
+    () =>
+      import("./HeaderUser").then((module) => ({ default: module.default })),
     { loading: () => <LoadingIndicator /> }
   );
 
@@ -85,6 +104,8 @@ export default function Header() {
     case "dev":
       return <LazyHeaderDev />;
     case "admin":
+      return <LazyHeaderAdmin />;
+    case "ceo":
       return <LazyHeaderAdmin />;
     case "customer":
       return <LazyHeaderCustomer />;
