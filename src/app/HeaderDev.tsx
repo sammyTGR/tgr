@@ -180,9 +180,9 @@ const manageComps = [
     description: "Download Various Reports",
   },
   {
-    title: "Manage Employee Data",
+    title: "Manage Staff Data",
     href: "/TGR/employees",
-    description: "Set All Employee Details",
+    description: "Set All Staff Details",
   },
   {
     title: "Audit Management",

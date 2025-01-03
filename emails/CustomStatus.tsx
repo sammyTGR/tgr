@@ -12,14 +12,18 @@ import * as React from "react";
 
 interface CustomStatusProps {
   name: string;
-  date: string;
-  status: string;
+  startDate: string;
+  endDate: string;
+  customMessage: string;
+  message?: string;
 }
 
 export default function CustomStatus({
   name,
-  date,
-  status,
+  startDate,
+  endDate,
+  customMessage,
+  message,
 }: CustomStatusProps) {
   return (
     <Html>
@@ -27,11 +31,13 @@ export default function CustomStatus({
       <Body style={main}>
         <Container style={container}>
           <Text style={heading}>Schedule Status Update</Text>
-          <Text style={text}>Aye {name},</Text>
+          <Text style={text}>Hi {name},</Text>
           <Text style={text}>
-            This email confirms that your schedule status for {date} has been
-            updated to: {status}.
+            This email confirms that your schedule status for the period of{" "}
+            {startDate} to {endDate} has been updated.
           </Text>
+          <Text style={text}>Status: {customMessage}</Text>
+          {message && <Text style={text}>{message}</Text>}
           <Hr style={hr} />
           <Text style={text}>
             If you have any questions or need to discuss this further, please
@@ -66,12 +72,6 @@ const heading = {
   fontSize: "32px",
   lineHeight: "1.3",
   fontWeight: "700",
-  color: "#484848",
-};
-
-const paragraph = {
-  fontSize: "18px",
-  lineHeight: "1.4",
   color: "#484848",
 };
 

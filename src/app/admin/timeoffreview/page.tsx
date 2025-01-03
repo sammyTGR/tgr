@@ -62,6 +62,12 @@ interface TimeOffRequest {
   use_vacation_time: boolean;
   hire_date: string;
   is_future_request: boolean;
+  sick_time_history?: {
+    year: number;
+    hours_used: number;
+    employee_name: string;
+  }[];
+  hours_deducted: number;
 }
 
 type RequestAction =
@@ -256,25 +262,6 @@ export default function ApproveRequestsPage() {
       useSickTime: boolean;
       useVacationTime: boolean;
     }) => {
-      console.log("Mutation payload:", {
-        requestId,
-        useSickTime,
-        useVacationTime,
-      });
-
-      // Get current request state
-      const currentRequest = requests.find(
-        (req: TimeOffRequest) => req.request_id === requestId
-      );
-
-      console.log("Current request state:", currentRequest);
-
-      // Only set should_reverse when switching from true to false
-      const should_reverse =
-        currentRequest?.use_vacation_time && !useVacationTime;
-
-      console.log("Should reverse:", should_reverse);
-
       const response = await fetch("/api/approve_request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -283,26 +270,18 @@ export default function ApproveRequestsPage() {
           action: "pending",
           use_sick_time: useSickTime,
           use_vacation_time: useVacationTime,
-          should_reverse,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error("Failed to update time usage");
+        throw new Error(errorData.error || "Failed to update time usage");
       }
 
-      const responseData = await response.json();
-      console.log("API Response:", responseData);
-      return responseData;
+      return response.json();
     },
-    onSuccess: (data) => {
-      console.log("Mutation succeeded:", data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
     },
   });
 
@@ -386,19 +365,25 @@ export default function ApproveRequestsPage() {
 
   // Update the JSX for the switches
   const renderTimeUsageSwitches = (request: TimeOffRequest) => {
-    console.log(`Request ID: ${request.request_id}`, {
-      useSickTime: request.use_sick_time,
-      useVacationTime: request.use_vacation_time,
-      payType: request.pay_type,
-    });
+    const currentYearUsage =
+      request.sick_time_history?.reduce(
+        (total, record) => total + (record.hours_used || 0),
+        0
+      ) || 0;
+    const remainingSickTime = 40 - currentYearUsage; // 40 hours annual limit
 
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p>
-            <strong>Available Sick Time:</strong> {request.available_sick_time}{" "}
-            Hours
-          </p>
+          <div className="space-y-1">
+            <p>
+              <strong>Available Sick Time:</strong>{" "}
+              {Math.max(0, remainingSickTime).toFixed(1)} Hours
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Used this year: {currentYearUsage.toFixed(1)} hours
+            </p>
+          </div>
           <div className="flex items-center space-x-2 mt-2">
             <Switch
               checked={request.use_sick_time}
@@ -409,7 +394,7 @@ export default function ApproveRequestsPage() {
                   useVacationTime: false,
                 })
               }
-              disabled={request.use_vacation_time}
+              disabled={request.use_vacation_time || remainingSickTime <= 0}
             />
             <span>Use Sick Time</span>
           </div>
@@ -540,6 +525,7 @@ export default function ApproveRequestsPage() {
     let templateName: string;
     let templateData: any;
 
+    // Determine email template and data based on action
     switch (action) {
       case "time_off":
         templateName = "TimeOffApproved";
@@ -547,6 +533,7 @@ export default function ApproveRequestsPage() {
           name: DOMPurify.sanitize(request.name),
           startDate: formatDateWithDay(request.start_date),
           endDate: formatDateWithDay(request.end_date),
+          message: emailMessage,
         };
         break;
       case "deny":
@@ -555,6 +542,7 @@ export default function ApproveRequestsPage() {
           name: DOMPurify.sanitize(request.name),
           startDate: formatDateWithDay(request.start_date),
           endDate: formatDateWithDay(request.end_date),
+          message: emailMessage,
         };
         break;
       case "called_out":
@@ -562,6 +550,7 @@ export default function ApproveRequestsPage() {
         templateData = {
           name: DOMPurify.sanitize(request.name),
           date: formatDateWithDay(request.start_date),
+          message: emailMessage,
         };
         break;
       case "left_early":
@@ -569,6 +558,17 @@ export default function ApproveRequestsPage() {
         templateData = {
           name: DOMPurify.sanitize(request.name),
           date: formatDateWithDay(request.start_date),
+          message: emailMessage,
+        };
+        break;
+      case "pending":
+        templateName = "StatusUpdate";
+        templateData = {
+          name: DOMPurify.sanitize(request.name),
+          startDate: formatDateWithDay(request.start_date),
+          endDate: formatDateWithDay(request.end_date),
+          status: "pending",
+          message: emailMessage,
         };
         break;
       default:
@@ -577,7 +577,8 @@ export default function ApproveRequestsPage() {
           templateData = {
             name: DOMPurify.sanitize(request.name),
             date: formatDateWithDay(request.start_date),
-            time: action.split("Left Early @ ")[1], // Extract the time
+            time: action.split("Left Early @ ")[1],
+            message: emailMessage,
           };
         } else if (action.startsWith("Custom: ")) {
           templateName = "CustomStatus";
@@ -586,6 +587,7 @@ export default function ApproveRequestsPage() {
             startDate: formatDateWithDay(request.start_date),
             endDate: formatDateWithDay(request.end_date),
             customMessage: DOMPurify.sanitize(action.slice(8)),
+            message: emailMessage,
           };
         } else {
           throw new Error("Invalid action");
@@ -664,17 +666,23 @@ export default function ApproveRequestsPage() {
         request_id,
         "called_out",
         "Your Schedule Has Been Updated To Reflect That You Called Out.",
-        request.use_sick_time
+        request.use_sick_time,
+        request.use_vacation_time
       );
     }
   };
 
   const handleLeftEarlyWithTime = (requestId: number) => {
-    leftEarlyDialogMutation.mutate({
-      isOpen: true,
-      time: "",
-      currentRequestId: requestId,
-    });
+    const request = requests.find(
+      (req: TimeOffRequest) => req.request_id === requestId
+    );
+    if (request) {
+      leftEarlyDialogMutation.mutate({
+        isOpen: true,
+        time: "",
+        currentRequestId: requestId,
+      });
+    }
   };
 
   const handleCustomApproval = (request_id: number, customText: string) => {
@@ -685,7 +693,7 @@ export default function ApproveRequestsPage() {
       handleRequest(
         request_id,
         `Custom: ${DOMPurify.sanitize(customText)}` as RequestAction,
-        `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
+        `Your Time Off Request Has Been Approved!`,
         request.use_sick_time,
         request.use_vacation_time
       );
@@ -772,54 +780,96 @@ export default function ApproveRequestsPage() {
                     </div>
                   </TabsContent>
                   <TabsContent value="time">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p>
-                          <strong>Available Sick Time:</strong>{" "}
-                          {request.available_sick_time} Hours
-                        </p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <Switch
-                            checked={request.use_sick_time}
-                            onCheckedChange={(checked) =>
-                              timeUsageMutation.mutate({
-                                requestId: request.request_id,
-                                useSickTime: checked,
-                                useVacationTime: false,
-                              })
-                            }
-                            disabled={request.use_vacation_time}
-                          />
-                          <span>Use Sick Time</span>
-                        </div>
-                      </div>
-                      <div>
-                        <p>
-                          <strong>Available Vacation Time:</strong>{" "}
-                          {request.vacation_time} Hours
-                        </p>
-                        {request.pay_type?.toLowerCase() === "salary" ? (
-                          <div className="flex items-center space-x-2 mt-2">
-                            <Switch
-                              checked={request.use_vacation_time}
-                              onCheckedChange={(checked) =>
-                                timeUsageMutation.mutate({
-                                  requestId: request.request_id,
-                                  useSickTime: false,
-                                  useVacationTime: checked,
-                                })
-                              }
-                              disabled={request.use_sick_time}
-                            />
-                            <span>Use Vacation Time</span>
+                    {(() => {
+                      // Get current year's actual used sick time
+                      const currentYearUsage =
+                        request.sick_time_history?.reduce(
+                          (total, record) => total + (record.hours_used || 0),
+                          0
+                        ) || 0;
+
+                      // Use the pre-calculated hours_deducted from the request
+                      const requestHours = request.hours_deducted || 0;
+
+                      // Calculate potential usage based on switch state
+                      const potentialUsage = request.use_sick_time
+                        ? requestHours
+                        : 0;
+                      const adjustedYearUsage =
+                        currentYearUsage + potentialUsage;
+                      const remainingSickTime = 40 - adjustedYearUsage; // 40 hours annual limit
+
+                      return (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <div className="space-y-1">
+                              <p>
+                                <strong>Available Sick Time:</strong>{" "}
+                                {Math.max(0, remainingSickTime).toFixed(1)}{" "}
+                                Hours
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Used this year: {currentYearUsage.toFixed(1)}{" "}
+                                hours
+                              </p>
+                              {request.use_sick_time && (
+                                <p className="text-sm text-muted-foreground">
+                                  Potential usage with this request:{" "}
+                                  {adjustedYearUsage.toFixed(1)} hours{" "}
+                                  <span className="text-muted-foreground">
+                                    (+{requestHours.toFixed(1)} scheduled hours)
+                                  </span>
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Switch
+                                checked={request.use_sick_time}
+                                onCheckedChange={(checked) =>
+                                  timeUsageMutation.mutate({
+                                    requestId: request.request_id,
+                                    useSickTime: checked,
+                                    useVacationTime: false,
+                                  })
+                                }
+                                disabled={
+                                  request.use_vacation_time ||
+                                  (remainingSickTime <= 0 &&
+                                    !request.use_sick_time)
+                                }
+                              />
+                              <span>Use Sick Time</span>
+                            </div>
                           </div>
-                        ) : (
-                          <p className="text-sm mt-2">
-                            Not applicable for non-salaried employees
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                          <div>
+                            <p>
+                              <strong>Available Vacation Time:</strong>{" "}
+                              {request.vacation_time} Hours
+                            </p>
+                            {request.pay_type?.toLowerCase() === "salary" ? (
+                              <div className="flex items-center space-x-2 mt-2">
+                                <Switch
+                                  checked={request.use_vacation_time}
+                                  onCheckedChange={(checked) =>
+                                    timeUsageMutation.mutate({
+                                      requestId: request.request_id,
+                                      useSickTime: false,
+                                      useVacationTime: checked,
+                                    })
+                                  }
+                                  disabled={request.use_sick_time}
+                                />
+                                <span>Use Vacation Time</span>
+                              </div>
+                            ) : (
+                              <p className="text-sm mt-2">
+                                Not applicable for non-salaried employees
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </TabsContent>
                   <TabsContent value="actions">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

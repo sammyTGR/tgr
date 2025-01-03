@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +13,17 @@ import {
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type OnboardingData = {
   name: string;
@@ -68,59 +77,87 @@ const initialData: OnboardingData = {
   },
 };
 
-interface ReferenceData {
-  departments: string[];
-  positions: string[];
-  roles: string[];
-}
-
 const OnboardingWizard = () => {
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState<OnboardingData>(initialData);
-  const [referenceData, setReferenceData] = useState<ReferenceData>({
-    departments: [],
-    positions: [],
-    roles: [],
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const { data: formData } = useQuery({
+    queryKey: ["onboardingForm"],
+    queryFn: () => initialData,
+    initialData: initialData,
   });
 
-  useEffect(() => {
-    // Fetch reference data from Supabase
-    const fetchReferenceData = async () => {
-      // Replace this with your actual Supabase query
-      const { data: departments } = await supabase
+  const { data: currentStep } = useQuery({
+    queryKey: ["onboardingStep"],
+    queryFn: () => 1,
+    initialData: 1,
+  });
+
+  const { data: showCompletionDialog = false } = useQuery({
+    queryKey: ["completionDialog"],
+    queryFn: () => false,
+    initialData: false,
+  });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const { data } = await supabase
         .from("onboarding_references")
         .select("option_value")
         .eq("field_name", "department")
         .order("display_order");
+      return data?.map((d) => d.option_value) || [];
+    },
+  });
 
-      const { data: positions } = await supabase
+  const { data: positions = [] } = useQuery({
+    queryKey: ["positions"],
+    queryFn: async () => {
+      const { data } = await supabase
         .from("onboarding_references")
         .select("option_value")
         .eq("field_name", "position")
         .order("display_order");
+      return data?.map((p) => p.option_value) || [];
+    },
+  });
 
-      const { data: roles } = await supabase
+  const { data: roles = [] } = useQuery({
+    queryKey: ["roles"],
+    queryFn: async () => {
+      const { data } = await supabase
         .from("onboarding_references")
         .select("option_value")
         .eq("field_name", "role")
         .order("display_order");
+      return data?.map((r) => r.option_value) || [];
+    },
+  });
 
-      setReferenceData({
-        departments: departments?.map((d) => d.option_value) || [],
-        positions: positions?.map((p) => p.option_value) || [],
-        roles: roles?.map((r) => r.option_value) || [],
-      });
-    };
-
-    fetchReferenceData();
-  }, []);
-
-  const updateData = (fields: Partial<OnboardingData>) => {
-    setData((prev) => ({ ...prev, ...fields }));
+  const referenceData = {
+    departments,
+    positions,
+    roles,
   };
 
-  const handleNext = () => setStep((prev) => Math.min(prev + 1, 4));
-  const handlePrev = () => setStep((prev) => Math.max(prev - 1, 1));
+  const updateData = (fields: Partial<OnboardingData>) => {
+    queryClient.setQueryData(["onboardingForm"], (old: OnboardingData) => ({
+      ...old,
+      ...fields,
+    }));
+  };
+
+  const handleNext = () => {
+    queryClient.setQueryData(["onboardingStep"], (prev: number) =>
+      Math.min(prev + 1, 4)
+    );
+  };
+  const handlePrev = () => {
+    queryClient.setQueryData(["onboardingStep"], (prev: number) =>
+      Math.max(prev - 1, 1)
+    );
+  };
 
   const formatPhoneNumber = (input: string) => {
     const cleaned = input.replace(/\D/g, "");
@@ -141,31 +178,30 @@ const OnboardingWizard = () => {
     field: "start_time" | "end_time",
     value: string
   ) => {
-    setData((prev) => ({
-      ...prev,
+    updateData({
       schedule: {
-        ...prev.schedule,
-        [day]: { ...prev.schedule[day], [field]: value },
+        ...formData.schedule,
+        [day]: { ...formData.schedule[day], [field]: value },
       },
-    }));
+    });
   };
 
   const isStepComplete = () => {
-    switch (step) {
+    switch (currentStep) {
       case 1:
         return (
-          data.name.trim() !== "" &&
-          data.last_name.trim() !== "" &&
-          data.contact_info.trim() !== "" &&
-          data.birthday.trim() !== "" &&
-          data.hire_date.trim() !== ""
+          formData.name.trim() !== "" &&
+          formData.last_name.trim() !== "" &&
+          formData.contact_info.trim() !== "" &&
+          formData.birthday.trim() !== "" &&
+          formData.hire_date.trim() !== ""
         );
       case 2:
-        return data.department !== "" && data.role !== "";
+        return formData.department !== "" && formData.role !== "";
       case 3:
-        return data.pay_type !== "" && data.pay_rate > 0;
+        return formData.pay_type !== "" && formData.pay_rate > 0;
       case 4:
-        return Object.values(data.schedule).some(
+        return Object.values(formData.schedule).some(
           (day) => day.start_time && day.end_time
         );
       default:
@@ -174,7 +210,7 @@ const OnboardingWizard = () => {
   };
 
   const renderStep = () => {
-    switch (step) {
+    switch (currentStep) {
       case 1:
         return (
           <div className="grid grid-cols-2 gap-4">
@@ -182,7 +218,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="first_name">First Name</Label>
               <Input
                 id="first_name"
-                value={data.name}
+                value={formData.name}
                 onChange={(e) => updateData({ name: e.target.value })}
                 placeholder="John"
               />
@@ -191,7 +227,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="last_name">Last Name</Label>
               <Input
                 id="last_name"
-                value={data.last_name}
+                value={formData.last_name}
                 onChange={(e) => updateData({ last_name: e.target.value })}
                 placeholder="Doe"
               />
@@ -200,7 +236,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="contact_info">Work Email</Label>
               <Input
                 id="contact_info"
-                value={data.contact_info}
+                value={formData.contact_info}
                 onChange={(e) => updateData({ contact_info: e.target.value })}
                 placeholder="john.doe@company.com"
               />
@@ -209,7 +245,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="phone_number">Phone Number</Label>
               <Input
                 id="phone_number"
-                value={data.phone_number}
+                value={formData.phone_number}
                 onChange={handlePhoneChange}
                 placeholder="xxx-xxx-xxxx"
               />
@@ -218,7 +254,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="street_address">Street Address</Label>
               <Input
                 id="street_address"
-                value={data.street_address}
+                value={formData.street_address}
                 onChange={(e) => updateData({ street_address: e.target.value })}
                 placeholder="123 Main St"
               />
@@ -227,7 +263,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
-                value={data.city}
+                value={formData.city}
                 onChange={(e) => updateData({ city: e.target.value })}
                 placeholder="Anytown"
               />
@@ -236,7 +272,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="state">State</Label>
               <Input
                 id="state"
-                value={data.state}
+                value={formData.state}
                 onChange={(e) => updateData({ state: e.target.value })}
                 placeholder="CA"
               />
@@ -245,7 +281,7 @@ const OnboardingWizard = () => {
               <Label htmlFor="zip">ZIP Code</Label>
               <Input
                 id="zip"
-                value={data.zip}
+                value={formData.zip}
                 onChange={(e) => updateData({ zip: e.target.value })}
                 placeholder="12345"
               />
@@ -257,7 +293,7 @@ const OnboardingWizard = () => {
               <Input
                 id="birthday"
                 type="date"
-                value={data.birthday}
+                value={formData.birthday}
                 onChange={(e) => updateData({ birthday: e.target.value })}
               />
             </div>
@@ -268,7 +304,7 @@ const OnboardingWizard = () => {
               <Input
                 id="hire_date"
                 type="date"
-                value={data.hire_date}
+                value={formData.hire_date}
                 onChange={(e) => updateData({ hire_date: e.target.value })}
               />
             </div>
@@ -277,7 +313,7 @@ const OnboardingWizard = () => {
               <Input
                 id="promotion_date"
                 type="date"
-                value={data.promotion_date || ""}
+                value={formData.promotion_date || ""}
                 onChange={(e) =>
                   updateData({ promotion_date: e.target.value || null })
                 }
@@ -291,7 +327,7 @@ const OnboardingWizard = () => {
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
               <Select
-                value={data.department}
+                value={formData.department}
                 onValueChange={(value) => updateData({ department: value })}
               >
                 <SelectTrigger id="department">
@@ -309,7 +345,7 @@ const OnboardingWizard = () => {
             {/* <div className="space-y-2">
               <Label htmlFor="position">Position</Label>
               <Select
-                value={data.position || ""}
+                value={formData.position || ""}
                 onValueChange={(value) => updateData({ position: value })}
               >
                 <SelectTrigger id="position">
@@ -327,7 +363,7 @@ const OnboardingWizard = () => {
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Select
-                value={data.role}
+                value={formData.role}
                 onValueChange={(value) => updateData({ role: value })}
               >
                 <SelectTrigger id="role">
@@ -347,7 +383,7 @@ const OnboardingWizard = () => {
               <Input
                 id="rank"
                 type="number"
-                value={data.rank.toString()}
+                value={formData.rank.toString()}
                 onChange={(e) =>
                   updateData({ rank: parseInt(e.target.value) || 0 })
                 }
@@ -362,7 +398,7 @@ const OnboardingWizard = () => {
             <div className="space-y-2">
               <Label htmlFor="pay_type">Pay Type</Label>
               <Select
-                value={data.pay_type}
+                value={formData.pay_type}
                 onValueChange={(value) => updateData({ pay_type: value })}
               >
                 <SelectTrigger id="pay_type">
@@ -380,7 +416,7 @@ const OnboardingWizard = () => {
                 id="pay_rate"
                 type="number"
                 step="0.01"
-                value={data.pay_rate.toString()}
+                value={formData.pay_rate.toString()}
                 onChange={(e) =>
                   updateData({ pay_rate: parseFloat(e.target.value) || 0 })
                 }
@@ -398,7 +434,7 @@ const OnboardingWizard = () => {
               <Label className="text-center">Start Time</Label>
               <Label className="text-center">End Time</Label>
             </div>
-            {Object.entries(data.schedule).map(([day, times]) => (
+            {Object.entries(formData.schedule).map(([day, times]) => (
               <div key={day} className="grid grid-cols-3 items-center gap-4">
                 <Label htmlFor={`${day}-start`} className="text-right">
                   {day.charAt(0).toUpperCase() + day.slice(1)}
@@ -480,7 +516,7 @@ const OnboardingWizard = () => {
           day_of_week: day.charAt(0).toUpperCase() + day.slice(1),
           start_time: times.start_time ? `${times.start_time}:00` : null,
           end_time: times.end_time ? `${times.end_time}:00` : null,
-          name: `${data.name} ${data.last_name}`,
+          name: `${formData.name} ${formData.last_name}`,
         })
       );
 
@@ -499,22 +535,48 @@ const OnboardingWizard = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const employee = await employeeMutation.mutateAsync(data);
+      const employee = await employeeMutation.mutateAsync(formData);
 
       if (employee) {
         await scheduleMutation.mutateAsync({
           employeeId: employee.id,
-          scheduleData: data.schedule,
+          scheduleData: formData.schedule,
         });
 
-        toast.success("Employee onboarded with their working schedule!");
-        setData(initialData);
-        setStep(1);
+        toast.success("Employee onboarded successfully!");
+        queryClient.setQueryData(["completionDialog"], true);
       }
     } catch (error) {
       // Error handling is managed by the mutation callbacks
     }
   };
+
+  const CompletionDialog = () => (
+    <AlertDialog open={showCompletionDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Employee Successfully Onboarded</AlertDialogTitle>
+          <AlertDialogDescription>
+            Would you like to add another employee or manage existing staff?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction
+            onClick={() => {
+              queryClient.setQueryData(["onboardingForm"], initialData);
+              queryClient.setQueryData(["onboardingStep"], 1);
+              queryClient.setQueryData(["completionDialog"], false);
+            }}
+          >
+            Add Another Employee
+          </AlertDialogAction>
+          <AlertDialogAction onClick={() => router.push("/TGR/employees")}>
+            Manage Staff
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-card rounded-lg shadow-lg">
@@ -524,13 +586,13 @@ const OnboardingWizard = () => {
             <div
               key={i}
               className={`w-1/4 h-2 rounded-full ${
-                i <= step ? "bg-primary" : "bg-gray-200"
+                i <= currentStep ? "bg-primary" : "bg-gray-200"
               }`}
             />
           ))}
         </div>
         <p className="text-sm text-muted-foreground text-center">
-          Step {step} of 4
+          Step {currentStep} of 4
         </p>
       </div>
 
@@ -538,12 +600,12 @@ const OnboardingWizard = () => {
         {renderStep()}
 
         <div className="mt-8 flex justify-between">
-          {step > 1 && (
+          {currentStep > 1 && (
             <Button type="button" variant="outline" onClick={handlePrev}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
           )}
-          {step < 4 ? (
+          {currentStep < 4 ? (
             <Button
               type="button"
               onClick={handleNext}
@@ -563,6 +625,7 @@ const OnboardingWizard = () => {
           )}
         </div>
       </form>
+      <CompletionDialog />
     </div>
   );
 };
