@@ -33,6 +33,7 @@ import { ColumnDef, RangeWalkData } from "./columns";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DataTableProps<TData extends RangeWalkData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -57,6 +58,8 @@ export function DataTable<TData extends RangeWalkData, TValue>({
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
+  const [userNameFilter, setUserNameFilter] = React.useState("");
+  const [dateFilter, setDateFilter] = React.useState("");
 
   const table = useReactTable({
     data,
@@ -77,36 +80,53 @@ export function DataTable<TData extends RangeWalkData, TValue>({
     manualSorting: false,
   });
 
+  const hasActiveFilters = () => {
+    return Boolean(userNameFilter || dateFilter);
+  };
+
+  const clearFilters = () => {
+    setUserNameFilter("");
+    setDateFilter("");
+
+    table.getColumn("user_name")?.setFilterValue("");
+    table.getColumn("date_of_walk")?.setFilterValue("");
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="flex flex-row items-center justify-between mx-2 my-2">
-        <Input
-          placeholder="Filter By User Name..."
-          value={table.getColumn("user_name")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("user_name")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm w-full"
-        />
-        <Input
-          placeholder="Filter By Lanes..."
-          value={table.getColumn("lanes")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("lanes")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm w-full ml-2"
-        />
-        <Input
-          placeholder="Filter By Status..."
-          value={table.getColumn("status")?.getFilterValue() as string}
-          onChange={(event) =>
-            table.getColumn("status")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm w-full ml-2"
-        />
-        <DropdownMenu>
+      <div className="flex flex-row items-center gap-2 my-2">
+        <div className="flex-1 flex items-center gap-2">
+          <Input
+            placeholder="Filter By Employee..."
+            value={userNameFilter}
+            onChange={(event) => {
+              setUserNameFilter(event.target.value);
+              table.getColumn("user_name")?.setFilterValue(event.target.value);
+            }}
+            className="max-w-sm"
+          />
+          <Input
+            placeholder="Filter By Date..."
+            value={dateFilter}
+            onChange={(event) => {
+              setDateFilter(event.target.value);
+              table
+                .getColumn("date_of_walk")
+                ?.setFilterValue(event.target.value);
+            }}
+            className="max-w-sm"
+          />
+          {hasActiveFilters() && (
+            <Button variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          )}
+        </div>
+
+        {/* Columns Dropdown */}
+        {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button variant="outline">
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -129,7 +149,7 @@ export function DataTable<TData extends RangeWalkData, TValue>({
                 );
               })}
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
       </div>
       <div className="flex-1 overflow-hidden rounded-md border w-full">
         <div className="max-h-[calc(100vh-100px)] overflow-auto">

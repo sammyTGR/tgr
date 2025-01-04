@@ -443,7 +443,10 @@ export default function RangeWalkPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
 
+        {/* Range Report Card */}
+        <div className="max-w-[calc(100vw-90px)] overflow-hidden">
           <Card className="flex flex-col col-span-full mt-2 mb-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
