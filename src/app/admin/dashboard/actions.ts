@@ -36,8 +36,8 @@ export const fetchEmployees = async (role: string | null) => {
         .neq("role", "dev")
         .neq("role", "ceo");
     } else if (role === "ceo") {
-      // CEO can see everything except devs
-      query = query.neq("role", "dev");
+      // CEO can see everything except devs and other ceos
+      query = query.neq("role", "dev").neq("role", "ceo");
     } else if (role === "dev") {
       // Devs can see everything
     }
