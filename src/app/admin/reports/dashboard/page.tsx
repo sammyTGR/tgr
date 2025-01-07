@@ -76,6 +76,7 @@ import {
   fetchLatestSalesData,
 } from "./api";
 import { sendEmail } from "./actions";
+import SalesDataTableAllEmployees from "@/app/admin/reports/sales/sales-data-table-all-employees";
 
 interface Certificate {
   id: number;
@@ -676,9 +677,12 @@ function AdminDashboardContent() {
 
         <Tabs defaultValue="reporting">
           <div className="flex items-center space-x-2">
-            <TabsList className="grid grid-cols-3">
+            <TabsList className="grid grid-cols-4 text-left">
               <TabsTrigger value="reporting">Reports Overview</TabsTrigger>
-              <TabsTrigger value="sales">Daily Sales</TabsTrigger>
+              <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
+              <TabsTrigger value="sales-employee">
+                Sales By Employee
+              </TabsTrigger>
               <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
             </TabsList>
           </div>
@@ -1074,6 +1078,32 @@ function AdminDashboardContent() {
                   </Card>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="sales-employee">
+              <div className="w-full overflow-hidden">
+                <Card className="flex flex-col col-span-full h-full">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle className="flex items-center gap-2">
+                      <TableIcon className="h-6 w-6" />
+                      Sales by Employee
+                    </CardTitle>
+                  </CardHeader>
+                  <ScrollArea
+                    className={classNames(
+                      styles.noScroll,
+                      "h-[calc(100vh-300px)] overflow-auto relative"
+                    )}
+                  >
+                    <CardContent className="flex-grow overflow-auto">
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <SalesDataTableAllEmployees />
+                      </Suspense>
+                    </CardContent>
+                    <ScrollBar orientation="vertical" />
+                  </ScrollArea>
+                </Card>
+              </div>
             </TabsContent>
           </div>
 

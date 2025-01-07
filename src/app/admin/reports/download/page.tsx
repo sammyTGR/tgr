@@ -337,6 +337,7 @@ const AdminReportsPage = () => {
             <TabsTrigger value="vacation-time">
               Vacation Time Report
             </TabsTrigger>
+            <TabsTrigger value="sales">Sales Report</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sick-time">
