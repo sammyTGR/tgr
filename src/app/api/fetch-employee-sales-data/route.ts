@@ -2,15 +2,12 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-
-// Create server-side Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { startOfDay, endOfDay } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export async function POST(request: Request) {
-  const { employeeId } = await request.json();
+  const { employeeId, pageIndex, pageSize, filters, sorting, dateRange } =
+    await request.json();
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
@@ -29,26 +26,18 @@ export async function POST(request: Request) {
       .eq("employee_id", employeeId)
       .single();
 
-    if (employeeError) {
+    if (employeeError || !employeeData) {
       console.error("Employee lookup error:", employeeError);
       return NextResponse.json(
-        { error: employeeError.message },
-        { status: 400 }
-      );
-    }
-
-    if (!employeeData) {
-      return NextResponse.json(
-        { error: "Employee not found" },
-        { status: 404 }
+        { error: employeeError?.message || "Employee not found" },
+        { status: employeeError ? 400 : 404 }
       );
     }
 
     const lanid = employeeData.lanid;
-    console.log("Found LANID:", lanid); // Debug log
 
-    // Get sales data
-    const { data: salesData, error: salesError } = await supabase
+    // Build the base query
+    let query = supabase
       .from("sales_data")
       .select(
         `
@@ -66,26 +55,77 @@ export async function POST(request: Request) {
         subcategory_label,
         total_gross,
         total_net
-      `
+      `,
+        { count: "exact" }
       )
-      .eq("Lanid", lanid)
-      .order("Date", { ascending: false });
+      .eq("Lanid", lanid);
+
+    // Apply date range filter if provided
+    if (dateRange?.from) {
+      // Convert to start of day in Pacific time
+      const fromDate = toZonedTime(
+        startOfDay(new Date(dateRange.from)),
+        "America/Los_Angeles"
+      );
+      query = query.gte("Date", fromDate.toISOString());
+    }
+
+    if (dateRange?.to) {
+      // Convert to end of day in Pacific time
+      const toDate = toZonedTime(
+        endOfDay(new Date(dateRange.to)),
+        "America/Los_Angeles"
+      );
+      query = query.lte("Date", toDate.toISOString());
+    }
+
+    // Apply filters if any
+    if (filters && filters.length > 0) {
+      filters.forEach((filter: any) => {
+        if (filter.value) {
+          query = query.ilike(filter.id, `%${filter.value}%`);
+        }
+      });
+    }
+
+    // Apply sorting
+    if (sorting && sorting.length > 0) {
+      const { id, desc } = sorting[0];
+      query = query.order(id, { ascending: !desc });
+    } else {
+      query = query.order("Date", { ascending: false });
+    }
+
+    // Get total count first
+    const { count: totalCount } = await query;
+
+    // Calculate pagination range
+    const from = Math.min(pageIndex * pageSize, totalCount || 0);
+    const to = Math.min(from + pageSize - 1, totalCount || 0);
+
+    // Apply pagination
+    query = query.range(from, to);
+
+    // Execute the final query
+    const { data: salesData, error: salesError } = await query;
 
     if (salesError) {
       console.error("Sales data lookup error:", salesError);
       throw salesError;
     }
 
-    // console.log("Sales data count:", salesData?.length); // Debug log
-    // console.log("First few sales records:", salesData?.slice(0, 3)); // Debug log
-
     return NextResponse.json({
       data: salesData,
-      count: salesData?.length ?? 0,
+      count: totalCount,
       debug: {
         employeeId,
         lanid,
-        recordsFound: salesData?.length ?? 0,
+        pageIndex,
+        pageSize,
+        from,
+        to,
+        dateRange,
+        totalRecords: totalCount,
       },
     });
   } catch (error) {

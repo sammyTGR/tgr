@@ -28,7 +28,7 @@ export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
 export const employeeSalesColumns = (
   onUpdate: (id: number, updates: Partial<SalesData>) => void
 ): ColumnDef<SalesData>[] => [
-   // {
+  // {
   //   accessorKey: "Lanid",
   //   header: ({ column }) => (
   //     <DataTableColumnHeader column={column} title="Lanid" />
@@ -55,6 +55,24 @@ export const employeeSalesColumns = (
   //     style: { width: "200px" },
   //   },
   // },
+  {
+    accessorKey: "Date",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Date" />
+    ),
+    cell: ({ row }) => format(new Date(row.original.Date), "yyyy-MM-dd"),
+    meta: {
+      style: { width: "180px" },
+    },
+    sortingFn: "datetime",
+    filterFn: (row, columnId, filterValue) => {
+      const formattedDate = format(
+        new Date(row.getValue(columnId)),
+        "yyyy-MM-dd"
+      );
+      return formattedDate.includes(filterValue);
+    },
+  },
   {
     accessorKey: "Desc",
     header: ({ column }) => (
@@ -100,33 +118,16 @@ export const employeeSalesColumns = (
   //     style: { width: "100px" },
   //   },
   // },
-  {
-    accessorKey: "Date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
-    ),
-    cell: ({ row }) => format(new Date(row.original.Date), "yyyy-MM-dd"),
-    meta: {
-      style: { width: "180px" },
-    },
-    sortingFn: "datetime",
-    filterFn: (row, columnId, filterValue) => {
-      const formattedDate = format(
-        new Date(row.getValue(columnId)),
-        "yyyy-MM-dd"
-      );
-      return formattedDate.includes(filterValue);
-    },
-  },
-  {
-    accessorKey: "Last",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Last" />
-    ),
-    meta: {
-      style: { width: "180px" },
-    },
-  },
+
+  // {
+  //   accessorKey: "Last",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Last" />
+  //   ),
+  //   meta: {
+  //     style: { width: "180px" },
+  //   },
+  // },
   // {
   //   accessorKey: "LastName",
   //   header: ({ column }) => (
@@ -136,15 +137,15 @@ export const employeeSalesColumns = (
   //     style: { width: "150px" },
   //   },
   // },
-  {
-    accessorKey: "Mfg",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Mfg" />
-    ),
-    meta: {
-      style: { width: "300px" },
-    },
-  },
+  // {
+  //   accessorKey: "Mfg",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Mfg" />
+  //   ),
+  //   meta: {
+  //     style: { width: "300px" },
+  //   },
+  // },
   // {
   //   accessorKey: "CustType",
   //   header: ({ column }) => (

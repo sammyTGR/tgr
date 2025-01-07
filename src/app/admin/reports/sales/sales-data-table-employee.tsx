@@ -1,5 +1,5 @@
 // src/app/admin/reports/sales/sales-data-table-employee.tsx
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,6 +10,16 @@ import {
 import { DataTableEmployee } from "./data-table-employee";
 import { employeeSalesColumns } from "./columns-employee";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { type DateRange } from "react-day-picker";
 
 interface SalesData {
   id: number;
@@ -31,22 +41,30 @@ interface SalesDataTableEmployeeProps {
 const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
   employeeId,
 }) => {
-  const [sales, setSales] = useState<SalesData[]>([]);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageCount, setPageCount] = useState(0);
-  const [filters, setFilters] = useState<any[]>([]);
-  const [sorting, setSorting] = useState<SortingState>([
+  const queryClient = useQueryClient();
+  const [pageIndex, setPageIndex] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(10);
+  const [filters, setFilters] = React.useState<any[]>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([
     { id: "Date", desc: true },
   ]);
+  const [dateRange, setDateRange] = React.useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
 
-  const fetchSalesData = async (
-    pageIndex: number,
-    pageSize: number,
-    filters: any[],
-    sorting: SortingState
-  ) => {
-    try {
+  // Fetch sales data query with date range
+  const { data: salesData, isLoading } = useQuery({
+    queryKey: [
+      "employeeSales",
+      employeeId,
+      pageIndex,
+      pageSize,
+      filters,
+      sorting,
+      dateRange,
+    ],
+    queryFn: async () => {
       const response = await fetch("/api/fetch-employee-sales-data", {
         method: "POST",
         headers: {
@@ -58,75 +76,58 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
           pageSize,
           filters,
           sorting,
+          dateRange,
         }),
       });
 
-      const { data, count, error } = await response.json();
+      const result = await response.json();
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+  });
 
-      if (error) {
-        //console.("Error fetching sales data:", error);
-        toast.error("Failed to fetch sales data.");
-      } else {
-        // console.log("Fetched sales data:", data);
-        setSales(data);
-        if (count !== undefined) {
-          setPageCount(Math.ceil(count / pageSize));
-        }
+  // Update sales data mutation
+  const updateSalesMutation = useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: number;
+      updates: Partial<SalesData>;
+    }) => {
+      const response = await fetch(`/api/update-sales-data/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error);
       }
-    } catch (error) {
-      //console.("Failed to fetch sales data:", error);
-      toast.error("Failed to fetch sales data.");
-    }
-  };
-
-  useEffect(() => {
-    fetchSalesData(pageIndex, pageSize, filters, sorting);
-  }, [employeeId, pageIndex, pageSize, filters, sorting]);
-
-  const onUpdate = async (id: number, updates: Partial<SalesData>) => {
-    const response = await fetch(`/api/update-sales-data/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      const { error } = await response.json();
-      //console.("Error updating sales data:", error);
-      toast.error("Failed to update labels.");
-    } else {
-      setSales((currentSales) =>
-        currentSales.map((sale) =>
-          sale.id === id ? { ...sale, ...updates } : sale
-        )
-      );
+      return response.json();
+    },
+    onSuccess: () => {
       toast.success("Labels updated successfully.");
-    }
-  };
-
-  const handleFilterChange = (newFilters: any[]) => {
-    setFilters(newFilters);
-  };
-
-  const handleSortingChange = (
-    updaterOrValue: SortingState | ((old: SortingState) => SortingState)
-  ) => {
-    setSorting((old) =>
-      typeof updaterOrValue === "function"
-        ? updaterOrValue(old)
-        : updaterOrValue
-    );
-  };
+      queryClient.invalidateQueries({ queryKey: ["employeeSales"] });
+    },
+    onError: () => {
+      toast.error("Failed to update labels.");
+    },
+  });
 
   const table = useReactTable({
-    data: sales,
-    columns: employeeSalesColumns(onUpdate),
-    pageCount,
+    data: salesData?.data ?? [],
+    columns: employeeSalesColumns((id, updates) => {
+      updateSalesMutation.mutate({ id, updates });
+    }),
+    pageCount: salesData ? Math.ceil(salesData.count / pageSize) : -1,
     state: {
       pagination: { pageIndex, pageSize },
       columnFilters: filters,
+      sorting,
     },
     onPaginationChange: (updater) => {
       const newPaginationState =
@@ -136,14 +137,61 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
       setPageIndex(newPaginationState.pageIndex);
       setPageSize(newPaginationState.pageSize);
     },
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     manualPagination: true,
+    manualSorting: true,
   });
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline">
+              {dateRange.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                    {format(dateRange.to, "LLL dd, y")}
+                  </>
+                ) : (
+                  format(dateRange.from, "LLL dd, y")
+                )
+              ) : (
+                "Pick a date range"
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={dateRange?.from}
+              selected={dateRange}
+              onSelect={(range: DateRange | undefined) =>
+                setDateRange({
+                  from: range?.from,
+                  to: range?.to,
+                })
+              }
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+        <Button
+          variant="outline"
+          onClick={() => setDateRange({ from: undefined, to: undefined })}
+        >
+          Reset Dates
+        </Button>
+      </div>
       <DataTableEmployee table={table} />
     </div>
   );

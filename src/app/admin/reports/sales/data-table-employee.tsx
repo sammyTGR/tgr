@@ -27,7 +27,7 @@ interface DataTableProps<TData> {
 export function DataTableEmployee<TData>({ table }: DataTableProps<TData>) {
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="flex flex-row items-center justify-between mx-2">
+      {/* <div className="flex flex-row items-center justify-between mx-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="mr-auto mb-2">
@@ -54,7 +54,7 @@ export function DataTableEmployee<TData>({ table }: DataTableProps<TData>) {
               })}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </div> */}
       <div className="flex-1 overflow-hidden rounded-md border max-w-8xl w-full sm:w-full md:w-full  lg:max-w-8xl">
         <div className="h-[calc(100vh-200px)] overflow-auto">
           <Table>
