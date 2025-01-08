@@ -1038,11 +1038,9 @@ export default function Component() {
 
       return (
         <TableRow key={employee.employee_id}>
-          {/* Employee Name Column */}
           <TableCell className="text-left font-medium w-22 sticky max-w-sm z-5 bg-background">
             {employee.name}
           </TableCell>
-          {/* Days of the Week Columns */}
           {DAYS_OF_WEEK.map((day) => (
             <TableCell
               key={day}
@@ -1064,14 +1062,21 @@ export default function Component() {
                     </div>
                   ) : null}
                   {employee.hire_date &&
-                  isSameDayOfYear(
-                    parseISO(calendarEvent.schedule_date),
-                    parseISO(employee.hire_date)
-                  ) ? (
-                    <div className="text-indigo-500 dark:text-indigo-400 font-bold">
-                      Work Anniversary!
-                    </div>
-                  ) : null}
+                    (isSameDay(
+                      parseISO(calendarEvent.schedule_date),
+                      parseISO(employee.hire_date)
+                    ) ? (
+                      <div className="text-indigo-500 dark:text-indigo-400 font-bold">
+                        Welcome to TGR! 🎉
+                      </div>
+                    ) : isSameDayOfYear(
+                        parseISO(calendarEvent.schedule_date),
+                        parseISO(employee.hire_date)
+                      ) ? (
+                      <div className="text-indigo-500 dark:text-indigo-400 font-bold">
+                        Work Anniversary!
+                      </div>
+                    ) : null)}
                   {breakRoomDutyQuery.data &&
                   breakRoomDutyQuery.data.employee.employee_id ===
                     employee.employee_id &&

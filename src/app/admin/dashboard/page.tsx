@@ -9,6 +9,11 @@ import { useRole } from "@/context/RoleContext";
 import { Input } from "@/components/ui/input";
 import { fetchEmployees, Employee } from "./actions";
 import { User } from "lucide-react";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 const Dashboard = () => {
   const { role } = useRole();
@@ -71,11 +76,33 @@ const Dashboard = () => {
                     </AvatarFallback>
                   </Avatar>
                 </div>
-                <Link href={`/admin/team/profiles/${employee.employee_id}`}>
-                  <Button variant="ghost" className="text-xl font-semibold">
-                    {employee.name}
-                  </Button>
-                </Link>
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Link href={`/admin/team/profiles/${employee.employee_id}`}>
+                      <Button variant="ghost" className="text-xl font-semibold">
+                        {employee.name}
+                      </Button>
+                    </Link>
+                  </HoverCardTrigger>
+                  {(employee.role === "admin" ||
+                    employee.role === "ceo" ||
+                    employee.role === "auditor" ||
+                    employee.role === "gunsmith" ||
+                    employee.role === "dev") && (
+                    <HoverCardContent className="w-80">
+                      <div className="flex justify-between space-x-4">
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-semibold">
+                            Phone Extension:
+                          </h4>
+                          <p className="text-sm">
+                            {employee.extension || "No extension available"}
+                          </p>
+                        </div>
+                      </div>
+                    </HoverCardContent>
+                  )}
+                </HoverCard>
               </div>
             ))}
           </div>

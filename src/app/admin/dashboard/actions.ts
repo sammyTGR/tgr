@@ -9,6 +9,8 @@ export interface Employee {
   avatar_url: string | null;
   pay_rate: string;
   status: string;
+  extension: number | null;
+  role: string;
 }
 
 const supabase = createClient();
@@ -24,7 +26,9 @@ export const fetchEmployees = async (role: string | null) => {
 
     let query = supabase
       .from("employees")
-      .select("employee_id, name, pay_rate, status, avatar_url")
+      .select(
+        "employee_id, name, pay_rate, status, avatar_url, extension, role"
+      )
       .eq("status", "active");
 
     // Restrict view for admin, super admin, and auditor
