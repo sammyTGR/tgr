@@ -1,8 +1,9 @@
-// src/app/admin/reports/sales/columns-employee.tsx
+// src/app/admin/reports/sales/columns-all-employees.tsx
 
-import { format } from "date-fns";
 import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
+import { compareAsc, format, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export interface SalesData {
   id: number;
@@ -51,17 +52,42 @@ export const employeeSalesColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Date" />
     ),
-    cell: ({ row }) => format(new Date(row.original.Date), "yyyy-MM-dd"),
+    cell: ({ row }) => {
+      const originalDate = row.original.Date;
+      if (!originalDate) return "";
+
+      try {
+        const parsedDate = parseISO(originalDate);
+        const utcDate = toZonedTime(parsedDate, "UTC");
+        return format(utcDate, "MM/dd/yyyy");
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return "";
+      }
+    },
     meta: {
       style: { width: "180px" },
     },
-    sortingFn: "datetime",
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = rowA.original.Date
+        ? parseISO(rowA.original.Date)
+        : new Date(0);
+      const dateB = rowB.original.Date
+        ? parseISO(rowB.original.Date)
+        : new Date(0);
+      return compareAsc(dateA, dateB);
+    },
     filterFn: (row, columnId, filterValue) => {
-      const formattedDate = format(
-        new Date(row.getValue(columnId)),
-        "yyyy-MM-dd"
-      );
-      return formattedDate.includes(filterValue);
+      const dateValue = row.getValue(columnId);
+      if (!dateValue) return false;
+      try {
+        const date = parseISO(String(dateValue));
+        const utcDate = toZonedTime(date, "UTC");
+        const formattedDate = format(utcDate, "yyyy-MM-dd");
+        return formattedDate.includes(filterValue);
+      } catch (error) {
+        return false;
+      }
     },
   },
   {

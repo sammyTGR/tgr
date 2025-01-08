@@ -16,8 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { type DateRange } from "react-day-picker";
 import {
   Select,
@@ -69,6 +68,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
   });
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>("all");
 
+  // Add loading state for export
+  const [isExporting, setIsExporting] = React.useState(false);
+
   // Fetch employees query
   const employeesQuery = useQuery<Employee[]>({
     queryKey: ["employees"],
@@ -89,7 +91,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
       Boolean(employee.lanid)
   );
 
-  // Fetch sales data query with timezone handling
+  // Fetch sales data query with simplified date handling
   const salesQuery = useQuery({
     queryKey: [
       "allEmployeesSales",
@@ -101,20 +103,13 @@ const SalesDataTableAllEmployees: React.FC = () => {
       selectedEmployee,
     ],
     queryFn: async () => {
-      const adjustedDateRange = {
-        from: dateRange.from
-          ? toZonedTime(
-              new Date(dateRange.from.setHours(0, 0, 0, 0)),
-              TIMEZONE
-            ).toISOString()
-          : undefined,
-        to: dateRange.to
-          ? toZonedTime(
-              new Date(dateRange.to.setHours(23, 59, 59, 999)),
-              TIMEZONE
-            ).toISOString()
-          : undefined,
-      };
+      const adjustedDateRange =
+        dateRange.from && dateRange.to
+          ? {
+              from: format(new Date(dateRange.from), "yyyy-MM-dd"),
+              to: format(new Date(dateRange.to), "yyyy-MM-dd"),
+            }
+          : undefined;
 
       const response = await fetch("/api/fetch-all-employees-sales", {
         method: "POST",
@@ -138,66 +133,20 @@ const SalesDataTableAllEmployees: React.FC = () => {
       return response.json();
     },
     initialData: { data: [], count: 0 },
+    refetchInterval: 300000, // Refetch every 5 minutes
   });
 
-  // Add a new query for fetching all data for export
+  // Export query with simplified date handling
   const exportQuery = useQuery({
     queryKey: ["exportSales", dateRange, selectedEmployee],
     queryFn: async () => {
       const adjustedDateRange = {
         from: dateRange.from
-          ? toZonedTime(
-              new Date(dateRange.from.setHours(0, 0, 0, 0)),
-              TIMEZONE
-            ).toISOString()
+          ? format(new Date(dateRange.from), "yyyy-MM-dd")
           : undefined,
         to: dateRange.to
-          ? toZonedTime(
-              new Date(dateRange.to.setHours(23, 59, 59, 999)),
-              TIMEZONE
-            ).toISOString()
+          ? format(new Date(dateRange.to), "yyyy-MM-dd")
           : undefined,
-      };
-
-      const response = await fetch("/api/fetch-all-employees-sales", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pageIndex: 0,
-          pageSize: 1000000, // Large number to get all records
-          filters: filters || [],
-          sorting: sorting || [],
-          dateRange: adjustedDateRange,
-          employeeLanid: selectedEmployee === "all" ? null : selectedEmployee,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch export data");
-      }
-
-      return response.json();
-    },
-    enabled: false, // Only run when explicitly requested
-  });
-
-  const handleExport = async () => {
-    try {
-      if (!dateRange.from || !dateRange.to) {
-        console.error("Date range is required");
-        return;
-      }
-
-      // Create new Date objects to avoid mutating the original dates
-      const from = new Date(dateRange.from);
-      const to = new Date(dateRange.to);
-
-      // Format dates in Pacific timezone with exact start/end times
-      const adjustedDateRange = {
-        from: formatInTimeZone(from, TIMEZONE, "yyyy-MM-dd'T'00:00:00.000XXX"),
-        to: formatInTimeZone(to, TIMEZONE, "yyyy-MM-dd'T'23:59:59.999XXX"),
       };
 
       const response = await fetch("/api/fetch-all-employees-sales-export", {
@@ -212,6 +161,45 @@ const SalesDataTableAllEmployees: React.FC = () => {
       });
 
       if (!response.ok) {
+        throw new Error("Failed to fetch export data");
+      }
+
+      return response.json();
+    },
+    enabled: false,
+  });
+
+  const handleExport = async () => {
+    try {
+      if (!dateRange.from || !dateRange.to) {
+        console.error("Date range is required");
+        return;
+      }
+
+      setIsExporting(true);
+
+      // Adjust the dates to start of day and end of day in local timezone
+      const response = await fetch("/api/fetch-all-employees-sales-export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dateRange: {
+            from: format(
+              startOfDay(new Date(dateRange.from)),
+              "yyyy-MM-dd'T'00:00:00.000'Z'"
+            ),
+            to: format(
+              endOfDay(new Date(dateRange.to)),
+              "yyyy-MM-dd'T'23:59:59.999'Z'"
+            ),
+          },
+          employeeLanid: selectedEmployee === "all" ? null : selectedEmployee,
+        }),
+      });
+
+      if (!response.ok) {
         throw new Error(`Failed to fetch export data: ${response.statusText}`);
       }
 
@@ -221,9 +209,8 @@ const SalesDataTableAllEmployees: React.FC = () => {
         return;
       }
 
-      // Format the export data
       const exportData = data.data.map((row: any) => ({
-        Date: row.Date, // The date is already formatted by the API
+        Date: row.Date,
         Invoice: row.Invoice,
         Employee: row.Lanid,
         SKU: row.Sku,
@@ -241,14 +228,19 @@ const SalesDataTableAllEmployees: React.FC = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sales Data");
 
-      // Use the original dates for the filename
       const filename = `sales_report_${
         selectedEmployee === "all" ? "all_employees" : selectedEmployee
-      }_${format(from, "yyyy-MM-dd")}_to_${format(to, "yyyy-MM-dd")}.xlsx`;
+      }_${format(new Date(dateRange.from), "yyyy-MM-dd")}_to_${format(
+        new Date(dateRange.to),
+        "yyyy-MM-dd"
+      )}.xlsx`;
 
       XLSX.writeFile(wb, filename);
     } catch (error) {
       console.error("Export failed:", error);
+      // You might want to show an error toast here
+    } finally {
+      setIsExporting(false); // End loading state
     }
   };
 
@@ -358,11 +350,14 @@ const SalesDataTableAllEmployees: React.FC = () => {
 
         <Button
           onClick={handleExport}
-          disabled={exportQuery.isFetching}
-          className="ml-auto" // Push to right side
+          disabled={isExporting || !dateRange.from || !dateRange.to}
+          className="ml-auto"
         >
-          {exportQuery.isFetching ? (
-            "Exporting..."
+          {isExporting ? (
+            <>
+              <span className="loading loading-spinner loading-sm mr-2"></span>
+              Exporting...
+            </>
           ) : (
             <>
               <DownloadIcon className="mr-2 h-4 w-4" />

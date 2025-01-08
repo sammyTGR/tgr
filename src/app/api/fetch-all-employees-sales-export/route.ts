@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { formatInTimeZone } from "date-fns-tz";
+import { parseISO } from "date-fns";
 
 const TIMEZONE = "America/Los_Angeles";
+const PAGE_SIZE = 1000;
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    // Ensure request body is properly parsed
     const body = await request.json().catch(() => ({}));
     const { dateRange, employeeLanid } = body;
 
@@ -29,64 +30,101 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let query = supabase
+    // Use the exact dates provided from the client
+    const fromDate = dateRange.from;
+    const toDate = dateRange.to;
+
+    let countQuery = supabase
       .from("sales_data")
-      .select(
-        `
-        id,
-        "Lanid",
-        "Invoice",
-        "Sku",
-        "Desc",
-        "SoldPrice",
-        "SoldQty",
-        "Cost",
-        "Date",
-        "Type",
-        category_label,
-        subcategory_label,
-        total_gross,
-        total_net,
-        "LastName"
-      `
-      )
+      .select("*", { count: "exact", head: true })
       .not("Date", "is", null);
 
-    // Apply employee filter
     if (employeeLanid && employeeLanid !== "all") {
-      query = query.eq("Lanid", employeeLanid);
+      countQuery = countQuery.eq("Lanid", employeeLanid);
     }
 
-    // Apply date range filters with timezone handling
-    if (dateRange?.from) {
-      query = query.gte("Date", dateRange.from);
+    if (fromDate) {
+      countQuery = countQuery.gte("Date", fromDate);
     }
 
-    if (dateRange?.to) {
-      query = query.lte("Date", dateRange.to);
+    if (toDate) {
+      countQuery = countQuery.lte("Date", toDate);
     }
 
-    // Order by date ascending for exports
-    query = query.order("Date", { ascending: true });
+    const { count } = await countQuery;
 
-    // Execute query
-    const { data: salesData, error: salesError } = await query;
+    if (!count) {
+      return NextResponse.json({ data: [] });
+    }
 
-    if (salesError) {
-      throw salesError;
+    // Calculate number of pages needed
+    const pages = Math.ceil(count / PAGE_SIZE);
+    let allData: any[] = [];
+
+    // Fetch data page by page
+    for (let page = 0; page < pages; page++) {
+      const from = page * PAGE_SIZE;
+      const to = Math.min((page + 1) * PAGE_SIZE - 1, count - 1);
+
+      let query = supabase
+        .from("sales_data")
+        .select(
+          `
+          id,
+          "Lanid",
+          "Invoice",
+          "Sku",
+          "Desc",
+          "SoldPrice",
+          "SoldQty",
+          "Cost",
+          "Date",
+          "Type",
+          category_label,
+          subcategory_label,
+          total_gross,
+          total_net,
+          "LastName"
+        `
+        )
+        .not("Date", "is", null)
+        .order("Date", { ascending: true })
+        .range(from, to);
+
+      if (employeeLanid && employeeLanid !== "all") {
+        query = query.eq("Lanid", employeeLanid);
+      }
+
+      if (fromDate) {
+        query = query.gte("Date", fromDate);
+      }
+
+      if (toDate) {
+        query = query.lte("Date", toDate);
+      }
+
+      const { data: pageData, error: pageError } = await query;
+
+      if (pageError) {
+        throw pageError;
+      }
+
+      if (pageData) {
+        allData = [...allData, ...pageData];
+      }
     }
 
     // Transform dates in the response
-    const transformedData = salesData
-      ?.filter((sale) => sale.Date)
-      .map((sale: any) => ({
+    const transformedData = allData
+      .filter((sale) => sale.Date)
+      .map((sale) => ({
         ...sale,
-        Date: formatInTimeZone(new Date(sale.Date), TIMEZONE, "yyyy-MM-dd"),
+        Date: formatInTimeZone(parseISO(sale.Date), TIMEZONE, "yyyy-MM-dd"),
         employeeName: sale.LastName || "Unknown",
       }));
 
     return NextResponse.json({
-      data: transformedData || [],
+      data: transformedData,
     });
   } catch (error) {
     console.error("Failed to fetch export data:", error);
