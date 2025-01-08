@@ -28,6 +28,15 @@ import {
 import { Card } from "@/components/ui/card";
 import { DownloadIcon } from "@radix-ui/react-icons";
 import * as XLSX from "xlsx";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 const TIMEZONE = "America/Los_Angeles";
 
@@ -66,7 +75,10 @@ const SalesDataTableAllEmployees: React.FC = () => {
     from: undefined,
     to: undefined,
   });
-  const [selectedEmployee, setSelectedEmployee] = React.useState<string>("all");
+  const [selectedEmployees, setSelectedEmployees] = React.useState<string[]>([
+    "all",
+  ]);
+  const [commandOpen, setCommandOpen] = React.useState(false);
 
   // Add loading state for export
   const [isExporting, setIsExporting] = React.useState(false);
@@ -100,7 +112,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
       filters,
       sorting,
       dateRange,
-      selectedEmployee,
+      selectedEmployees,
     ],
     queryFn: async () => {
       const adjustedDateRange =
@@ -122,7 +134,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
           filters: filters || [],
           sorting: sorting || [],
           dateRange: adjustedDateRange,
-          employeeLanid: selectedEmployee === "all" ? null : selectedEmployee,
+          employeeLanids: selectedEmployees.includes("all")
+            ? null
+            : selectedEmployees,
         }),
       });
 
@@ -133,12 +147,12 @@ const SalesDataTableAllEmployees: React.FC = () => {
       return response.json();
     },
     initialData: { data: [], count: 0 },
-    refetchInterval: 300000, // Refetch every 5 minutes
+    refetchInterval: 300000,
   });
 
   // Export query with simplified date handling
   const exportQuery = useQuery({
-    queryKey: ["exportSales", dateRange, selectedEmployee],
+    queryKey: ["exportSales", dateRange, selectedEmployees],
     queryFn: async () => {
       const adjustedDateRange = {
         from: dateRange.from
@@ -156,7 +170,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
         },
         body: JSON.stringify({
           dateRange: adjustedDateRange,
-          employeeLanid: selectedEmployee === "all" ? null : selectedEmployee,
+          employeeLanids: selectedEmployees.includes("all")
+            ? null
+            : selectedEmployees,
         }),
       });
 
@@ -178,7 +194,6 @@ const SalesDataTableAllEmployees: React.FC = () => {
 
       setIsExporting(true);
 
-      // Adjust the dates to start of day and end of day in local timezone
       const response = await fetch("/api/fetch-all-employees-sales-export", {
         method: "POST",
         headers: {
@@ -195,7 +210,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
               "yyyy-MM-dd'T'23:59:59.999'Z'"
             ),
           },
-          employeeLanid: selectedEmployee === "all" ? null : selectedEmployee,
+          employeeLanids: selectedEmployees.includes("all")
+            ? null
+            : selectedEmployees,
         }),
       });
 
@@ -229,7 +246,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Sales Data");
 
       const filename = `sales_report_${
-        selectedEmployee === "all" ? "all_employees" : selectedEmployee
+        selectedEmployees.includes("all")
+          ? "all_employees"
+          : selectedEmployees.join(",")
       }_${format(new Date(dateRange.from), "yyyy-MM-dd")}_to_${format(
         new Date(dateRange.to),
         "yyyy-MM-dd"
@@ -281,26 +300,72 @@ const SalesDataTableAllEmployees: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <Select
-          value={selectedEmployee}
-          onValueChange={(value) => {
-            setSelectedEmployee(value);
-            setPageIndex(0);
-          }}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select Employee" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Employees</SelectItem>
-            {validEmployees?.map((employee) => (
-              <SelectItem key={employee.employee_id} value={employee.lanid}>
-                {`${employee.name || ""} ${employee.last_name || ""}`.trim() ||
-                  "Unknown"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={commandOpen} onOpenChange={setCommandOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex max-w-[700px] justify-start"
+            >
+              {selectedEmployees.includes("all") ? (
+                "All Employees"
+              ) : (
+                <div className="flex gap-1 flex-wrap">
+                  {selectedEmployees.map((id) => {
+                    const emp = validEmployees?.find((e) => e.lanid === id);
+                    return (
+                      <Badge key={id} variant="secondary" className="mr-1">
+                        {`${emp?.name || ""} ${emp?.last_name || ""}`.trim() ||
+                          "Unknown"}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0">
+            <Command>
+              <CommandInput placeholder="Search employees..." />
+              <CommandEmpty>No employee found.</CommandEmpty>
+              <CommandGroup>
+                <ScrollArea className="h-[200px]">
+                  <CommandItem
+                    onSelect={() => {
+                      setSelectedEmployees(["all"]);
+                      setCommandOpen(false);
+                      setPageIndex(0);
+                    }}
+                  >
+                    <div className="flex items-center">All Employees</div>
+                  </CommandItem>
+                  {validEmployees?.map((employee) => (
+                    <CommandItem
+                      key={employee.employee_id}
+                      onSelect={() => {
+                        setSelectedEmployees((prev) => {
+                          if (prev.includes("all")) {
+                            return [employee.lanid];
+                          }
+                          if (prev.includes(employee.lanid)) {
+                            return prev.filter((id) => id !== employee.lanid);
+                          }
+                          return [...prev, employee.lanid];
+                        });
+                        setPageIndex(0);
+                      }}
+                    >
+                      <div className="flex items-center">
+                        {`${employee.name || ""} ${
+                          employee.last_name || ""
+                        }`.trim() || "Unknown"}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </ScrollArea>
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         <Popover>
           <PopoverTrigger asChild>
@@ -341,7 +406,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
           variant="outline"
           onClick={() => {
             setDateRange({ from: undefined, to: undefined });
-            setSelectedEmployee("all");
+            setSelectedEmployees(["all"]);
             setPageIndex(0);
           }}
         >

@@ -66,7 +66,7 @@ export const employeeSalesColumns = (
       }
     },
     meta: {
-      style: { width: "180px" },
+      style: { width: "100px" },
     },
     sortingFn: (rowA, rowB, columnId) => {
       const dateA = rowA.original.Date
@@ -96,7 +96,7 @@ export const employeeSalesColumns = (
       <DataTableColumnHeader column={column} title="Lanid" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "80px" },
     },
   },
   //   {
@@ -114,7 +114,7 @@ export const employeeSalesColumns = (
       <DataTableColumnHeader column={column} title="Desc" />
     ),
     meta: {
-      style: { width: "600px" },
+      style: { width: "500px" },
     },
   },
   // {
@@ -126,24 +126,7 @@ export const employeeSalesColumns = (
   //     style: { width: "100px" },
   //   },
   // },
-  // {
-  //   accessorKey: "SoldQty",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Sold Qty" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
-  // {
-  //   accessorKey: "Cost",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Cost" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
+
   // {
   //   accessorKey: "Acct",
   //   header: ({ column }) => (
@@ -198,6 +181,24 @@ export const employeeSalesColumns = (
     ),
     meta: {
       style: { width: "150px" },
+    },
+  },
+  {
+    accessorKey: "SoldQty",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Sold Qty" />
+    ),
+    meta: {
+      style: { width: "80px" },
+    },
+  },
+  {
+    accessorKey: "Cost",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Cost" />
+    ),
+    meta: {
+      style: { width: "80px" },
     },
   },
   {

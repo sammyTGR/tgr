@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { dateRange, employeeLanid } = body;
+    const { dateRange, employeeLanids } = body;
 
     if (!dateRange) {
       return NextResponse.json(
@@ -30,25 +30,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Use the exact dates provided from the client
-    const fromDate = dateRange.from;
-    const toDate = dateRange.to;
-
+    // First, get total count
     let countQuery = supabase
       .from("sales_data")
       .select("*", { count: "exact", head: true })
       .not("Date", "is", null);
 
-    if (employeeLanid && employeeLanid !== "all") {
-      countQuery = countQuery.eq("Lanid", employeeLanid);
+    // Apply employee filter for multiple employees
+    if (employeeLanids && !employeeLanids.includes("all")) {
+      countQuery = countQuery.in("Lanid", employeeLanids);
     }
 
-    if (fromDate) {
-      countQuery = countQuery.gte("Date", fromDate);
+    if (dateRange?.from) {
+      countQuery = countQuery.gte("Date", dateRange.from);
     }
 
-    if (toDate) {
-      countQuery = countQuery.lte("Date", toDate);
+    if (dateRange?.to) {
+      countQuery = countQuery.lte("Date", dateRange.to);
     }
 
     const { count } = await countQuery;
@@ -91,16 +89,17 @@ export async function POST(request: Request) {
         .order("Date", { ascending: true })
         .range(from, to);
 
-      if (employeeLanid && employeeLanid !== "all") {
-        query = query.eq("Lanid", employeeLanid);
+      // Apply employee filter for multiple employees
+      if (employeeLanids && !employeeLanids.includes("all")) {
+        query = query.in("Lanid", employeeLanids);
       }
 
-      if (fromDate) {
-        query = query.gte("Date", fromDate);
+      if (dateRange?.from) {
+        query = query.gte("Date", dateRange.from);
       }
 
-      if (toDate) {
-        query = query.lte("Date", toDate);
+      if (dateRange?.to) {
+        query = query.lte("Date", dateRange.to);
       }
 
       const { data: pageData, error: pageError } = await query;

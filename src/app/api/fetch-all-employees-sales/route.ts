@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { pageIndex, pageSize, filters, sorting, dateRange, employeeLanid } =
+    const { pageIndex, pageSize, filters, sorting, dateRange, employeeLanids } =
       await request.json();
 
     const {
@@ -47,19 +47,17 @@ export async function POST(request: Request) {
       )
       .not("Date", "is", null);
 
-    // Apply employee filter
-    if (employeeLanid && employeeLanid !== "all") {
-      query = query.eq("Lanid", employeeLanid);
+    // Apply employee filter for multiple employees
+    if (employeeLanids && !employeeLanids.includes("all")) {
+      query = query.in("Lanid", employeeLanids);
     }
 
     // Apply date range filter with precise timezone handling
     if (dateRange?.from) {
-      // The date is already in ISO format with correct timezone from the client
       query = query.gte("Date", dateRange.from);
     }
 
     if (dateRange?.to) {
-      // The date is already in ISO format with correct timezone from the client
       query = query.lte("Date", dateRange.to);
     }
 
