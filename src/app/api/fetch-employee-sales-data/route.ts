@@ -1,32 +1,55 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { startOfDay, endOfDay } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { startOfDay, endOfDay, format } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+
+const TIMEZONE = "America/Los_Angeles";
 
 export async function POST(request: Request) {
-  const { employeeId, pageIndex, pageSize, filters, sorting, dateRange } =
-    await request.json();
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    // Validate request body
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.error("Failed to parse request body:", error);
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const { employeeId, pageIndex, pageSize, filters, sorting, dateRange } =
+      body;
+
+    // Validate required parameters
+    if (employeeId === undefined) {
+      return NextResponse.json(
+        { error: "employeeId is required" },
+        { status: 400 }
+      );
+    }
+
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // First get the employee's lanid
+    // Get employee's lanid with error handling
     const { data: employeeData, error: employeeError } = await supabase
       .from("employees")
       .select("lanid")
       .eq("employee_id", employeeId)
       .single();
 
-    if (employeeError || !employeeData) {
+    if (employeeError || !employeeData?.lanid) {
       console.error("Employee lookup error:", employeeError);
       return NextResponse.json(
         { error: employeeError?.message || "Employee not found" },
@@ -34,9 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const lanid = employeeData.lanid;
-
-    // Build the base query
+    // Build base query with explicit type casting
     let query = supabase
       .from("sales_data")
       .select(
@@ -54,33 +75,27 @@ export async function POST(request: Request) {
         category_label,
         subcategory_label,
         total_gross,
-        total_net
+        total_net,
+        "LastName"
       `,
         { count: "exact" }
       )
-      .eq("Lanid", lanid);
+      .eq("Lanid", employeeData.lanid)
+      .not("Date", "is", null);
 
-    // Apply date range filter if provided
+    // Apply date range filter with timezone handling
     if (dateRange?.from) {
-      // Convert to start of day in Pacific time
-      const fromDate = toZonedTime(
-        startOfDay(new Date(dateRange.from)),
-        "America/Los_Angeles"
-      );
-      query = query.gte("Date", fromDate.toISOString());
+      const fromDate = format(new Date(dateRange.from), "yyyy-MM-dd");
+      query = query.gte("Date", fromDate);
     }
 
     if (dateRange?.to) {
-      // Convert to end of day in Pacific time
-      const toDate = toZonedTime(
-        endOfDay(new Date(dateRange.to)),
-        "America/Los_Angeles"
-      );
-      query = query.lte("Date", toDate.toISOString());
+      const toDate = format(new Date(dateRange.to), "yyyy-MM-dd");
+      query = query.lte("Date", toDate);
     }
 
-    // Apply filters if any
-    if (filters && filters.length > 0) {
+    // Apply filters
+    if (filters?.length > 0) {
       filters.forEach((filter: any) => {
         if (filter.value) {
           query = query.ilike(filter.id, `%${filter.value}%`);
@@ -89,44 +104,46 @@ export async function POST(request: Request) {
     }
 
     // Apply sorting
-    if (sorting && sorting.length > 0) {
+    if (sorting?.length > 0) {
       const { id, desc } = sorting[0];
       query = query.order(id, { ascending: !desc });
     } else {
       query = query.order("Date", { ascending: false });
     }
 
-    // Get total count first
-    const { count: totalCount } = await query;
+    // Get total count
+    const { count } = await query;
 
-    // Calculate pagination range
-    const from = Math.min(pageIndex * pageSize, totalCount || 0);
-    const to = Math.min(from + pageSize - 1, totalCount || 0);
+    if (!count) {
+      return NextResponse.json({
+        data: [],
+        count: 0,
+      });
+    }
 
     // Apply pagination
-    query = query.range(from, to);
+    const from = Math.max(0, pageIndex * pageSize);
+    const to = Math.min(from + pageSize - 1, count - 1);
 
-    // Execute the final query
-    const { data: salesData, error: salesError } = await query;
+    // Execute final query
+    const { data: salesData, error: salesError } = await query.range(from, to);
 
     if (salesError) {
-      console.error("Sales data lookup error:", salesError);
       throw salesError;
     }
 
+    // Transform dates
+    const transformedData = salesData
+      ?.filter((sale) => sale.Date)
+      .map((sale: any) => ({
+        ...sale,
+        Date: toZonedTime(new Date(sale.Date), TIMEZONE).toISOString(),
+        employeeName: sale.LastName || "Unknown",
+      }));
+
     return NextResponse.json({
-      data: salesData,
-      count: totalCount,
-      debug: {
-        employeeId,
-        lanid,
-        pageIndex,
-        pageSize,
-        from,
-        to,
-        dateRange,
-        totalRecords: totalCount,
-      },
+      data: transformedData || [],
+      count: count || 0,
     });
   } catch (error) {
     console.error("Failed to fetch employee sales data:", error);

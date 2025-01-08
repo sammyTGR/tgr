@@ -18,8 +18,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { type DateRange } from "react-day-picker";
+import { Card } from "@/components/ui/card";
+
+const TIMEZONE = "America/Los_Angeles";
 
 interface SalesData {
   id: number;
@@ -53,7 +57,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
     to: undefined,
   });
 
-  // Fetch sales data query with date range
+  // Updated query with proper timezone handling
   const { data: salesData, isLoading } = useQuery({
     queryKey: [
       "employeeSales",
@@ -65,6 +69,20 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
       dateRange,
     ],
     queryFn: async () => {
+      const adjustedDateRange =
+        dateRange.from && dateRange.to
+          ? {
+              from: format(
+                startOfDay(new Date(dateRange.from)),
+                "yyyy-MM-dd'T'00:00:00.000'Z'"
+              ),
+              to: format(
+                endOfDay(new Date(dateRange.to)),
+                "yyyy-MM-dd'T'23:59:59.999'Z'"
+              ),
+            }
+          : undefined;
+
       const response = await fetch("/api/fetch-employee-sales-data", {
         method: "POST",
         headers: {
@@ -72,18 +90,21 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
         },
         body: JSON.stringify({
           employeeId,
-          pageIndex,
-          pageSize,
-          filters,
-          sorting,
-          dateRange,
+          pageIndex: Number(pageIndex),
+          pageSize: Number(pageSize),
+          filters: filters || [],
+          sorting: sorting || [],
+          dateRange: adjustedDateRange,
         }),
       });
 
-      const result = await response.json();
-      if (result.error) throw new Error(result.error);
-      return result;
+      if (!response.ok) {
+        throw new Error("Failed to fetch sales data");
+      }
+
+      return response.json();
     },
+    refetchInterval: 300000, // Refetch every 5 minutes
   });
 
   // Update sales data mutation
@@ -123,7 +144,7 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
     columns: employeeSalesColumns((id, updates) => {
       updateSalesMutation.mutate({ id, updates });
     }),
-    pageCount: salesData ? Math.ceil(salesData.count / pageSize) : -1,
+    pageCount: Math.max(1, Math.ceil((salesData?.count ?? 0) / pageSize)),
     state: {
       pagination: { pageIndex, pageSize },
       columnFilters: filters,
@@ -138,11 +159,13 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
       setPageSize(newPaginationState.pageSize);
     },
     onSortingChange: setSorting,
+    onColumnFiltersChange: setFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     manualPagination: true,
     manualSorting: true,
+    manualFiltering: true,
   });
 
   if (isLoading) {
@@ -175,24 +198,30 @@ const SalesDataTableEmployee: React.FC<SalesDataTableEmployeeProps> = ({
               mode="range"
               defaultMonth={dateRange?.from}
               selected={dateRange}
-              onSelect={(range: DateRange | undefined) =>
+              onSelect={(range: DateRange | undefined) => {
                 setDateRange({
                   from: range?.from,
                   to: range?.to,
-                })
-              }
+                });
+                setPageIndex(0);
+              }}
               numberOfMonths={2}
             />
           </PopoverContent>
         </Popover>
         <Button
           variant="outline"
-          onClick={() => setDateRange({ from: undefined, to: undefined })}
+          onClick={() => {
+            setDateRange({ from: undefined, to: undefined });
+            setPageIndex(0);
+          }}
         >
           Reset Dates
         </Button>
       </div>
-      <DataTableEmployee table={table} />
+      <Card className="p-4">
+        <DataTableEmployee table={table} />
+      </Card>
     </div>
   );
 };
