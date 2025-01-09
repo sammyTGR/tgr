@@ -4,7 +4,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation"; // Correct import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ import {
   TrashIcon,
   PlusIcon,
   CalendarIcon,
+  PersonIcon,
 } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
@@ -1810,15 +1811,16 @@ const EmployeeProfile = () => {
         <Card className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-4">
-              <Avatar>
-                <img
-                  src={
-                    employee.avatar_url ||
-                    "https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh"
-                  }
-                  alt="Employee Avatar"
+              <Avatar
+                className={employee.avatar_url ? "w-32 h-32" : "w-24 h-24"}
+              >
+                <AvatarImage
+                  src={employee.avatar_url || ""}
+                  alt={employee.name}
                 />
-                <AvatarFallback>{employee.name[0]}</AvatarFallback>
+                <AvatarFallback>
+                  <PersonIcon className="w-6 h-6" />
+                </AvatarFallback>
               </Avatar>
               <div>
                 <h1 className="text-xl font-bold">{employee.name}</h1>

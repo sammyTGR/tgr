@@ -511,6 +511,23 @@ function AdminDashboardContent() {
                 const subcategoryLabel =
                   subcategoryMap.get(subcategoryKey) || "";
 
+                // Set Cost equal to SoldPrice for specific category/subcategory combinations
+                if (
+                  (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
+                  // Standard Ammunition Eligibility Check
+                  (rowData.Sub === "7" ||
+                    parseInt(rowData.Sub) === 7 ||
+                    // Dros Fee
+                    rowData.Sub === "1" ||
+                    parseInt(rowData.Sub) === 1 ||
+                    // Basic Ammunition Eligibility Check
+                    rowData.Sub === "8" ||
+                    parseInt(rowData.Sub) === 8)
+                  // Note: We exclude "DROS Reprocessing Fee (Dealer Sale)" (Sub: 16)
+                ) {
+                  rowData.Cost = rowData.SoldPrice;
+                }
+
                 return {
                   ...rowData,
                   Date: convertDateFormat(rowData.Date),

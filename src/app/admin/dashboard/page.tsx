@@ -14,6 +14,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { PersonIcon } from "@radix-ui/react-icons";
 
 const Dashboard = () => {
   const { role } = useRole();
@@ -72,7 +73,7 @@ const Dashboard = () => {
                       alt={employee.name}
                     />
                     <AvatarFallback>
-                      <User className="w-6 h-6" />
+                      <PersonIcon className="w-6 h-6" />
                     </AvatarFallback>
                   </Avatar>
                 </div>
