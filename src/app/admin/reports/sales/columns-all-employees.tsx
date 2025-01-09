@@ -93,7 +93,7 @@ export const employeeSalesColumns = (
   {
     accessorKey: "Lanid",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Lanid" />
+      <DataTableColumnHeader column={column} title="AIM ID" />
     ),
     meta: {
       style: { width: "80px" },
