@@ -34,6 +34,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
   // Add loading state for export
   const [isExporting, setIsExporting] = React.useState(false);
 
+  // Add search state
+  const [searchQuery, setSearchQuery] = React.useState("");
+
   // Fetch employees query
   const employeesQuery = useQuery<Employee[]>({
     queryKey: ["employees"],
@@ -102,6 +106,30 @@ const SalesDataTableAllEmployees: React.FC = () => {
     (employee): employee is Employee & { lanid: string } =>
       Boolean(employee.lanid)
   );
+
+  // Filter employees based on search query with improved search logic
+  const filteredEmployees = React.useMemo(() => {
+    if (!validEmployees) return [];
+    if (!searchQuery.trim()) return validEmployees;
+
+    return validEmployees.filter((employee) => {
+      const fullName = `${employee.name || ""} ${employee.last_name || ""}`
+        .toLowerCase()
+        .trim();
+      const searchTerm = searchQuery.toLowerCase().trim();
+
+      // Check if the search term appears in the full name
+      return fullName.includes(searchTerm);
+    });
+  }, [validEmployees, searchQuery]);
+
+  // Add some debug logging
+  // console.log({
+  //   searchQuery,
+  //   validEmployeesCount: validEmployees?.length,
+  //   filteredEmployeesCount: filteredEmployees?.length,
+  //   filteredEmployees,
+  // });
 
   // Fetch sales data query with simplified date handling
   const salesQuery = useQuery({
@@ -222,7 +250,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
 
       const data = await response.json();
       if (!data?.data?.length) {
-        console.log("No data found for the selected range");
+        // console.log("No data found for the selected range");
         return;
       }
 
@@ -323,47 +351,59 @@ const SalesDataTableAllEmployees: React.FC = () => {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0">
-            <Command>
-              <CommandInput placeholder="Search employees..." />
-              <CommandEmpty>No employee found.</CommandEmpty>
-              <CommandGroup>
-                <ScrollArea className="h-[200px]">
-                  <CommandItem
-                    onSelect={() => {
-                      setSelectedEmployees(["all"]);
-                      setCommandOpen(false);
-                      setPageIndex(0);
-                    }}
-                  >
-                    <div className="flex items-center">All Employees</div>
-                  </CommandItem>
-                  {validEmployees?.map((employee) => (
-                    <CommandItem
-                      key={employee.employee_id}
-                      onSelect={() => {
-                        setSelectedEmployees((prev) => {
-                          if (prev.includes("all")) {
-                            return [employee.lanid];
-                          }
-                          if (prev.includes(employee.lanid)) {
-                            return prev.filter((id) => id !== employee.lanid);
-                          }
-                          return [...prev, employee.lanid];
-                        });
-                        setPageIndex(0);
-                      }}
-                    >
-                      <div className="flex items-center">
-                        {`${employee.name || ""} ${
-                          employee.last_name || ""
-                        }`.trim() || "Unknown"}
-                      </div>
-                    </CommandItem>
-                  ))}
-                </ScrollArea>
-              </CommandGroup>
-            </Command>
+          <PopoverContent className="w-[200px] p-0" align="start">
+            {employeesQuery.isLoading ? (
+              <div className="p-4 text-sm text-muted-foreground">
+                Loading...
+              </div>
+            ) : (
+              <Command shouldFilter={false}>
+                <CommandInput
+                  placeholder="Search employees..."
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                />
+                <CommandList>
+                  {filteredEmployees.length === 0 && searchQuery ? (
+                    <CommandEmpty>No employee found.</CommandEmpty>
+                  ) : (
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setSelectedEmployees(["all"]);
+                          setCommandOpen(false);
+                          setPageIndex(0);
+                          setSearchQuery("");
+                        }}
+                      >
+                        All Employees
+                      </CommandItem>
+                      {filteredEmployees.map((employee) => (
+                        <CommandItem
+                          key={employee.employee_id}
+                          onSelect={() => {
+                            setSelectedEmployees((prev) => {
+                              if (prev.includes("all")) {
+                                return [employee.lanid];
+                              }
+                              if (prev.includes(employee.lanid)) {
+                                return prev.filter(
+                                  (id) => id !== employee.lanid
+                                );
+                              }
+                              return [...prev, employee.lanid];
+                            });
+                            setPageIndex(0);
+                          }}
+                        >
+                          {`${employee.name || ""}`.trim() || "Unknown"}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            )}
           </PopoverContent>
         </Popover>
 
