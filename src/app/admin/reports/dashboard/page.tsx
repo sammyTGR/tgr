@@ -498,7 +498,6 @@ function AdminDashboardContent() {
                 keys.forEach((key, index) => {
                   // Skip the Margin and Margin % columns
                   if (key !== "Margin" && key !== "Margin %") {
-                    // Handle Primary Email column name change if needed
                     const mappedKey =
                       key === "Primary Email" ? "Primary Email" : key;
                     rowData[mappedKey] = row[index];
@@ -511,8 +510,8 @@ function AdminDashboardContent() {
                 const subcategoryLabel =
                   subcategoryMap.get(subcategoryKey) || "";
 
-                // Set Cost equal to SoldPrice for specific category/subcategory combinations
-                if (
+                // Check if this is a special case where Cost should equal SoldPrice
+                const isSpecialCase =
                   (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
                   // Standard Ammunition Eligibility Check
                   (rowData.Sub === "7" ||
@@ -522,10 +521,13 @@ function AdminDashboardContent() {
                     parseInt(rowData.Sub) === 1 ||
                     // Basic Ammunition Eligibility Check
                     rowData.Sub === "8" ||
-                    parseInt(rowData.Sub) === 8)
-                  // Note: We exclude "DROS Reprocessing Fee (Dealer Sale)" (Sub: 16)
-                ) {
+                    parseInt(rowData.Sub) === 8);
+                // Note: We exclude "DROS Reprocessing Fee (Dealer Sale)" (Sub: 16)
+
+                // Set Cost and total_gross based on the special case
+                if (isSpecialCase) {
                   rowData.Cost = rowData.SoldPrice;
+                  rowData.total_gross = 0;
                 }
 
                 return {
@@ -545,7 +547,7 @@ function AdminDashboardContent() {
                 chainPromise = chainPromise.then(() =>
                   Promise.resolve(
                     supabase
-                      .from("sales_data")
+                      .from("sales_data_duplicate")
                       .upsert(batch)
                       .then(({ error }) => {
                         if (error) {

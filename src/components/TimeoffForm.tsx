@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { eachDayOfInterval, format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import {
@@ -79,6 +79,11 @@ interface TimeOffFormData {
   reason: string;
   other_reason?: string;
   [key: string]: any; // This allows for additional properties
+}
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
 }
 
 export default function TimeoffForm({
@@ -175,10 +180,10 @@ export default function TimeoffForm({
     enabled: false,
   });
 
-  const { data: popoverOpen = false } = useQuery<boolean>({
-    queryKey: ["popoverOpen"],
+  const { data: popoverOpen = false } = useQuery({
+    queryKey: ["timeOffPopoverOpen"],
     queryFn: () => false,
-    enabled: false,
+    staleTime: Infinity,
   });
 
   const { data: date = undefined } = useQuery<Date | undefined>({
@@ -186,6 +191,13 @@ export default function TimeoffForm({
     queryFn: () => undefined,
     enabled: false,
   });
+
+  const { data: dateRange = { from: undefined, to: undefined } } =
+    useQuery<DateRange>({
+      queryKey: ["timeOffDateRange"],
+      queryFn: () => ({ from: undefined, to: undefined }),
+      staleTime: Infinity,
+    });
 
   const submitTimeOffMutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -343,9 +355,19 @@ export default function TimeoffForm({
   };
 
   const handleSelectDates = (dates: Date[] | undefined) => {
-    if (dates) {
+    if (dates && dates.length > 0) {
+      // Keep popover open while selecting dates
       queryClient.setQueryData(["selectedDates"], dates);
-      if (dates.length > 0) {
+
+      // Update the date range for display
+      const range = {
+        from: dates[0],
+        to: dates.length > 1 ? dates[dates.length - 1] : undefined,
+      };
+      queryClient.setQueryData(["dateRange"], range);
+
+      // Only close popover when at least one date is selected
+      if (dates.length >= 1) {
         const start_date = format(dates[0], "yyyy-MM-dd");
         const end_date = format(dates[dates.length - 1], "yyyy-MM-dd");
         queryClient.setQueryData(
@@ -356,6 +378,10 @@ export default function TimeoffForm({
       }
     } else {
       queryClient.setQueryData(["selectedDates"], []);
+      queryClient.setQueryData(["dateRange"], {
+        from: undefined,
+        to: undefined,
+      });
     }
     queryClient.setQueryData(["date"], dates?.[0]);
   };
@@ -550,7 +576,28 @@ export default function TimeoffForm({
   const updatePopoverOpen = useMutation({
     mutationFn: (newValue: boolean) => Promise.resolve(newValue),
     onSuccess: (newValue) => {
-      queryClient.setQueryData(["popoverOpen"], newValue);
+      queryClient.setQueryData(["timeOffPopoverOpen"], newValue);
+    },
+  });
+
+  const updateSelectedDates = useMutation({
+    mutationFn: (dates: Date[] | undefined) => Promise.resolve(dates),
+    onSuccess: (dates) => {
+      queryClient.setQueryData(["selectedDates"], dates);
+    },
+  });
+
+  const updateDateRange = useMutation({
+    mutationFn: (range: DateRange) => Promise.resolve(range),
+    onSuccess: (range) => {
+      queryClient.setQueryData(["timeOffDateRange"], range);
+      // Also update selectedDates for compatibility
+      if (range.from && range.to) {
+        const dates = eachDayOfInterval({ start: range.from, end: range.to });
+        queryClient.setQueryData(["selectedDates"], dates);
+      } else {
+        queryClient.setQueryData(["selectedDates"], []);
+      }
     },
   });
 
@@ -581,23 +628,61 @@ export default function TimeoffForm({
                   <div className="grid gap-2">
                     <Label htmlFor="date">Select Dates</Label>
                     <Popover
+                      modal={true}
                       open={popoverOpen}
-                      onOpenChange={(open) => updatePopoverOpen.mutate(open)}
+                      onOpenChange={(open) => {
+                        updatePopoverOpen.mutate(open);
+                      }}
                     >
                       <PopoverTrigger asChild>
                         <Button
+                          type="button"
                           variant="outline"
                           className="w-full justify-start text-left font-normal"
                         >
                           <CalendarIcon className="mr-1 h-4 w-4 -translate-x-1" />
-                          {date ? date.toDateString() : "Pick dates"}
+                          {dateRange.from ? (
+                            dateRange.to ? (
+                              <>
+                                {format(dateRange.from, "LLL dd, y")} -{" "}
+                                {format(dateRange.to, "LLL dd, y")}
+                              </>
+                            ) : (
+                              format(dateRange.from, "LLL dd, y")
+                            )
+                          ) : (
+                            "Pick a date range"
+                          )}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
-                          mode="multiple"
-                          selected={selectedDates}
-                          onSelect={handleSelectDates}
+                          initialFocus
+                          mode="range"
+                          defaultMonth={dateRange?.from}
+                          selected={{
+                            from: dateRange?.from,
+                            to: dateRange?.to || dateRange?.from,
+                          }}
+                          onSelect={(range) => {
+                            updateDateRange.mutate({
+                              from: range?.from,
+                              to: range?.to || range?.from,
+                            });
+                            if (range?.from && range?.to) {
+                              const start_date = format(
+                                range.from,
+                                "yyyy-MM-dd"
+                              );
+                              const end_date = format(range.to, "yyyy-MM-dd");
+                              queryClient.setQueryData(
+                                ["calendarData", start_date, end_date],
+                                undefined
+                              );
+                              refetchCalendarData();
+                            }
+                          }}
+                          numberOfMonths={2}
                         />
                       </PopoverContent>
                     </Popover>
@@ -672,7 +757,6 @@ export default function TimeoffForm({
                 open={showAlertDialog}
                 onOpenChange={(open) => {
                   if (!open) {
-                    // Only reset isSubmitting when closing the dialog without submitting
                     updateIsSubmitting.mutate(false);
                   }
                   updateShowAlertDialog.mutate(open);
@@ -702,14 +786,16 @@ export default function TimeoffForm({
                       onClick={() => {
                         updateShowAlertDialog.mutate(false);
                         updateIsSubmitting.mutate(false);
+                        onSubmitSuccess?.();
                       }}
                     >
                       Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => {
+                      onClick={async () => {
                         updateIsSubmitting.mutate(true);
-                        submitForm();
+                        await submitForm();
+                        onSubmitSuccess?.();
                       }}
                     >
                       Submit Request

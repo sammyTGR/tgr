@@ -117,15 +117,6 @@ export const employeeSalesColumns = (
       style: { width: "500px" },
     },
   },
-  // {
-  //   accessorKey: "SoldPrice",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Sold Price" />
-  //   ),
-  //   meta: {
-  //     style: { width: "100px" },
-  //   },
-  // },
 
   // {
   //   accessorKey: "Acct",
@@ -168,7 +159,7 @@ export const employeeSalesColumns = (
   {
     accessorKey: "category_label",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category Label" />
+      <DataTableColumnHeader column={column} title="Category" />
     ),
     meta: {
       style: { width: "150px" },
@@ -177,16 +168,25 @@ export const employeeSalesColumns = (
   {
     accessorKey: "subcategory_label",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Subcategory Label" />
+      <DataTableColumnHeader column={column} title="Subcategory" />
     ),
     meta: {
       style: { width: "150px" },
     },
   },
   {
+    accessorKey: "SoldPrice",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Sold Price" />
+    ),
+    meta: {
+      style: { width: "100px" },
+    },
+  },
+  {
     accessorKey: "SoldQty",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sold Qty" />
+      <DataTableColumnHeader column={column} title="Qty" />
     ),
     meta: {
       style: { width: "80px" },
