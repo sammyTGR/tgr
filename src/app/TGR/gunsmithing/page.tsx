@@ -322,7 +322,13 @@ export default function GunsmithingMaintenance() {
     // Update local state
     setData((prevData) =>
       prevData.map((item) =>
-        item.id === id ? { ...item, maintenance_notes: notes } : item
+        item.id === id
+          ? {
+              ...item,
+              maintenance_notes: notes,
+              last_maintenance_date: new Date().toISOString(),
+            }
+          : item
       )
     );
 
@@ -331,7 +337,10 @@ export default function GunsmithingMaintenance() {
       try {
         const { error } = await supabase
           .from("firearms_maintenance")
-          .update({ maintenance_notes: notes })
+          .update({
+            maintenance_notes: notes,
+            last_maintenance_date: new Date().toISOString(),
+          })
           .eq("id", id);
 
         if (error) throw error;

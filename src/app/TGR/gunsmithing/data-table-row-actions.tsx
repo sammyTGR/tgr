@@ -77,7 +77,10 @@ export function DataTableRowActions({
   const handleSaveNotes = async () => {
     const { error } = await supabase
       .from("firearms_maintenance")
-      .update({ maintenance_notes: maintenanceNotes })
+      .update({
+        maintenance_notes: maintenanceNotes,
+        last_maintenance_date: new Date().toISOString(),
+      })
       .eq("id", task.id);
 
     if (error) {
