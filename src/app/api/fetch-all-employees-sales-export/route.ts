@@ -113,13 +113,29 @@ export async function POST(request: Request) {
       }
     }
 
-    // Transform dates in the response
+    // Fetch employee names for all the sales data
+    const lanids = allData.map((sale) => sale.Lanid).filter(Boolean);
+    const { data: employeeData } = await supabase
+      .from("employees")
+      .select("lanid, name, last_name")
+      .in("lanid", lanids);
+
+    // Create a map of lanid to employee names
+    const employeeMap = new Map(
+      employeeData?.map((emp) => [
+        emp.lanid,
+        `${emp.name || ""} ${emp.last_name || ""}`.trim(),
+      ]) || []
+    );
+
+    // Transform dates in the response and add employee names
     const transformedData = allData
       .filter((sale) => sale.Date)
       .map((sale) => ({
         ...sale,
         Date: formatInTimeZone(parseISO(sale.Date), TIMEZONE, "yyyy-MM-dd"),
-        employeeName: sale.LastName || "Unknown",
+        employee_name:
+          employeeMap.get(sale.Lanid) || sale.LastName || "Unknown",
       }));
 
     return NextResponse.json({

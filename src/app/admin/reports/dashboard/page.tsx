@@ -1065,7 +1065,7 @@ function AdminDashboardContent() {
               )}
 
               {/* Sales Report Table*/}
-              {flags.is_barchart_enabled.enabled && (
+              {/* {flags.is_barchart_enabled.enabled && (
                 <div className="col-span-full overflow-hidden mt-2">
                   <Card className="flex flex-col col-span-full h-full">
                     <CardHeader className="flex-shrink-0">
@@ -1094,7 +1094,7 @@ function AdminDashboardContent() {
                     </CardContent>
                   </Card>
                 </div>
-              )}
+              )} */}
             </TabsContent>
 
             <TabsContent value="sales-employee">
