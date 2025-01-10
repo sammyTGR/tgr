@@ -54,6 +54,7 @@ interface ExportRow {
   Date: string;
   Invoice: string;
   Employee: string;
+  "Employee Name": string;
   SKU: string;
   Description: string;
   Category: string;
@@ -258,6 +259,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
         Date: row.Date,
         Invoice: row.Invoice,
         Employee: row.Lanid,
+        "Employee Name": row.employee_name,
         SKU: row.Sku,
         Description: row.Desc,
         Category: row.category_label,

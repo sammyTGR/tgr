@@ -15,6 +15,8 @@ export interface SalesData {
   subcategory_label: string;
   total_gross: number;
   total_net: number;
+  Lanid: string;
+  employee_name: string;
 }
 
 export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
@@ -97,6 +99,15 @@ export const employeeSalesColumns = (
     ),
     meta: {
       style: { width: "80px" },
+    },
+  },
+  {
+    accessorKey: "employee_name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
+    meta: {
+      style: { width: "150px" },
     },
   },
   //   {

@@ -81,7 +81,7 @@ const Dashboard = () => {
                   <HoverCardTrigger asChild>
                     <Link href={`/admin/team/profiles/${employee.employee_id}`}>
                       <Button variant="ghost" className="text-xl font-semibold">
-                        {employee.name}
+                        {employee.name} {employee.last_name}
                       </Button>
                     </Link>
                   </HoverCardTrigger>

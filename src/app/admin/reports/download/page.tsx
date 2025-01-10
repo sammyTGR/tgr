@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SickTimeTable } from "./SickTimeTable"; // Import the SickTimeTable component
@@ -12,14 +12,23 @@ import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import { format, parseISO } from "date-fns";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 
 interface SickTimeReport {
   employee_id: number;
   name: string;
-  available_sick_time: number;
-  used_sick_time: number;
-  used_dates: string[];
-  hours_per_date: number[];
+  sick_time_history: {
+    year: number;
+    total_hours_used: number;
+    requests_count: number;
+    details: {
+      request_id: number;
+      hours_used: number;
+      date_used: string;
+      start_date: string;
+      end_date: string;
+    }[];
+  }[];
 }
 
 interface TimesheetReport {
@@ -55,76 +64,169 @@ interface VacationTimeReport {
 const TIME_ZONE = "America/Los_Angeles";
 
 const AdminReportsPage = () => {
-  const [sickTimeData, setSickTimeData] = useState<SickTimeReport[]>([]);
-  const [timesheetData, setTimesheetData] = useState<TimesheetReport[]>([]);
-  const [vacationTimeData, setVacationTimeData] = useState<
-    VacationTimeReport[]
-  >([]);
-  const [activeTab, setActiveTab] = useState("timesheet");
-  const [isAllExpanded, setIsAllExpanded] = useState(false);
-  const [selectedPayPeriod, setSelectedPayPeriod] = useState<string | null>(
-    null
-  );
-  const [filteredTimesheetData, setFilteredTimesheetData] = useState<
-    TimesheetReport[]
-  >([]);
+  const queryClient = useQueryClient();
 
-  // Add a computed value for filtered vacation data
+  // Add mutation for activeTab
+  const setActiveTab = useMutation({
+    mutationFn: (newTab: string) => {
+      return Promise.resolve(queryClient.setQueryData(["activeTab"], newTab));
+    },
+  });
+
+  // Convert all state to TanStack Query
+  const { data: sickTimeData = [], error: sickTimeError } = useQuery({
+    queryKey: ["sickTimeData"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.rpc(
+          "get_all_employee_sick_time_history",
+          {}, // Add empty params object
+          {
+            count: "exact", // Add count option
+          }
+        );
+
+        if (error) {
+          console.error("Supabase RPC error:", error);
+          throw error;
+        }
+
+        if (!data) {
+          console.warn("No data returned from sick time query");
+          return [];
+        }
+
+        console.log("Sick time data:", data); // Debug log
+        return data as SickTimeReport[];
+      } catch (err) {
+        console.error("Error fetching sick time data:", err);
+        throw err;
+      }
+    },
+    retry: 1, // Only retry once
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+  });
+
+  const { data: timesheetData = [] } = useQuery({
+    queryKey: ["timesheetData"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_timesheet_data");
+      if (error) throw error;
+      return data as TimesheetReport[];
+    },
+  });
+
+  const { data: vacationTimeData = [] } = useQuery({
+    queryKey: ["vacationTimeData"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "get_all_employee_vacation_time_usage"
+      );
+      if (error) throw error;
+      return data as VacationTimeReport[];
+    },
+  });
+
+  const { data: activeTab = "timesheet" } = useQuery({
+    queryKey: ["activeTab"],
+    queryFn: () => "timesheet" as const,
+    initialData: "timesheet",
+  });
+
+  const { data: isAllExpanded = false } = useQuery({
+    queryKey: ["isAllExpanded"],
+    queryFn: () => false,
+    initialData: false,
+  });
+
+  const { data: selectedPayPeriod = null } = useQuery({
+    queryKey: ["selectedPayPeriod"],
+    queryFn: () => null as string | null,
+    initialData: null,
+  });
+
+  const { data: filteredTimesheetData = [] } = useQuery({
+    queryKey: ["filteredTimesheetData"],
+    queryFn: () => [] as TimesheetReport[],
+    initialData: [],
+  });
+
+  // Computed value for filtered vacation data
   const filteredVacationData = vacationTimeData.filter(
     (row) => row.used_vacation_time > 0
   );
 
-  useEffect(() => {
-    const fetchSickTimeData = async () => {
-      const { data, error } = await supabase.rpc(
-        "get_all_employee_sick_time_usage"
-      );
-      if (error) {
-        //console.("Error fetching sick time data:", error.message);
-      } else {
-        // console.log("Fetched Sick Time Data:", data);
-        setSickTimeData(data as SickTimeReport[]);
-      }
-    };
-
-    const fetchTimesheetData = async () => {
-      const { data, error } = await supabase.rpc("get_timesheet_data");
-      if (error) {
-        //console.("Error fetching timesheet data:", error.message);
-      } else {
-        // console.log("Timesheet Data:", data); // For debugging
-        setTimesheetData(data as TimesheetReport[]);
-      }
-    };
-
-    const fetchVacationTimeData = async () => {
-      const { data, error } = await supabase.rpc(
-        "get_all_employee_vacation_time_usage"
-      );
-      if (error) {
-        console.error("Error fetching vacation time data:", error.message);
-      } else {
-        setVacationTimeData(data as VacationTimeReport[]);
-      }
-    };
-
-    fetchSickTimeData();
-    fetchTimesheetData();
-    fetchVacationTimeData();
-  }, []);
-
+  // Update handlers to use mutations
   const handleTimesheetDataUpdate = (
     updater: (prevData: TimesheetReport[]) => TimesheetReport[]
   ) => {
-    setTimesheetData((prevData) => {
-      const newData = updater(prevData);
-      // console.log("Updated timesheet data:", newData);
+    queryClient.setQueryData(
+      ["timesheetData"],
+      (oldData: TimesheetReport[]) => {
+        const newData = updater(oldData);
+        return newData;
+      }
+    );
+  };
+
+  const handleFilteredDataUpdate = (filteredData: TimesheetReport[]) => {
+    queryClient.setQueryData(
+      ["filteredTimesheetData"],
+      (oldData: TimesheetReport[]) => {
+        const newData = filteredData;
+        return newData;
+      }
+    );
+  };
+
+  const handleExpandCollapseAll = () => {
+    queryClient.setQueryData(["isAllExpanded"], (oldData: boolean) => {
+      const newData = !oldData;
       return newData;
     });
   };
 
-  const handleFilteredDataUpdate = (filteredData: TimesheetReport[]) => {
-    setFilteredTimesheetData(filteredData);
+  const exportSickTimeData = (data: SickTimeReport[]) => {
+    const sickTimeExport: any[] = [];
+
+    data.forEach((row) => {
+      const currentYear = new Date().getFullYear();
+      const currentYearData = row.sick_time_history.find(
+        (h) => h.year === currentYear
+      );
+      const currentYearUsage = currentYearData?.total_hours_used || 0;
+      const availableHours = Math.max(0, 40 - currentYearUsage);
+
+      sickTimeExport.push({
+        "Employee Name": row.name,
+        "Employee ID": row.employee_id,
+        "Available Sick Hours": availableHours.toFixed(2),
+        "Used This Year": currentYearUsage.toFixed(2),
+        Year: currentYear,
+      });
+
+      // Add detailed usage rows
+      row.sick_time_history.forEach((yearData) => {
+        sickTimeExport.push({
+          Year: yearData.year,
+          "Total Hours Used": yearData.total_hours_used.toFixed(2),
+          "Number of Requests": yearData.requests_count,
+        });
+
+        yearData.details.forEach((usage) => {
+          sickTimeExport.push({
+            "Request Date": format(new Date(usage.date_used), "MM/dd/yyyy"),
+            "Start Date": format(new Date(usage.start_date), "MM/dd/yyyy"),
+            "End Date": format(new Date(usage.end_date), "MM/dd/yyyy"),
+            "Hours Used": usage.hours_used.toFixed(2),
+          });
+        });
+
+        sickTimeExport.push({}); // Add separator row
+      });
+    });
+
+    return sickTimeExport;
   };
 
   const handleDownload = () => {
@@ -187,32 +289,40 @@ const AdminReportsPage = () => {
       fileName = "timesheet_report.xlsx";
     } else if (activeTab === "sick-time") {
       sickTimeData.forEach((row) => {
-        // Add a row for the employee's summary
+        const currentYear = new Date().getFullYear();
+        const currentYearData = row.sick_time_history.find(
+          (h) => h.year === currentYear
+        );
+        const currentYearUsage = currentYearData?.total_hours_used || 0;
+        const availableHours = Math.max(0, 40 - currentYearUsage);
+
         dataToExport.push({
           "Employee Name": row.name,
           "Employee ID": row.employee_id,
-          "Total Available Hours": row.available_sick_time,
-          "Total Used Hours": row.hours_per_date.reduce(
-            (sum, hours) => sum + hours,
-            0
-          ),
-          "Remaining Hours":
-            row.available_sick_time -
-            row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
+          "Available Sick Hours": availableHours.toFixed(2),
+          "Used This Year": currentYearUsage.toFixed(2),
+          "Total Requests This Year": currentYearData?.requests_count || 0,
         });
 
-        // Add rows for each usage entry
-        row.used_dates.forEach((date, index) => {
-          const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
+        row.sick_time_history.forEach((yearData) => {
           dataToExport.push({
-            "Usage Date": formatTZ(zonedDate, "M-dd-yyyy", {
-              timeZone: TIME_ZONE,
-            }),
-            "Usage Hours": row.hours_per_date[index],
+            Year: yearData.year,
+            "Total Hours Used": yearData.total_hours_used.toFixed(2),
+            "Number of Requests": yearData.requests_count,
           });
+
+          yearData.details.forEach((usage) => {
+            dataToExport.push({
+              "Start Date": format(new Date(usage.start_date), "MM/dd/yyyy"),
+              "End Date": format(new Date(usage.end_date), "MM/dd/yyyy"),
+              "Hours Used": usage.hours_used.toFixed(2),
+              "Date Requested": format(new Date(usage.date_used), "MM/dd/yyyy"),
+            });
+          });
+
+          dataToExport.push({});
         });
 
-        // Add an empty row for separation
         dataToExport.push({});
       });
 
@@ -227,50 +337,12 @@ const AdminReportsPage = () => {
     saveAs(new Blob([wbout], { type: "application/octet-stream" }), fileName);
   };
 
-  useEffect(() => {
-    // console.log("Filtered Timesheet Data:", filteredTimesheetData);
-  }, [filteredTimesheetData]);
-
-  const handleExpandCollapseAll = () => {
-    setIsAllExpanded(!isAllExpanded);
-  };
-
-  // Add a new function to handle combined download
-  const handleCombinedDownload = () => {
-    const wb = XLSX.utils.book_new();
-
-    // Process sick time data
-    const sickTimeExport: any[] = [];
-    sickTimeData.forEach((row) => {
-      sickTimeExport.push({
-        "Employee Name": row.name,
-        "Employee ID": row.employee_id,
-        "Total Available Sick Hours": row.available_sick_time,
-        "Total Used Sick Hours": row.hours_per_date.reduce(
-          (sum, hours) => sum + hours,
-          0
-        ),
-        "Remaining Sick Hours":
-          row.available_sick_time -
-          row.hours_per_date.reduce((sum, hours) => sum + hours, 0),
-      });
-
-      row.used_dates.forEach((date, index) => {
-        const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
-        sickTimeExport.push({
-          "Usage Date": formatTZ(zonedDate, "M-dd-yyyy", {
-            timeZone: TIME_ZONE,
-          }),
-          "Usage Hours": row.hours_per_date[index],
-        });
-      });
-      sickTimeExport.push({});
-    });
-
-    // Process vacation time data - use filtered data
+  // Add a function to process vacation time data
+  const processVacationTimeData = (data: VacationTimeReport[]) => {
     const vacationTimeExport: any[] = [];
-    filteredVacationData.forEach((row) => {
-      // Calculate total used hours by summing the hours_per_date array
+
+    // Use filtered data instead of all vacation data
+    data.forEach((row) => {
       const totalUsedHours = row.hours_per_date.reduce(
         (sum, hours) => sum + hours,
         0
@@ -279,10 +351,11 @@ const AdminReportsPage = () => {
       vacationTimeExport.push({
         "Employee Name": row.name,
         "Employee ID": row.employee_id,
-        "Total Available Vacation Hours": row.available_vacation_time,
-        "Total Used Vacation Hours": totalUsedHours,
+        "Total Available Hours": row.available_vacation_time,
+        "Total Used Hours": totalUsedHours,
       });
 
+      // Add rows for each usage entry
       row.used_dates.forEach((date, index) => {
         const zonedDate = toZonedTime(new Date(date), TIME_ZONE);
         vacationTimeExport.push({
@@ -292,8 +365,23 @@ const AdminReportsPage = () => {
           "Usage Hours": row.hours_per_date[index],
         });
       });
+
+      // Add an empty row for separation
       vacationTimeExport.push({});
     });
+
+    return vacationTimeExport;
+  };
+
+  // Update handleCombinedDownload to use the new function
+  const handleCombinedDownload = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Process sick time data
+    const sickTimeExport = exportSickTimeData(sickTimeData);
+
+    // Process vacation time data
+    const vacationTimeExport = processVacationTimeData(filteredVacationData);
 
     // Add both sheets to workbook
     const ws1 = XLSX.utils.json_to_sheet(sickTimeExport);
@@ -308,6 +396,13 @@ const AdminReportsPage = () => {
       "combined_time_report.xlsx"
     );
   };
+
+  // Add error handling in the render
+  if (sickTimeError) {
+    console.error("Sick time query error:", sickTimeError);
+    // Optionally render an error state
+    return <div>Error loading sick time data</div>;
+  }
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
@@ -329,7 +424,7 @@ const AdminReportsPage = () => {
         <Tabs
           defaultValue="sick-time"
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={(value) => setActiveTab.mutate(value)}
         >
           <TabsList>
             <TabsTrigger value="timesheet">Timesheet Report</TabsTrigger>

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 export interface Employee {
   employee_id: number;
   name: string;
+  last_name: string;
   avatar_url: string | null;
   pay_rate: string;
   status: string;
@@ -27,7 +28,7 @@ export const fetchEmployees = async (role: string | null) => {
     let query = supabase
       .from("employees")
       .select(
-        "employee_id, name, pay_rate, status, avatar_url, extension, role"
+        "employee_id, name, last_name, pay_rate, status, avatar_url, extension, role"
       )
       .eq("status", "active");
 
