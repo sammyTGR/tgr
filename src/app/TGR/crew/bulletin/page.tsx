@@ -89,6 +89,14 @@ const acknowledgmentSchema = z.object({
 
 type AcknowledgmentFormValues = z.infer<typeof acknowledgmentSchema>;
 
+// Add this new type for form state
+type BulletinFormState = {
+  title: string;
+  content: string;
+  category: string;
+  requires_acknowledgment: boolean;
+};
+
 export default function BulletinBoard() {
   const queryClient = useQueryClient();
   const supabase = createClientComponentClient();
@@ -206,27 +214,6 @@ export default function BulletinBoard() {
     },
   });
 
-  const newBulletinQuery = useQuery<NewBulletin>({
-    queryKey: ["newBulletin"],
-    queryFn: () => ({
-      title: "",
-      content: "",
-      category: "",
-      requires_acknowledgment: false,
-    }),
-    staleTime: Infinity,
-  });
-
-  const updateNewBulletin = (updates: Partial<NewBulletin>) => {
-    queryClient.setQueryData<NewBulletin>(["newBulletin"], (old) => ({
-      title: old?.title || "",
-      content: old?.content || "",
-      category: old?.category || "",
-      requires_acknowledgment: old?.requires_acknowledgment || false,
-      ...updates,
-    }));
-  };
-
   const deleteBulletinMutation = useMutation({
     mutationFn: async (postId: number) => {
       const { error } = await supabase
@@ -243,6 +230,18 @@ export default function BulletinBoard() {
       console.error("Error deleting bulletin:", error);
       toast.error("Failed to delete bulletin");
     },
+  });
+
+  // Add a new query for form state
+  const bulletinFormQuery = useQuery<BulletinFormState>({
+    queryKey: ["bulletinForm"],
+    queryFn: () => ({
+      title: "",
+      content: "",
+      category: "",
+      requires_acknowledgment: false,
+    }),
+    staleTime: Infinity,
   });
 
   const editBulletinMutation = useMutation({
@@ -279,6 +278,7 @@ export default function BulletinBoard() {
     queryFn: () => ({
       createBulletinOpen: false,
       editBulletinOpen: false,
+      editingBulletinId: null as number | null,
     }),
     staleTime: Infinity,
   });
@@ -331,19 +331,32 @@ export default function BulletinBoard() {
                     <Label htmlFor="title">Title</Label>
                     <Input
                       id="title"
-                      value={newBulletinQuery.data?.title}
-                      onChange={(e) =>
-                        updateNewBulletin({ title: e.target.value })
-                      }
+                      defaultValue={bulletinFormQuery.data?.title}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        queryClient.setQueryData(
+                          ["bulletinForm"],
+                          (old: BulletinFormState | undefined) => ({
+                            ...old!,
+                            title: newValue,
+                          })
+                        );
+                      }}
                     />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
                     <Select
-                      value={newBulletinQuery.data?.category}
-                      onValueChange={(value) =>
-                        updateNewBulletin({ category: value })
-                      }
+                      value={bulletinFormQuery.data?.category}
+                      onValueChange={(value) => {
+                        queryClient.setQueryData(
+                          ["bulletinForm"],
+                          (old: BulletinFormState | undefined) => ({
+                            ...old!,
+                            category: value,
+                          })
+                        );
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
@@ -363,20 +376,33 @@ export default function BulletinBoard() {
                     <Label htmlFor="content">Content</Label>
                     <Textarea
                       id="content"
-                      value={newBulletinQuery.data?.content}
-                      onChange={(e) =>
-                        updateNewBulletin({ content: e.target.value })
-                      }
+                      defaultValue={bulletinFormQuery.data?.content}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        queryClient.setQueryData(
+                          ["bulletinForm"],
+                          (old: BulletinFormState | undefined) => ({
+                            ...old!,
+                            content: newValue,
+                          })
+                        );
+                      }}
                       rows={5}
                     />
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="requires_acknowledgment"
-                      checked={newBulletinQuery.data?.requires_acknowledgment}
-                      onCheckedChange={(checked) =>
-                        updateNewBulletin({ requires_acknowledgment: checked })
-                      }
+                      checked={bulletinFormQuery.data?.requires_acknowledgment}
+                      onCheckedChange={(checked) => {
+                        queryClient.setQueryData(
+                          ["bulletinForm"],
+                          (old: BulletinFormState | undefined) => ({
+                            ...old!,
+                            requires_acknowledgment: checked,
+                          })
+                        );
+                      }}
                     />
                     <Label htmlFor="requires_acknowledgment">
                       Requires Acknowledgment
@@ -386,8 +412,12 @@ export default function BulletinBoard() {
                 <DialogFooter>
                   <Button
                     onClick={() => {
-                      if (newBulletinQuery.data) {
-                        createBulletinMutation.mutate(newBulletinQuery.data, {
+                      const formData =
+                        queryClient.getQueryData<BulletinFormState>([
+                          "bulletinForm",
+                        ]);
+                      if (formData) {
+                        createBulletinMutation.mutate(formData, {
                           onSuccess: () => {
                             queryClient.setQueryData(
                               ["dialogStates"],
@@ -396,15 +426,13 @@ export default function BulletinBoard() {
                                 createBulletinOpen: false,
                               })
                             );
-                            queryClient.setQueryData<NewBulletin>(
-                              ["newBulletin"],
-                              {
-                                title: "",
-                                content: "",
-                                category: "",
-                                requires_acknowledgment: false,
-                              }
-                            );
+                            // Reset form
+                            queryClient.setQueryData(["bulletinForm"], {
+                              title: "",
+                              content: "",
+                              category: "",
+                              requires_acknowledgment: false,
+                            });
                           },
                         });
                       }
@@ -441,13 +469,18 @@ export default function BulletinBoard() {
                           currentEmployee?.role === "dev") && (
                           <>
                             <Dialog
-                              open={dialogStatesQuery.data?.editBulletinOpen}
+                              open={
+                                dialogStatesQuery.data?.editBulletinOpen &&
+                                dialogStatesQuery.data?.editingBulletinId ===
+                                  post.id
+                              }
                               onOpenChange={(open) => {
                                 queryClient.setQueryData(
                                   ["dialogStates"],
                                   (old: any) => ({
                                     ...old,
                                     editBulletinOpen: open,
+                                    editingBulletinId: open ? post.id : null,
                                   })
                                 );
                               }}
@@ -593,6 +626,7 @@ export default function BulletinBoard() {
                                                 (old: any) => ({
                                                   ...old,
                                                   editBulletinOpen: false,
+                                                  editingBulletinId: null,
                                                 })
                                               );
                                             },

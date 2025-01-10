@@ -96,7 +96,7 @@ const AdminReportsPage = () => {
           return [];
         }
 
-        console.log("Sick time data:", data); // Debug log
+        // console.log("Sick time data:", data); // Debug log
         return data as SickTimeReport[];
       } catch (err) {
         console.error("Error fetching sick time data:", err);
