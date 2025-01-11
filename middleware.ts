@@ -80,7 +80,11 @@ export async function middleware(request: NextRequest) {
     // Handle redirects for authenticated employees
     const pathname = new URL(request.url).pathname;
     if (pathname === "/auth" || pathname === "/") {
-      if (["admin", "super admin", "dev", "ceo"].includes(dbRole)) {
+      if (dbRole === "ceo" || dbRole === "super admin" || dbRole === "dev") {
+        return NextResponse.redirect(
+          new URL("/admin/reports/dashboard/ceo", request.url)
+        );
+      } else if (["admin"].includes(dbRole)) {
         return NextResponse.redirect(
           new URL("/admin/reports/dashboard", request.url)
         );

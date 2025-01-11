@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/command";
 import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/utils/supabase/client";
 
 const TIMEZONE = "America/Los_Angeles";
 
@@ -47,6 +48,7 @@ interface Employee {
   name: string | null;
   last_name: string | null;
   status: string | null;
+  department: string | null;
 }
 
 // Add an interface for the exported row data
@@ -92,20 +94,24 @@ const SalesDataTableAllEmployees: React.FC = () => {
   const employeesQuery = useQuery<Employee[]>({
     queryKey: ["employees"],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/fetchEmployees?select=employee_id,lanid,name,last_name&status=active&order=name.asc`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch employees");
-      }
-      return response.json();
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id,lanid,name,last_name,status,department")
+        .eq("status", "active")
+        .in("department", ["Sales"])
+        .order("name");
+
+      if (error) throw error;
+      return data;
     },
   });
 
   // Filter out employees with no lanid
   const validEmployees = employeesQuery.data?.filter(
     (employee): employee is Employee & { lanid: string } =>
-      Boolean(employee.lanid)
+      Boolean(employee.lanid) &&
+      employee.status === "active" &&
+      ["Sales"].includes(employee.department || "")
   );
 
   // Filter employees based on search query with improved search logic

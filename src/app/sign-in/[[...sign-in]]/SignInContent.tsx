@@ -193,7 +193,7 @@ export default function SignIn() {
           <Tabs defaultValue="membersLogin">
             <TabsContent value="membersLogin">
               <form onSubmit={handleSubmit(onSubmit)} className="grid gap-2">
-                <div className="grid gap-2">
+                {/* <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Controller
                     name="email"
@@ -245,7 +245,7 @@ export default function SignIn() {
                     ? "Signing in..."
                     : "Sign In With Email"}
                 </Button>
-                <Separator className="my-4" />
+                <Separator className="my-4" /> */}
                 <Button
                   onClick={handleOAuthLogin}
                   variant="outline"

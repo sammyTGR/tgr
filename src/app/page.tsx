@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import DOMPurify from "isomorphic-dompurify";
 import { supabase } from "@/utils/supabase/client";
-import LandingPagePublic from "@/components/LandingPagePublic";
 import LandingPageCustomer from "@/components/LandingPageCustomer";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import dynamic from "next/dynamic";
@@ -23,16 +22,6 @@ interface AuthState {
   progress: number;
   role: string | null;
 }
-
-const LazyLandingPagePublic = dynamic(
-  () =>
-    import("@/components/LandingPagePublic").then((module) => ({
-      default: module.default,
-    })),
-  {
-    loading: () => <LoadingIndicator />,
-  }
-);
 
 const LazyLandingPageCustomer = dynamic(
   () =>
@@ -143,12 +132,9 @@ export default function Home() {
         const role = roleQuery.data?.role;
         const employeeId = roleQuery.data?.employee_id;
 
-        if (
-          role === "admin" ||
-          role === "super admin" ||
-          role === "dev" ||
-          role === "ceo"
-        ) {
+        if (role === "ceo" || role === "super admin" || role === "dev") {
+          router.push("/admin/reports/dashboard/ceo");
+        } else if (["admin"].includes(role || "")) {
           router.push("/admin/reports/dashboard");
         } else if (employeeId) {
           router.push(`/TGR/crew/profile/${employeeId}`);
@@ -170,7 +156,7 @@ export default function Home() {
 
   // Handle no session state
   if (!sessionQuery.data) {
-    return <LazyLandingPagePublic />;
+    return router.push("/sign-in");
   }
 
   // Handle customer role

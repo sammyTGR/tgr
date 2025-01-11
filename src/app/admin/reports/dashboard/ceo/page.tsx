@@ -48,7 +48,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import classNames from "classnames";
-import { format, parseISO } from "date-fns";
+import { endOfDay, format, subDays, parseISO, startOfDay } from "date-fns";
 import { format as formatTZ, toZonedTime } from "date-fns-tz";
 import { useFlags } from "flagsmith/react";
 import DOMPurify from "isomorphic-dompurify";
@@ -57,8 +57,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import React, { Suspense } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import TodoWrapper from "../../todo/todo-wrapper";
-import styles from "./table.module.css";
+import TodoWrapper from "../../../todo/todo-wrapper";
+import styles from "../table.module.css";
 import AnnualRevenueBarChart from "@/app/admin/reports/charts/AnnualRevenueBarChart";
 import {
   fetchDomains,
@@ -74,9 +74,18 @@ import {
   fetchLatestDailyDeposit,
   fetchDailyChecklistStatus,
   fetchLatestSalesData,
-} from "./api";
-import { sendEmail } from "./actions";
+} from "../api";
+import { sendEmail } from "../actions";
 import SalesDataTableAllEmployees from "@/app/admin/reports/sales/sales-data-table-all-employees";
+import { SalesAtGlanceTable } from "../../sales/sales-at-glance-table";
+import {
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Command } from "@/components/ui/command";
+import { CommandGroup } from "@/components/ui/command";
+import { CommandList } from "@/components/ui/command";
 
 interface Certificate {
   id: number;
@@ -121,6 +130,15 @@ interface SalesMetrics {
   customerFrequency: { visits: string; percentage: number }[];
 }
 
+interface Employee {
+  employee_id: number;
+  lanid: string;
+  name: string | null;
+  last_name: string | null;
+  status: string;
+  department: string;
+}
+
 declare global {
   interface Function {
     timeoutId?: number;
@@ -153,7 +171,7 @@ const columns = [
   }),
 ];
 
-function AdminDashboardContent() {
+function CeoDashboardContent() {
   const flags = useFlags(["is_todo_enabled", "is_barchart_enabled"]);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -423,165 +441,6 @@ function AdminDashboardContent() {
     enabled: uploadFileMutation.isPending,
   });
 
-  // Add new queries and mutations for historical data
-  const { data: historicalFileData } = useQuery({
-    queryKey: ["historicalFileData"],
-    queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
-    staleTime: Infinity,
-  });
-
-  const updateHistoricalFileDataMutation = useMutation({
-    mutationFn: (newFileData: {
-      file: File | null;
-      fileName: string | null;
-      fileInputKey: number;
-    }) => {
-      return Promise.resolve(newFileData);
-    },
-    onSuccess: (newFileData) => {
-      queryClient.setQueryData(["historicalFileData"], newFileData);
-    },
-  });
-
-  const uploadHistoricalFileMutation = useMutation({
-    mutationFn: async (file: File) => {
-      // Add file size check
-      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error("File size exceeds 50MB limit");
-      }
-
-      const upload = (progress: number) => {
-        queryClient.setQueryData(["historicalUploadProgress"], progress);
-      };
-      return handleHistoricalFileUpload(file, upload);
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["historicalUploadProgress"], 100);
-      toast.success("Historical data uploaded and processed successfully");
-      updateHistoricalFileDataMutation.mutate({
-        file: null,
-        fileName: null,
-        fileInputKey: Date.now(),
-      });
-    },
-    onError: (error) => {
-      toast.error(`Upload failed: ${error.message}`);
-      queryClient.setQueryData(["historicalUploadProgress"], 0);
-    },
-  });
-
-  const { data: historicalUploadProgress = 0 } = useQuery({
-    queryKey: ["historicalUploadProgress"],
-    queryFn: () => queryClient.getQueryData(["historicalUploadProgress"]) ?? 0,
-    enabled: uploadHistoricalFileMutation.isPending,
-  });
-
-  const handleHistoricalFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (e.target.files && e.target.files[0]) {
-      updateHistoricalFileDataMutation.mutate({
-        file: e.target.files[0],
-        fileName: e.target.files[0].name,
-        fileInputKey: Date.now(),
-      });
-    }
-  };
-
-  function handleHistoricalFileUpload(
-    file: File,
-    onProgress: (progress: number) => void
-  ) {
-    return Promise.resolve(
-      new Promise<void>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          Promise.resolve().then(() => {
-            try {
-              const data = new Uint8Array(e.target?.result as ArrayBuffer);
-              const workbook = XLSX.read(data, { type: "array" });
-              const firstSheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[firstSheetName];
-              const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                header: 1,
-              });
-
-              const keys = jsonData[0] as string[];
-              const formattedData = jsonData.slice(1).map((row: any) => {
-                const rowData: any = {};
-                keys.forEach((key, index) => {
-                  if (key !== "Margin" && key !== "Margin %") {
-                    const mappedKey =
-                      key === "Primary Email" ? "Primary Email" : key;
-                    rowData[mappedKey] = row[index];
-                  }
-                });
-
-                const categoryLabel =
-                  categoryMap.get(parseInt(rowData.Cat)) || "";
-                const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-                const subcategoryLabel =
-                  subcategoryMap.get(subcategoryKey) || "";
-
-                if (
-                  (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
-                  (rowData.Sub === "7" ||
-                    parseInt(rowData.Sub) === 7 ||
-                    rowData.Sub === "1" ||
-                    parseInt(rowData.Sub) === 1 ||
-                    rowData.Sub === "8" ||
-                    parseInt(rowData.Sub) === 8)
-                ) {
-                  rowData.Cost = rowData.SoldPrice;
-                }
-
-                return {
-                  ...rowData,
-                  Date: convertDateFormat(rowData.Date),
-                  category_label: categoryLabel,
-                  subcategory_label: subcategoryLabel,
-                };
-              });
-
-              const batchSize = 100;
-              let processedCount = 0;
-              let chainPromise = Promise.resolve();
-
-              for (let i = 0; i < formattedData.length; i += batchSize) {
-                const batch = formattedData.slice(i, i + batchSize);
-                chainPromise = chainPromise.then(() =>
-                  Promise.resolve(
-                    supabase
-                      .from("historical_sales")
-                      .upsert(batch)
-                      .then(({ error }) => {
-                        if (!error) {
-                          processedCount += batch.length;
-                          onProgress(
-                            Math.round(
-                              (processedCount / formattedData.length) * 100
-                            )
-                          );
-                        }
-                      })
-                  )
-                );
-              }
-
-              chainPromise.then(() => resolve()).catch(reject);
-            } catch (error) {
-              reject(error);
-            }
-          });
-        };
-
-        reader.onerror = (error) => reject(error);
-        reader.readAsArrayBuffer(file);
-      })
-    );
-  }
-
   const metricsData = React.useMemo(() => {
     if (!metrics) return [];
 
@@ -840,22 +699,88 @@ function AdminDashboardContent() {
     );
   }
 
+  const { data: searchQuery } = useQuery({
+    queryKey: ["searchQuery"],
+    queryFn: () => "",
+    initialData: "",
+  });
+
+  const { data: selectedEmployees } = useQuery<string[]>({
+    queryKey: ["selectedEmployees"],
+    queryFn: () => ["all"],
+    initialData: ["all"],
+  });
+
+  const { data: commandOpen } = useQuery({
+    queryKey: ["commandOpen"],
+    queryFn: () => false,
+    initialData: false,
+  });
+
+  // Add mutations
+  const searchQueryMutation = useMutation({
+    mutationFn: (newValue: string) => Promise.resolve(newValue),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["searchQuery"], newValue);
+    },
+  });
+
+  const selectedEmployeesMutation = useMutation({
+    mutationFn: (newValue: string[]) => Promise.resolve(newValue),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["selectedEmployees"], newValue);
+    },
+  });
+
+  const commandOpenMutation = useMutation({
+    mutationFn: (newValue: boolean) => Promise.resolve(newValue),
+    onSuccess: (newValue) => {
+      queryClient.setQueryData(["commandOpen"], newValue);
+    },
+  });
+
+  const { data: validEmployees } = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("status", "active")
+        .in("department", ["Sales"]);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredEmployees = React.useMemo(() => {
+    if (!validEmployees) return [];
+    if (!searchQuery) return validEmployees;
+
+    return validEmployees.filter((employee) => {
+      const fullName = `${employee.name || ""} ${
+        employee.last_name || ""
+      }`.toLowerCase();
+      const searchTerm = searchQuery.toLowerCase();
+      return fullName.includes(searchTerm);
+    });
+  }, [validEmployees, searchQuery]);
+
   return (
-    <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
+    <RoleBasedWrapper allowedRoles={["ceo", "super admin", "dev"]}>
       <div className="container max-w-[calc(100vw-90px)] py-4">
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold">
-              Admin Dashboard
-            </CardTitle>
+            <CardTitle className="text-3xl font-bold">CEO Dashboard</CardTitle>
           </CardHeader>
         </Card>
 
         <Tabs defaultValue="reporting">
           <div className="flex items-center space-x-2">
-            <TabsList className="grid grid-cols-4 text-left">
-              <TabsTrigger value="reporting">Reports Overview</TabsTrigger>
+            <TabsList className="grid grid-cols-5 text-left">
+              <TabsTrigger value="reporting">Dashboard</TabsTrigger>
               <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
+              <TabsTrigger value="sales-glance">Sales At A Glance</TabsTrigger>
               <TabsTrigger value="sales-employee">
                 Sales By Employee
               </TabsTrigger>
@@ -1180,68 +1105,6 @@ function AdminDashboardContent() {
                       </CardContent>
                     </Card>
                   )}
-
-                  {/* New Historical Data Upload Card */}
-                  {flags.is_barchart_enabled.enabled &&
-                    (role === "super admin" || role === "dev") && (
-                      <>
-                        <Card className="flex flex-col h-full">
-                          <CardHeader className="flex-shrink-0">
-                            <CardTitle className="flex items-center gap-2">
-                              <FilePlusIcon className="h-6 w-6" />
-                              Upload Historical Sales Data
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                            <div className="mt-4 rounded-md border">
-                              <div className="flex flex-col items-start gap-2 p-2">
-                                <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
-                                  <Input
-                                    type="file"
-                                    accept=".csv,.xlsx"
-                                    onChange={handleHistoricalFileChange}
-                                    className="hidden"
-                                  />
-                                  <span>
-                                    {historicalFileData?.fileName ||
-                                      "Select Historical File"}
-                                  </span>
-                                </label>
-                                <Button
-                                  variant="outline"
-                                  onClick={() =>
-                                    historicalFileData?.file &&
-                                    uploadHistoricalFileMutation.mutate(
-                                      historicalFileData.file
-                                    )
-                                  }
-                                  className="w-full"
-                                  disabled={
-                                    uploadHistoricalFileMutation.isPending ||
-                                    !historicalFileData?.file
-                                  }
-                                >
-                                  {uploadHistoricalFileMutation.isPending
-                                    ? "Uploading Historical Data..."
-                                    : "Upload & Process Historical Data"}
-                                </Button>
-                              </div>
-                            </div>
-
-                            {uploadHistoricalFileMutation.isPending && (
-                              <Progress
-                                value={
-                                  typeof historicalUploadProgress === "number"
-                                    ? historicalUploadProgress
-                                    : 0
-                                }
-                                className="mt-4"
-                              />
-                            )}
-                          </CardContent>
-                        </Card>
-                      </>
-                    )}
                 </div>
               </div>
               {/* </div> */}
@@ -1316,6 +1179,168 @@ function AdminDashboardContent() {
                   </Card>
                 </div>
               )} */}
+            </TabsContent>
+
+            <TabsContent value="sales-glance">
+              <div className="w-full overflow-hidden">
+                <Card className="flex flex-col col-span-full h-full mb-4">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle className="flex items-center gap-2">
+                      <TableIcon className="h-6 w-6" />
+                      Sales Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 mb-8">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="flex max-w-[700px] justify-start"
+                          >
+                            {selectedEmployees.includes("all") ? (
+                              "All Employees"
+                            ) : (
+                              <div className="flex gap-1 flex-wrap">
+                                {selectedEmployees.map((id) => {
+                                  const emp = validEmployees?.find(
+                                    (e) => e.lanid === id
+                                  );
+                                  return (
+                                    <Badge
+                                      key={id}
+                                      variant="secondary"
+                                      className="mr-1"
+                                    >
+                                      {`${emp?.name || ""} ${
+                                        emp?.last_name || ""
+                                      }`.trim() || "Unknown"}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0" align="start">
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              placeholder="Search employees..."
+                              value={searchQuery}
+                              onValueChange={(value) =>
+                                searchQueryMutation.mutate(value)
+                              }
+                            />
+                            <CommandList>
+                              {/* <CommandEmpty>No employee found.</CommandEmpty> */}
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    selectedEmployeesMutation.mutate(["all"]);
+                                    commandOpenMutation.mutate(false);
+                                    searchQueryMutation.mutate("");
+                                  }}
+                                >
+                                  All Employees
+                                </CommandItem>
+                                {filteredEmployees.map((employee) => (
+                                  <CommandItem
+                                    key={employee.employee_id}
+                                    onSelect={() => {
+                                      selectedEmployeesMutation.mutate(
+                                        (() => {
+                                          const prev = selectedEmployees;
+                                          if (prev.includes("all"))
+                                            return [employee.lanid];
+                                          if (prev.includes(employee.lanid)) {
+                                            return prev.filter(
+                                              (id: string) =>
+                                                id !== employee.lanid
+                                            );
+                                          }
+                                          return [...prev, employee.lanid];
+                                        })()
+                                      );
+                                    }}
+                                  >
+                                    {`${employee.name || ""}`.trim() ||
+                                      "Unknown"}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          selectedEmployeesMutation.mutate(["all"]);
+                        }}
+                      >
+                        Reset Filters
+                      </Button>
+                    </div>
+
+                    <div className="space-y-8">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Previous Day's Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="1day"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: subDays(startOfDay(new Date()), 1),
+                                end: endOfDay(subDays(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Last 7 Days Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="7days"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: subDays(startOfDay(new Date()), 7),
+                                end: endOfDay(subDays(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Last 30 Days Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="30days"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: subDays(startOfDay(new Date()), 30),
+                                end: endOfDay(subDays(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="sales-employee">
@@ -1636,6 +1661,6 @@ function AdminDashboardContent() {
     );
   }
 }
-export default function AdminDashboard() {
-  return <AdminDashboardContent />;
+export default function CeoDashboard() {
+  return <CeoDashboardContent />;
 }
