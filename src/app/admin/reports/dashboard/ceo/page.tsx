@@ -1286,7 +1286,7 @@ function CeoDashboardContent() {
                     <div className="space-y-8">
                       <Card>
                         <CardHeader>
-                          <CardTitle>Previous Day's Sales</CardTitle>
+                          <CardTitle>Previous Day&apos;s Sales</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <Suspense fallback={<div>Loading...</div>}>
