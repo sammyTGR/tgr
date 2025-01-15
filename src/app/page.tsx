@@ -137,7 +137,7 @@ export default function Home() {
         } else if (role === "dev") {
           router.push("/admin/reports/dashboard/dev");
         } else if (["admin"].includes(role || "")) {
-          router.push("/admin/reports/dashboard");
+          router.push("/admin/reports/dashboard/admin");
         } else if (employeeId) {
           router.push(`/TGR/crew/profile/${employeeId}`);
         }

@@ -154,7 +154,11 @@ const columns = [
 ];
 
 function AdminDashboardContent() {
-  const flags = useFlags(["is_todo_enabled", "is_barchart_enabled"]);
+  const flags = useFlags([
+    "is_todo_enabled",
+    "is_barchart_enabled",
+    "is_historical_barchart_enabled",
+  ]);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -843,13 +847,13 @@ function AdminDashboardContent() {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev"]}>
       <div className="container max-w-[calc(100vw-90px)] py-4">
-        <Card className="mb-6">
+        {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-3xl font-bold">
               Admin Dashboard
             </CardTitle>
           </CardHeader>
-        </Card>
+        </Card> */}
 
         <Tabs defaultValue="reporting">
           <div className="flex items-center space-x-2">
@@ -1182,7 +1186,7 @@ function AdminDashboardContent() {
                   )}
 
                   {/* New Historical Data Upload Card */}
-                  {flags.is_barchart_enabled.enabled &&
+                  {flags.is_historical_barchart_enabled.enabled &&
                     (role === "super admin" || role === "dev") && (
                       <>
                         <Card className="flex flex-col h-full">

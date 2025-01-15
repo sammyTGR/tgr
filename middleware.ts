@@ -90,7 +90,7 @@ export async function middleware(request: NextRequest) {
         );
       } else if (["admin"].includes(dbRole)) {
         return NextResponse.redirect(
-          new URL("/admin/reports/dashboard", request.url)
+          new URL("/admin/reports/dashboard/admin", request.url)
         );
       } else {
         return NextResponse.redirect(
