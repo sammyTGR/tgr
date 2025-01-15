@@ -3,12 +3,13 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { formatInTimeZone } from "date-fns-tz";
 import { parseISO } from "date-fns";
+import { Database } from "@/types_db";
 
 const TIMEZONE = "America/Los_Angeles";
 const PAGE_SIZE = 1000;
 
 export async function POST(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const supabase = createRouteHandlerClient<Database>({ cookies });
 
   try {
     const body = await request.json().catch(() => ({}));
@@ -21,35 +22,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    // First get active employees
+    const { data: activeEmployees, error: employeesError } = await supabase
+      .from("employees")
+      .select("lanid, name")
+      .eq("status", "active")
+      .in("department", ["Sales", "Range", "Operations"]);
 
-    if (userError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (employeesError) {
+      throw employeesError;
     }
 
-    // First, get total count
-    let countQuery = supabase
+    // Create a map of lanid to employee name for easier lookup
+    const employeeMap = new Map(
+      activeEmployees?.map((emp) => [emp.lanid?.toLowerCase(), emp.name]) || []
+    );
+
+    // Get total count first using the same conditions as the RPC
+    const { count } = await supabase
       .from("sales_data")
       .select("*", { count: "exact", head: true })
-      .not("Date", "is", null);
-
-    // Apply employee filter for multiple employees
-    if (employeeLanids && !employeeLanids.includes("all")) {
-      countQuery = countQuery.in("Lanid", employeeLanids);
-    }
-
-    if (dateRange?.from) {
-      countQuery = countQuery.gte("Date", dateRange.from);
-    }
-
-    if (dateRange?.to) {
-      countQuery = countQuery.lte("Date", dateRange.to);
-    }
-
-    const { count } = await countQuery;
+      .gte("Date", dateRange.from)
+      .lte("Date", dateRange.to)
+      .in("Lanid", employeeLanids || activeEmployees?.map((e) => e.lanid) || [])
+      .not("total_net", "is", null) // Match RPC conditions
+      .not("total_gross", "is", null); // Match RPC conditions
 
     if (!count) {
       return NextResponse.json({ data: [] });
@@ -59,16 +56,16 @@ export async function POST(request: Request) {
     const pages = Math.ceil(count / PAGE_SIZE);
     let allData: any[] = [];
 
-    // Fetch data page by page
+    // Fetch data page by page with the same conditions as the RPC
     for (let page = 0; page < pages; page++) {
       const from = page * PAGE_SIZE;
-      const to = Math.min((page + 1) * PAGE_SIZE - 1, count - 1);
+      const to = from + PAGE_SIZE - 1;
 
-      let query = supabase
+      const { data: pageData, error: pageError } = await supabase
         .from("sales_data")
         .select(
           `
-          id,
+          "Date",
           "Lanid",
           "Invoice",
           "Sku",
@@ -76,33 +73,23 @@ export async function POST(request: Request) {
           "SoldPrice",
           "SoldQty",
           "Cost",
-          "Date",
           "Type",
           category_label,
           subcategory_label,
           total_gross,
-          total_net,
-          "LastName"
+          total_net
         `
         )
-        .not("Date", "is", null)
+        .gte("Date", dateRange.from)
+        .lte("Date", dateRange.to)
+        .in(
+          "Lanid",
+          employeeLanids || activeEmployees?.map((e) => e.lanid) || []
+        )
+        .not("total_net", "is", null) // Match RPC conditions
+        .not("total_gross", "is", null) // Match RPC conditions
         .order("Date", { ascending: true })
         .range(from, to);
-
-      // Apply employee filter for multiple employees
-      if (employeeLanids && !employeeLanids.includes("all")) {
-        query = query.in("Lanid", employeeLanids);
-      }
-
-      if (dateRange?.from) {
-        query = query.gte("Date", dateRange.from);
-      }
-
-      if (dateRange?.to) {
-        query = query.lte("Date", dateRange.to);
-      }
-
-      const { data: pageData, error: pageError } = await query;
 
       if (pageError) {
         throw pageError;
@@ -113,30 +100,29 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fetch employee names for all the sales data
-    const lanids = allData.map((sale) => sale.Lanid).filter(Boolean);
-    const { data: employeeData } = await supabase
-      .from("employees")
-      .select("lanid, name, last_name")
-      .in("lanid", lanids);
-
-    // Create a map of lanid to employee names
-    const employeeMap = new Map(
-      employeeData?.map((emp) => [
-        emp.lanid,
-        `${emp.name || ""} ${emp.last_name || ""}`.trim(),
-      ]) || []
-    );
-
-    // Transform dates in the response and add employee names
+    // Transform all the collected data
     const transformedData = allData
-      .filter((sale) => sale.Date)
+      .filter((sale) => sale.Date && sale.Lanid)
       .map((sale) => ({
         ...sale,
         Date: formatInTimeZone(parseISO(sale.Date), TIMEZONE, "yyyy-MM-dd"),
         employee_name:
-          employeeMap.get(sale.Lanid) || sale.LastName || "Unknown",
-      }));
+          employeeMap.get(sale.Lanid?.toLowerCase() || "") || "Unknown",
+      }))
+      .filter((row) => row.employee_name !== "Unknown");
+
+    // Add debug information
+    console.log("Export Summary:", {
+      totalRecords: transformedData.length,
+      totalGross: transformedData.reduce(
+        (sum, row) => sum + (row.total_gross || 0),
+        0
+      ),
+      totalNet: transformedData.reduce(
+        (sum, row) => sum + (row.total_net || 0),
+        0
+      ),
+    });
 
     return NextResponse.json({
       data: transformedData,

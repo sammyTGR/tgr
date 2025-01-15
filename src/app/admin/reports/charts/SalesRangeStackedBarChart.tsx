@@ -356,7 +356,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
   return (
     <div style={{ minWidth: chartData?.processedData.length * 100 }}>
-      <div className="flex flex-row items-center justify-between space-y-0 pb-4 w-[calc(100vw-200px)]">
+      <div className="flex flex-row items-center justify-between space-y-0 pb-4 w-[calc(100vw-220px)]">
         <div className="flex flex-row items-center justify-center gap-2 px-6 py-5 sm:py-6">
           <h1 className="text-2xl font-bold flex items-center gap-2"></h1>
         </div>
@@ -395,7 +395,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
       <ChartContainer
         config={chartConfig}
-        className="min-h-[20px] max-h-[400px] w-[calc(100vw-200px)]"
+        className="min-h-[20px] max-h-[400px] w-[calc(100vw-220px)]"
       >
         <BarChart
           data={chartData.processedData}

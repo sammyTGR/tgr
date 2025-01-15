@@ -86,7 +86,7 @@ import {
 import { Command } from "@/components/ui/command";
 import { CommandGroup } from "@/components/ui/command";
 import { CommandList } from "@/components/ui/command";
-import CeoDashboardContent from "./dashboard";
+import AdminDashboardContent from "../page";
 
 export default function CeoDashboard() {
   return (
@@ -97,7 +97,7 @@ export default function CeoDashboard() {
             <CardTitle className="text-3xl font-bold">CEO Dashboard</CardTitle>
           </CardHeader>
         </Card>
-        <CeoDashboardContent />
+        <AdminDashboardContent />
       </div>
     </RoleBasedWrapper>
   );

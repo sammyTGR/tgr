@@ -16,7 +16,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 
 interface SalesAtGlanceTableProps {
-  period: "1day" | "7days" | "30days";
+  period: "1day" | "7days" | "14days" | "30days";
   selectedEmployees: string[];
   dateRange: {
     start: Date;
@@ -43,6 +43,7 @@ interface ExportRow {
 
 // Add interfaces for the summary data
 interface EmployeeSummary {
+  Lanid: string;
   employee_name: string;
   total_gross: number;
   total_net: number;
@@ -60,10 +61,42 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 
   // Calculate date range based on period
   const dateRange = React.useMemo(() => {
-    const end = endOfDay(new Date());
-    const start = startOfDay(
-      subDays(new Date(), period === "1day" ? 1 : period === "7days" ? 7 : 30)
-    );
+    const yesterday = subDays(new Date(), 1);
+    const end = endOfDay(yesterday);
+
+    // Calculate start date based on period
+    let daysToSubtract;
+    switch (period) {
+      case "1day":
+        daysToSubtract = 0; // Just yesterday
+        break;
+      case "7days":
+        daysToSubtract = 6; // Yesterday plus 6 previous days = 7 days total
+        break;
+      case "14days":
+        daysToSubtract = 13; // Yesterday plus 13 previous days = 14 days total
+        break;
+      case "30days":
+        daysToSubtract = 29; // Yesterday plus 29 previous days = 30 days total
+        break;
+      default:
+        daysToSubtract = 0;
+    }
+
+    const start = startOfDay(subDays(yesterday, daysToSubtract));
+
+    // Debug logging
+    // console.log("Date Range Calculation:", {
+    //   period,
+    //   yesterday: format(yesterday, "yyyy-MM-dd"),
+    //   start: format(start, "yyyy-MM-dd"),
+    //   end: format(end, "yyyy-MM-dd"),
+    //   daysToSubtract,
+    //   daysDifference: Math.ceil(
+    //     (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    //   ),
+    // });
+
     return { start, end };
   }, [period]);
 
@@ -186,7 +219,8 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         throw new Error("Failed to fetch employee summary");
       }
 
-      return response.json();
+      const data: EmployeeSummary[] = await response.json();
+      return data;
     },
   });
 
@@ -332,25 +366,13 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           employeeSummaryQuery.data.length > 0 ? (
           <div className="p-6 rounded-lg  bg-card text-card-foreground shadow-sm">
             {/* <h2 className="font-semibold text-xl mb-4">Sales Summary</h2> */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
-              {employeeSummaryQuery.data.map((summary: EmployeeSummary) => (
-                <div key={summary.employee_name} className="space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10 gap-4">
+              {employeeSummaryQuery.data.map((summary) => (
+                <div key={summary.Lanid} className="space-y-2">
                   <h3 className="font-semibold text-lg border-b pb-2">
                     {summary.employee_name}
                   </h3>
                   <div className="space-y-1">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-muted-foreground">
-                        Total Gross
-                      </span>
-                      <span className="font-medium">
-                        $
-                        {summary.total_gross.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
                     <div className="flex flex-col">
                       <span className="text-sm text-muted-foreground">
                         Total Net
@@ -358,6 +380,18 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
                       <span className="font-medium">
                         $
                         {summary.total_net.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">
+                        Total Gross
+                      </span>
+                      <span className="font-medium">
+                        $
+                        {summary.total_gross.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import CeoDashboardContent from "../ceo/dashboard";
+import AdminDashboardContent from "../page";
 
 export default function DevDashboard() {
   return (
@@ -14,7 +14,7 @@ export default function DevDashboard() {
             <CardTitle className="text-3xl font-bold">Dev Dashboard</CardTitle>
           </CardHeader>
         </Card>
-        <CeoDashboardContent />
+        <AdminDashboardContent />
       </div>
     </RoleBasedWrapper>
   );

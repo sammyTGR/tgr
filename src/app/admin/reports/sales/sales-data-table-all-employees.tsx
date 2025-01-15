@@ -98,7 +98,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
         .from("employees")
         .select("employee_id,lanid,name,last_name,status,department")
         .eq("status", "active")
-        .in("department", ["Sales"])
+        .in("department", ["Sales", "Range", "Operations"])
         .order("name");
 
       if (error) throw error;
@@ -111,7 +111,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
     (employee): employee is Employee & { lanid: string } =>
       Boolean(employee.lanid) &&
       employee.status === "active" &&
-      ["Sales"].includes(employee.department || "")
+      ["Sales", "Range", "Operations"].includes(employee.department || "")
   );
 
   // Filter employees based on search query with improved search logic

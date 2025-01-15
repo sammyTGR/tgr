@@ -585,7 +585,7 @@ const HeaderAdmin = React.memo(() => {
 
               {/* <NotificationBell /> */}
 
-              <Link href="/admin/reports/dashboard">
+              <Link href="/">
                 <Button variant="ghost" size="icon">
                   <HomeIcon />
                 </Button>
