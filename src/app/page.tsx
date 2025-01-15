@@ -132,8 +132,10 @@ export default function Home() {
         const role = roleQuery.data?.role;
         const employeeId = roleQuery.data?.employee_id;
 
-        if (role === "ceo" || role === "super admin" || role === "dev") {
+        if (role === "ceo" || role === "super admin") {
           router.push("/admin/reports/dashboard/ceo");
+        } else if (role === "dev") {
+          router.push("/admin/reports/dashboard/dev");
         } else if (["admin"].includes(role || "")) {
           router.push("/admin/reports/dashboard");
         } else if (employeeId) {
