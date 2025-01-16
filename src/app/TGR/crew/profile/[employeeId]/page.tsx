@@ -631,30 +631,80 @@ const EmployeeProfilePage = () => {
       const timeZone = "America/Los_Angeles";
       const now = toZonedTime(new Date(), timeZone);
       const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
+      const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
 
-      if (!currentShift) {
-        throw new Error("No active shift found");
+      // First fetch the current shift
+      const { data: currentShift, error: fetchError } = await supabase
+        .from("employee_clock_events")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("event_date", eventDate)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!currentShift) throw new Error("No active shift found");
+
+      // Check if 30 minutes have passed since lunch start
+      if (currentShift.lunch_start) {
+        const lunchStartTime = new Date(
+          `1970-01-01T${currentShift.lunch_start}`
+        );
+        const currentTime = new Date(`1970-01-01T${lunchEnd}`);
+        const timeDiff =
+          (currentTime.getTime() - lunchStartTime.getTime()) / 1000 / 60;
+
+        if (timeDiff < 30) {
+          const remainingMinutes = Math.ceil(30 - timeDiff);
+
+          // Store the lock timestamp
+          await supabase
+            .from("employee_clock_events")
+            .update({
+              lunch_lock: new Date(
+                Date.now() + remainingMinutes * 60 * 1000
+              ).toISOString(),
+            })
+            .eq("id", currentShift.id);
+
+          throw new Error(
+            `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
+          );
+        }
+
+        // Check if there's an active lunch lock
+        if (currentShift.lunch_lock) {
+          const lockTime = new Date(currentShift.lunch_lock);
+          if (lockTime > new Date()) {
+            const remainingMinutes = Math.ceil(
+              (lockTime.getTime() - Date.now()) / (60 * 1000)
+            );
+            throw new Error(
+              `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
+            );
+          }
+        }
       }
 
+      // If all validations pass, update with lunch end time
       const { data, error } = await supabase
         .from("employee_clock_events")
         .update({
           lunch_end: lunchEnd,
+          lunch_lock: null, // Clear the lock when successfully clocking back in
         })
         .eq("id", currentShift.id)
         .select()
         .single();
 
       if (error) throw error;
-
       return data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["currentShift", employeeId], data);
       toast.success("Let's Get Dis Bread!");
     },
-    onError: (error) => {
-      toast.error("Failed to end lunch break. Please try again.");
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 
@@ -1303,6 +1353,10 @@ const EmployeeProfilePage = () => {
                                         </DialogTrigger>
                                         <DialogContent>
                                           <DialogDescription>
+                                            <p className="mb-4">
+                                              You must take at least a 30-minute
+                                              lunch break.
+                                            </p>
                                             <Button
                                               variant="gooeyLeft"
                                               className="w-full mx-auto mt-4"
@@ -2393,6 +2447,7 @@ const useClockEvents = (employeeId: number) => {
         const lunchEnd = formatTZ(now, "HH:mm:ss", { timeZone });
         const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
 
+        // First fetch the current shift
         const { data: currentShift, error: fetchError } = await supabase
           .from("employee_clock_events")
           .select("*")
@@ -2406,6 +2461,25 @@ const useClockEvents = (employeeId: number) => {
           throw new Error("No active shift found");
         }
 
+        // Check if 30 minutes have passed since lunch start
+        if (currentShift.lunch_start) {
+          const lunchStartTime = new Date(
+            `1970-01-01T${currentShift.lunch_start}`
+          );
+          const currentTime = new Date(`1970-01-01T${lunchEnd}`);
+          const timeDiff =
+            (currentTime.getTime() - lunchStartTime.getTime()) / 1000 / 60;
+
+          if (timeDiff < 30) {
+            throw new Error(
+              `Please wait ${Math.ceil(
+                30 - timeDiff
+              )} more minutes before clocking back in from lunch.`
+            );
+          }
+        }
+
+        // Then update with lunch end time
         const { data, error } = await supabase
           .from("employee_clock_events")
           .update({
@@ -2421,10 +2495,10 @@ const useClockEvents = (employeeId: number) => {
       },
       onSuccess: (data) => {
         queryClient.setQueryData(["currentShift", employeeId], data);
-        toast.success("Lunch break ended successfully!");
+        toast.success("Let's Get Dis Bread!");
       },
-      onError: (error) => {
-        toast.error("Failed to end lunch break. Please try again.");
+      onError: (error: Error) => {
+        toast.error(error.message);
       },
     }).mutate,
   };

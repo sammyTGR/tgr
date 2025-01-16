@@ -39,6 +39,7 @@ import {
 import { ScrollBar, ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/utils/supabase/client";
+import { Input } from "@/components/ui/input";
 
 const TIMEZONE = "America/Los_Angeles";
 
@@ -89,6 +90,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
 
   // Add search state
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [descriptionSearch, setDescriptionSearch] = React.useState("");
 
   // Fetch employees query
   const employeesQuery = useQuery<Employee[]>({
@@ -148,6 +150,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
       sorting,
       dateRange,
       selectedEmployees,
+      descriptionSearch,
     ],
     queryFn: async () => {
       const adjustedDateRange =
@@ -172,6 +175,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
           employeeLanids: selectedEmployees.includes("all")
             ? null
             : selectedEmployees,
+          descriptionSearch: descriptionSearch.trim(),
         }),
       });
 
@@ -248,6 +252,7 @@ const SalesDataTableAllEmployees: React.FC = () => {
           employeeLanids: selectedEmployees.includes("all")
             ? null
             : selectedEmployees,
+          descriptionSearch: descriptionSearch.trim(),
         }),
       });
 
@@ -450,11 +455,23 @@ const SalesDataTableAllEmployees: React.FC = () => {
           </PopoverContent>
         </Popover>
 
+        <Input
+          placeholder="Search by description..."
+          value={descriptionSearch}
+          onChange={(e) => {
+            setDescriptionSearch(e.target.value);
+            setPageIndex(0);
+          }}
+          className="max-w-sm"
+        />
+
         <Button
           variant="outline"
           onClick={() => {
             setDateRange({ from: undefined, to: undefined });
             setSelectedEmployees(["all"]);
+            setDescriptionSearch("");
+            setSearchQuery("");
             setPageIndex(0);
           }}
         >
@@ -479,6 +496,9 @@ const SalesDataTableAllEmployees: React.FC = () => {
           )}
         </Button>
       </div>
+
+      <div className="flex gap-4"></div>
+
       <Card className="p-4">
         {showEmptyState ? (
           <div className="text-center py-8 text-muted-foreground">

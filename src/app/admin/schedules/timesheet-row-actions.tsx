@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/utils/supabase/client";
 import { TimesheetData } from "./data-schema";
 import { X } from "lucide-react";
+import { format, parse } from "date-fns";
 
 interface TimesheetRowActionsProps {
   row: Row<TimesheetData>;
@@ -36,7 +37,20 @@ export function TimesheetRowActions({
   const formatTimeForInput = useCallback(
     (timeString: string | null): string => {
       if (!timeString) return "";
-      return timeString.slice(0, 5); // This will return the first 5 characters, which should be HH:mm
+      return timeString.slice(0, 5);
+    },
+    []
+  );
+
+  const formatTimeForDisplay = useCallback(
+    (timeString: string | null): string => {
+      if (!timeString) return "";
+      const [hours, minutes] = timeString.split(":");
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const hour12 = hour % 12 || 12;
+      const formattedMinutes = minutes ? minutes.padStart(2, "0") : "00";
+      return `${hour12}:${formattedMinutes} ${ampm}`;
     },
     []
   );
@@ -138,12 +152,20 @@ export function TimesheetRowActions({
       <DropdownMenuContent align="end" className="w-[300px] p-2">
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium ">Start Time</label>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
+            <label className="block text-sm font-medium">Start Time</label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="flex-1"
+              />
+              <span className="text-sm text-muted-foreground w-16">
+                {timesheet.start_time
+                  ? formatTimeForDisplay(timesheet.start_time)
+                  : ""}
+              </span>
+            </div>
           </div>
           <Button
             size="sm"
@@ -155,14 +177,23 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear start time</span>
           </Button>
         </div>
+
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium ">Lunch Start</label>
-            <Input
-              type="time"
-              value={lunchStart}
-              onChange={(e) => setLunchStart(e.target.value)}
-            />
+            <label className="block text-sm font-medium">Lunch Start</label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={lunchStart}
+                onChange={(e) => setLunchStart(e.target.value)}
+                className="flex-1"
+              />
+              <span className="text-sm text-muted-foreground w-16">
+                {timesheet.lunch_start
+                  ? formatTimeForDisplay(timesheet.lunch_start)
+                  : ""}
+              </span>
+            </div>
           </div>
           <Button
             size="sm"
@@ -174,14 +205,23 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear lunch start</span>
           </Button>
         </div>
+
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium ">Lunch End</label>
-            <Input
-              type="time"
-              value={lunchEnd}
-              onChange={(e) => setLunchEnd(e.target.value)}
-            />
+            <label className="block text-sm font-medium">Lunch End</label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={lunchEnd}
+                onChange={(e) => setLunchEnd(e.target.value)}
+                className="flex-1"
+              />
+              <span className="text-sm text-muted-foreground w-16">
+                {timesheet.lunch_end
+                  ? formatTimeForDisplay(timesheet.lunch_end)
+                  : ""}
+              </span>
+            </div>
           </div>
           <Button
             size="sm"
@@ -193,14 +233,23 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear lunch end</span>
           </Button>
         </div>
+
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium ">End Time</label>
-            <Input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
+            <label className="block text-sm font-medium">End Time</label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="flex-1"
+              />
+              <span className="text-sm text-muted-foreground w-16">
+                {timesheet.end_time
+                  ? formatTimeForDisplay(timesheet.end_time)
+                  : ""}
+              </span>
+            </div>
           </div>
           <Button
             size="sm"
@@ -212,6 +261,7 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear end time</span>
           </Button>
         </div>
+
         <DropdownMenuSeparator className="my-2" />
         <DropdownMenuItem onClick={applyChanges}>Apply</DropdownMenuItem>
       </DropdownMenuContent>

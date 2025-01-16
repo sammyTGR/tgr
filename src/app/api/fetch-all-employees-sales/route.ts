@@ -10,19 +10,17 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { pageIndex, pageSize, filters, sorting, dateRange, employeeLanids } =
-      await request.json();
-
     const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      pageIndex,
+      pageSize,
+      filters,
+      sorting,
+      dateRange,
+      employeeLanids,
+      descriptionSearch,
+    } = await request.json();
 
-    if (userError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Build the base query
+    // Build the base query with an optimized approach
     let query = supabase
       .from("sales_data")
       .select(
@@ -47,30 +45,49 @@ export async function POST(request: Request) {
       )
       .not("Date", "is", null);
 
-    // Apply employee filter for multiple employees
+    // Apply description search if provided - optimize the search
+    if (descriptionSearch) {
+      // Create an index on the Desc column if you haven't already
+      // Add textSearch function for better performance
+      query = query.or(
+        `Desc.ilike.${descriptionSearch}%,Desc.ilike.%${descriptionSearch}%,Sku.ilike.${descriptionSearch}%`
+      );
+    }
+
+    // Apply date range filter with proper indexing
+    if (dateRange?.from) {
+      const fromDate = new Date(dateRange.from);
+      fromDate.setUTCHours(0, 0, 0, 0);
+      query = query.gte("Date", fromDate.toISOString());
+    }
+
+    if (dateRange?.to) {
+      const toDate = new Date(dateRange.to);
+      toDate.setUTCHours(23, 59, 59, 999);
+      query = query.lte("Date", toDate.toISOString());
+    }
+
+    // Apply employee filter
     if (employeeLanids && !employeeLanids.includes("all")) {
       query = query.in("Lanid", employeeLanids);
     }
 
-    // Apply date range filter with precise timezone handling
-    if (dateRange?.from) {
-      query = query.gte("Date", dateRange.from);
-    }
+    // Split the count query and the data query for better performance
+    const countQuery = query;
+    const { count } = await countQuery;
 
-    if (dateRange?.to) {
-      query = query.lte("Date", dateRange.to);
-    }
-
-    // Apply filters if any
-    if (filters && filters.length > 0) {
-      filters.forEach((filter: any) => {
-        if (filter.value) {
-          query = query.ilike(filter.id, `%${filter.value}%`);
-        }
+    if (!count) {
+      return NextResponse.json({
+        data: [],
+        count: 0,
       });
     }
 
-    // Apply sorting
+    // Calculate pagination
+    const from = pageIndex * pageSize;
+    const to = from + pageSize - 1;
+
+    // Apply sorting and pagination to the data query
     if (sorting && sorting.length > 0) {
       const { id, desc } = sorting[0];
       query = query.order(id, { ascending: !desc });
@@ -78,38 +95,28 @@ export async function POST(request: Request) {
       query = query.order("Date", { ascending: false });
     }
 
-    // Get total count first
-    const { count: totalCount } = await query;
-
-    if (!totalCount) {
-      return NextResponse.json({
-        data: [],
-        count: 0,
-      });
-    }
-
-    // Calculate pagination range
-    const from = Math.min(pageIndex * pageSize, totalCount);
-    const to = Math.min(from + pageSize - 1, totalCount);
-
-    // Apply pagination
+    // Add pagination
     query = query.range(from, to);
 
-    // Execute the final query
+    // Execute the data query
     const { data: salesData, error: salesError } = await query;
 
     if (salesError) {
+      console.error("Sales Query Error:", salesError);
       throw salesError;
     }
 
-    // Fetch employee names for the sales data
-    const lanids = salesData?.map((sale) => sale.Lanid).filter(Boolean) || [];
+    // Optimize employee data fetch by using a Set for unique lanids
+    const uniqueLanids = new Set(
+      salesData?.map((sale) => sale.Lanid).filter(Boolean)
+    );
+
     const { data: employeeData } = await supabase
       .from("employees")
       .select("lanid, name, last_name")
-      .in("lanid", lanids);
+      .in("lanid", Array.from(uniqueLanids));
 
-    // Create a map of lanid to employee names
+    // Use Map for O(1) lookup
     const employeeMap = new Map(
       employeeData?.map((emp) => [
         emp.lanid,
@@ -117,19 +124,22 @@ export async function POST(request: Request) {
       ]) || []
     );
 
-    // Transform dates in the response and add employee names
-    const transformedData = salesData
-      ?.filter((sale) => sale.Date)
-      .map((sale: any) => ({
-        ...sale,
-        Date: toZonedTime(new Date(sale.Date), TIMEZONE).toISOString(),
-        employee_name:
-          employeeMap.get(sale.Lanid) || sale.LastName || "Unknown",
-      }));
+    const transformedData = salesData?.map((sale: any) => ({
+      ...sale,
+      Date: sale.Date
+        ? toZonedTime(new Date(sale.Date), TIMEZONE).toISOString()
+        : null,
+      employee_name: employeeMap.get(sale.Lanid) || sale.LastName || "Unknown",
+    }));
 
     return NextResponse.json({
       data: transformedData || [],
-      count: totalCount,
+      count,
+      debug: {
+        pageInfo: { from, to, pageIndex, pageSize },
+        totalCount: count,
+        returnedRows: salesData?.length || 0,
+      },
     });
   } catch (error) {
     console.error("Failed to fetch sales data:", error);

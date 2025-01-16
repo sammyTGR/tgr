@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { dateRange, employeeLanids } = body;
+    const { dateRange, employeeLanids, descriptionSearch } = body;
 
     if (!dateRange) {
       return NextResponse.json(
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     // First get active employees
     const { data: activeEmployees, error: employeesError } = await supabase
       .from("employees")
-      .select("lanid, name")
+      .select("lanid, name, last_name")
       .eq("status", "active")
       .in("department", ["Sales", "Range", "Operations"]);
 
@@ -35,18 +35,34 @@ export async function POST(request: Request) {
 
     // Create a map of lanid to employee name for easier lookup
     const employeeMap = new Map(
-      activeEmployees?.map((emp) => [emp.lanid?.toLowerCase(), emp.name]) || []
+      activeEmployees?.map((emp) => [
+        emp.lanid?.toLowerCase(),
+        `${emp.name || ""} ${emp.last_name || ""}`.trim(),
+      ]) || []
     );
 
-    // Get total count first using the same conditions as the RPC
-    const { count } = await supabase
+    // Get total count first with the exact same conditions as the display query
+    let query = supabase
       .from("sales_data")
       .select("*", { count: "exact", head: true })
       .gte("Date", dateRange.from)
       .lte("Date", dateRange.to)
-      .in("Lanid", employeeLanids || activeEmployees?.map((e) => e.lanid) || [])
-      .not("total_net", "is", null) // Match RPC conditions
-      .not("total_gross", "is", null); // Match RPC conditions
+      .not("Date", "is", null);
+
+    // Apply employee filter only if specific employees are selected
+    if (employeeLanids && !employeeLanids.includes("all")) {
+      query = query.in("Lanid", employeeLanids);
+    }
+
+    // Add description search if provided - match the display query exactly
+    if (descriptionSearch) {
+      query = query.or(
+        `Desc.ilike.${descriptionSearch}%,Desc.ilike.%${descriptionSearch}%,Sku.ilike.${descriptionSearch}%`
+      );
+    }
+
+    const { count } = await query;
+    // console.log("Initial count:", count);
 
     if (!count) {
       return NextResponse.json({ data: [] });
@@ -56,12 +72,12 @@ export async function POST(request: Request) {
     const pages = Math.ceil(count / PAGE_SIZE);
     let allData: any[] = [];
 
-    // Fetch data page by page with the same conditions as the RPC
+    // Fetch data page by page with the exact same conditions
     for (let page = 0; page < pages; page++) {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const { data: pageData, error: pageError } = await supabase
+      let pageQuery = supabase
         .from("sales_data")
         .select(
           `
@@ -82,47 +98,62 @@ export async function POST(request: Request) {
         )
         .gte("Date", dateRange.from)
         .lte("Date", dateRange.to)
-        .in(
-          "Lanid",
-          employeeLanids || activeEmployees?.map((e) => e.lanid) || []
-        )
-        .not("total_net", "is", null) // Match RPC conditions
-        .not("total_gross", "is", null) // Match RPC conditions
+        .not("Date", "is", null)
         .order("Date", { ascending: true })
         .range(from, to);
 
+      // Apply employee filter only if specific employees are selected
+      if (employeeLanids && !employeeLanids.includes("all")) {
+        pageQuery = pageQuery.in("Lanid", employeeLanids);
+      }
+
+      // Add description search if provided - match the display query exactly
+      if (descriptionSearch) {
+        pageQuery = pageQuery.or(
+          `Desc.ilike.${descriptionSearch}%,Desc.ilike.%${descriptionSearch}%,Sku.ilike.${descriptionSearch}%`
+        );
+      }
+
+      const { data: pageData, error: pageError } = await pageQuery;
+
       if (pageError) {
+        console.error(`Error fetching page ${page}:`, pageError);
         throw pageError;
       }
 
       if (pageData) {
         allData = [...allData, ...pageData];
+        // console.log(
+        //   `Fetched page ${page + 1}/${pages}, rows: ${pageData.length}`
+        // );
       }
     }
 
-    // Transform all the collected data
+    // Transform the data without filtering out any rows
     const transformedData = allData
-      .filter((sale) => sale.Date && sale.Lanid)
+      .filter((sale) => sale.Date) // Only filter out null dates
       .map((sale) => ({
         ...sale,
         Date: formatInTimeZone(parseISO(sale.Date), TIMEZONE, "yyyy-MM-dd"),
         employee_name:
-          employeeMap.get(sale.Lanid?.toLowerCase() || "") || "Unknown",
-      }))
-      .filter((row) => row.employee_name !== "Unknown");
+          employeeMap.get(sale.Lanid?.toLowerCase() || "") ||
+          sale.LastName ||
+          "Unknown",
+      }));
 
-    // Add debug information
-    console.log("Export Summary:", {
-      totalRecords: transformedData.length,
-      totalGross: transformedData.reduce(
-        (sum, row) => sum + (row.total_gross || 0),
-        0
-      ),
-      totalNet: transformedData.reduce(
-        (sum, row) => sum + (row.total_net || 0),
-        0
-      ),
-    });
+    // console.log("Export Summary:", {
+    //   initialCount: count,
+    //   fetchedRows: allData.length,
+    //   transformedRows: transformedData.length,
+    //   totalGross: transformedData.reduce(
+    //     (sum, row) => sum + (row.total_gross || 0),
+    //     0
+    //   ),
+    //   totalNet: transformedData.reduce(
+    //     (sum, row) => sum + (row.total_net || 0),
+    //     0
+    //   ),
+    // });
 
     return NextResponse.json({
       data: transformedData,
