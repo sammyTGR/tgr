@@ -14,13 +14,16 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/utils/supabase/client";
 import { TimesheetData } from "./data-schema";
 import { X } from "lucide-react";
-import { format, parse } from "date-fns";
+import { parseISO } from "date-fns";
+import { toZonedTime, format } from "date-fns-tz";
 
 interface TimesheetRowActionsProps {
   row: Row<TimesheetData>;
   fetchTimesheets: () => void;
   updateTimesheet: (updatedTimesheet: TimesheetData) => void;
 }
+
+const timeZone = "America/Los_Angeles";
 
 export function TimesheetRowActions({
   row,
@@ -37,7 +40,37 @@ export function TimesheetRowActions({
   const formatTimeForInput = useCallback(
     (timeString: string | null): string => {
       if (!timeString) return "";
-      return timeString.slice(0, 5);
+      try {
+        // First, check if the time is already in HH:mm format
+        if (timeString.match(/^\d{2}:\d{2}(:\d{2})?$/)) {
+          return timeString.substring(0, 5); // Return just HH:mm
+        }
+
+        // If it's in AM/PM format, convert it
+        const match = timeString.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (match) {
+          let [_, hours, minutes, period] = match;
+          let hour = parseInt(hours);
+
+          // Convert to 24-hour format
+          if (period.toUpperCase() === "PM" && hour < 12) hour += 12;
+          if (period.toUpperCase() === "AM" && hour === 12) hour = 0;
+
+          return `${hour.toString().padStart(2, "0")}:${minutes}`;
+        }
+
+        // If we get here, try parsing as ISO time
+        const date = parseISO(`1970-01-01T${timeString}`);
+        return format(date, "HH:mm");
+      } catch (error) {
+        console.error(
+          "Error formatting time for input:",
+          error,
+          "for time value:",
+          timeString
+        );
+        return "";
+      }
     },
     []
   );
@@ -45,12 +78,27 @@ export function TimesheetRowActions({
   const formatTimeForDisplay = useCallback(
     (timeString: string | null): string => {
       if (!timeString) return "";
-      const [hours, minutes] = timeString.split(":");
-      const hour = parseInt(hours, 10);
-      const ampm = hour >= 12 ? "PM" : "AM";
-      const hour12 = hour % 12 || 12;
-      const formattedMinutes = minutes ? minutes.padStart(2, "0") : "00";
-      return `${hour12}:${formattedMinutes} ${ampm}`;
+      try {
+        // Extract hours and minutes
+        const timeMatch = timeString.match(/^(\d{2}):(\d{2})/);
+        if (!timeMatch) return "";
+
+        const [_, hours, minutes] = timeMatch;
+        const date = new Date(1970, 0, 1, parseInt(hours), parseInt(minutes));
+
+        // Convert to LA timezone
+        const zonedDate = toZonedTime(date, timeZone);
+        // Format with AM/PM
+        return format(zonedDate, "h:mm a", { timeZone });
+      } catch (error) {
+        console.error(
+          "Error formatting time for display:",
+          error,
+          "for time value:",
+          timeString
+        );
+        return "";
+      }
     },
     []
   );
@@ -104,20 +152,41 @@ export function TimesheetRowActions({
     }
   };
 
+  const convertToUTCTime = (time: string): string | null => {
+    if (!time) return null;
+    try {
+      // Convert from local time input to UTC
+      const [hours, minutes] = time.split(":").map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0);
+
+      // Format in UTC
+      return format(date, "HH:mm:ss", { timeZone: "UTC" });
+    } catch (error) {
+      console.error(
+        "Error converting time to UTC:",
+        error,
+        "for time value:",
+        time
+      );
+      return null;
+    }
+  };
+
   const applyChanges = async () => {
     const updates: Partial<TimesheetData> = {};
 
     if (startTime !== formatTimeForInput(timesheet.start_time)) {
-      updates.start_time = startTime || undefined;
+      updates.start_time = convertToUTCTime(startTime) || undefined;
     }
     if (lunchStart !== formatTimeForInput(timesheet.lunch_start)) {
-      updates.lunch_start = lunchStart || null;
+      updates.lunch_start = convertToUTCTime(lunchStart) || undefined;
     }
     if (lunchEnd !== formatTimeForInput(timesheet.lunch_end)) {
-      updates.lunch_end = lunchEnd || null;
+      updates.lunch_end = convertToUTCTime(lunchEnd) || undefined;
     }
     if (endTime !== formatTimeForInput(timesheet.end_time)) {
-      updates.end_time = endTime || null;
+      updates.end_time = convertToUTCTime(endTime) || undefined;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -128,10 +197,10 @@ export function TimesheetRowActions({
         .select();
 
       if (error) {
-        //console.("Error updating timesheet:", error);
+        console.error("Error updating timesheet:", error);
       } else if (data && data.length > 0) {
         updateTimesheet(data[0] as TimesheetData);
-        fetchTimesheets(); // Refresh the entire timesheet data
+        fetchTimesheets();
       }
     }
 
@@ -152,20 +221,12 @@ export function TimesheetRowActions({
       <DropdownMenuContent align="end" className="w-[300px] p-2">
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium">Start Time</label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-16">
-                {timesheet.start_time
-                  ? formatTimeForDisplay(timesheet.start_time)
-                  : ""}
-              </span>
-            </div>
+            <label className="block text-sm font-medium ">Start Time</label>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
           </div>
           <Button
             size="sm"
@@ -177,23 +238,14 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear start time</span>
           </Button>
         </div>
-
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium">Lunch Start</label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={lunchStart}
-                onChange={(e) => setLunchStart(e.target.value)}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-16">
-                {timesheet.lunch_start
-                  ? formatTimeForDisplay(timesheet.lunch_start)
-                  : ""}
-              </span>
-            </div>
+            <label className="block text-sm font-medium ">Lunch Start</label>
+            <Input
+              type="time"
+              value={lunchStart}
+              onChange={(e) => setLunchStart(e.target.value)}
+            />
           </div>
           <Button
             size="sm"
@@ -205,23 +257,14 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear lunch start</span>
           </Button>
         </div>
-
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium">Lunch End</label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={lunchEnd}
-                onChange={(e) => setLunchEnd(e.target.value)}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-16">
-                {timesheet.lunch_end
-                  ? formatTimeForDisplay(timesheet.lunch_end)
-                  : ""}
-              </span>
-            </div>
+            <label className="block text-sm font-medium ">Lunch End</label>
+            <Input
+              type="time"
+              value={lunchEnd}
+              onChange={(e) => setLunchEnd(e.target.value)}
+            />
           </div>
           <Button
             size="sm"
@@ -233,23 +276,14 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear lunch end</span>
           </Button>
         </div>
-
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex-grow">
-            <label className="block text-sm font-medium">End Time</label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground w-16">
-                {timesheet.end_time
-                  ? formatTimeForDisplay(timesheet.end_time)
-                  : ""}
-              </span>
-            </div>
+            <label className="block text-sm font-medium ">End Time</label>
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
           </div>
           <Button
             size="sm"
@@ -261,7 +295,6 @@ export function TimesheetRowActions({
             <span className="sr-only">Clear end time</span>
           </Button>
         </div>
-
         <DropdownMenuSeparator className="my-2" />
         <DropdownMenuItem onClick={applyChanges}>Apply</DropdownMenuItem>
       </DropdownMenuContent>

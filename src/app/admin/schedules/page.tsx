@@ -136,22 +136,101 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
     accessorKey: "lunch_start",
     header: "Lunch Start",
-    cell: (info) => info.getValue(), // Ensure this properly accesses the formatted time
+    cell: (info) => info.getValue(),
   },
   {
     accessorKey: "lunch_end",
     header: "Lunch End",
-    cell: (info) => info.getValue(), // Ensure this properly accesses the formatted time
+    cell: (info) => {
+      const row = info.row.original;
+      const lunchStart = row.lunch_start;
+      const lunchEnd = row.lunch_end;
+
+      // If either time is missing, return the value without color
+      if (!lunchStart || !lunchEnd) {
+        return lunchEnd || "";
+      }
+
+      try {
+        // Parse times and remove AM/PM, converting to 24-hour format
+        const parseTimeString = (timeStr: string) => {
+          const [time, meridiem] = timeStr.split(" ");
+          let [hours, minutes] = time.split(":").map(Number);
+
+          if (meridiem === "PM" && hours !== 12) {
+            hours += 12;
+          }
+          if (meridiem === "AM" && hours === 12) {
+            hours = 0;
+          }
+
+          return { hours, minutes };
+        };
+
+        const start = parseTimeString(lunchStart);
+        const end = parseTimeString(lunchEnd);
+
+        // Calculate total minutes
+        const startTotalMinutes = start.hours * 60 + start.minutes;
+        const endTotalMinutes = end.hours * 60 + end.minutes;
+
+        // Handle case where lunch end is on the next day
+        const adjustedEndTotalMinutes =
+          endTotalMinutes < startTotalMinutes
+            ? endTotalMinutes + 24 * 60
+            : endTotalMinutes;
+
+        // Calculate duration
+        const durationInMinutes = adjustedEndTotalMinutes - startTotalMinutes;
+
+        // Return colored time
+        return (
+          <span
+            className={
+              durationInMinutes >= 30
+                ? "text-green-500 font-medium"
+                : "text-red-500 font-medium"
+            }
+            title={`Duration: ${durationInMinutes} minutes`}
+          >
+            {lunchEnd}
+          </span>
+        );
+      } catch (error) {
+        console.error("Error calculating lunch duration:", error, {
+          lunchStart,
+          lunchEnd,
+        });
+        return lunchEnd || "";
+      }
+    },
   },
   {
     accessorKey: "end_time",
     header: "End Time",
-    cell: (info) => info.getValue(), // Ensure this properly accesses the formatted time
+    cell: (info) => info.getValue(),
   },
   {
     accessorKey: "total_hours",
     header: "Total Hours",
-    cell: (info) => info.getValue() || "",
+    cell: (info) => {
+      const totalHours = info.getValue();
+      if (!totalHours) return "";
+      try {
+        const hours = parseFloat(totalHours.toString());
+        return (
+          <span
+            className={hours > 8 ? "text-red-500 font-medium" : ""}
+            title={`Total Hours: ${hours}`}
+          >
+            {String(totalHours)}
+          </span>
+        );
+      } catch (error) {
+        console.error("Error parsing total hours:", error);
+        return String(totalHours);
+      }
+    },
   },
 ];
 
