@@ -89,8 +89,8 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
   const { data: activeView } = useQuery({
     queryKey: ["chart-view"],
-    queryFn: () => "totalGross" as ChartView,
-    initialData: "totalGross",
+    queryFn: () => "totalNetWithFirearms" as ChartView,
+    initialData: "totalNetWithFirearms",
   });
 
   const setViewMutation = useMutation({
@@ -362,7 +362,6 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
         </div>
         <div className="flex">
           {[
-            { key: "totalGross", label: "Total Gross Sales" },
             {
               key: "totalNetWithFirearms",
               label: "Total Net Sales With Firearms",
@@ -371,6 +370,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
               key: "totalNetWithoutFirearms",
               label: "Total Net Sales Without Firearms",
             },
+            { key: "totalGross", label: "Total Gross Sales" },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -381,11 +381,11 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
               <span className="text-xs text-muted-foreground">{label}</span>
               <span className="text-lg font-bold leading-none sm:text-3xl">
                 {currencyFormatter.format(
-                  key === "totalGross"
-                    ? chartData?.totalGross ?? 0
-                    : key === "totalNetWithFirearms"
+                  key === "totalNetWithFirearms"
                     ? chartData?.totalNet ?? 0
-                    : chartData?.totalNetMinusExclusions ?? 0
+                    : key === "totalNetWithoutFirearms"
+                    ? chartData?.totalNetMinusExclusions ?? 0
+                    : chartData?.totalGross ?? 0
                 )}
               </span>
             </button>

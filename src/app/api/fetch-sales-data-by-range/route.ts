@@ -19,7 +19,6 @@ export async function GET(request: Request) {
     const start = searchParams.get("start");
     const end = searchParams.get("end");
 
-    // console.log(`Fetching sales data from ${start} to ${end}`);
     if (!start || !end) {
       return NextResponse.json(
         { error: "Invalid date parameters" },
@@ -27,16 +26,10 @@ export async function GET(request: Request) {
       );
     }
 
-    let query = supabase.from("sales_data").select("*");
-
-    if (start) {
-      query = query.gte("Date", start);
-    }
-    if (end) {
-      query = query.lte("Date", end);
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await supabase.rpc("get_sales_by_range", {
+      start_date: start,
+      end_date: end,
+    });
 
     if (error) {
       console.error("Error fetching data from Supabase:", error);
