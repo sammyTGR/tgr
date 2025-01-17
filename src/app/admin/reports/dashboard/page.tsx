@@ -18,6 +18,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -190,16 +191,152 @@ function AdminDashboardContent() {
     refetchInterval: 0,
   });
 
-  const { data: metrics } = useQuery<SalesMetrics>({
+  const { data: metricsData, isLoading: isMetricsLoading } = useQuery<{
+    metrics2024: SalesMetrics;
+    metrics2025: SalesMetrics;
+  }>({
     queryKey: ["metrics"],
     queryFn: async () => {
+      console.log("Fetching metrics...");
       const response = await fetch("/api/metrics");
       if (!response.ok) {
+        console.error("Failed to fetch metrics:", response.statusText);
         throw new Error("Failed to fetch metrics");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Metrics data:", data);
+      return data;
     },
   });
+
+  // Create metrics table data
+  const createMetricsTableData = (metrics: SalesMetrics | undefined) => {
+    if (!metrics) return [];
+
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+
+    return [
+      {
+        metric: "Average Monthly Gross Revenue",
+        value: formatter.format(metrics.averageMonthlyGrossRevenue),
+      },
+      {
+        metric: "Average Monthly Net Revenue",
+        value: formatter.format(metrics.averageMonthlyNetRevenue),
+      },
+      {
+        metric: "Top Performing Category",
+        value: metrics.topPerformingCategories[0]?.category || "N/A",
+      },
+      {
+        metric: "Peak Business Hour",
+        value: metrics.peakHours[0]
+          ? `${metrics.peakHours[0].formattedHour} (${metrics.peakHours[0].transactions} transactions)`
+          : "N/A",
+      },
+    ];
+  };
+
+  // Render metrics section
+  const renderMetricsSection = () => {
+    if (isMetricsLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <LoadingIndicator />
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-6">
+        {/* Annual Revenue Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Annual Revenue Comparison</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AnnualRevenueBarChart />
+          </CardContent>
+        </Card>
+
+        {/* Metrics Section */}
+        {isMetricsLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <LoadingIndicator />
+          </div>
+        ) : (
+          <>
+            {/* 2024 Metrics */}
+            <Card>
+              <CardHeader>
+                <CardTitle>2024 Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {createMetricsTableData(metricsData?.metrics2024).map(
+                      (row, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{row.metric}</TableCell>
+                          <TableCell>{row.value}</TableCell>
+                        </TableRow>
+                      )
+                    )}
+                  </TableBody>
+                </Table>
+                {metricsData?.metrics2024 && (
+                  <CustomerFrequencyCard2024
+                    metrics={metricsData.metrics2024}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 2025 Metrics */}
+            <Card>
+              <CardHeader>
+                <CardTitle>2025 Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {createMetricsTableData(metricsData?.metrics2025).map(
+                      (row, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{row.metric}</TableCell>
+                          <TableCell>{row.value}</TableCell>
+                        </TableRow>
+                      )
+                    )}
+                  </TableBody>
+                </Table>
+                {metricsData?.metrics2025 && (
+                  <CustomerFrequencyCard2025
+                    metrics={metricsData.metrics2025}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+    );
+  };
 
   // Modify the suggestions section in AdminDashboardContent:
   const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
@@ -447,8 +584,8 @@ function AdminDashboardContent() {
     enabled: uploadFileMutation.isPending,
   });
 
-  const metricsData = React.useMemo(() => {
-    if (!metrics) return [];
+  const metricsData2024 = React.useMemo(() => {
+    if (!metricsData?.metrics2024) return [];
 
     const formatter = new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -458,27 +595,73 @@ function AdminDashboardContent() {
     return [
       {
         metric: "Average Monthly Gross Revenue",
-        value: formatter.format(metrics.averageMonthlyGrossRevenue),
+        value: formatter.format(
+          metricsData.metrics2024.averageMonthlyGrossRevenue
+        ),
       },
       {
         metric: "Average Monthly Net Revenue",
-        value: formatter.format(metrics.averageMonthlyNetRevenue),
+        value: formatter.format(
+          metricsData.metrics2024.averageMonthlyNetRevenue
+        ),
       },
       {
         metric: "Top Performing Category",
-        value: metrics.topPerformingCategories[0]?.category || "N/A",
+        value:
+          metricsData.metrics2024.topPerformingCategories[0]?.category || "N/A",
       },
       {
         metric: "Peak Business Hour",
-        value: metrics.peakHours[0]
-          ? `${metrics.peakHours[0].formattedHour} (${metrics.peakHours[0].transactions} transactions)`
+        value: metricsData.metrics2024.peakHours[0]
+          ? `${metricsData.metrics2024.peakHours[0].formattedHour} (${metricsData.metrics2024.peakHours[0].transactions} transactions)`
           : "N/A",
       },
     ];
-  }, [metrics]);
+  }, [metricsData?.metrics2024]);
 
-  const table = useReactTable({
-    data: metricsData,
+  const metricsData2025 = React.useMemo(() => {
+    if (!metricsData?.metrics2025) return [];
+
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+
+    return [
+      {
+        metric: "Average Monthly Gross Revenue",
+        value: formatter.format(
+          metricsData.metrics2025.averageMonthlyGrossRevenue
+        ),
+      },
+      {
+        metric: "Average Monthly Net Revenue",
+        value: formatter.format(
+          metricsData.metrics2025.averageMonthlyNetRevenue
+        ),
+      },
+      {
+        metric: "Top Performing Category",
+        value:
+          metricsData.metrics2025.topPerformingCategories[0]?.category || "N/A",
+      },
+      {
+        metric: "Peak Business Hour",
+        value: metricsData.metrics2025.peakHours[0]
+          ? `${metricsData.metrics2025.peakHours[0].formattedHour} (${metricsData.metrics2025.peakHours[0].transactions} transactions)`
+          : "N/A",
+      },
+    ];
+  }, [metricsData?.metrics2025]);
+
+  const table2024 = useReactTable({
+    data: metricsData2024,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  const table2025 = useReactTable({
+    data: metricsData2025,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -1620,100 +1803,96 @@ function AdminDashboardContent() {
           </div>
 
           <TabsContent value="metrics">
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
-              <Card>
-                <CardHeader>
-                  <CardTitle>2024 Sales Metrics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="flex items-center justify-center p-4">
-                      Loading metrics...
-                    </div>
-                  ) : (
-                    <>
-                      <div className="rounded-md border mb-6">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                              <tr key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                  <th
-                                    key={header.id}
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    {flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext()
-                                    )}
-                                  </th>
-                                ))}
-                              </tr>
-                            ))}
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {table.getRowModel().rows.map((row) => (
-                              <tr key={row.id}>
-                                {row.getVisibleCells().map((cell) => (
-                                  <td
-                                    key={cell.id}
-                                    className="px-6 py-4 whitespace-nowrap"
-                                  >
-                                    {flexRender(
-                                      cell.column.columnDef.cell,
-                                      cell.getContext()
-                                    )}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+            <div className="grid gap-6">
+              {/* Metrics Section */}
+              {isMetricsLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <LoadingIndicator />
+                </div>
+              ) : (
+                <>
+                  {/* <CardHeader>
+                      <CardTitle>Sales Metrics</CardTitle>
+                    </CardHeader> */}
 
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Customer Visit Frequency</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-3 gap-4">
-                            {metrics?.customerFrequency.map((freq) => (
-                              <Card key={freq.visits} className="bg-muted/50">
-                                <CardHeader className="pb-2">
-                                  <CardTitle className="text-sm font-medium">
-                                    {freq.visits}
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="text-2xl font-bold">
-                                    {freq.percentage}%
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    of total customers
-                                  </p>
-                                  <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-primary"
-                                      style={{ width: `${freq.percentage}%` }}
-                                    />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 2025 Metrics */}
+                    <Card>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableCaption>2025 Metrics</TableCaption>
 
-              {/* Revenue Analysis Chart*/}
-              <AnnualRevenueBarChart />
+                            <TableRow>
+                              <TableHead>Metric</TableHead>
+                              <TableHead>Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {createMetricsTableData(
+                              metricsData?.metrics2025
+                            ).map((row, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{row.metric}</TableCell>
+                                <TableCell>{row.value}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+
+                        {metricsData?.metrics2025 && (
+                          <CustomerFrequencyCard2025
+                            metrics={metricsData.metrics2025}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* 2024 Metrics */}
+                    <Card>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableCaption>2024 Metrics</TableCaption>
+                            <TableRow>
+                              <TableHead>Metric</TableHead>
+                              <TableHead>Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {createMetricsTableData(
+                              metricsData?.metrics2024
+                            ).map((row, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{row.metric}</TableCell>
+                                <TableCell>{row.value}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+
+                        {metricsData?.metrics2024 && (
+                          <CustomerFrequencyCard2024
+                            metrics={metricsData.metrics2024}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Annual Revenue Chart */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Annual Revenue Comparison</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AnnualRevenueBarChart />
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
           </TabsContent>
-
-          {/* </div> */}
         </Tabs>
       </div>
     </RoleBasedWrapper>
@@ -1907,6 +2086,82 @@ function AdminDashboardContent() {
           )}
         </CardContent>
       </Card>
+    );
+  }
+
+  function CustomerFrequencyCard2025({ metrics }: { metrics: SalesMetrics }) {
+    return (
+      <div className="mt-6">
+        {/* <CardHeader>
+          <CardTitle>Customer Visit Frequency 2025</CardTitle>
+        </CardHeader>
+        <CardContent> */}
+        <h1 className="text-2xl font-bold mb-4">
+          Customer Visit Frequency 2025
+        </h1>
+        <div className="grid grid-cols-1 gap-4">
+          {metrics.customerFrequency.map((freq) => (
+            <Card key={freq.visits} className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {freq.visits}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{freq.percentage}%</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  of total customers
+                </p>
+                <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${freq.percentage}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {/* </CardContent> */}
+      </div>
+    );
+  }
+
+  function CustomerFrequencyCard2024({ metrics }: { metrics: SalesMetrics }) {
+    return (
+      <div className="mt-6">
+        {/* <CardHeader>
+          <CardTitle>Customer Visit Frequency 2024</CardTitle>
+        </CardHeader>
+        <CardContent> */}
+        <h1 className="text-2xl font-bold mb-4">
+          Customer Visit Frequency 2024
+        </h1>
+        <div className="grid grid-cols-1 gap-4">
+          {metrics.customerFrequency.map((freq) => (
+            <Card key={freq.visits} className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {freq.visits}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{freq.percentage}%</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  of total customers
+                </p>
+                <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${freq.percentage}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {/* </CardContent> */}
+      </div>
     );
   }
 }
