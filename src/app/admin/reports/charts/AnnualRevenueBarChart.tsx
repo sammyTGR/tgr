@@ -12,6 +12,8 @@ interface RevenueData {
   netRevenue: number;
   historicalGrossRevenue?: number;
   historicalNetRevenue?: number;
+  futureGrossRevenue?: number;
+  futureNetRevenue?: number;
 }
 
 const chartConfig = {
@@ -19,11 +21,13 @@ const chartConfig = {
     label: "Gross Revenue",
     color: "hsl(var(--chart-1))",
     historicalColor: "hsl(var(--chart-3))",
+    futureColor: "hsl(var(--chart-7))",
   },
   netRevenue: {
     label: "Net Revenue",
     color: "hsl(var(--chart-2))",
     historicalColor: "hsl(var(--chart-4))",
+    futureColor: "hsl(var(--chart-8))",
   },
 };
 
@@ -32,6 +36,14 @@ const chartColors = [
   "hsl(var(--chart-2))",
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-6))",
+  "hsl(var(--chart-7))",
+  "hsl(var(--chart-8))",
+  "hsl(var(--chart-9))",
+  "hsl(var(--chart-10))",
+  "hsl(var(--chart-11))",
+  "hsl(var(--chart-12))",
 ];
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -42,9 +54,9 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 export default function AnnualRevenueBarChart() {
   const queryClient = useQueryClient();
 
-  const { data: activeChart = "grossRevenue" } = useQuery({
+  const { data: activeChart = "netRevenue" } = useQuery({
     queryKey: ["chartView"],
-    queryFn: () => "grossRevenue",
+    queryFn: () => "netRevenue",
     staleTime: Infinity,
   });
 
@@ -74,28 +86,60 @@ export default function AnnualRevenueBarChart() {
     },
   });
 
+  const { data: futureRevenueData = [] } = useQuery<RevenueData[]>({
+    queryKey: ["futureRevenueData"],
+    queryFn: async () => {
+      const response = await fetch("/api/future-revenue");
+      if (!response.ok) throw new Error("Failed to fetch future revenue data");
+      return response.json();
+    },
+  });
+
   const combinedData = React.useMemo(() => {
     return currentRevenueData.map((current) => {
       const historical = historicalRevenueData.find(
         (h) => h.month.split(" ")[0] === current.month.split(" ")[0]
       );
+      const future = futureRevenueData.find(
+        (f) => f.month.split(" ")[0] === current.month.split(" ")[0]
+      );
       return {
         ...current,
         historicalGrossRevenue: historical?.grossRevenue || 0,
         historicalNetRevenue: historical?.netRevenue || 0,
+        futureGrossRevenue: future?.grossRevenue || 0,
+        futureNetRevenue: future?.netRevenue || 0,
       };
     });
-  }, [currentRevenueData, historicalRevenueData]);
+  }, [currentRevenueData, historicalRevenueData, futureRevenueData]);
 
-  const total = React.useMemo(() => {
-    return currentRevenueData.reduce(
+  const totals = React.useMemo(() => {
+    const historical = historicalRevenueData.reduce(
       (acc, item) => ({
         grossRevenue: acc.grossRevenue + item.grossRevenue,
         netRevenue: acc.netRevenue + item.netRevenue,
       }),
       { grossRevenue: 0, netRevenue: 0 }
     );
-  }, [currentRevenueData]);
+
+    const current = currentRevenueData.reduce(
+      (acc, item) => ({
+        grossRevenue: acc.grossRevenue + item.grossRevenue,
+        netRevenue: acc.netRevenue + item.netRevenue,
+      }),
+      { grossRevenue: 0, netRevenue: 0 }
+    );
+
+    const future = futureRevenueData.reduce(
+      (acc, item) => ({
+        grossRevenue: acc.grossRevenue + (item.grossRevenue || 0),
+        netRevenue: acc.netRevenue + (item.netRevenue || 0),
+      }),
+      { grossRevenue: 0, netRevenue: 0 }
+    );
+
+    return { historical, current, future };
+  }, [historicalRevenueData, currentRevenueData, futureRevenueData]);
 
   return (
     <Card>
@@ -104,18 +148,15 @@ export default function AnnualRevenueBarChart() {
           <CardTitle>Annual Revenue Analysis</CardTitle>
         </div>
         <div className="flex">
-          {(["grossRevenue", "netRevenue"] as const).map((key) => (
+          {(["netRevenue", "grossRevenue"] as const).map((key) => (
             <button
               key={key}
               data-active={activeChart === key}
-              className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+              className="relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-center even:border-l data-[active=true]:bg-muted/50 sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
               onClick={() => setChartViewMutation.mutate(key)}
             >
-              <span className="text-xs text-muted-foreground">
-                {chartConfig[key].label} (YTD)
-              </span>
-              <span className="text-lg font-bold leading-none sm:text-3xl">
-                {currencyFormatter.format(total[key])}
+              <span className="text-sm font-medium">
+                {chartConfig[key].label}
               </span>
             </button>
           ))}
@@ -154,26 +195,36 @@ export default function AnnualRevenueBarChart() {
             <ChartTooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
-                  const currentValue = payload[0].value as number;
-                  const historicalValue = payload[1].value as number;
+                  const historicalValue = payload[0].value as number;
+                  const currentValue = payload[1].value as number;
+                  const futureValue = payload[2].value as number;
 
-                  // Calculate percentage difference
-                  const percentDiff =
+                  // Calculate percentage differences
+                  const yearOverYearDiff =
                     historicalValue !== 0
                       ? ((currentValue - historicalValue) / historicalValue) *
                         100
                       : 0;
 
-                  // Determine if it's an increase or decrease
-                  const isIncrease = percentDiff > 0;
-                  const percentageText = `${
-                    isIncrease ? "+" : ""
-                  }${percentDiff.toFixed(2)}%`;
+                  const futureYearDiff =
+                    currentValue !== 0
+                      ? ((futureValue - currentValue) / currentValue) * 100
+                      : 0;
 
                   return (
                     <div className="rounded-lg border border-border/50 bg-background p-2 shadow-xl">
                       <p className="font-medium">{label}</p>
                       <div className="space-y-1">
+                        <p className="text-muted-foreground">
+                          2023{" "}
+                          {
+                            chartConfig[activeChart as keyof typeof chartConfig]
+                              .label
+                          }
+                        </p>
+                        <p className="font-mono font-medium">
+                          {currencyFormatter.format(historicalValue)}
+                        </p>
                         <p className="text-muted-foreground">
                           2024{" "}
                           {
@@ -185,22 +236,35 @@ export default function AnnualRevenueBarChart() {
                           {currencyFormatter.format(currentValue)}
                         </p>
                         <p className="text-muted-foreground">
-                          2023{" "}
+                          2025{" "}
                           {
                             chartConfig[activeChart as keyof typeof chartConfig]
                               .label
                           }
                         </p>
                         <p className="font-mono font-medium">
-                          {currencyFormatter.format(historicalValue)}
+                          {currencyFormatter.format(futureValue)}
                         </p>
                         <div className="mt-2 pt-2 border-t border-border/50">
                           <p
                             className={`font-medium ${
-                              isIncrease ? "text-green-500" : "text-red-500"
+                              yearOverYearDiff > 0
+                                ? "text-green-500"
+                                : "text-red-500"
                             }`}
                           >
-                            Year over Year: {percentageText}
+                            2023 to 2024: {yearOverYearDiff > 0 ? "+" : ""}
+                            {yearOverYearDiff.toFixed(2)}%
+                          </p>
+                          <p
+                            className={`font-medium ${
+                              futureYearDiff > 0
+                                ? "text-green-500"
+                                : "text-red-500"
+                            }`}
+                          >
+                            2024 to 2025: {futureYearDiff > 0 ? "+" : ""}
+                            {futureYearDiff.toFixed(2)}%
                           </p>
                         </div>
                       </div>
@@ -212,13 +276,6 @@ export default function AnnualRevenueBarChart() {
               cursor={{ fill: "transparent" }}
             />
             <Bar
-              dataKey={activeChart}
-              name=""
-              radius={[4, 4, 0, 0]}
-              maxBarSize={40}
-              fill={chartConfig[activeChart as keyof typeof chartConfig].color}
-            />
-            <Bar
               dataKey={`historical${
                 activeChart.charAt(0).toUpperCase() + activeChart.slice(1)
               }`}
@@ -228,6 +285,24 @@ export default function AnnualRevenueBarChart() {
               fill={
                 chartConfig[activeChart as keyof typeof chartConfig]
                   .historicalColor
+              }
+            />
+            <Bar
+              dataKey={activeChart}
+              name="2024"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+              fill={chartConfig[activeChart as keyof typeof chartConfig].color}
+            />
+            <Bar
+              dataKey={`future${
+                activeChart.charAt(0).toUpperCase() + activeChart.slice(1)
+              }`}
+              name="2025"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+              fill={
+                chartConfig[activeChart as keyof typeof chartConfig].futureColor
               }
             />
           </BarChart>
