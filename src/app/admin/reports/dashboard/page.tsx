@@ -74,6 +74,7 @@ import {
   fetchLatestDailyDeposit,
   fetchDailyChecklistStatus,
   fetchLatestSalesData,
+  sendEmailMutation,
 } from "./api";
 import { sendEmail } from "./actions";
 import SalesDataTableAllEmployees from "@/app/admin/reports/sales/sales-data-table-all-employees";
@@ -412,21 +413,21 @@ function AdminDashboardContent() {
       const firstName = fullName.split(" ")[0];
       const replierName = firstName || "Admin";
 
-      // Use the API function
+      // First update the suggestion in the database
       await replySuggestion({ suggestion, replyText, replierName });
 
-      // Send email notification
-      await sendEmail(
-        suggestion.email || "",
-        "Reply to Your Suggestion",
-        "SuggestionReply",
-        {
+      // Then send the email notification using your existing sendEmailMutation
+      await sendEmailMutation({
+        email: suggestion.email || "",
+        subject: "Reply to Your Suggestion",
+        templateName: "SuggestionReply",
+        templateData: {
           employeeName: suggestion.created_by,
           originalSuggestion: suggestion.suggestion,
           replyText: replyText,
           repliedBy: replierName,
-        }
-      );
+        },
+      });
 
       return { suggestion, replyText };
     },
@@ -434,8 +435,9 @@ function AdminDashboardContent() {
       queryClient.invalidateQueries({ queryKey: ["suggestions"] });
       toast.success("Reply sent successfully!");
     },
-    onError: () => {
-      toast.error("Failed to send reply. Please try again.");
+    onError: (error: Error) => {
+      console.error("Reply error:", error);
+      toast.error(`Failed to send reply: ${error.message}`);
     },
   });
 
@@ -677,12 +679,15 @@ function AdminDashboardContent() {
       staleTime: Infinity,
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      onSubmit(replyText).then(() => {
+      try {
+        await onSubmit(replyText);
         replyTextMutation.mutate({ id: suggestion.id, text: "" });
-        onClose();
-      });
+        onClose(); // Close the popover after successful submission
+      } catch (error) {
+        console.error("Error submitting reply:", error);
+      }
     };
 
     return (
@@ -1115,7 +1120,14 @@ function AdminDashboardContent() {
                                                   })
                                                 )
                                               }
-                                              onClose={() => {}}
+                                              onClose={() => {
+                                                const closeEvent = new Event(
+                                                  "click"
+                                                );
+                                                document.dispatchEvent(
+                                                  closeEvent
+                                                );
+                                              }}
                                             />
                                           </PopoverContent>
                                         </Popover>
