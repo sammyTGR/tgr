@@ -653,8 +653,8 @@ const EmployeeProfilePage = () => {
         const timeDiff =
           (currentTime.getTime() - lunchStartTime.getTime()) / 1000 / 60;
 
-        if (timeDiff < 30) {
-          const remainingMinutes = Math.ceil(30 - timeDiff);
+        if (timeDiff < 29) {
+          const remainingMinutes = Math.ceil(29 - timeDiff);
 
           // Store the lock timestamp
           await supabase

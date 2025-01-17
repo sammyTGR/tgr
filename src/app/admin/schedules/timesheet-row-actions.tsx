@@ -16,6 +16,20 @@ import { TimesheetData } from "./data-schema";
 import { X } from "lucide-react";
 import { parseISO } from "date-fns";
 import { toZonedTime, format } from "date-fns-tz";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { TrashIcon } from "lucide-react";
 
 interface TimesheetRowActionsProps {
   row: Row<TimesheetData>;
@@ -30,6 +44,7 @@ export function TimesheetRowActions({
   fetchTimesheets,
   updateTimesheet,
 }: TimesheetRowActionsProps) {
+  const queryClient = useQueryClient();
   const timesheet = row.original as TimesheetData;
   const [startTime, setStartTime] = useState(timesheet.start_time || "");
   const [lunchStart, setLunchStart] = useState(timesheet.lunch_start || "");
@@ -207,6 +222,26 @@ export function TimesheetRowActions({
     setIsOpen(false);
   };
 
+  // Add delete mutation
+  const deleteTimesheetMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("employee_clock_events")
+        .delete()
+        .eq("id", timesheet.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      toast.success("Timesheet entry deleted successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete timesheet entry");
+      console.error("Error deleting timesheet:", error);
+    },
+  });
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleDropdownOpenChange}>
       <DropdownMenuTrigger asChild>
@@ -297,6 +332,40 @@ export function TimesheetRowActions({
         </div>
         <DropdownMenuSeparator className="my-2" />
         <DropdownMenuItem onClick={applyChanges}>Apply</DropdownMenuItem>
+        <DropdownMenuSeparator className="my-2" />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="text-red-600"
+            >
+              <TrashIcon className="mr-2 h-4 w-4" />
+              Delete Entry
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                timesheet entry for {timesheet.employee_name} on{" "}
+                {new Date(timesheet.event_date!).toLocaleDateString()}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  deleteTimesheetMutation.mutate();
+                  setIsOpen(false);
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DropdownMenuContent>
     </DropdownMenu>
   );

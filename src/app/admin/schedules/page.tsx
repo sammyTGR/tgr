@@ -136,7 +136,60 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
     accessorKey: "lunch_start",
     header: "Lunch Start",
-    cell: (info) => info.getValue(),
+    cell: (info) => {
+      const row = info.row.original;
+      const startTime = row.start_time;
+      const lunchStart = row.lunch_start;
+
+      if (!startTime || !lunchStart) {
+        return lunchStart || "";
+      }
+
+      try {
+        const parseTimeString = (timeStr: string) => {
+          const [time, meridiem] = timeStr.split(" ");
+          let [hours, minutes] = time.split(":").map(Number);
+          if (meridiem === "PM" && hours !== 12) hours += 12;
+          if (meridiem === "AM" && hours === 12) hours = 0;
+          return hours * 60 + minutes;
+        };
+
+        const startMinutes = parseTimeString(startTime);
+        const lunchStartMinutes = parseTimeString(lunchStart);
+
+        // Handle case where lunch start is on the next day
+        const adjustedLunchStartMinutes =
+          lunchStartMinutes < startMinutes
+            ? lunchStartMinutes + 24 * 60
+            : lunchStartMinutes;
+
+        // Calculate hours difference
+        const hoursDifference = (adjustedLunchStartMinutes - startMinutes) / 60;
+
+        let colorClass = "";
+        if (hoursDifference < 5.5) {
+          colorClass = "text-green-500";
+        } else if (hoursDifference < 6.5) {
+          colorClass = "text-orange-500";
+        } else if (hoursDifference < 7.0) {
+          colorClass = "text-yellow-500";
+        } else {
+          colorClass = "text-red-500";
+        }
+
+        return (
+          <span
+            className={`${colorClass} font-medium`}
+            title={`${hoursDifference.toFixed(2)} hours after start time`}
+          >
+            {lunchStart}
+          </span>
+        );
+      } catch (error) {
+        console.error("Error calculating lunch start time difference:", error);
+        return lunchStart;
+      }
+    },
   },
   {
     accessorKey: "lunch_end",
@@ -146,13 +199,11 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
       const lunchStart = row.lunch_start;
       const lunchEnd = row.lunch_end;
 
-      // If either time is missing, return the value without color
       if (!lunchStart || !lunchEnd) {
         return lunchEnd || "";
       }
 
       try {
-        // Parse times and remove AM/PM, converting to 24-hour format
         const parseTimeString = (timeStr: string) => {
           const [time, meridiem] = timeStr.split(" ");
           let [hours, minutes] = time.split(":").map(Number);
@@ -183,7 +234,6 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
         // Calculate duration
         const durationInMinutes = adjustedEndTotalMinutes - startTotalMinutes;
 
-        // Return colored time
         return (
           <span
             className={

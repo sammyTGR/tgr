@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { TimesheetRowActions } from "./timesheet-row-actions";
 import { TimesheetPagination } from "./TimesheetPagination";
 import {
+  CrossCircledIcon,
   DoubleArrowDownIcon,
   DoubleArrowRightIcon,
 } from "@radix-ui/react-icons";
@@ -115,6 +116,80 @@ export function TimesheetDataTable({
 
   const formattedColumns = React.useMemo(() => {
     return providedColumns.map((column) => {
+      if (column.id === "lunch_start") {
+        return {
+          ...column,
+          cell: (info: any) => {
+            const row = info.row.original;
+            const startTime = row.start_time;
+            const lunchStart = row.lunch_start;
+
+            if (!startTime || !lunchStart) {
+              return formatTime(lunchStart || "");
+            }
+
+            try {
+              const parseTimeString = (timeStr: string) => {
+                const [time, meridiem] = timeStr.split(" ");
+                let [hours, minutes] = time.split(":").map(Number);
+                if (meridiem === "PM" && hours !== 12) hours += 12;
+                if (meridiem === "AM" && hours === 12) hours = 0;
+                return { hours, minutes };
+              };
+
+              const start = parseTimeString(startTime);
+              const lunchStartTime = parseTimeString(lunchStart);
+
+              // Calculate total minutes
+              const startTotalMinutes = start.hours * 60 + start.minutes;
+              const lunchStartTotalMinutes =
+                lunchStartTime.hours * 60 + lunchStartTime.minutes;
+
+              // Handle case where lunch start is on the next day
+              const adjustedLunchStartMinutes =
+                lunchStartTotalMinutes < startTotalMinutes
+                  ? lunchStartTotalMinutes + 24 * 60
+                  : lunchStartTotalMinutes;
+
+              // Calculate duration in minutes
+              const durationInMinutes =
+                adjustedLunchStartMinutes - startTotalMinutes;
+              const durationInHours = durationInMinutes / 60;
+
+              console.log(
+                `Duration in minutes: ${durationInMinutes}, hours: ${durationInHours}`
+              );
+
+              let colorClass = "";
+              if (durationInHours < 5.5) {
+                colorClass = "text-green-500";
+              } else if (durationInHours < 6.5) {
+                colorClass = "text-orange-500";
+              } else if (durationInHours < 7.0) {
+                colorClass = "text-yellow-500";
+              } else {
+                colorClass = "text-red-500";
+              }
+
+              return (
+                <span
+                  className={`${colorClass} font-medium`}
+                  title={`${durationInHours.toFixed(2)} hours after start time`}
+                >
+                  {formatTime(lunchStart)}
+                </span>
+              );
+            } catch (error) {
+              console.error(
+                "Error calculating lunch start time difference:",
+                error
+              );
+              return formatTime(lunchStart);
+            }
+          },
+        };
+      }
+
       if (column.id === "lunch_end") {
         return {
           ...column,
@@ -123,39 +198,36 @@ export function TimesheetDataTable({
             const lunchStart = row.lunch_start;
             const lunchEnd = row.lunch_end;
 
-            // If no lunch was taken, return empty string
             if (!lunchStart || !lunchEnd) {
-              return lunchEnd ? formatTime(lunchEnd) : "";
+              return formatTime(lunchEnd || "");
             }
 
             try {
-              // Parse the times using the full time string
-              const startParts = lunchStart.split(":");
-              const endParts = lunchEnd.split(":");
+              const parseTimeString = (timeStr: string) => {
+                const [time, meridiem] = timeStr.split(" ");
+                let [hours, minutes] = time.split(":").map(Number);
+                if (meridiem === "PM" && hours !== 12) hours += 12;
+                if (meridiem === "AM" && hours === 12) hours = 0;
+                return { hours, minutes };
+              };
 
-              // Create Date objects for comparison
-              const start = new Date(
-                1970,
-                0,
-                1,
-                parseInt(startParts[0]),
-                parseInt(startParts[1]),
-                parseInt(startParts[2] || "0")
-              );
-              const end = new Date(
-                1970,
-                0,
-                1,
-                parseInt(endParts[0]),
-                parseInt(endParts[1]),
-                parseInt(endParts[2] || "0")
-              );
+              const start = parseTimeString(lunchStart);
+              const end = parseTimeString(lunchEnd);
 
-              // Calculate duration in minutes
+              // Calculate total minutes
+              const startTotalMinutes = start.hours * 60 + start.minutes;
+              const endTotalMinutes = end.hours * 60 + end.minutes;
+
+              // Handle case where lunch end is on the next day
+              const adjustedEndTotalMinutes =
+                endTotalMinutes < startTotalMinutes
+                  ? endTotalMinutes + 24 * 60
+                  : endTotalMinutes;
+
+              // Calculate duration
               const durationInMinutes =
-                (end.getTime() - start.getTime()) / (1000 * 60);
+                adjustedEndTotalMinutes - startTotalMinutes;
 
-              // Format the time with appropriate color
               return (
                 <span
                   className={
@@ -163,6 +235,7 @@ export function TimesheetDataTable({
                       ? "text-green-500 font-medium"
                       : "text-red-500 font-medium"
                   }
+                  title={`Duration: ${durationInMinutes} minutes`}
                 >
                   {formatTime(lunchEnd)}
                 </span>
@@ -175,9 +248,7 @@ export function TimesheetDataTable({
         };
       }
 
-      if (
-        ["start_time", "lunch_start", "end_time"].includes(column.id as string)
-      ) {
+      if (["start_time", "end_time"].includes(column.id as string)) {
         return {
           ...column,
           cell: (info: any) => formatTime(info.getValue()),
@@ -379,12 +450,13 @@ export function TimesheetDataTable({
           </Popover>
           {(searchInput || date?.from) && (
             <Button
-              variant="linkHover1"
+              variant="outline"
               onClick={() => {
                 handleResetFilter();
                 setDate(undefined);
               }}
             >
+              <CrossCircledIcon className="mr-2 h-4 w-4" />
               Reset Filters
             </Button>
           )}
