@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { parseISO } from "date-fns";
 import { format, toZonedTime } from "date-fns-tz";
+import { useQuery } from "@tanstack/react-query";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface TimesheetData {
   id: number;
@@ -46,7 +48,6 @@ interface PopoverFormProps {
   ) => void;
   buttonText: string;
   placeholder: string;
-  employees?: { employee_id: number; name: string }[];
   formType:
     | "generate"
     | "addSchedule"
@@ -69,17 +70,40 @@ const ClientPopoverForm = dynamic(() => Promise.resolve(PopoverForm), {
 
 const timeZone = "America/Los_Angeles";
 
+interface Employee {
+  employee_id: number;
+  name: string;
+  status: string;
+  pay_type: string;
+}
+
 export const PopoverForm: React.FC<PopoverFormProps> = ({
   onSubmit,
   buttonText,
   placeholder,
-  employees,
   formType,
   row,
   fetchSchedule,
   open,
   onOpenChange,
 }) => {
+  const supabase = createClientComponentClient();
+
+  const { data: employees } = useQuery({
+    queryKey: ["activeHourlyAndSalaryEmployees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id, name")
+        .eq("status", "active")
+        .in("pay_type", ["hourly", "salary"])
+        .order("name");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const [employeeName, setEmployeeName] = useState("");
   const [weeks, setWeeks] = useState("");
   const [date, setDate] = useState("");
@@ -256,7 +280,7 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
                         <SelectValue placeholder="Select Employee" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employees.map((employee) => (
+                        {employees?.map((employee) => (
                           <SelectItem
                             key={employee.employee_id}
                             value={employee.employee_id.toString()}

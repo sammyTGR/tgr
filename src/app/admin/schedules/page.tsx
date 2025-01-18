@@ -290,7 +290,7 @@ const ManageSchedules = () => {
 
   const [addSchedulePopoverOpen, setAddSchedulePopoverOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "day_of_week", desc: false },
+    { id: "employee_name", desc: false },
   ]);
   const [updateSchedulePopoverOpen, setUpdateSchedulePopoverOpen] =
     useState(false);
@@ -323,7 +323,38 @@ const ManageSchedules = () => {
       const schedules = await schedulesResponse.json();
       const employees = await employeesResponse.json();
 
-      return schedules.map((schedule: any) => {
+      const dayOrder = {
+        Sunday: 0,
+        Monday: 1,
+        Tuesday: 2,
+        Wednesday: 3,
+        Thursday: 4,
+        Friday: 5,
+        Saturday: 6,
+      };
+
+      const sortedSchedules = schedules.sort((a: any, b: any) => {
+        const employeeA = employees.find(
+          (emp: Employee) => emp.employee_id === a.employee_id
+        );
+        const employeeB = employees.find(
+          (emp: Employee) => emp.employee_id === b.employee_id
+        );
+
+        const nameA = employeeA?.name || "Unknown";
+        const nameB = employeeB?.name || "Unknown";
+
+        if (nameA !== nameB) {
+          return nameA.localeCompare(nameB);
+        }
+
+        return (
+          dayOrder[a.day_of_week as keyof typeof dayOrder] -
+          dayOrder[b.day_of_week as keyof typeof dayOrder]
+        );
+      });
+
+      return sortedSchedules.map((schedule: any) => {
         const employee = employees.find(
           (emp: Employee) => emp.employee_id === schedule.employee_id
         );
@@ -357,7 +388,42 @@ const ManageSchedules = () => {
       const { schedules, employees }: ReferenceScheduleResponse =
         await response.json();
 
-      return schedules.map((schedule: any) => {
+      // Define day order for consistent sorting
+      const dayOrder = {
+        Sunday: 0,
+        Monday: 1,
+        Tuesday: 2,
+        Wednesday: 3,
+        Thursday: 4,
+        Friday: 5,
+        Saturday: 6,
+      };
+
+      // Sort by employee name first, then by day of week
+      const sortedSchedules = schedules.sort((a: any, b: any) => {
+        const employeeA = employees.find(
+          (emp: Employee) => emp.employee_id === a.employee_id
+        );
+        const employeeB = employees.find(
+          (emp: Employee) => emp.employee_id === b.employee_id
+        );
+
+        const nameA = employeeA?.name || "Unknown";
+        const nameB = employeeB?.name || "Unknown";
+
+        // First compare by employee name
+        if (nameA !== nameB) {
+          return nameA.localeCompare(nameB);
+        }
+
+        // If same employee, sort by day of week
+        return (
+          dayOrder[a.day_of_week as keyof typeof dayOrder] -
+          dayOrder[b.day_of_week as keyof typeof dayOrder]
+        );
+      });
+
+      return sortedSchedules.map((schedule: any) => {
         const employee = employees.find(
           (emp: Employee) => emp.employee_id === schedule.employee_id
         );
@@ -844,25 +910,9 @@ const ManageSchedules = () => {
     }
   };
 
-  // const table = useReactTable({
-  //   data: referenceSchedules,
-  //   columns: scheduleColumns,
-  //   getCoreRowModel: getCoreRowModel(),
-  //   getPaginationRowModel: getPaginationRowModel(),
-  //   getFilteredRowModel: getFilteredRowModel(),
-  // });
-
-  // const timesheetTable = useReactTable({
-  //   data: timesheets,
-  //   columns: timesheetColumns,
-  //   getCoreRowModel: getCoreRowModel(),
-  //   getPaginationRowModel: getPaginationRowModel(),
-  //   getFilteredRowModel: getFilteredRowModel(),
-  // });
-
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
+      <Card className="flex flex-col h-full max-w-[calc(100vw-450px)] mx-auto my-12">
         <CardHeader className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-bold">Manage Employee Schedules</h1>
         </CardHeader>
@@ -873,114 +923,146 @@ const ManageSchedules = () => {
           </TabsList>
 
           <TabsContent value="scheduling">
-            <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-5">
-              <Card>
-                <CardHeader>
-                  <h2 className="text-lg font-bold">Clear</h2>
-                  <h2 className="text-lg font-bold">A Schedule</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col mx-auto">
-                  <PopoverForm
-                    onSubmit={(employeeName: string) =>
-                      handleClearSchedule(employeeName)
-                    }
-                    buttonText="Select Employee"
-                    placeholder="Enter employee name"
-                    formType="clearSchedule"
-                    employees={employees}
-                  />
-                </CardContent>
-              </Card>
+            <div className="space-y-6 p-4">
+              {/* Schedule Generation Section */}
+              <div>
+                <h3 className="text-lg font-bold">Schedule Generation</h3>
+                <h4 className="text-sm text-muted-foreground mb-4">
+                  Ensure The Employee&apos;s Work Schedule Is Set Correctly
+                  First By Checking The Work Schedules Table Below
+                </h4>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-lg font-bold">
+                        Generate A Single Schedule
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Create schedule for one employee
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <PopoverForm
+                        onSubmit={(employeeName: string, weeks?: string) =>
+                          handleGenerateSingleSchedule(employeeName, weeks)
+                        }
+                        buttonText="Select Employee"
+                        placeholder="Enter employee name and weeks"
+                        formType="generate"
+                      />
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <h2 className="text-lg font-bold">Publish</h2>
-                  <h2 className="text-lg font-bold">A Schedule</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col mx-auto">
-                  <PopoverForm
-                    onSubmit={(employeeName: string, weeks?: string) =>
-                      handleGenerateSingleSchedule(employeeName, weeks)
-                    }
-                    buttonText="Select Employee"
-                    placeholder="Enter employee name and weeks"
-                    formType="generate"
-                    employees={employees}
-                  />
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-lg font-bold">
+                        Generate All Schedules
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Create schedules for all employees
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <PopoverForm
+                        onSubmit={(_, weeks?: string) => {
+                          generateSchedulesMutation.mutate(weeks || "1");
+                        }}
+                        buttonText="Select # Of Weeks"
+                        placeholder="Enter number of weeks"
+                        formType="generateAll"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader>
-                  <h2 className="text-lg font-bold">Generate</h2>
-                  <h2 className="text-lg font-bold">All Schedule</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col mx-auto">
-                  <PopoverForm
-                    onSubmit={(_, weeks?: string) => {
-                      generateSchedulesMutation.mutate(weeks || "1");
-                    }}
-                    buttonText="Select # Of Weeks"
-                    placeholder="Enter number of weeks"
-                    formType="generateAll"
-                  />
-                </CardContent>
-              </Card>
+              {/* Schedule Management Section */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Schedule Management</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-lg font-bold">Add A Shift</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Add an unscheduled shift
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <PopoverForm
+                        onSubmit={handleAddSchedule}
+                        buttonText="Add Unscheduled Shift"
+                        placeholder="Enter employee name and details"
+                        formType="addSchedule"
+                        open={popoverQuery.data ?? false}
+                        onOpenChange={(open) => {
+                          queryClient.setQueryData<PopoverState>(
+                            ["popoverState"],
+                            open
+                          );
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <h2 className="text-lg font-bold">Add</h2>
-                  <h2 className="text-lg font-bold">A Shift</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col mx-auto">
-                  <PopoverForm
-                    onSubmit={handleAddSchedule}
-                    buttonText="Add Unscheduled Shift"
-                    placeholder="Enter employee name and details"
-                    formType="addSchedule"
-                    employees={employees}
-                    open={popoverQuery.data ?? false} // Add fallback value
-                    onOpenChange={(open) => {
-                      queryClient.setQueryData<PopoverState>(
-                        ["popoverState"],
-                        open
-                      );
-                    }}
-                  />
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-lg font-bold">Update A Shift</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Modify an existing shift
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <PopoverForm
+                        onSubmit={handleUpdateSchedule}
+                        buttonText="Update An Existing Shift"
+                        placeholder="Enter employee name and details"
+                        formType="updateSchedule"
+                        fetchSchedule={fetchSchedule}
+                        open={updateSchedulePopoverOpen}
+                        onOpenChange={setUpdateSchedulePopoverOpen}
+                      />
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <h2 className="text-lg font-bold">Update</h2>
-                  <h2 className="text-lg font-bold">Existing Shift</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col mx-auto">
-                  <PopoverForm
-                    onSubmit={handleUpdateSchedule}
-                    buttonText="Update Existing Shift"
-                    placeholder="Enter employee name and details"
-                    formType="updateSchedule"
-                    employees={employees}
-                    fetchSchedule={fetchSchedule}
-                    open={updateSchedulePopoverOpen}
-                    onOpenChange={setUpdateSchedulePopoverOpen}
-                  />
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-lg font-bold">Clear A Schedule</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Remove all shifts for an employee
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <PopoverForm
+                        onSubmit={(employeeName: string) =>
+                          handleClearSchedule(employeeName)
+                        }
+                        buttonText="Select Employee"
+                        placeholder="Enter employee name"
+                        formType="clearSchedule"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Schedule Display Section */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Work Schedules</h3>
+                <Card>
+                  <CardContent>
+                    <DataTable
+                      columns={scheduleColumns}
+                      data={referenceSchedules}
+                      sorting={sorting}
+                      onSortingChange={setSorting}
+                      fetchReferenceSchedules={fetchReferenceSchedules}
+                      fetchActualSchedules={fetchActualSchedules}
+                      showPagination={true}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-
-            <CardContent>
-              <DataTable
-                columns={scheduleColumns}
-                data={[...referenceSchedules, ...actualSchedules]}
-                sorting={sorting}
-                onSortingChange={setSorting}
-                fetchReferenceSchedules={fetchReferenceSchedules}
-                fetchActualSchedules={fetchActualSchedules}
-                showPagination={true}
-              />
-            </CardContent>
           </TabsContent>
 
           <TabsContent value="timesheets">
@@ -992,7 +1074,6 @@ const ManageSchedules = () => {
                   </CardHeader>
                   <CardContent className="flex flex-col mx-auto">
                     <AddTimesheetForm
-                      employees={employees}
                       onTimesheetAdded={handleAddTimeSheetEntry}
                     />
                   </CardContent>

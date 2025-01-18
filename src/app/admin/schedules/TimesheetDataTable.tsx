@@ -39,6 +39,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface TimesheetData {
   id: number;
@@ -51,6 +61,12 @@ interface TimesheetData {
   created_at: string | null;
   employee_name: string | null;
   event_date: string | null;
+}
+
+interface Employee {
+  employee_id: number;
+  name: string;
+  status: string;
 }
 
 interface TimesheetDataTableProps {
@@ -77,6 +93,24 @@ export function TimesheetDataTable({
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
+  });
+  const [open, setOpen] = React.useState(false);
+  const [selectedEmployee, setSelectedEmployee] = React.useState<string>("");
+  const supabase = createClientComponentClient();
+
+  const { data: employees } = useQuery({
+    queryKey: ["activeEmployees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id, name")
+        .eq("status", "active")
+        .eq("pay_type", "hourly")
+        .order("name");
+
+      if (error) throw error;
+      return data as Employee[];
+    },
   });
 
   // Filter data based on date range
@@ -283,7 +317,7 @@ export function TimesheetDataTable({
 
   const handleResetFilter = () => {
     table.getColumn("employee_name")?.setFilterValue("");
-    setSearchInput("");
+    setSelectedEmployee("");
   };
 
   const handleExpandCollapseAll = () => {
@@ -402,17 +436,61 @@ export function TimesheetDataTable({
     <div className="flex flex-col h-full w-full max-h-[80vh]">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="flex items-center space-x-2 flex-grow">
-          <Input
-            placeholder="Search Employee Name..."
-            value={searchInput}
-            onChange={(event) => {
-              setSearchInput(event.target.value);
-              table
-                .getColumn("employee_name")
-                ?.setFilterValue(event.target.value);
-            }}
-            className="max-w-sm w-full"
-          />
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-[250px] justify-between"
+              >
+                {selectedEmployee
+                  ? employees?.find(
+                      (employee) => employee.name === selectedEmployee
+                    )?.name
+                  : "Select employee..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0">
+              <Command>
+                <CommandInput placeholder="Search employee..." />
+                {/* <CommandEmpty>No employee found.</CommandEmpty> */}
+                <CommandGroup>
+                  {employees?.map((employee) => (
+                    <CommandItem
+                      key={employee.employee_id}
+                      onSelect={() => {
+                        setSelectedEmployee(
+                          employee.name === selectedEmployee
+                            ? ""
+                            : employee.name
+                        );
+                        table
+                          .getColumn("employee_name")
+                          ?.setFilterValue(
+                            employee.name === selectedEmployee
+                              ? ""
+                              : employee.name
+                          );
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedEmployee === employee.name
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {employee.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -448,7 +526,7 @@ export function TimesheetDataTable({
               />
             </PopoverContent>
           </Popover>
-          {(searchInput || date?.from) && (
+          {(searchInput || date?.from || selectedEmployee) && (
             <Button
               variant="outline"
               onClick={() => {

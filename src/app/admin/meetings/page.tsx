@@ -567,7 +567,8 @@ export default function TeamWeeklyNotes() {
                                     >
                                       <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
                                       <span>{item.content || ""}</span>
-                                      {currentEmployee?.role === "dev" && (
+                                      {(currentEmployee?.role === "dev" ||
+                                        currentEmployee?.role === "admin") && (
                                         <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
                                             <Button

@@ -57,7 +57,7 @@ export function SchedulePagination<TData>({
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[7, 10, 20, 30, 40, 50].map((pageSize) => (
+              {[7, 14, 21, 28, 35, 42, 49, 56, 63, 70].map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>

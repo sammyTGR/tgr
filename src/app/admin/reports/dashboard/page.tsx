@@ -197,14 +197,14 @@ function AdminDashboardContent() {
   }>({
     queryKey: ["metrics"],
     queryFn: async () => {
-      console.log("Fetching metrics...");
+      // console.log("Fetching metrics...");
       const response = await fetch("/api/metrics");
       if (!response.ok) {
         console.error("Failed to fetch metrics:", response.statusText);
         throw new Error("Failed to fetch metrics");
       }
       const data = await response.json();
-      console.log("Metrics data:", data);
+      // console.log("Metrics data:", data);
       return data;
     },
   });
@@ -1116,7 +1116,7 @@ function AdminDashboardContent() {
 
         <Tabs defaultValue="reporting">
           <div className="flex items-center space-x-2">
-            <TabsList className="grid grid-cols-5 text-left">
+            <TabsList className="border-b border-gray-200 dark:border-gray-700">
               <TabsTrigger value="reporting">Dashboard</TabsTrigger>
               <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
               {(role === "ceo" || role === "dev") && (
@@ -1961,7 +1961,20 @@ function AdminDashboardContent() {
           {icon}
         </CardHeader>
         <CardContent>
-          {date ? (
+          {type === "certificate" && !date ? (
+            <>
+              <p className="text-sm text-gray-500">No renewals needed</p>
+              <div className="flex items-center mt-2">
+                <CheckCircledIcon className="text-green-500 mr-2" />
+                <Badge
+                  variant="outline"
+                  className="bg-green-100 text-green-800"
+                >
+                  All Current
+                </Badge>
+              </div>
+            </>
+          ) : date ? (
             <>
               <p className="text-sm text-gray-500">
                 {DOMPurify.sanitize(
@@ -2038,12 +2051,7 @@ function AdminDashboardContent() {
             </>
           )}
           {details && details.length > 0 && (
-            <ScrollArea
-              className={classNames(
-                styles.noScroll,
-                "h-[calc(100vh-1200px)] relative"
-              )}
-            >
+            <ScrollArea className="max-h-[300px] mt-4">
               <ul className="space-y-2 pr-4">
                 {details.map((item, index) => (
                   <li
@@ -2063,7 +2071,7 @@ function AdminDashboardContent() {
                         </span>
                         <Badge variant="destructive">
                           {DOMPurify.sanitize(
-                            new Date(item.expiration).toLocaleDateString()
+                            format(new Date(item.expiration), "MM/dd/yyyy")
                           )}
                         </Badge>
                       </>
@@ -2073,7 +2081,9 @@ function AdminDashboardContent() {
                           {DOMPurify.sanitize(item.name)}
                         </span>
                         <Badge variant="secondary">
-                          ${DOMPurify.sanitize(item.value)}
+                          {type === "certificate"
+                            ? DOMPurify.sanitize(item.value)
+                            : `$${DOMPurify.sanitize(item.value)}`}
                         </Badge>
                       </>
                     )}

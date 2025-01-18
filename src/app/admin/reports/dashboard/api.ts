@@ -27,7 +27,15 @@ export const fetchDomains = async () => {
 export const fetchCertificates = async () => {
   const { data, error } = await supabase
     .from("certifications")
-    .select("*")
+    .select(
+      `
+      *,
+      employees!inner (
+        status
+      )
+    `
+    )
+    .eq("employees.status", "active")
     .lt(
       "expiration",
       new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
@@ -75,15 +83,39 @@ export const fetchLatestGunsmithMaintenance = async () => {
 };
 
 export const fetchLatestDailyDeposit = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const { data, error } = await supabase
     .from("daily_deposits")
     .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    .gte("created_at", today.toISOString())
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data;
+
+  // Group deposits by register
+  const deposits = data?.reduce((acc: any[], deposit) => {
+    return [
+      ...acc,
+      {
+        name: `Register ${deposit.register}`,
+        value: deposit.total_to_deposit?.toFixed(2) || "0.00",
+      },
+    ];
+  }, []);
+
+  // Return the first deposit's metadata along with all register deposits
+  return {
+    created_at: data?.[0]?.created_at || null,
+    employee_name: data?.[0]?.employee_name || null,
+    register: "All Registers",
+    total_to_deposit: data?.reduce(
+      (sum, deposit) => sum + (deposit.total_to_deposit || 0),
+      0
+    ),
+    details: deposits,
+  };
 };
 
 export const fetchDailyChecklistStatus = async () => {

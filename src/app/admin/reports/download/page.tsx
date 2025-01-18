@@ -435,6 +435,21 @@ const AdminReportsPage = () => {
             <TabsTrigger value="sales">Sales Report</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="timesheet">
+            <>
+              {timesheetData.length > 0 ? (
+                <TimesheetTable
+                  data={timesheetData}
+                  onDataUpdate={handleTimesheetDataUpdate}
+                  onFilteredDataUpdate={handleFilteredDataUpdate}
+                  selectedPayPeriod={selectedPayPeriod}
+                />
+              ) : (
+                <p>No timesheet data available.</p>
+              )}
+            </>
+          </TabsContent>
+
           <TabsContent value="sick-time">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -448,21 +463,6 @@ const AdminReportsPage = () => {
                 isAllExpanded={isAllExpanded}
                 onExpandCollapseAll={handleExpandCollapseAll}
               />
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="timesheet">
-            <Card>
-              {timesheetData.length > 0 ? (
-                <TimesheetTable
-                  data={timesheetData}
-                  onDataUpdate={handleTimesheetDataUpdate}
-                  onFilteredDataUpdate={handleFilteredDataUpdate}
-                  selectedPayPeriod={selectedPayPeriod}
-                />
-              ) : (
-                <p>No timesheet data available.</p>
-              )}
             </Card>
           </TabsContent>
 

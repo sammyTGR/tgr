@@ -22,8 +22,8 @@ export async function GET() {
     const { data: timesheets, error } = await supabase
       .from("employee_clock_events")
       .select("*")
-      .gte("event_date", thirtyDaysAgo.toISOString().split("T")[0])
-      .lte("event_date", today.toISOString().split("T")[0])
+      // .gte("event_date", thirtyDaysAgo.toISOString().split("T")[0])
+      // .lte("event_date", today.toISOString().split("T")[0])
       .order("event_date", { ascending: false });
 
     if (error) {

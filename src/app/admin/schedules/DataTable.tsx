@@ -13,11 +13,14 @@ import {
   GroupingState,
   ExpandedState,
   getExpandedRowModel,
+  getSortedRowModel,
 } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScheduleRowActions } from "./schedule-row-actions";
 import { SchedulePagination } from "./schedule-pagination";
+import { CaretUpIcon, Cross2Icon } from "@radix-ui/react-icons";
+import { CaretDownIcon } from "@radix-ui/react-icons";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,12 +41,18 @@ export function DataTable<TData, TValue>({
   fetchActualSchedules,
   showPagination = true,
 }: DataTableProps<TData, TValue>) {
-  const [localSorting, setLocalSorting] = React.useState<SortingState>([]);
+  // Set default sorting state
+  const defaultSorting: SortingState = [
+    { id: "employee_name", desc: false },
+    { id: "day_of_week", desc: false },
+  ];
+
+  const [localSorting, setLocalSorting] =
+    React.useState<SortingState>(defaultSorting);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
   const [searchInput, setSearchInput] = React.useState("");
-
   const [grouping, setGrouping] = React.useState<GroupingState>([
     "employee_name",
   ]);
@@ -80,7 +89,9 @@ export function DataTable<TData, TValue>({
     columns: sortedColumns,
     state: {
       columnFilters,
-      sorting: sorting || [],
+      sorting: sorting || defaultSorting, // Use defaultSorting here instead of localSorting
+      grouping,
+      expanded,
     },
     onSortingChange: (updater) => {
       const newSorting =
@@ -94,16 +105,20 @@ export function DataTable<TData, TValue>({
       }
     },
     onColumnFiltersChange: setColumnFilters,
+    onGroupingChange: setGrouping,
+    onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     initialState: {
       pagination: { pageSize: showPagination ? 7 : data.length },
-      sorting: [
-        { id: "employee_name", desc: false },
-        { id: "day_of_week", desc: false },
-      ],
+      sorting: defaultSorting,
+      grouping: ["employee_name"],
     },
+    manualSorting: false,
+    sortDescFirst: false,
   });
 
   const handleResetFilter = () => {
@@ -113,7 +128,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
-      <div className="flex flex-row items-center justify-between mx-2 my-2">
+      <div className="flex flex-row items-center space-x-2 my-2">
         <Input
           placeholder="Search schedules..."
           value={searchInput}
@@ -126,7 +141,10 @@ export function DataTable<TData, TValue>({
           className="max-w-sm w-full"
         />
         {searchInput && (
-          <Button onClick={handleResetFilter}>Reset Filter</Button>
+          <Button variant="outline" onClick={handleResetFilter}>
+            <Cross2Icon className="mr-2 h-4 w-4" />
+            Reset Filter
+          </Button>
         )}
       </div>
       <div className="overflow-auto">
@@ -137,14 +155,21 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer"
+                    onClick={header.column.getToggleSortingHandler()}
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                    <div className="flex items-center">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      {{
+                        asc: <CaretUpIcon className="ml-2 h-4 w-4" />,
+                        desc: <CaretDownIcon className="ml-2 h-4 w-4" />,
+                      }[header.column.getIsSorted() as string] ?? null}
+                    </div>
                   </th>
                 ))}
               </tr>

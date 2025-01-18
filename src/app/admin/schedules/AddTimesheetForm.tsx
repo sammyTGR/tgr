@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useQuery } from "@tanstack/react-query";
 import {
   Popover,
   PopoverTrigger,
@@ -16,8 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface Employee {
+  employee_id: number;
+  name: string;
+  status: string;
+}
+
 interface AddTimesheetFormProps {
-  employees: { employee_id: number; name: string }[];
   onTimesheetAdded: (
     employeeId: number,
     date: string,
@@ -29,15 +36,31 @@ interface AddTimesheetFormProps {
 }
 
 const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
-  employees,
   onTimesheetAdded,
 }) => {
+  const supabase = createClientComponentClient();
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [lunchStart, setLunchStart] = useState("");
   const [lunchEnd, setLunchEnd] = useState("");
   const [endTime, setEndTime] = useState("");
+
+  // Fetch active hourly employees
+  const { data: employees } = useQuery({
+    queryKey: ["activeHourlyEmployees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id, name")
+        .eq("status", "active")
+        .eq("pay_type", "hourly")
+        .order("name");
+
+      if (error) throw error;
+      return data as Employee[];
+    },
+  });
 
   const handleSubmit = () => {
     if (employeeId && date && startTime) {
@@ -68,7 +91,7 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
                 <SelectValue placeholder="Select Employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((employee) => (
+                {employees?.map((employee) => (
                   <SelectItem
                     key={employee.employee_id}
                     value={employee.employee_id.toString()}
