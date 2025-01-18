@@ -1107,7 +1107,7 @@ function AdminDashboardContent() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <div className="container max-w-[calc(100vw-90px)] py-4">
+      <div className="max-w-[calc(100vw-40px)] py-4">
         {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-3xl font-bold">CEO Dashboard</CardTitle>
@@ -2051,47 +2051,60 @@ function AdminDashboardContent() {
             </>
           )}
           {details && details.length > 0 && (
-            <ScrollArea className="max-h-[300px] mt-4">
-              <ul className="space-y-2 pr-4">
-                {details.map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex items-center justify-between space-x-2"
-                  >
-                    {"certificate" in item ? (
+            <ScrollArea className="h-[200px] mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {type === "deposit" ? (
                       <>
-                        <span className="flex-shrink-0 w-1/4 truncate">
-                          {DOMPurify.sanitize(item.name)}
-                        </span>
-                        <span className="flex-shrink-0 w-1/4 truncate">
-                          {DOMPurify.sanitize(item.certificate)}
-                        </span>
-                        <span className="flex-shrink-0 w-1/4 truncate">
-                          {DOMPurify.sanitize(item.action_status)}
-                        </span>
-                        <Badge variant="destructive">
-                          {DOMPurify.sanitize(
-                            format(new Date(item.expiration), "MM/dd/yyyy")
-                          )}
-                        </Badge>
+                        <TableHead className="w-[70%]">Register</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
                       </>
                     ) : (
                       <>
-                        <span className="flex-shrink-0 w-1/2 truncate">
-                          {DOMPurify.sanitize(item.name)}
-                        </span>
-                        <Badge variant="secondary">
-                          {type === "certificate"
-                            ? DOMPurify.sanitize(item.value)
-                            : `$${DOMPurify.sanitize(item.value)}`}
-                        </Badge>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Certificate</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Expiration</TableHead>
                       </>
                     )}
-                  </li>
-                ))}
-              </ul>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {details.map((item, index) => (
+                    <TableRow key={index}>
+                      {"value" in item ? (
+                        <>
+                          <TableCell className="w-[70%]">
+                            {DOMPurify.sanitize(item.name)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant="secondary">
+                              ${DOMPurify.sanitize(item.value)}
+                            </Badge>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell>{DOMPurify.sanitize(item.name)}</TableCell>
+                          <TableCell>
+                            {DOMPurify.sanitize(item.certificate)}
+                          </TableCell>
+                          <TableCell>
+                            {DOMPurify.sanitize(item.action_status)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="destructive">
+                              {format(new Date(item.expiration), "MM/dd/yyyy")}
+                            </Badge>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
               <ScrollBar orientation="vertical" />
-              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           )}
         </CardContent>

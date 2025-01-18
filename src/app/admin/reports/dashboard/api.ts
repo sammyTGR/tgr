@@ -25,17 +25,19 @@ export const fetchDomains = async () => {
 };
 
 export const fetchCertificates = async () => {
+  const { data: activeEmployees, error: employeesError } = await supabase
+    .from("employees")
+    .select("name")
+    .eq("status", "active");
+
+  if (employeesError) throw employeesError;
+
+  const activeNames = activeEmployees.map((emp) => emp.name);
+
   const { data, error } = await supabase
     .from("certifications")
-    .select(
-      `
-      *,
-      employees!inner (
-        status
-      )
-    `
-    )
-    .eq("employees.status", "active")
+    .select("id, name, certificate, action_status, expiration, status")
+    .in("name", activeNames)
     .lt(
       "expiration",
       new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
@@ -43,7 +45,17 @@ export const fetchCertificates = async () => {
     .order("expiration", { ascending: true });
 
   if (error) throw error;
-  return data;
+
+  // Transform and validate the data
+  return (
+    data?.map((cert) => ({
+      id: cert.id,
+      name: cert.name || "",
+      certificate: cert.certificate || "",
+      action_status: cert.action_status || "N/A",
+      expiration: cert.expiration,
+    })) || []
+  );
 };
 
 export const fetchLatestRangeWalkReport = async () => {

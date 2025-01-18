@@ -14,6 +14,12 @@ const nextConfig = {
           },
         ],
     },
+    env: {
+      API_KEY: process.env.API_KEY,
+      USERNAME: process.env.USERNAME,
+      PASSWORD: process.env.PASSWORD,
+      APP_ID: process.env.APP_ID,
+    },
 
     // async headers() {
     //   return [
