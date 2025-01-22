@@ -141,6 +141,20 @@ interface Employee {
   department: string;
 }
 
+interface DepositDetail {
+  name: string;
+  value: string;
+}
+
+interface ReportCardProps {
+  title: string;
+  date: string | Date | null;
+  icon: React.ReactNode;
+  extraInfo?: string;
+  type?: "deposit" | "certificate" | "maintenance" | "dailyChecklist";
+  details?: Certificate[] | DepositDetail[];
+}
+
 declare global {
   interface Function {
     timeoutId?: number;
@@ -1211,9 +1225,9 @@ function AdminDashboardContent() {
                         certificates && certificates.length === 1 ? "s" : ""
                       } renewal`}
                       type="certificate"
-                      details={certificates?.map((cert) => ({
-                        name: cert.name || "",
-                        value: cert.expiration || "",
+                      details={certificates?.map(cert => ({
+                        ...cert,
+                        expiration: cert.expiration || new Date()
                       }))}
                     />
                   </div>
@@ -1905,14 +1919,7 @@ function AdminDashboardContent() {
     extraInfo,
     type,
     details,
-  }: {
-    title: string;
-    date: string | Date | null;
-    icon: React.ReactNode;
-    extraInfo?: string;
-    type?: string;
-    details?: Certificate[] | { name: string; value: string }[];
-  }) {
+  }: ReportCardProps) {
     const timeZone = "America/Los_Angeles";
 
     const formatLocalDate = (dateValue: string | Date) => {
@@ -2073,29 +2080,27 @@ function AdminDashboardContent() {
                 <TableBody>
                   {details.map((item, index) => (
                     <TableRow key={index}>
-                      {"value" in item ? (
+                      {type === "deposit" ? (
                         <>
                           <TableCell className="w-[70%]">
-                            {DOMPurify.sanitize(item.name)}
+                            {DOMPurify.sanitize((item as DepositDetail).name)}
                           </TableCell>
                           <TableCell className="text-right">
                             <Badge variant="secondary">
-                              ${DOMPurify.sanitize(item.value)}
+                              ${DOMPurify.sanitize((item as DepositDetail).value)}
                             </Badge>
                           </TableCell>
                         </>
                       ) : (
                         <>
-                          <TableCell>{DOMPurify.sanitize(item.name)}</TableCell>
-                          <TableCell>
-                            {DOMPurify.sanitize(item.certificate)}
-                          </TableCell>
-                          <TableCell>
-                            {DOMPurify.sanitize(item.action_status)}
-                          </TableCell>
+                          <TableCell>{DOMPurify.sanitize((item as Certificate).name)}</TableCell>
+                          <TableCell>{DOMPurify.sanitize((item as Certificate).certificate)}</TableCell>
+                          <TableCell>{DOMPurify.sanitize((item as Certificate).action_status)}</TableCell>
                           <TableCell>
                             <Badge variant="destructive">
-                              {format(new Date(item.expiration), "MM/dd/yyyy")}
+                              {(item as Certificate).expiration 
+                                ? format((item as Certificate).expiration, "MM/dd/yyyy")
+                                : "No date"}
                             </Badge>
                           </TableCell>
                         </>

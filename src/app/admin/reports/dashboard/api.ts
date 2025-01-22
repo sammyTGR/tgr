@@ -47,15 +47,19 @@ export const fetchCertificates = async () => {
   if (error) throw error;
 
   // Transform and validate the data
-  return (
-    data?.map((cert) => ({
+  const transformedData = data?.map((cert) => {
+    console.log('Raw cert data:', cert); // Debug log
+    return {
       id: cert.id,
       name: cert.name || "",
       certificate: cert.certificate || "",
       action_status: cert.action_status || "N/A",
-      expiration: cert.expiration,
-    })) || []
-  );
+      expiration: cert.expiration ? new Date(cert.expiration) : null
+    } as Certificate;
+  }) || [];
+
+  console.log('Transformed data:', transformedData); // Debug log
+  return transformedData;
 };
 
 export const fetchLatestRangeWalkReport = async () => {

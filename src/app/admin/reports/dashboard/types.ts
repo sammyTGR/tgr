@@ -19,9 +19,9 @@ export interface Suggestion {
 export interface Certificate {
   id: number;
   name: string;
-  certificate: string; // Add this line
+  certificate: string;
   action_status: string;
-  expiration: Date;
+  expiration: Date | null;
 }
 
 export interface ReplyStates {
