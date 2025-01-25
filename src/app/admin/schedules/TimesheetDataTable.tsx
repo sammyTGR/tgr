@@ -435,133 +435,136 @@ export function TimesheetDataTable({
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh]">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
-        <div className="flex items-center space-x-2 flex-grow">
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-[250px] justify-between"
-              >
-                {selectedEmployee
-                  ? employees?.find(
-                      (employee) => employee.name === selectedEmployee
-                    )?.name
-                  : "Select employee..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[250px] p-0">
-              <Command>
-                <CommandInput placeholder="Search employee..." />
-                {/* <CommandEmpty>No employee found.</CommandEmpty> */}
-                <CommandGroup>
-                  {employees?.map((employee) => (
-                    <CommandItem
-                      key={employee.employee_id}
-                      onSelect={() => {
-                        setSelectedEmployee(
-                          employee.name === selectedEmployee
-                            ? ""
-                            : employee.name
-                        );
-                        table
-                          .getColumn("employee_name")
-                          ?.setFilterValue(
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
+          <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  
+                >
+                  {selectedEmployee
+                    ? employees?.find(
+                        (employee) => employee.name === selectedEmployee
+                      )?.name
+                    : "Select employee..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search employee..." />
+                  {/* <CommandEmpty>No employee found.</CommandEmpty> */}
+                  <CommandGroup>
+                    {employees?.map((employee) => (
+                      <CommandItem
+                        key={employee.employee_id}
+                        onSelect={() => {
+                          setSelectedEmployee(
                             employee.name === selectedEmployee
                               ? ""
                               : employee.name
                           );
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedEmployee === employee.name
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {employee.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
+                          table
+                            .getColumn("employee_name")
+                            ?.setFilterValue(
+                              employee.name === selectedEmployee
+                                ? ""
+                                : employee.name
+                            );
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedEmployee === employee.name
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {employee.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date?.from ? (
+                    date.to ? (
+                      <>
+                        {format(date.from, "LLL dd, y")} -{" "}
+                        {format(date.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(date.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from}
+                  selected={date}
+                  onSelect={setDate}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+            {(searchInput || date?.from || selectedEmployee) && (
               <Button
                 variant="outline"
-                className={cn(
-                  "justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
+                onClick={() => {
+                  handleResetFilter();
+                  setDate(undefined);
+                }}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date?.from ? (
-                  date.to ? (
-                    <>
-                      {format(date.from, "LLL dd, y")} -{" "}
-                      {format(date.to, "LLL dd, y")}
-                    </>
-                  ) : (
-                    format(date.from, "LLL dd, y")
-                  )
-                ) : (
-                  <span>Pick a date range</span>
-                )}
+                <CrossCircledIcon className="mr-2 h-4 w-4" />
+                Reset Filters
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-          {(searchInput || date?.from || selectedEmployee) && (
+            )}
             <Button
-              variant="outline"
-              onClick={() => {
-                handleResetFilter();
-                setDate(undefined);
-              }}
+              variant="default"
+              onClick={handleExportToExcel}
             >
-              <CrossCircledIcon className="mr-2 h-4 w-4" />
-              Reset Filters
+              <DownloadIcon className="mr-2 h-4 w-4" />
+              Export to Excel
             </Button>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="default"
-            onClick={handleExportToExcel}
-            className="ml-auto"
-          >
-            <DownloadIcon className="mr-2 h-4 w-4" />
-            Export to Excel
-          </Button>
-          <Button variant="outline" onClick={handleExpandCollapseAll}>
-            {isExpanded ? "Collapse All" : "Expand All"}
-          </Button>
+            <Button variant="outline" onClick={handleExpandCollapseAll}>
+              {isExpanded ? "Collapse All" : "Expand All"}
+            </Button>
+          </div>
         </div>
       </div>
       <div className="overflow-hidden">
-        <ScrollArea
+        {/* <ScrollArea
           className={classNames(
             styles.noScroll,
             "h-[calc(100vh-400px)] relative"
           )}
-        >
+        > */}
           <div className="overflow-auto">
-            <ScrollArea>
+            <ScrollArea
+          className={classNames(
+            styles.noScroll,
+            "h-[calc(100vh-400px)] w-[calc(100vw-100px)] relative"
+          )}>
               <div className="flex max-h-calc[(100vh-600px)] relative">
                 <table className="w-full divide-y divide-gray-200 overflow-hidden">
                   <thead className="sticky top-0 bg-background z-5">
@@ -640,9 +643,9 @@ export function TimesheetDataTable({
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>
-          <ScrollBar orientation="horizontal" />
+          {/* <ScrollBar orientation="horizontal" />
           <ScrollBar orientation="vertical" />
-        </ScrollArea>
+        </ScrollArea> */}
       </div>
       {/* <TimesheetPagination table={table} /> */}
     </div>

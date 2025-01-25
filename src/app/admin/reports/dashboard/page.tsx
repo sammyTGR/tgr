@@ -1155,7 +1155,7 @@ function AdminDashboardContent() {
             {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden"> */}
 
             <TabsContent value="reporting">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
                 {/*todo card*/}
                 {flags.is_todo_enabled.enabled && (
                   <div className="w-full overflow-hidden">
@@ -1169,7 +1169,7 @@ function AdminDashboardContent() {
 
                 {/*All Report cards*/}
                 <div className="w-full ">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 ">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
                     <ReportCard
                       title="Gunsmithing Weekly Maintenance"
                       date={gunsmiths?.last_maintenance_date || null}

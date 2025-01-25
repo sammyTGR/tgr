@@ -931,7 +931,7 @@ const ManageSchedules = () => {
                   Ensure The Employee&apos;s Work Schedule Is Set Correctly
                   First By Checking The Work Schedules Table Below
                 </h4>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   <Card>
                     <CardHeader>
                       <h2 className="text-lg font-bold">
@@ -1067,7 +1067,7 @@ const ManageSchedules = () => {
 
           <TabsContent value="timesheets">
             <CardContent>
-              <div className="grid p-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid p-2 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader>
                     <h2 className="text-lg font-bold">Add Timesheet Entry</h2>
