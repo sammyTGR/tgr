@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { TrashIcon } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TimesheetRowActionsProps {
   row: Row<TimesheetData>;
@@ -255,7 +256,7 @@ export function TimesheetRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[300px] p-2">
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex-grow">
+          <div className="flex max-w-[300px]">
             <label className="block text-sm font-medium ">Start Time</label>
             <Input
               type="time"
@@ -274,7 +275,7 @@ export function TimesheetRowActions({
           </Button>
         </div>
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex-grow">
+          <div className="flex max-w-[300px]">
             <label className="block text-sm font-medium ">Lunch Start</label>
             <Input
               type="time"
@@ -293,7 +294,7 @@ export function TimesheetRowActions({
           </Button>
         </div>
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex-grow">
+          <div className="flex max-w-[300px]">
             <label className="block text-sm font-medium ">Lunch End</label>
             <Input
               type="time"
@@ -312,7 +313,7 @@ export function TimesheetRowActions({
           </Button>
         </div>
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex-grow">
+          <div className="flex max-w-[300px]">
             <label className="block text-sm font-medium ">End Time</label>
             <Input
               type="time"

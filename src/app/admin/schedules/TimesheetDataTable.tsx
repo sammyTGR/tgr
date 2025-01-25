@@ -433,7 +433,10 @@ export function TimesheetDataTable({
   };
 
   return (
+
     <div className="flex flex-col h-full w-full max-h-[80vh]">
+    <ScrollArea className="h-[calc(100vh-600px)]">
+
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
           <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">
@@ -563,7 +566,7 @@ export function TimesheetDataTable({
             <ScrollArea
           className={classNames(
             styles.noScroll,
-            "h-[calc(100vh-400px)] w-[calc(100vw-100px)] relative"
+            "h-[calc(100vh-600px)] w-[calc(100vw-400px)] relative"
           )}>
               <div className="flex max-h-calc[(100vh-600px)] relative">
                 <table className="w-full divide-y divide-gray-200 overflow-hidden">
@@ -573,7 +576,7 @@ export function TimesheetDataTable({
                         {headerGroup.headers.map((header) => (
                           <th
                             key={header.id}
-                            className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                            className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal max-w-[70px] truncate"
                           >
                             {header.isPlaceholder
                               ? null
@@ -598,7 +601,7 @@ export function TimesheetDataTable({
                           >
                             <td
                               colSpan={columns.length + 1}
-                              className="px-6 py-4"
+                              className="px-1 py-1"
                             >
                               <div className="flex items-center">
                                 {row.getIsExpanded() ? (
@@ -618,7 +621,7 @@ export function TimesheetDataTable({
                           {row.getVisibleCells().map((cell) => (
                             <td
                               key={cell.id}
-                              className="px-6 py-4 whitespace-nowrap"
+                              className="px-1 py-1 whitespace-nowrap max-w-[120px] truncate"
                             >
                               {flexRender(
                                 cell.column.columnDef.cell,
@@ -643,11 +646,12 @@ export function TimesheetDataTable({
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>
-          {/* <ScrollBar orientation="horizontal" />
-          <ScrollBar orientation="vertical" />
-        </ScrollArea> */}
+        
       </div>
-      {/* <TimesheetPagination table={table} /> */}
+      <ScrollBar orientation="vertical" />
+              <ScrollBar orientation="horizontal" />
+    </ScrollArea>
     </div>
+    
   );
 }
