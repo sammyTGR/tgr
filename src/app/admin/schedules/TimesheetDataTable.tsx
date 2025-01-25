@@ -435,7 +435,6 @@ export function TimesheetDataTable({
   return (
 
     <div className="flex flex-col h-full w-full max-h-[80vh]">
-    <ScrollArea className="h-[calc(100vh-600px)]">
 
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
@@ -555,7 +554,7 @@ export function TimesheetDataTable({
           </div>
         </div>
       </div>
-      <div className="overflow-hidden">
+      <div className="overflow-auto">
         {/* <ScrollArea
           className={classNames(
             styles.noScroll,
@@ -563,13 +562,9 @@ export function TimesheetDataTable({
           )}
         > */}
           <div className="overflow-auto">
-            <ScrollArea
-          className={classNames(
-            styles.noScroll,
-            "h-[calc(100vh-600px)] w-[calc(100vw-400px)] relative"
-          )}>
+           <ScrollArea className="h-[calc(100vh-600px)] w-[calc(100vw-400px)]">
               <div className="flex max-h-calc[(100vh-600px)] relative">
-                <table className="w-full divide-y divide-gray-200 overflow-hidden">
+                <table className="w-full divide-y divide-gray-200 overflow-auto">
                   <thead className="sticky top-0 bg-background z-5">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id}>
@@ -648,9 +643,7 @@ export function TimesheetDataTable({
           </div>
         
       </div>
-      <ScrollBar orientation="vertical" />
-              <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+     
     </div>
     
   );
