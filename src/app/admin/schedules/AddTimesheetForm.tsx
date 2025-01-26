@@ -39,6 +39,8 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
   onTimesheetAdded,
 }) => {
   const supabase = createClientComponentClient();
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -62,23 +64,42 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
     },
   });
 
+  const resetForm = () => {
+    setEmployeeId(null);
+    setDate("");
+    setStartTime("");
+    setLunchStart("");
+    setLunchEnd("");
+    setEndTime("");
+  };
+
   const handleSubmit = () => {
     if (employeeId && date && startTime) {
-      onTimesheetAdded(
-        employeeId,
-        date,
-        startTime,
-        lunchStart || null,
-        lunchEnd || null,
-        endTime || null
-      );
+      setIsSubmitting(true);
+      try {
+        onTimesheetAdded(
+          employeeId,
+          date,
+          startTime,
+          lunchStart || null,
+          lunchEnd || null,
+          endTime || null
+        );
+        setOpen(false); // Close popover after successful submission
+        resetForm(); // Reset form fields
+      } catch (error) {
+        console.error("Error submitting timesheet:", error);
+        toast.error("Failed to submit timesheet");
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       toast.error("Please fill in employee, date, and start time");
     }
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline">Add Timesheet Entry</Button>
       </PopoverTrigger>
@@ -142,8 +163,12 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
               onChange={(e) => setEndTime(e.target.value)}
             />
           </div>
-          <Button variant="outline" onClick={handleSubmit}>
-            Submit
+          <Button 
+            variant="outline" 
+            onClick={handleSubmit}
+            disabled={isSubmitting || !employeeId || !date || !startTime}
+          >
+            {isSubmitting ? "Submitting..." : "Submit"}
           </Button>
         </div>
       </PopoverContent>

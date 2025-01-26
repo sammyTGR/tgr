@@ -598,15 +598,31 @@ const ManageSchedules = () => {
         .single();
 
       if (existingEntry) {
-        return supabase
+        const { error } = await supabase
           .from("employee_clock_events")
           .update(timesheetData)
           .match({ id: existingEntry.id });
+        
+        if (error) throw error;
+        return { updated: true };
       }
-      return supabase.from("employee_clock_events").insert(timesheetData);
+      
+      const { error } = await supabase
+        .from("employee_clock_events")
+        .insert(timesheetData);
+      
+      if (error) throw error;
+      return { inserted: true };
     },
-    onSuccess: fetchTimesheets,
-    onError: (error) => {
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      toast.success(
+        result.updated 
+          ? "Timesheet entry updated successfully" 
+          : "Timesheet entry added successfully"
+      );
+    },
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to add/update timesheet entry");
     },
   });
