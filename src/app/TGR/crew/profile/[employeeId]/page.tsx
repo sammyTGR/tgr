@@ -1518,7 +1518,7 @@ const EmployeeProfilePage = () => {
                           </CardContent>
                         </Card>
 
-                        {/* End Of Shift Card*/}
+                        {/* End of Shift */}
                         <Card className="mt-4">
                           <CardHeader className="flex justify-between items-center">
                             <CardTitle className="text-2xl font-bold">
@@ -1526,35 +1526,27 @@ const EmployeeProfilePage = () => {
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="mx-auto">
-                            {currentShift?.end_time ? (
-                              <div className="text-left">
-                                <div className="text-lg font-bold">
-                                  {formatTZ(
-                                    toZonedTime(
-                                      new Date(
-                                        `${currentShift.event_date}T${currentShift.end_time}`
-                                      ),
-                                      "America/Los_Angeles"
-                                    ),
-                                    "EEEE",
-                                    { timeZone: "America/Los_Angeles" }
-                                  )}
-                                </div>
-                                <div>
-                                  {formatTZ(
-                                    toZonedTime(
-                                      new Date(
-                                        `${currentShift.event_date}T${currentShift.end_time}`
-                                      ),
-                                      "America/Los_Angeles"
-                                    ),
-                                    "MMM d - h:mm a",
-                                    { timeZone: "America/Los_Angeles" }
-                                  )}
-                                </div>
+                            {currentShift?.start_time &&
+                            !currentShift?.end_time ? (
+                              <div>
+                                {(() => {
+                                  const startTime = new Date(
+                                    `1970-01-01T${currentShift.start_time}`
+                                  );
+                                  const endTime = new Date(
+                                    startTime.getTime() + 8.5 * 60 * 60 * 1000
+                                  ); // 8.5 hours in milliseconds
+                                  const formattedEndTime = format(
+                                    endTime,
+                                    "h:mm a"
+                                  );
+                                  return `Still on shift until no later than ${formattedEndTime}`;
+                                })()}
                               </div>
+                            ) : currentShift?.end_time ? (
+                              <div>Shift Complete</div>
                             ) : (
-                              <div>Still on shift</div>
+                              <div>Not clocked in</div>
                             )}
                           </CardContent>
                         </Card>

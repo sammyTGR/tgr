@@ -45,6 +45,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -433,20 +434,13 @@ export function TimesheetDataTable({
   };
 
   return (
-
     <div className="flex flex-col h-full w-full max-h-[80vh]">
-
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
           <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  
-                >
+                <Button variant="outline" role="combobox" aria-expanded={open}>
                   {selectedEmployee
                     ? employees?.find(
                         (employee) => employee.name === selectedEmployee
@@ -458,39 +452,41 @@ export function TimesheetDataTable({
               <PopoverContent className="w-[250px] p-0">
                 <Command>
                   <CommandInput placeholder="Search employee..." />
-                  {/* <CommandEmpty>No employee found.</CommandEmpty> */}
-                  <CommandGroup>
-                    {employees?.map((employee) => (
-                      <CommandItem
-                        key={employee.employee_id}
-                        onSelect={() => {
-                          setSelectedEmployee(
-                            employee.name === selectedEmployee
-                              ? ""
-                              : employee.name
-                          );
-                          table
-                            .getColumn("employee_name")
-                            ?.setFilterValue(
+                  <CommandList>
+                    <CommandEmpty>No employee found.</CommandEmpty>
+                    <CommandGroup>
+                      {employees?.map((employee) => (
+                        <CommandItem
+                          key={employee.employee_id}
+                          onSelect={() => {
+                            setSelectedEmployee(
                               employee.name === selectedEmployee
                                 ? ""
                                 : employee.name
                             );
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedEmployee === employee.name
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        {employee.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+                            table
+                              .getColumn("employee_name")
+                              ?.setFilterValue(
+                                employee.name === selectedEmployee
+                                  ? ""
+                                  : employee.name
+                              );
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedEmployee === employee.name
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {employee.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
@@ -541,10 +537,7 @@ export function TimesheetDataTable({
                 Reset Filters
               </Button>
             )}
-            <Button
-              variant="default"
-              onClick={handleExportToExcel}
-            >
+            <Button variant="default" onClick={handleExportToExcel}>
               <DownloadIcon className="mr-2 h-4 w-4" />
               Export to Excel
             </Button>
@@ -561,90 +554,87 @@ export function TimesheetDataTable({
             "h-[calc(100vh-400px)] relative"
           )}
         > */}
-          <div className="overflow-auto">
-           <ScrollArea className="h-[calc(100vh-600px)] w-[calc(100vw-400px)]">
-              <div className="flex max-h-calc[(100vh-600px)] relative">
-                <table className="w-full divide-y divide-gray-200 overflow-auto">
-                  <thead className="sticky top-0 bg-background z-5">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal max-w-[70px] truncate"
-                          >
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-
-                  <tbody className="divide-y divide-gray-200">
-                    {table.getRowModel().rows.map((row) => {
-                      if (row.getIsGrouped()) {
-                        return (
-                          <tr
-                            key={row.id}
-                            onClick={() => row.toggleExpanded()}
-                            className="cursor-pointer"
-                          >
-                            <td
-                              colSpan={columns.length + 1}
-                              className="px-1 py-1"
-                            >
-                              <div className="flex items-center">
-                                {row.getIsExpanded() ? (
-                                  <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
-                                ) : (
-                                  <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
-                                )}
-                                <span>{row.getValue("employee_name")}</span>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      return (
-                        <tr key={row.id}>
-                          {row.getVisibleCells().map((cell) => (
-                            <td
-                              key={cell.id}
-                              className="px-1 py-1 whitespace-nowrap max-w-[120px] truncate"
-                            >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
+        <div className="overflow-auto">
+          <ScrollArea className="h-[calc(100vh-600px)] w-[calc(100vw-400px)]">
+            <div className="flex max-h-calc[(100vh-600px)] relative">
+              <table className="w-full divide-y divide-gray-200 overflow-auto">
+                <thead className="sticky top-0 bg-background z-5">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal max-w-[70px] truncate"
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
                               )}
-                            </td>
-                          ))}
-                          <td>
-                            <TimesheetRowActions
-                              row={row}
-                              fetchTimesheets={fetchTimesheets}
-                              updateTimesheet={updateTimesheet}
-                            />
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+
+                <tbody className="divide-y divide-gray-200">
+                  {table.getRowModel().rows.map((row) => {
+                    if (row.getIsGrouped()) {
+                      return (
+                        <tr
+                          key={row.id}
+                          onClick={() => row.toggleExpanded()}
+                          className="cursor-pointer"
+                        >
+                          <td
+                            colSpan={columns.length + 1}
+                            className="px-1 py-1"
+                          >
+                            <div className="flex items-center">
+                              {row.getIsExpanded() ? (
+                                <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
+                              ) : (
+                                <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
+                              )}
+                              <span>{row.getValue("employee_name")}</span>
+                            </div>
                           </td>
                         </tr>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <ScrollBar orientation="vertical" />
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </div>
-        
+                    }
+
+                    return (
+                      <tr key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="px-1 py-1 whitespace-nowrap max-w-[120px] truncate"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        ))}
+                        <td>
+                          <TimesheetRowActions
+                            row={row}
+                            fetchTimesheets={fetchTimesheets}
+                            updateTimesheet={updateTimesheet}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <ScrollBar orientation="vertical" />
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
       </div>
-     
     </div>
-    
   );
 }
