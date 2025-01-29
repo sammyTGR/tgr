@@ -802,7 +802,8 @@ export default function TeamWeeklyNotes() {
                                       <span className="text-sm text-muted-foreground ml-2">
                                         {note.employee_name}
                                       </span>
-                                      {currentEmployee?.role === "dev" && (
+                                      {(currentEmployee?.role === "dev" ||
+                                        currentEmployee?.role === "admin") && (
                                         <Button
                                           variant="outline"
                                           size="sm"

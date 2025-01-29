@@ -450,41 +450,51 @@ export function TimesheetDataTable({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[250px] p-0">
-                <Command>
-                  <CommandInput placeholder="Search employee..." />
+                <Command value={searchInput} onValueChange={setSearchInput}>
+                  <CommandInput
+                    placeholder="Search employee..."
+                    value={searchInput}
+                    onValueChange={setSearchInput}
+                  />
                   <CommandList>
                     <CommandEmpty>No employee found.</CommandEmpty>
                     <CommandGroup>
-                      {employees?.map((employee) => (
-                        <CommandItem
-                          key={employee.employee_id}
-                          onSelect={() => {
-                            setSelectedEmployee(
-                              employee.name === selectedEmployee
-                                ? ""
-                                : employee.name
-                            );
-                            table
-                              .getColumn("employee_name")
-                              ?.setFilterValue(
+                      {employees
+                        ?.filter((employee) =>
+                          employee.name
+                            .toLowerCase()
+                            .includes(searchInput.toLowerCase())
+                        )
+                        .map((employee) => (
+                          <CommandItem
+                            key={employee.employee_id}
+                            onSelect={() => {
+                              setSelectedEmployee(
                                 employee.name === selectedEmployee
                                   ? ""
                                   : employee.name
                               );
-                            setOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedEmployee === employee.name
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          {employee.name}
-                        </CommandItem>
-                      ))}
+                              table
+                                .getColumn("employee_name")
+                                ?.setFilterValue(
+                                  employee.name === selectedEmployee
+                                    ? ""
+                                    : employee.name
+                                );
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedEmployee === employee.name
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {employee.name}
+                          </CommandItem>
+                        ))}
                     </CommandGroup>
                   </CommandList>
                 </Command>
