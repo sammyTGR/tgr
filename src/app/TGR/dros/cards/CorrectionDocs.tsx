@@ -45,9 +45,13 @@ function CorrectionDocs({ className }: { className?: string }) {
                 A Valid CA CCW Permit Can Be Used As An Address Corrector &
                 Second Proof Of Address
               </li>
+              <li>Valid CA Disabled Person Placard Identification Card</li>
               <li>
-                Valid CA Registration With The Current Physical Address For Any
-                Of The Following:
+                <ul className="list-none list-inside pl-4">
+                  <li>- AKA Handicap Placard Registration Card</li>
+                </ul>
+                Valid CA DMV Registration With The Current Physical Address For
+                Any Of The Following:
               </li>
               <ul className="list-none list-inside pl-4">
                 <li>- Vehicle Registration</li>
@@ -81,7 +85,7 @@ function CorrectionDocs({ className }: { className?: string }) {
                 </li>
                 <li>- Cannot Accept W-2s After April 30th</li>
               </ul>
-              <li>Current & Valid CA DMV Disabled Placard</li>
+
               <li>
                 Federal Firearms License (FFL 03) - Collector Of Curios and
                 Relics

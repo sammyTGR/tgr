@@ -47,18 +47,19 @@ export const fetchCertificates = async () => {
   if (error) throw error;
 
   // Transform and validate the data
-  const transformedData = data?.map((cert) => {
-    console.log('Raw cert data:', cert); // Debug log
-    return {
-      id: cert.id,
-      name: cert.name || "",
-      certificate: cert.certificate || "",
-      action_status: cert.action_status || "N/A",
-      expiration: cert.expiration ? new Date(cert.expiration) : null
-    } as Certificate;
-  }) || [];
+  const transformedData =
+    data?.map((cert) => {
+      console.log("Raw cert data:", cert); // Debug log
+      return {
+        id: cert.id,
+        name: cert.name || "",
+        certificate: cert.certificate || "",
+        action_status: cert.action_status || "N/A",
+        expiration: cert.expiration ? new Date(cert.expiration) : null,
+      } as Certificate;
+    }) || [];
 
-  console.log('Transformed data:', transformedData); // Debug log
+  console.log("Transformed data:", transformedData); // Debug log
   return transformedData;
 };
 
@@ -311,4 +312,101 @@ export const replySuggestion = async ({
     .eq("id", suggestion.id);
 
   if (error) throw error;
+};
+
+export const fetchKPIData = async (startDate: Date, endDate: Date) => {
+  const { data, error } = await supabase
+    .from("sales_data")
+    .select("Desc, SoldQty, total_net")
+    .or(
+      "Desc.ilike.%Gunsmithing%, Desc.ilike.%Gunsmithing Parts%, Desc.ilike.%Pistol Optic Zero Fee%, Desc.ilike.%Sight In/Function Fee%, Desc.ilike.%Laser Engraving%, Desc.ilike.%Reloaded%"
+    )
+    .gte("Date", startDate.toISOString())
+    .lte("Date", endDate.toISOString());
+
+  if (error) throw error;
+
+  // Define the order of categories
+  const categoryOrder = [
+    "Gunsmithing",
+    "Gunsmithing Parts",
+    "Laser Engraving/Stippling",
+    "Reloaded Ammunition",
+    "Pistol Optic Zero Fee",
+    "Sight In/Function Fee",
+  ];
+
+  // Group and aggregate the data
+  const kpiGroups = data.reduce(
+    (
+      acc: {
+        [key: string]: {
+          qty: number;
+          revenue: number;
+          variants?: { [key: string]: { qty: number; revenue: number } };
+        };
+      },
+      item
+    ) => {
+      let category = "";
+      if (item.Desc.includes("Gunsmithing") && !item.Desc.includes("Parts")) {
+        category = "Gunsmithing";
+      } else if (item.Desc.includes("Gunsmithing Parts")) {
+        category = "Gunsmithing Parts";
+      } else if (item.Desc.includes("Pistol Optic Zero Fee")) {
+        category = "Pistol Optic Zero Fee";
+      } else if (item.Desc.includes("Sight In/Function Fee")) {
+        category = "Sight In/Function Fee";
+      } else if (item.Desc.includes("Laser Engraving")) {
+        category = "Laser Engraving/Stippling";
+      } else if (item.Desc.includes("Reloaded")) {
+        category = "Reloaded Ammunition";
+
+        // Initialize the category if it doesn't exist
+        if (!acc[category]) {
+          acc[category] = { qty: 0, revenue: 0, variants: {} };
+        }
+
+        // Ensure variants object exists and is initialized
+        if (!acc[category].variants) {
+          acc[category].variants = {};
+        }
+
+        // Use the full description as the variant name
+        const variant = item.Desc.trim();
+        const variants = acc[category].variants;
+
+        if (variants) {
+          if (!variants[variant]) {
+            variants[variant] = { qty: 0, revenue: 0 };
+          }
+
+          variants[variant].qty += item.SoldQty || 0;
+          variants[variant].revenue += item.total_net || 0;
+        }
+      }
+
+      // Initialize category if it doesn't exist
+      if (!acc[category]) {
+        acc[category] = { qty: 0, revenue: 0 };
+      }
+
+      // Update category totals
+      acc[category].qty += item.SoldQty || 0;
+      acc[category].revenue += item.total_net || 0;
+
+      return acc;
+    },
+    {}
+  );
+
+  // Create an ordered result object
+  const orderedKpiGroups: typeof kpiGroups = {};
+  categoryOrder.forEach((category) => {
+    if (kpiGroups[category]) {
+      orderedKpiGroups[category] = kpiGroups[category];
+    }
+  });
+
+  return orderedKpiGroups;
 };

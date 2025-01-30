@@ -5,7 +5,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CustomCalendar } from "@/components/ui/calendar";
+import { Calendar, CustomCalendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,7 +55,7 @@ import { useFlags } from "flagsmith/react";
 import DOMPurify from "isomorphic-dompurify";
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import TodoWrapper from "../../todo/todo-wrapper";
@@ -76,6 +76,7 @@ import {
   fetchDailyChecklistStatus,
   fetchLatestSalesData,
   sendEmailMutation,
+  fetchKPIData,
 } from "./api";
 import { sendEmail } from "./actions";
 import SalesDataTableAllEmployees from "@/app/admin/reports/sales/sales-data-table-all-employees";
@@ -88,6 +89,7 @@ import {
 import { Command } from "@/components/ui/command";
 import { CommandGroup } from "@/components/ui/command";
 import { CommandList } from "@/components/ui/command";
+import { DateRange } from "react-day-picker";
 
 interface Certificate {
   id: number;
@@ -204,6 +206,24 @@ function AdminDashboardContent() {
     staleTime: 0,
     refetchInterval: 0,
   });
+
+  // Get the first and last day of the current month
+  const getDefaultDateRange = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    lastDay.setHours(23, 59, 59, 999);
+
+    return {
+      from: firstDay,
+      to: lastDay,
+    };
+  };
+
+  // Initialize dateRange with current month
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    getDefaultDateRange()
+  );
 
   const { data: metricsData, isLoading: isMetricsLoading } = useQuery<{
     metrics2024: SalesMetrics;
@@ -1119,6 +1139,27 @@ function AdminDashboardContent() {
     });
   }
 
+  // Update the KPI query to use the dateRange
+  const kpiQuery = useQuery({
+    queryKey: [
+      "kpis",
+      dateRange?.from?.toISOString(),
+      dateRange?.to?.toISOString(),
+    ],
+    queryFn: () => {
+      if (!dateRange?.from || !dateRange?.to) {
+        const defaultRange = getDefaultDateRange();
+        return fetchKPIData(defaultRange.from, defaultRange.to);
+      }
+      return fetchKPIData(dateRange.from, dateRange.to);
+    },
+  });
+
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div className="max-w-[calc(100vw-40px)] py-4">
@@ -1134,9 +1175,12 @@ function AdminDashboardContent() {
               <TabsTrigger value="reporting">Dashboard</TabsTrigger>
               <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
               {(role === "ceo" || role === "dev") && (
-                <TabsTrigger value="sales-glance">
-                  Sales At A Glance
-                </TabsTrigger>
+                <>
+                  <TabsTrigger value="sales-glance">
+                    Sales At A Glance
+                  </TabsTrigger>
+                  <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
+                </>
               )}
               <TabsTrigger value="sales-employee">
                 Sales By Employee
@@ -1225,9 +1269,9 @@ function AdminDashboardContent() {
                         certificates && certificates.length === 1 ? "s" : ""
                       } renewal`}
                       type="certificate"
-                      details={certificates?.map(cert => ({
+                      details={certificates?.map((cert) => ({
                         ...cert,
-                        expiration: cert.expiration || new Date()
+                        expiration: cert.expiration || new Date(),
                       }))}
                     />
                   </div>
@@ -1814,99 +1858,149 @@ function AdminDashboardContent() {
                 </Card>
               </div>
             </TabsContent>
-          </div>
 
-          <TabsContent value="metrics">
-            <div className="grid gap-6">
-              {/* Metrics Section */}
-              {isMetricsLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <LoadingIndicator />
+            <TabsContent value="sales-kpis">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        {dateRange?.from ? (
+                          dateRange?.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          "Pick a date range"
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Modified Reset Filter Button */}
+                  {dateRange?.from &&
+                    dateRange?.to &&
+                    (() => {
+                      const defaultRange = getDefaultDateRange();
+                      const isCurrentMonth =
+                        dateRange.from.getMonth() ===
+                          defaultRange.from.getMonth() &&
+                        dateRange.from.getFullYear() ===
+                          defaultRange.from.getFullYear() &&
+                        dateRange.to.getMonth() ===
+                          defaultRange.to.getMonth() &&
+                        dateRange.to.getFullYear() ===
+                          defaultRange.to.getFullYear();
+
+                      return !isCurrentMonth ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => setDateRange(getDefaultDateRange())}
+                        >
+                          Reset to Current Month
+                        </Button>
+                      ) : null;
+                    })()}
                 </div>
-              ) : (
-                <>
-                  {/* <CardHeader>
-                      <CardTitle>Sales Metrics</CardTitle>
-                    </CardHeader> */}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* 2025 Metrics */}
-                    <Card>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableCaption>2025 Metrics</TableCaption>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {kpiQuery.isLoading ? (
+                    <LoadingIndicator />
+                  ) : kpiQuery.error ? (
+                    <div>Error loading KPI data</div>
+                  ) : (
+                    Object.entries(kpiQuery.data || {}).map(
+                      ([category, data]) => {
+                        const typedData = data as {
+                          revenue: number;
+                          qty: number;
+                          variants?: {
+                            [key: string]: { qty: number; revenue: number };
+                          };
+                        };
 
-                            <TableRow>
-                              <TableHead>Metric</TableHead>
-                              <TableHead>Value</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {createMetricsTableData(
-                              metricsData?.metrics2025
-                            ).map((row, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{row.metric}</TableCell>
-                                <TableCell>{row.value}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                        return (
+                          <Card key={category}>
+                            <CardHeader>
+                              <CardTitle>{category}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">
+                                    Total Net
+                                  </span>
+                                  <span className="text-2xl font-bold">
+                                    {formatter.format(typedData.revenue)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">
+                                    Quantity
+                                  </span>
+                                  <span className="text-2xl font-bold">
+                                    {typedData.qty}
+                                  </span>
+                                </div>
 
-                        {metricsData?.metrics2025 && (
-                          <CustomerFrequencyCard2025
-                            metrics={metricsData.metrics2025}
-                          />
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    {/* 2024 Metrics */}
-                    <Card>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableCaption>2024 Metrics</TableCaption>
-                            <TableRow>
-                              <TableHead>Metric</TableHead>
-                              <TableHead>Value</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {createMetricsTableData(
-                              metricsData?.metrics2024
-                            ).map((row, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{row.metric}</TableCell>
-                                <TableCell>{row.value}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-
-                        {metricsData?.metrics2024 && (
-                          <CustomerFrequencyCard2024
-                            metrics={metricsData.metrics2024}
-                          />
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Annual Revenue Chart */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Annual Revenue Comparison</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <AnnualRevenueBarChart />
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-            </div>
-          </TabsContent>
+                                {/* Show variants for Reloaded Ammunition */}
+                                {category === "Reloaded Ammunition" &&
+                                  typedData.variants && (
+                                    <div className="mt-4 border-t pt-4">
+                                      <h4 className="text-sm font-semibold mb-2">
+                                        Variants
+                                      </h4>
+                                      <div className="space-y-2">
+                                        {Object.entries(typedData.variants).map(
+                                          ([variant, stats]) => (
+                                            <div
+                                              key={variant}
+                                              className="text-sm"
+                                            >
+                                              <div className="flex justify-between items-center">
+                                                <span className="font-medium">
+                                                  {variant}
+                                                </span>
+                                              </div>
+                                              <div className="flex justify-between text-muted-foreground">
+                                                <span>Qty: {stats.qty}</span>
+                                                <span>
+                                                  {formatter.format(
+                                                    stats.revenue
+                                                  )}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+                    )
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
     </RoleBasedWrapper>
@@ -2087,19 +2181,35 @@ function AdminDashboardContent() {
                           </TableCell>
                           <TableCell className="text-right">
                             <Badge variant="secondary">
-                              ${DOMPurify.sanitize((item as DepositDetail).value)}
+                              $
+                              {DOMPurify.sanitize(
+                                (item as DepositDetail).value
+                              )}
                             </Badge>
                           </TableCell>
                         </>
                       ) : (
                         <>
-                          <TableCell>{DOMPurify.sanitize((item as Certificate).name)}</TableCell>
-                          <TableCell>{DOMPurify.sanitize((item as Certificate).certificate)}</TableCell>
-                          <TableCell>{DOMPurify.sanitize((item as Certificate).action_status)}</TableCell>
+                          <TableCell>
+                            {DOMPurify.sanitize((item as Certificate).name)}
+                          </TableCell>
+                          <TableCell>
+                            {DOMPurify.sanitize(
+                              (item as Certificate).certificate
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {DOMPurify.sanitize(
+                              (item as Certificate).action_status
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="destructive">
-                              {(item as Certificate).expiration 
-                                ? format((item as Certificate).expiration, "MM/dd/yyyy")
+                              {(item as Certificate).expiration
+                                ? format(
+                                    (item as Certificate).expiration,
+                                    "MM/dd/yyyy"
+                                  )
                                 : "No date"}
                             </Badge>
                           </TableCell>
@@ -2193,6 +2303,7 @@ function AdminDashboardContent() {
     );
   }
 }
+
 export default function AdminDashboard() {
   return <AdminDashboardContent />;
 }

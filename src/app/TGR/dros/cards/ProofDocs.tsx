@@ -44,9 +44,13 @@ function ProofDocs({ className }: { className?: string }) {
                 <li>- REAL ID With Current Physical Address</li>
                 <li>- Current (Non Expired) Department ID</li>
               </ul>
+              <li>Valid CA Disabled Person Placard Identification Card</li>
+              <ul className="list-none list-inside pl-4">
+                <li>- AKA Handicap Placard Registration Card</li>
+              </ul>
               <li>
-                Valid CA Registration With The Current Physical Address For Any
-                Of The Following:
+                Valid CA DMV Registration With The Current Physical Address For
+                Any Of The Following:
               </li>
               <ul className="list-none list-inside pl-4">
                 <li>- Vehicle Registration</li>
@@ -69,7 +73,7 @@ function ProofDocs({ className }: { className?: string }) {
                 <li>- Internet Bill</li>
                 <li>- Water Bill</li>
               </ul>
-              <li>Current & Valid CA DMV Disabled Placard</li>
+
               <li>Valid CA CCW Permit</li>
               <li>Valid CA Hunting License</li>
               <li>Valid CA Fishing License (Must Be Valid For 1 Year)</li>
