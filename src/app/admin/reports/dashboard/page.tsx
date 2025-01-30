@@ -90,6 +90,7 @@ import { Command } from "@/components/ui/command";
 import { CommandGroup } from "@/components/ui/command";
 import { CommandList } from "@/components/ui/command";
 import { DateRange } from "react-day-picker";
+import { TimeTrackingDataTable } from "./TimeTrackingDataTable";
 
 interface Certificate {
   id: number;
@@ -194,6 +195,7 @@ function AdminDashboardContent() {
     "is_todo_enabled",
     "is_barchart_enabled",
     "is_historical_barchart_enabled",
+    "is_timesheet_dashboard_enabled",
   ]);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -1160,6 +1162,120 @@ function AdminDashboardContent() {
     currency: "USD",
   });
 
+  // Add these near your other queries
+  const { data: timeTrackingFileData } = useQuery({
+    queryKey: ["timeTrackingFileData"],
+    queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
+    staleTime: Infinity,
+  });
+
+  const { data: timeTrackingData, isLoading: isTimeTrackingDataLoading } =
+    useQuery({
+      queryKey: ["timeTrackingData"],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("employee_time_tracking")
+          .select("*")
+          .order("date", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+        return data;
+      },
+    });
+
+  const uploadTimeTrackingMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const reader = new FileReader();
+
+      return new Promise((resolve, reject) => {
+        reader.onload = async (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: "array" });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            // Process data in batches
+            const batchSize = 100;
+            let processedCount = 0;
+
+            for (let i = 0; i < jsonData.length; i += batchSize) {
+              const batch = jsonData
+                .slice(i, i + batchSize)
+                .map((row: any) => ({
+                  employee_id: row.LanID,
+                  name: row.Name,
+                  date: row.Date,
+                  work_date_time: row.WorkDateTime,
+                  day_total: row["Day Total"],
+                  over_time: row["Over Time"],
+                  day_total_error: row["Day Total Error"],
+                  over_time_error: row["Over Time Error"],
+                  type: row.Type,
+                  last_name: row["Last Name"],
+                  location: row.Location,
+                  headline_lanid: row["Headline LanId"],
+                  pay_type: row["Pay Type"],
+                }));
+
+              const { error } = await supabase
+                .from("employee_time_tracking")
+                .upsert(batch);
+
+              if (error) throw error;
+
+              processedCount += batch.length;
+              const progress = Math.round(
+                (processedCount / jsonData.length) * 100
+              );
+              queryClient.setQueryData(["uploadProgress"], progress);
+            }
+
+            resolve(true);
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        reader.onerror = (error) => reject(error);
+        reader.readAsArrayBuffer(file);
+      });
+    },
+    onSuccess: () => {
+      toast.success("Time tracking data uploaded successfully");
+      queryClient.invalidateQueries({ queryKey: ["timeTrackingData"] });
+      // Reset file input
+      queryClient.setQueryData(["timeTrackingFileData"], {
+        file: null,
+        fileName: null,
+        fileInputKey: Date.now(),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(`Upload failed: ${error.message}`);
+    },
+  });
+
+  // Add these handlers
+  const handleTimeTrackingFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files && e.target.files[0]) {
+      queryClient.setQueryData(["timeTrackingFileData"], {
+        file: e.target.files[0],
+        fileName: e.target.files[0].name,
+        fileInputKey: Date.now(),
+      });
+    }
+  };
+
+  const handleTimeTrackingUpload = () => {
+    if (timeTrackingFileData?.file) {
+      uploadTimeTrackingMutation.mutate(timeTrackingFileData.file);
+    }
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div className="max-w-[calc(100vw-40px)] py-4">
@@ -1180,6 +1296,11 @@ function AdminDashboardContent() {
                     Sales At A Glance
                   </TabsTrigger>
                   <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
+                  {flags.is_timesheet_dashboard_enabled.enabled && (
+                    <TabsTrigger value="time-tracking">
+                      Time Tracking
+                    </TabsTrigger>
+                  )}
                 </>
               )}
               <TabsTrigger value="sales-employee">
@@ -1999,6 +2120,77 @@ function AdminDashboardContent() {
                   )}
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="time-tracking">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold">
+                    Time Tracking Import
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Upload Time Tracking Data</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <Input
+                            type="file"
+                            accept=".xlsx,.xls"
+                            onChange={handleTimeTrackingFileChange}
+                            key={timeTrackingFileData?.fileInputKey}
+                            className="w-full"
+                          />
+                          {timeTrackingFileData?.fileName && (
+                            <div className="text-sm text-muted-foreground">
+                              Selected file: {timeTrackingFileData.fileName}
+                            </div>
+                          )}
+                          {uploadTimeTrackingMutation.isPending && (
+                            <div className="space-y-2">
+                              <Progress
+                                value={
+                                  typeof uploadProgress === "number"
+                                    ? uploadProgress
+                                    : 0
+                                }
+                                className="w-full"
+                              />
+                              <p className="text-sm text-muted-foreground">
+                                Uploading...
+                              </p>
+                            </div>
+                          )}
+                          <Button
+                            onClick={() => handleTimeTrackingUpload()}
+                            disabled={
+                              !timeTrackingFileData?.file ||
+                              uploadTimeTrackingMutation.isPending
+                            }
+                          >
+                            Upload Time Tracking Data
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Recent Uploads</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <TimeTrackingDataTable
+                          data={timeTrackingData || []}
+                          isLoading={isTimeTrackingDataLoading}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </div>
         </Tabs>
