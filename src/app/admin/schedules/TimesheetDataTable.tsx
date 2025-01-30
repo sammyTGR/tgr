@@ -558,92 +558,80 @@ export function TimesheetDataTable({
         </div>
       </div>
       <div className="overflow-auto">
-        {/* <ScrollArea
-          className={classNames(
-            styles.noScroll,
-            "h-[calc(100vh-400px)] relative"
-          )}
-        > */}
-        <div className="overflow-auto">
-          <ScrollArea className="h-[calc(100vh-600px)] w-[calc(100vw-400px)]">
-            <div className="flex max-h-calc[(100vh-600px)] relative">
-              <table className="w-full divide-y divide-gray-200 overflow-auto">
-                <thead className="sticky top-0 bg-background z-5">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <th
-                          key={header.id}
-                          className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal max-w-[70px] truncate"
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-
-                <tbody className="divide-y divide-gray-200">
-                  {table.getRowModel().rows.map((row) => {
-                    if (row.getIsGrouped()) {
-                      return (
-                        <tr
-                          key={row.id}
-                          onClick={() => row.toggleExpanded()}
-                          className="cursor-pointer"
-                        >
-                          <td
-                            colSpan={columns.length + 1}
-                            className="px-1 py-1"
-                          >
-                            <div className="flex items-center">
-                              {row.getIsExpanded() ? (
-                                <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
-                              ) : (
-                                <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
-                              )}
-                              <span>{row.getValue("employee_name")}</span>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    return (
-                      <tr key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <td
-                            key={cell.id}
-                            className="px-1 py-1 whitespace-nowrap max-w-[120px] truncate"
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
+        <ScrollArea className="h-[calc(100vh-600px)]">
+          <div className="flex relative">
+            <table className="w-full divide-y divide-gray-200">
+              <thead className="sticky top-0 bg-background z-5">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal"
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
                             )}
-                          </td>
-                        ))}
-                        <td>
-                          <TimesheetRowActions
-                            row={row}
-                            fetchTimesheets={fetchTimesheets}
-                            updateTimesheet={updateTimesheet}
-                          />
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+
+              <tbody className="divide-y divide-gray-200">
+                {table.getRowModel().rows.map((row) => {
+                  if (row.getIsGrouped()) {
+                    return (
+                      <tr
+                        key={row.id}
+                        onClick={() => row.toggleExpanded()}
+                        className="cursor-pointer"
+                      >
+                        <td colSpan={columns.length + 1} className="px-1 py-1">
+                          <div className="flex items-center">
+                            {row.getIsExpanded() ? (
+                              <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
+                            ) : (
+                              <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
+                            )}
+                            <span>{row.getValue("employee_name")}</span>
+                          </div>
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <ScrollBar orientation="vertical" />
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </div>
+                  }
+
+                  return (
+                    <tr key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="px-1 py-1 whitespace-nowrap"
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                      <td>
+                        <TimesheetRowActions
+                          row={row}
+                          fetchTimesheets={fetchTimesheets}
+                          updateTimesheet={updateTimesheet}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <ScrollBar orientation="vertical" />
+        </ScrollArea>
       </div>
     </div>
   );

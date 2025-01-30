@@ -254,78 +254,78 @@ export function TimesheetRowActions({
           <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[300px] p-2">
+      <DropdownMenuContent align="end" className="w-[400px] p-2">
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex max-w-[300px]">
-            <label className="block text-sm font-medium ">Start Time</label>
+          <div className="flex items-center gap-2 w-full">
+            <label className="block text-sm font-medium min-w-[80px]">Start Time</label>
             <Input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
+              className="flex-1"
             />
           </div>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => clearField("start_time")}
-            className="mt-5"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Clear start time</span>
           </Button>
         </div>
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex max-w-[300px]">
-            <label className="block text-sm font-medium ">Lunch Start</label>
+          <div className="flex items-center gap-2 w-full">
+            <label className="block text-sm font-medium min-w-[80px]">Lunch Start</label>
             <Input
               type="time"
               value={lunchStart}
               onChange={(e) => setLunchStart(e.target.value)}
+              className="flex-1"
             />
           </div>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => clearField("lunch_start")}
-            className="mt-5"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Clear lunch start</span>
           </Button>
         </div>
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex max-w-[300px]">
-            <label className="block text-sm font-medium ">Lunch End</label>
+          <div className="flex items-center gap-2 w-full">
+            <label className="block text-sm font-medium min-w-[80px]">Lunch End</label>
             <Input
               type="time"
               value={lunchEnd}
               onChange={(e) => setLunchEnd(e.target.value)}
+              className="flex-1"
             />
           </div>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => clearField("lunch_end")}
-            className="mt-5"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Clear lunch end</span>
           </Button>
         </div>
         <div className="flex items-center space-x-2 mb-2">
-          <div className="flex max-w-[300px]">
-            <label className="block text-sm font-medium ">End Time</label>
+          <div className="flex items-center gap-2 w-full">
+            <label className="block text-sm font-medium min-w-[80px]">End Time</label>
             <Input
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
+              className="flex-1"
             />
           </div>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => clearField("end_time")}
-            className="mt-5"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Clear end time</span>
