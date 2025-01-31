@@ -450,21 +450,22 @@ export function TimesheetDataTable({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[250px] p-0">
-                <Command value={searchInput} onValueChange={setSearchInput}>
-                  <CommandInput
+                <Command>
+                  {/* <CommandInput
                     placeholder="Search employee..."
                     value={searchInput}
                     onValueChange={setSearchInput}
-                  />
+                  /> */}
                   <CommandList>
-                    <CommandEmpty>No employee found.</CommandEmpty>
+                    {/* <CommandEmpty>No employee found.</CommandEmpty> */}
                     <CommandGroup>
                       {employees
-                        ?.filter((employee) =>
-                          employee.name
+                        ?.filter((employee) => {
+                          if (!searchInput) return true;
+                          return employee.name
                             .toLowerCase()
-                            .includes(searchInput.toLowerCase())
-                        )
+                            .includes(searchInput.toLowerCase());
+                        })
                         .map((employee) => (
                           <CommandItem
                             key={employee.employee_id}
@@ -482,6 +483,7 @@ export function TimesheetDataTable({
                                     : employee.name
                                 );
                               setOpen(false);
+                              setSearchInput(""); // Reset search input after selection
                             }}
                           >
                             <Check
