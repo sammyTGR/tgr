@@ -319,14 +319,18 @@ function AdminDashboardContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {createMetricsTableData(metricsData?.metrics2024).map(
-                      (row, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{row.metric}</TableCell>
-                          <TableCell>{row.value}</TableCell>
-                        </TableRow>
-                      )
-                    )}
+                    {table2024.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
                 {metricsData?.metrics2024 && (
@@ -351,14 +355,18 @@ function AdminDashboardContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {createMetricsTableData(metricsData?.metrics2025).map(
-                      (row, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{row.metric}</TableCell>
-                          <TableCell>{row.value}</TableCell>
-                        </TableRow>
-                      )
-                    )}
+                    {table2025.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
                 {metricsData?.metrics2025 && (
@@ -2191,6 +2199,82 @@ function AdminDashboardContent() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="metrics">
+              <div className="grid gap-6">
+                {/* 2024 Metrics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>2024 Metrics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Metric</TableHead>
+                          <TableHead>Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {table2024.getRowModel().rows.map((row) => (
+                          <TableRow key={row.id}>
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {metricsData?.metrics2024 && (
+                      <CustomerFrequencyCard2024
+                        metrics={metricsData.metrics2024}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 2025 Metrics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>2025 Metrics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Metric</TableHead>
+                          <TableHead>Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {table2025.getRowModel().rows.map((row) => (
+                          <TableRow key={row.id}>
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {metricsData?.metrics2025 && (
+                      <CustomerFrequencyCard2025
+                        metrics={metricsData.metrics2025}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </div>
         </Tabs>
