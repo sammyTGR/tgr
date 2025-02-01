@@ -1303,7 +1303,7 @@ function AdminDashboardContent() {
                   <TabsTrigger value="sales-glance">
                     Sales At A Glance
                   </TabsTrigger>
-                  <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
+
                   {flags.is_timesheet_dashboard_enabled.enabled && (
                     <TabsTrigger value="time-tracking">
                       Time Tracking
@@ -1311,9 +1311,11 @@ function AdminDashboardContent() {
                   )}
                 </>
               )}
+
               <TabsTrigger value="sales-employee">
                 Sales By Employee
               </TabsTrigger>
+              <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
               <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
             </TabsList>
           </div>
@@ -1990,6 +1992,7 @@ function AdminDashboardContent() {
 
             <TabsContent value="sales-kpis">
               <div className="space-y-4">
+                {/* Date Range Selector */}
                 <div className="flex items-center gap-4">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -2020,7 +2023,6 @@ function AdminDashboardContent() {
                     </PopoverContent>
                   </Popover>
 
-                  {/* Modified Reset Filter Button */}
                   {dateRange?.from &&
                     dateRange?.to &&
                     (() => {
@@ -2046,56 +2048,116 @@ function AdminDashboardContent() {
                     })()}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* KPI Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {kpiQuery.isLoading ? (
                     <LoadingIndicator />
                   ) : kpiQuery.error ? (
                     <div>Error loading KPI data</div>
                   ) : (
-                    Object.entries(kpiQuery.data || {}).map(
-                      ([category, data]) => {
-                        const typedData = data as {
-                          revenue: number;
-                          qty: number;
-                          variants?: {
-                            [key: string]: { qty: number; revenue: number };
+                    <>
+                      {/* Gunsmithing Services Group */}
+                      {Object.entries(kpiQuery.data || {}).some(([category]) =>
+                        ["Gunsmithing", "Gunsmithing Parts"].includes(category)
+                      ) && (
+                        <Card className="col-span-2">
+                          <CardHeader>
+                            <CardTitle>Gunsmithing Services</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {Object.entries(kpiQuery.data || {})
+                                .filter(([category]) =>
+                                  ["Gunsmithing", "Gunsmithing Parts"].includes(
+                                    category
+                                  )
+                                )
+                                .map(([category, data]) => {
+                                  const typedData = data as {
+                                    revenue: number;
+                                    qty: number;
+                                  };
+                                  return (
+                                    <div key={category} className="space-y-4">
+                                      <h3 className="font-semibold">
+                                        {category}
+                                      </h3>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                          Total Net
+                                        </span>
+                                        <span className="text-2xl font-bold">
+                                          {formatter.format(typedData.revenue)}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                          Quantity
+                                        </span>
+                                        <span className="text-2xl font-bold">
+                                          {typedData.qty}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Other Services */}
+                      {Object.entries(kpiQuery.data || {})
+                        .filter(
+                          ([category]) =>
+                            !["Gunsmithing", "Gunsmithing Parts"].includes(
+                              category
+                            )
+                        )
+                        .map(([category, data]) => {
+                          const typedData = data as {
+                            revenue: number;
+                            qty: number;
+                            variants?: {
+                              [key: string]: { qty: number; revenue: number };
+                            };
                           };
-                        };
 
-                        return (
-                          <Card key={category}>
-                            <CardHeader>
-                              <CardTitle>{category}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm text-muted-foreground">
-                                    Total Net
-                                  </span>
-                                  <span className="text-2xl font-bold">
-                                    {formatter.format(typedData.revenue)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm text-muted-foreground">
-                                    Quantity
-                                  </span>
-                                  <span className="text-2xl font-bold">
-                                    {typedData.qty}
-                                  </span>
-                                </div>
+                          return (
+                            <Card key={category} className="col-span-1">
+                              <CardHeader>
+                                <CardTitle>{category}</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                      Total Net
+                                    </span>
+                                    <span className="text-2xl font-bold">
+                                      {formatter.format(typedData.revenue)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                      Quantity
+                                    </span>
+                                    <span className="text-2xl font-bold">
+                                      {typedData.qty}
+                                    </span>
+                                  </div>
 
-                                {/* Show variants for Reloaded Ammunition */}
-                                {category === "Reloaded Ammunition" &&
-                                  typedData.variants && (
-                                    <div className="mt-4 border-t pt-4">
-                                      <h4 className="text-sm font-semibold mb-2">
-                                        Variants
-                                      </h4>
-                                      <div className="space-y-2">
-                                        {Object.entries(typedData.variants).map(
-                                          ([variant, stats]) => (
+                                  {/* Show variants for Reloaded Ammunition */}
+                                  {category === "Reloaded Ammunition" &&
+                                    typedData.variants && (
+                                      <div className="mt-4 border-t pt-4">
+                                        <h4 className="text-sm font-semibold mb-2">
+                                          Variants
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          {Object.entries(
+                                            typedData.variants
+                                          ).map(([variant, stats]) => (
                                             <div
                                               key={variant}
                                               className="text-sm"
@@ -2114,17 +2176,16 @@ function AdminDashboardContent() {
                                                 </span>
                                               </div>
                                             </div>
-                                          )
-                                        )}
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      }
-                    )
+                                    )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                    </>
                   )}
                 </div>
               </div>
