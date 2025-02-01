@@ -2054,6 +2054,29 @@ function AdminDashboardContent() {
                     <LoadingIndicator />
                   ) : kpiQuery.error ? (
                     <div>Error loading KPI data</div>
+                  ) : Object.keys(kpiQuery.data || {}).length === 0 ? (
+                    <Card className="col-span-full p-6">
+                      <div className="flex flex-col items-center justify-center text-center space-y-3">
+                        <div className="rounded-full bg-muted p-3">
+                          <CalendarIcon className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold tracking-tight">
+                            No Data Available
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            There is no data available for the selected date
+                            range. Please try adjusting your date selection.
+                          </p>
+                        </div>
+                        {/* <Button
+                          variant="outline"
+                          onClick={() => setDateRange(getDefaultDateRange())}
+                        >
+                          Reset to Current Month
+                        </Button> */}
+                      </div>
+                    </Card>
                   ) : (
                     <>
                       {/* Gunsmithing Services Group */}
