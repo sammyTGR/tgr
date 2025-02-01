@@ -1554,7 +1554,14 @@ export default function Component() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogTitle>Request Time Off</DialogTitle>
-                <TimeoffForm onSubmitSuccess={handleSubmitSuccess} />
+                <TimeoffForm
+                  onSubmitSuccess={() => {
+                    handleDialogOpen(false);
+                    queryClient.invalidateQueries({
+                      queryKey: ["calendarData"],
+                    });
+                  }}
+                />
               </DialogContent>
             </Dialog>
             {(role === "admin" || role === "super admin" || role === "dev") && (

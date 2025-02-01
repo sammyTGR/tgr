@@ -86,11 +86,7 @@ interface DateRange {
   to: Date | undefined;
 }
 
-export default function TimeoffForm({
-  onSubmitSuccess,
-}: {
-  onSubmitSuccess: () => void;
-}) {
+export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -616,9 +612,7 @@ export default function TimeoffForm({
         <Card>
           <CardHeader>
             <CardTitle>
-              <h1 className="text-2xl font-bold mb-4">
-                <TextGenerateEffect words={title} />
-              </h1>
+              <TextGenerateEffect words={title} />
             </CardTitle>
           </CardHeader>
           <CardContent>
