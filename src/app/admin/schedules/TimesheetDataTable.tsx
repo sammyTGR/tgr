@@ -28,7 +28,7 @@ import styles from "./timesheet.module.css"; // Create this CSS module file
 import classNames from "classnames";
 import { formatTime } from "@/utils/time-format";
 import { columns } from "./columns";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import { Calendar as CalendarIcon, DownloadIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -121,16 +121,17 @@ export function TimesheetDataTable({
     return initialData.filter((item) => {
       if (!item.event_date || !date.from) return false;
 
-      const itemDate = new Date(item.event_date);
-      const from = new Date(date.from);
-      const to = date.to ? new Date(date.to) : from;
+      // Create dates in the local timezone
+      const itemDate = parseISO(item.event_date);
+      const from = date.from;
+      const to = date.to || date.from;
 
-      // Set hours to 0 to compare dates only
-      itemDate.setHours(0, 0, 0, 0);
-      from.setHours(0, 0, 0, 0);
-      to.setHours(0, 0, 0, 0);
+      // Format all dates to YYYY-MM-DD for comparison
+      const itemDateStr = format(itemDate, "yyyy-MM-dd");
+      const fromStr = format(from, "yyyy-MM-dd");
+      const toStr = format(to, "yyyy-MM-dd");
 
-      return itemDate >= from && itemDate <= to;
+      return itemDateStr >= fromStr && itemDateStr <= toStr;
     });
   }, [initialData, date]);
 
