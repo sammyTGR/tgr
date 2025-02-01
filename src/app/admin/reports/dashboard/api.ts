@@ -49,7 +49,7 @@ export const fetchCertificates = async () => {
   // Transform and validate the data
   const transformedData =
     data?.map((cert) => {
-      console.log("Raw cert data:", cert); // Debug log
+      // console.log("Raw cert data:", cert); // Debug log
       return {
         id: cert.id,
         name: cert.name || "",
@@ -59,7 +59,7 @@ export const fetchCertificates = async () => {
       } as Certificate;
     }) || [];
 
-  console.log("Transformed data:", transformedData); // Debug log
+  // console.log("Transformed data:", transformedData); // Debug log
   return transformedData;
 };
 
