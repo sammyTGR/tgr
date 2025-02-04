@@ -400,12 +400,15 @@ export default function BulletinBoard() {
                     <div className="min-h-[200px] max-h-[400px] border rounded-md overflow-y-auto">
                       <MinimalTiptapEditor
                         value={bulletinFormQuery.data?.content}
-                        onChange={(newContent: string) => {
+                        onChange={(newContent: Content) => {
                           queryClient.setQueryData(
                             ["bulletinForm"],
                             (old: BulletinFormState | undefined) => ({
                               ...old!,
-                              content: newContent as string,
+                              content:
+                                typeof newContent === "string"
+                                  ? newContent
+                                  : newContent?.toString() || "",
                             })
                           );
                         }}
