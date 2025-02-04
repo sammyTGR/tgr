@@ -55,6 +55,10 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { MinimalTiptapEditor } from "@/components/minimal-tiptap";
+import { Content } from "@tiptap/react";
 
 type BulletinPost = {
   id: number;
@@ -290,6 +294,25 @@ export default function BulletinBoard() {
     },
   });
 
+  // Add a new query for the editor content
+  const editorContentQuery = useQuery({
+    queryKey: ["editorContent"],
+    queryFn: () => "",
+    staleTime: Infinity,
+  });
+
+  // Add this editor state at the component level
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: editingBulletinQuery.data?.content || "",
+    onUpdate: ({ editor }) => {
+      queryClient.setQueryData<BulletinPost | null>(
+        ["editingBulletin"],
+        (old) => (old ? { ...old, content: editor.getHTML() } : null)
+      );
+    },
+  });
+
   return (
     <RoleBasedWrapper
       allowedRoles={[
@@ -322,11 +345,11 @@ export default function BulletinBoard() {
                   Create Bulletin
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[525px]">
+              <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Bulletin</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="grid gap-4 py-4 overflow-y-auto">
                   <div className="grid gap-2">
                     <Label htmlFor="title">Title</Label>
                     <Input
@@ -374,21 +397,26 @@ export default function BulletinBoard() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="content">Content</Label>
-                    <Textarea
-                      id="content"
-                      defaultValue={bulletinFormQuery.data?.content}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        queryClient.setQueryData(
-                          ["bulletinForm"],
-                          (old: BulletinFormState | undefined) => ({
-                            ...old!,
-                            content: newValue,
-                          })
-                        );
-                      }}
-                      rows={5}
-                    />
+                    <div className="min-h-[200px] max-h-[400px] border rounded-md overflow-y-auto">
+                      <MinimalTiptapEditor
+                        value={bulletinFormQuery.data?.content}
+                        onChange={(newContent: string) => {
+                          queryClient.setQueryData(
+                            ["bulletinForm"],
+                            (old: BulletinFormState | undefined) => ({
+                              ...old!,
+                              content: newContent as string,
+                            })
+                          );
+                        }}
+                        className="w-full"
+                        editorContentClassName="p-4 max-h-[380px] overflow-y-auto"
+                        output="html"
+                        placeholder="Enter bulletin content..."
+                        editorClassName="focus:outline-none"
+                        editable={true}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -500,11 +528,11 @@ export default function BulletinBoard() {
                                   Edit
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="sm:max-w-[525px]">
+                              <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Edit Bulletin</DialogTitle>
                                 </DialogHeader>
-                                <div className="grid gap-4 py-4">
+                                <div className="grid gap-4 py-4 overflow-y-auto">
                                   <div className="grid gap-2">
                                     <Label htmlFor="edit-title">Title</Label>
                                     <Input
@@ -566,23 +594,9 @@ export default function BulletinBoard() {
                                     <Label htmlFor="edit-content">
                                       Content
                                     </Label>
-                                    <Textarea
-                                      id="edit-content"
-                                      defaultValue={post.content}
-                                      onChange={(e) => {
-                                        queryClient.setQueryData<BulletinPost | null>(
-                                          ["editingBulletin"],
-                                          (old) =>
-                                            old
-                                              ? {
-                                                  ...old,
-                                                  content: e.target.value,
-                                                }
-                                              : null
-                                        );
-                                      }}
-                                      rows={5}
-                                    />
+                                    <div className="min-h-[200px] max-h-[400px] border rounded-md overflow-y-auto p-4">
+                                      <EditorContent editor={editor} />
+                                    </div>
                                   </div>
                                   <div className="flex items-center space-x-2">
                                     <Switch
@@ -692,7 +706,10 @@ export default function BulletinBoard() {
                         {post.category}
                       </span>
                     </div>
-                    <p className="whitespace-pre-wrap">{post.content}</p>
+                    <div
+                      className="prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: post.content }}
+                    />
                   </CardContent>
                   {post.requires_acknowledgment &&
                     !hasAcknowledged(post.id) && (

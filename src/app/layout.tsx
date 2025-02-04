@@ -19,6 +19,7 @@ import FlagsmithWrapper from "@/FlagsmithWrapper";
 import { ReactElement } from "react";
 import SupabaseProvider from "@/providers/supabase-provider";
 import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrapper";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -65,32 +66,34 @@ export default async function RootLayout({
       <body className={inter.className}>
         <SupabaseProvider>
           <QueryProvider>
-            <RoleProvider>
-              <GoogleOAuthProvider clientId={clientId}>
-                <FlagsmithWrapper flagsmithState={flagsmithState}>
-                  <NextSSRPlugin
-                    routerConfig={extractRouterConfig(ourFileRouter)}
-                  />
-                  <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                    disableTransitionOnChange
-                  >
-                    <NotificationsProvider>
-                      <RealTimeNotificationsWrapper />
-                      <Header />
-                      <main>
-                        {children as ReactElement}
-                        {shouldInjectToolbar && <VercelToolbar />}
-                        <Analytics />
-                      </main>
-                      <Toaster />
-                    </NotificationsProvider>
-                  </ThemeProvider>
-                </FlagsmithWrapper>
-              </GoogleOAuthProvider>
-            </RoleProvider>
+            <TooltipProvider>
+              <RoleProvider>
+                <GoogleOAuthProvider clientId={clientId}>
+                  <FlagsmithWrapper flagsmithState={flagsmithState}>
+                    <NextSSRPlugin
+                      routerConfig={extractRouterConfig(ourFileRouter)}
+                    />
+                    <ThemeProvider
+                      attribute="class"
+                      defaultTheme="system"
+                      enableSystem
+                      disableTransitionOnChange
+                    >
+                      <NotificationsProvider>
+                        <RealTimeNotificationsWrapper />
+                        <Header />
+                        <main>
+                          {children as ReactElement}
+                          {shouldInjectToolbar && <VercelToolbar />}
+                          <Analytics />
+                        </main>
+                        <Toaster />
+                      </NotificationsProvider>
+                    </ThemeProvider>
+                  </FlagsmithWrapper>
+                </GoogleOAuthProvider>
+              </RoleProvider>
+            </TooltipProvider>
           </QueryProvider>
         </SupabaseProvider>
       </body>
