@@ -405,7 +405,7 @@ export function TimesheetDataTable({
 
       return [
         item.employee_name || "",
-        item.event_date ? format(new Date(item.event_date), "MM/dd/yyyy") : "",
+        item.event_date ? format(parseISO(item.event_date), "MM/dd/yyyy") : "",
         safeFormatTime(item.start_time),
         lunchStart,
         lunchEnd,
