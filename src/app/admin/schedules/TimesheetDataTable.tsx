@@ -428,10 +428,28 @@ export function TimesheetDataTable({
       ws[cellRef].s = headerStyle;
     }
 
+    // Create filename based on date range
+    let filename = "Timesheets";
+    if (date?.from) {
+      if (date.to) {
+        // Date range
+        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}_to_${format(
+          date.to,
+          "MM-dd-yyyy"
+        )}`;
+      } else {
+        // Single date
+        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}`;
+      }
+    } else {
+      // No date selected, use current date
+      filename = `Timesheets_${format(new Date(), "MM-dd-yyyy")}`;
+    }
+
     // Create and save workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Timesheets");
-    XLSX.writeFile(wb, `Timesheets_${format(new Date(), "MM-dd-yyyy")}.xlsx`);
+    XLSX.writeFile(wb, `${filename}.xlsx`);
   };
 
   return (
