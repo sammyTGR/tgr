@@ -10,7 +10,14 @@ const AlertDialog = AlertDialogPrimitive.Root;
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
-const AlertDialogPortal = AlertDialogPrimitive.Portal;
+const AlertDialogPortal = ({
+  children,
+  ...props
+}: AlertDialogPrimitive.AlertDialogPortalProps) => (
+  <AlertDialogPrimitive.Portal {...props}>
+    {children}
+  </AlertDialogPrimitive.Portal>
+);
 
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
