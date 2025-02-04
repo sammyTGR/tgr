@@ -338,9 +338,9 @@ const getBreakRoomDutyEmployee = async (
 
     if (salesEmployees.length === 0) return null;
 
-    // Get last assignment
+    // Get last assignment from previous year if needed
     const lastAssignmentResponse = await fetch(
-      `/api/break_room_duty?getLastAssignment=true`
+      `/api/break_room_duty?getLastAssignment=true&includeYear=2024`
     );
 
     if (!lastAssignmentResponse.ok) {
@@ -363,7 +363,7 @@ const getBreakRoomDutyEmployee = async (
     const checkDate = addDays(currentWeekStart, dayIndex);
     const formattedDate = format(checkDate, "yyyy-MM-dd");
 
-    // Create new duty assignment
+    // Create new duty assignment for 2025
     const response = await fetch("/api/break_room_duty", {
       method: "POST",
       headers: {
@@ -374,6 +374,7 @@ const getBreakRoomDutyEmployee = async (
         employee_id: selectedEmployee.employee_id,
         duty_date: formattedDate,
         checkSchedule: true,
+        year: 2025, // Add year parameter
       }),
     });
 

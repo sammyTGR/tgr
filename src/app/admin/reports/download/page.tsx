@@ -13,6 +13,16 @@ import * as XLSX from "xlsx";
 import { format, parseISO } from "date-fns";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { DateRange } from "react-day-picker";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CrossCircledIcon } from "@radix-ui/react-icons";
 
 interface SickTimeReport {
   employee_id: number;
@@ -396,6 +406,20 @@ const AdminReportsPage = () => {
       "combined_time_report.xlsx"
     );
   };
+  // Add date range state using TanStack Query
+  const { data: dateRange } = useQuery({
+    queryKey: ["dateRange"],
+    queryFn: () => undefined as DateRange | undefined,
+    initialData: undefined,
+  });
+
+  const setDateRange = useMutation({
+    mutationFn: (newDateRange: DateRange | undefined) => {
+      return Promise.resolve(
+        queryClient.setQueryData(["dateRange"], newDateRange)
+      );
+    },
+  });
 
   // Add error handling in the render
   if (sickTimeError) {
@@ -408,15 +432,63 @@ const AdminReportsPage = () => {
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
         <CardHeader className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold">Reports Central</h1>
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={handleCombinedDownload}>
-                Download Combined Report
-              </Button>
-              <Button variant="outline" onClick={handleDownload}>
-                Download Current Report
-              </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <h1 className="text-xl font-bold">Reports Central</h1>
+              <div className="flex gap-4">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, y")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={(value) => setDateRange.mutate(value)}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {dateRange && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setDateRange.mutate(undefined)}
+                  >
+                    <CrossCircledIcon className="mr-2 h-4 w-4" />
+                    Reset Date
+                  </Button>
+                )}
+
+                <Button variant="outline" onClick={handleCombinedDownload}>
+                  Download Combined Report
+                </Button>
+                <Button variant="outline" onClick={handleDownload}>
+                  Download Current Report
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
