@@ -1951,7 +1951,7 @@ function AdminDashboardContent() {
 
                         <Card>
                           <CardHeader>
-                            <CardTitle>Last Month's Sales</CardTitle>
+                            <CardTitle>Last Month&apos;s Sales</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <Suspense fallback={<div>Loading...</div>}>
