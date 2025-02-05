@@ -49,7 +49,16 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import classNames from "classnames";
-import { endOfDay, format, subDays, parseISO, startOfDay } from "date-fns";
+import {
+  endOfDay,
+  format,
+  subDays,
+  parseISO,
+  startOfDay,
+  endOfMonth,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import { format as formatTZ, toZonedTime } from "date-fns-tz";
 import { useFlags } from "flagsmith/react";
 import DOMPurify from "isomorphic-dompurify";
@@ -386,7 +395,7 @@ function AdminDashboardContent() {
   const { data: replyStates = {} as ReplyStates, refetch: refetchReplyStates } =
     useQuery({
       queryKey: ["replyStates"],
-      queryFn: () => ({} as ReplyStates),
+      queryFn: () => ({}) as ReplyStates,
       staleTime: Infinity,
     });
 
@@ -1942,16 +1951,16 @@ function AdminDashboardContent() {
 
                         <Card>
                           <CardHeader>
-                            <CardTitle>Last 30 Days Sales</CardTitle>
+                            <CardTitle>Last Month's Sales</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <Suspense fallback={<div>Loading...</div>}>
                               <SalesAtGlanceTable
-                                period="30days"
+                                period="lastMonth"
                                 selectedEmployees={selectedEmployees}
                                 dateRange={{
-                                  start: subDays(startOfDay(new Date()), 30),
-                                  end: endOfDay(subDays(new Date(), 1)),
+                                  start: startOfMonth(subMonths(new Date(), 1)),
+                                  end: endOfMonth(subMonths(new Date(), 1)),
                                 }}
                               />
                             </Suspense>
@@ -2442,8 +2451,8 @@ function AdminDashboardContent() {
                   type === "certificate"
                     ? "Oldest expiration:"
                     : type === "dailyChecklist"
-                    ? "Last updated:"
-                    : "Last submitted:"
+                      ? "Last updated:"
+                      : "Last submitted:"
                 )}
               </p>
               <p className="font-semibold">
@@ -2456,12 +2465,12 @@ function AdminDashboardContent() {
                       type === "maintenance"
                         ? "Firearm:"
                         : type === "deposit"
-                        ? "Employee:"
-                        : type === "certificate"
-                        ? "Total:"
-                        : type === "dailyChecklist"
-                        ? "Firearms down for service:"
-                        : "By:"
+                          ? "Employee:"
+                          : type === "certificate"
+                            ? "Total:"
+                            : type === "dailyChecklist"
+                              ? "Firearms down for service:"
+                              : "By:"
                     } ${extraInfo}`
                   )}
                 </p>

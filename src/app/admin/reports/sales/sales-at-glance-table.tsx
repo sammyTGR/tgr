@@ -9,14 +9,30 @@ import {
 import { DataTableEmployee } from "./data-table-employee";
 import { employeeSalesColumns } from "./columns-all-employees";
 import { useQuery } from "@tanstack/react-query";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import {
+  format,
+  subDays,
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+} from "date-fns";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "@radix-ui/react-icons";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 interface SalesAtGlanceTableProps {
-  period: "1day" | "7days" | "14days" | "30days";
+  period: "1day" | "7days" | "14days" | "30days" | "lastMonth" | "custom";
   selectedEmployees: string[];
   dateRange: {
     start: Date;
@@ -49,6 +65,50 @@ interface EmployeeSummary {
   total_net: number;
 }
 
+// Add this interface for period totals
+interface PeriodTotals {
+  totalNet: number;
+  totalGross: number;
+}
+
+// Add the MonthSelect component
+const MonthSelect: React.FC<{
+  value: Date;
+  onChange: (date: Date) => void;
+}> = ({ value, onChange }) => {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-[240px] justify-start text-left font-normal",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {format(value, "MMMM yyyy")}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value}
+          onSelect={(date) => {
+            if (date) {
+              onChange(date);
+              setOpen(false);
+            }
+          }}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
   period,
   selectedEmployees,
@@ -59,31 +119,44 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
     { id: "Date", desc: true },
   ]);
 
+  // Add state for selected month
+  const [selectedMonth, setSelectedMonth] = React.useState<Date>(
+    subMonths(new Date(), 1)
+  );
+
   // Calculate date range based on period
   const dateRange = React.useMemo(() => {
     const yesterday = subDays(new Date(), 1);
-    const end = endOfDay(yesterday);
+    let start: Date;
+    let end: Date;
 
-    // Calculate start date based on period
-    let daysToSubtract;
     switch (period) {
       case "1day":
-        daysToSubtract = 0; // Just yesterday
+        start = startOfDay(yesterday);
+        end = endOfDay(yesterday);
         break;
       case "7days":
-        daysToSubtract = 6; // Yesterday plus 6 previous days = 7 days total
+        start = startOfDay(subDays(yesterday, 6));
+        end = endOfDay(yesterday);
         break;
       case "14days":
-        daysToSubtract = 13; // Yesterday plus 13 previous days = 14 days total
+        start = startOfDay(subDays(yesterday, 13));
+        end = endOfDay(yesterday);
         break;
       case "30days":
-        daysToSubtract = 29; // Yesterday plus 29 previous days = 30 days total
+        start = startOfDay(subDays(yesterday, 29));
+        end = endOfDay(yesterday);
+        break;
+      case "lastMonth":
+      case "custom":
+        // Use the selected month for both lastMonth and custom periods
+        start = startOfMonth(selectedMonth);
+        end = endOfMonth(selectedMonth);
         break;
       default:
-        daysToSubtract = 0;
+        start = startOfDay(yesterday);
+        end = endOfDay(yesterday);
     }
-
-    const start = startOfDay(subDays(yesterday, daysToSubtract));
 
     // Debug logging
     // console.log("Date Range Calculation:", {
@@ -98,7 +171,7 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
     // });
 
     return { start, end };
-  }, [period]);
+  }, [period, selectedMonth]);
 
   // Fetch sales data
   const salesQuery = useQuery({
@@ -224,10 +297,38 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
     },
   });
 
+  // Add a query for period totals
+  const periodTotalsQuery = useQuery({
+    queryKey: ["periodTotals", period, selectedEmployees, dateRange],
+    queryFn: async () => {
+      const response = await fetch("/api/fetch-period-totals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dateRange: {
+            from: format(dateRange.start, "yyyy-MM-dd"),
+            to: format(dateRange.end, "yyyy-MM-dd"),
+          },
+          employeeLanids: selectedEmployees.includes("all")
+            ? null
+            : selectedEmployees,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch period totals");
+      }
+
+      return response.json() as Promise<PeriodTotals>;
+    },
+  });
+
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const [salesResponse, summaryResponse] = await Promise.all([
+      const [salesResponse, periodTotalsResponse] = await Promise.all([
         fetch("/api/fetch-all-employees-sales-export", {
           method: "POST",
           headers: {
@@ -243,7 +344,8 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
               : selectedEmployees,
           }),
         }),
-        fetch("/api/fetch-employee-sales-summary", {
+        // Fetch period totals separately
+        fetch("/api/fetch-period-totals", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -260,35 +362,61 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         }),
       ]);
 
-      if (!salesResponse.ok || !summaryResponse.ok) {
+      if (!salesResponse.ok || !periodTotalsResponse.ok) {
         throw new Error("Failed to fetch export data");
       }
 
-      const [salesData, summaryData] = await Promise.all([
+      const [{ data, summary }, periodTotals] = await Promise.all([
         salesResponse.json(),
-        summaryResponse.json(),
+        periodTotalsResponse.json(),
       ]);
 
-      if (!salesData?.data?.length) {
+      if (!data?.length) {
         toast.error("No data found for the selected range");
         return;
       }
 
       const wb = XLSX.utils.book_new();
 
-      // Add summary sheet
-      const summarySheet = XLSX.utils.json_to_sheet(
-        summaryData.map((summary: EmployeeSummary) => ({
-          "Employee Name": summary.employee_name,
-          "Total Gross": summary.total_gross,
-          "Total Net": summary.total_net,
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, summarySheet, `Summary_${period}`);
+      // Add period totals sheet with safe values
+      const periodTotalsSheet = XLSX.utils.json_to_sheet([
+        {
+          "Total Transactions": data.length,
+          "Total Gross Revenue": periodTotals?.totalGross || 0,
+          "Total Net Revenue": periodTotals?.totalNet || 0,
+          "Average Transaction Value": data.length
+            ? ((periodTotals?.totalGross || 0) / data.length).toFixed(2)
+            : "0.00",
+        },
+      ]);
+      XLSX.utils.book_append_sheet(wb, periodTotalsSheet, "Period_Summary");
 
-      // Add detailed sales sheet
+      // Add employee summary sheet
+      const summaryData =
+        summary ||
+        data.reduce((acc: any[], row: any) => {
+          const existingEmployee = acc.find((e) => e.Lanid === row.Lanid);
+          if (existingEmployee) {
+            existingEmployee.total_gross += row.total_gross || 0;
+            existingEmployee.total_net += row.total_net || 0;
+            existingEmployee.transaction_count += 1;
+          } else {
+            acc.push({
+              "Employee Name": row.employee_name,
+              "Total Gross": row.total_gross || 0,
+              "Total Net": row.total_net || 0,
+              "Transaction Count": 1,
+            });
+          }
+          return acc;
+        }, []);
+
+      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, summarySheet, "Employee_Summary");
+
+      // Add detailed transactions sheet
       const detailsSheet = XLSX.utils.json_to_sheet(
-        salesData.data.map((row: any) => ({
+        data.map((row: any) => ({
           Date: row.Date,
           Invoice: row.Invoice,
           Employee: row.Lanid,
@@ -303,7 +431,25 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           "Total Net": row.total_net,
         }))
       );
-      XLSX.utils.book_append_sheet(wb, detailsSheet, `Details_${period}`);
+      XLSX.utils.book_append_sheet(wb, detailsSheet, "Detailed_Transactions");
+
+      // Set column widths and formatting
+      const sheets = [
+        "Period_Summary",
+        "Employee_Summary",
+        "Detailed_Transactions",
+      ];
+      sheets.forEach((sheet) => {
+        const ws = wb.Sheets[sheet];
+        const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+
+        // Set column widths
+        const cols = [];
+        for (let i = 0; i <= range.e.c; ++i) {
+          cols.push({ wch: 15 }); // Set width to 15 characters
+        }
+        ws["!cols"] = cols;
+      });
 
       const filename = `sales_report_${period}_${
         selectedEmployees.includes("all")
@@ -327,6 +473,56 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Add Month Picker when custom period or lastMonth is selected */}
+      {(period === "custom" || period === "lastMonth") && (
+        <div className="mb-6">
+          <MonthSelect value={selectedMonth} onChange={setSelectedMonth} />
+        </div>
+      )}
+
+      {/* Period Totals Card */}
+      <div className="mb-6">
+        <div className="p-6 rounded-lg bg-card text-card-foreground shadow-sm">
+          <h2 className="font-semibold text-xl mb-4">
+            {period === "lastMonth" ? "Sales Summary" : "Period Summary"}
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h3 className="text-sm text-muted-foreground">
+                Total Net (Period)
+              </h3>
+              <p className="text-2xl font-bold">
+                {periodTotalsQuery.data
+                  ? `$${periodTotalsQuery.data.totalNet.toLocaleString(
+                      "en-US",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}`
+                  : "Loading..."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm text-muted-foreground">
+                Total Gross (Period)
+              </h3>
+              <p className="text-2xl font-bold">
+                {periodTotalsQuery.data
+                  ? `$${periodTotalsQuery.data.totalGross.toLocaleString(
+                      "en-US",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}`
+                  : "Loading..."}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Export Button */}
       <div className="flex justify-end">
         <Button
