@@ -50,6 +50,7 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { startOfWeek, endOfWeek, addWeeks, isWithinInterval } from "date-fns";
 
 interface TimesheetData {
   id: number;
@@ -68,6 +69,13 @@ interface Employee {
   employee_id: number;
   name: string;
   status: string;
+}
+
+interface PayPeriodSummary {
+  regularHours: number;
+  overtimeHours: number;
+  startDate: Date;
+  endDate: Date;
 }
 
 interface TimesheetDataTableProps {
@@ -113,6 +121,71 @@ export function TimesheetDataTable({
       return data as Employee[];
     },
   });
+
+  const getCurrentPayPeriod = () => {
+    // Get the current date
+    const today = new Date();
+    // Find the start of the week (Sunday)
+    let periodStart = startOfWeek(today, { weekStartsOn: 0 });
+
+    // If today is after Wednesday, we're in the second week of the pay period
+    // So we need to go back to the previous week's Sunday
+    if (today.getDay() >= 3) {
+      // Wednesday is 3
+      periodStart = addWeeks(periodStart, -1);
+    }
+
+    // Pay period ends on Saturday of the next week
+    const periodEnd = endOfWeek(addWeeks(periodStart, 1), { weekStartsOn: 0 });
+
+    return { periodStart, periodEnd };
+  };
+
+  // Calculate pay period summaries for each employee
+  const payPeriodSummaries = React.useMemo(() => {
+    const { periodStart, periodEnd } = getCurrentPayPeriod();
+    const summaries = new Map<string, PayPeriodSummary>();
+
+    initialData.forEach((timesheet) => {
+      if (
+        !timesheet.employee_name ||
+        !timesheet.event_date ||
+        !timesheet.total_hours
+      )
+        return;
+
+      const eventDate = parseISO(timesheet.event_date);
+      if (!isWithinInterval(eventDate, { start: periodStart, end: periodEnd }))
+        return;
+
+      const hours = parseFloat(timesheet.total_hours);
+      if (isNaN(hours)) return;
+
+      const currentSummary = summaries.get(timesheet.employee_name) || {
+        regularHours: 0,
+        overtimeHours: 0,
+        startDate: periodStart,
+        endDate: periodEnd,
+      };
+
+      // Add hours to regular or overtime
+      if (currentSummary.regularHours < 80) {
+        const remainingRegular = 80 - currentSummary.regularHours;
+        if (hours <= remainingRegular) {
+          currentSummary.regularHours += hours;
+        } else {
+          currentSummary.regularHours = 80;
+          currentSummary.overtimeHours += hours - remainingRegular;
+        }
+      } else {
+        currentSummary.overtimeHours += hours;
+      }
+
+      summaries.set(timesheet.employee_name, currentSummary);
+    });
+
+    return summaries;
+  }, [initialData]);
 
   // Filter data based on date range
   const filteredData = React.useMemo(() => {
@@ -334,10 +407,135 @@ export function TimesheetDataTable({
 
   // Excel export function
   const handleExportToExcel = () => {
-    // Create worksheet with data first
-    const ws = XLSX.utils.json_to_sheet([]);
-    ws["!cols"] = [
-      { width: 20 }, // Employee Name
+    // Create the workbook
+    const wb = XLSX.utils.book_new();
+
+    // First, create the Summaries worksheet
+    const summaryRows = [
+      // Headers for summary sheet
+      [
+        "Employee Name",
+        "Pay Period",
+        "Regular Hours",
+        "Overtime Hours",
+        "Total Hours",
+      ],
+    ];
+
+    // Add summary data
+    payPeriodSummaries.forEach((summary, employeeName) => {
+      summaryRows.push([
+        employeeName,
+        `${format(summary.startDate, "MM/dd/yyyy")} - ${format(summary.endDate, "MM/dd/yyyy")}`,
+        summary.regularHours.toFixed(2),
+        summary.overtimeHours.toFixed(2),
+        (summary.regularHours + summary.overtimeHours).toFixed(2),
+      ]);
+    });
+
+    // Create and style the summary worksheet
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
+
+    // Set column widths for summary sheet
+    summaryWs["!cols"] = [
+      { width: 25 }, // Employee Name
+      { width: 25 }, // Pay Period
+      { width: 15 }, // Regular Hours
+      { width: 15 }, // Overtime Hours
+      { width: 15 }, // Total Hours
+    ];
+
+    // Style header row in summary sheet
+    const headerStyle = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: "CCCCCC" } },
+    };
+
+    // Apply header style to summary sheet
+    for (let i = 0; i < 5; i++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
+      summaryWs[cellRef].s = headerStyle;
+    }
+
+    // Then create the Details worksheet
+    const detailRows = [
+      // Headers for detail sheet
+      [
+        "Employee Name",
+        "Date",
+        "Start Time",
+        "Lunch Start",
+        "Lunch End",
+        "End Time",
+        "Total Hours",
+        "Lunch Duration (min)",
+      ],
+    ];
+
+    // Add detail data
+    detailRows.push(
+      ...data.map((item) => {
+        const safeFormatTime = (timeStr: string | null) => {
+          if (!timeStr) return "";
+          try {
+            if (timeStr.includes("AM") || timeStr.includes("PM")) {
+              return timeStr;
+            }
+            return formatTime(timeStr);
+          } catch (error) {
+            return timeStr || "";
+          }
+        };
+
+        const getLunchDuration = (
+          lunchStart: string | null,
+          lunchEnd: string | null
+        ) => {
+          if (!lunchStart || !lunchEnd) return "";
+          try {
+            const parseTimeString = (timeStr: string) => {
+              const [time, meridiem] = timeStr.split(" ");
+              let [hours, minutes] = time.split(":").map(Number);
+              if (meridiem === "PM" && hours !== 12) hours += 12;
+              if (meridiem === "AM" && hours === 12) hours = 0;
+              return { hours, minutes };
+            };
+
+            const start = parseTimeString(lunchStart);
+            const end = parseTimeString(lunchEnd);
+
+            const duration =
+              end.hours * 60 + end.minutes - (start.hours * 60 + start.minutes);
+            return duration.toString();
+          } catch (error) {
+            return "";
+          }
+        };
+
+        const lunchStart = safeFormatTime(item.lunch_start);
+        const lunchEnd = safeFormatTime(item.lunch_end);
+
+        return [
+          item.employee_name || "",
+          item.event_date
+            ? format(parseISO(item.event_date), "MM/dd/yyyy")
+            : "",
+          safeFormatTime(item.start_time),
+          lunchStart,
+          lunchEnd,
+          safeFormatTime(item.end_time),
+          item.total_hours || "",
+          getLunchDuration(lunchStart, lunchEnd),
+        ];
+      })
+    );
+
+    // Create and style the details worksheet
+    const detailWs = XLSX.utils.aoa_to_sheet(detailRows);
+
+    // Set column widths for detail sheet
+    detailWs["!cols"] = [
+      { width: 25 }, // Employee Name
       { width: 12 }, // Date
       { width: 12 }, // Start Time
       { width: 12 }, // Lunch Start
@@ -347,108 +545,32 @@ export function TimesheetDataTable({
       { width: 15 }, // Lunch Duration
     ];
 
-    // Add headers
-    const headers = [
-      "Employee Name",
-      "Date",
-      "Start Time",
-      "Lunch Start",
-      "Lunch End",
-      "End Time",
-      "Total Hours",
-      "Lunch Duration (min)",
-    ];
-    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: "A1" });
-
-    // Prepare and add data
-    const rowData = data.map((item) => {
-      const safeFormatTime = (timeStr: string | null) => {
-        if (!timeStr) return "";
-        try {
-          if (timeStr.includes("AM") || timeStr.includes("PM")) {
-            return timeStr;
-          }
-          return formatTime(timeStr);
-        } catch (error) {
-          return timeStr || "";
-        }
-      };
-
-      // Calculate lunch duration
-      const getLunchDuration = (
-        lunchStart: string | null,
-        lunchEnd: string | null
-      ) => {
-        if (!lunchStart || !lunchEnd) return "";
-        try {
-          const parseTimeString = (timeStr: string) => {
-            const [time, meridiem] = timeStr.split(" ");
-            let [hours, minutes] = time.split(":").map(Number);
-            if (meridiem === "PM" && hours !== 12) hours += 12;
-            if (meridiem === "AM" && hours === 12) hours = 0;
-            return { hours, minutes };
-          };
-
-          const start = parseTimeString(lunchStart);
-          const end = parseTimeString(lunchEnd);
-
-          const duration =
-            end.hours * 60 + end.minutes - (start.hours * 60 + start.minutes);
-          return duration.toString();
-        } catch (error) {
-          return "";
-        }
-      };
-
-      const lunchStart = safeFormatTime(item.lunch_start);
-      const lunchEnd = safeFormatTime(item.lunch_end);
-
-      return [
-        item.employee_name || "",
-        item.event_date ? format(parseISO(item.event_date), "MM/dd/yyyy") : "",
-        safeFormatTime(item.start_time),
-        lunchStart,
-        lunchEnd,
-        safeFormatTime(item.end_time),
-        item.total_hours || "",
-        getLunchDuration(lunchStart, lunchEnd),
-      ];
-    });
-
-    // Add data
-    XLSX.utils.sheet_add_aoa(ws, rowData, { origin: "A2" });
-
-    // Add style to header row
-    const headerStyle = {
-      font: { bold: true },
-      fill: { fgColor: { rgb: "EEEEEE" } },
-    };
-    for (let i = 0; i < headers.length; i++) {
+    // Apply header style to detail sheet
+    for (let i = 0; i < 8; i++) {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
-      ws[cellRef].s = headerStyle;
+      detailWs[cellRef].s = headerStyle;
     }
 
     // Create filename based on date range
     let filename = "Timesheets";
     if (date?.from) {
       if (date.to) {
-        // Date range
         filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}_to_${format(
           date.to,
           "MM-dd-yyyy"
         )}`;
       } else {
-        // Single date
         filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}`;
       }
     } else {
-      // No date selected, use current date
       filename = `Timesheets_${format(new Date(), "MM-dd-yyyy")}`;
     }
 
-    // Create and save workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Timesheets");
+    // Add both worksheets to the workbook
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Pay Period Summary");
+    XLSX.utils.book_append_sheet(wb, detailWs, "Timesheet Details");
+
+    // Save the workbook
     XLSX.writeFile(wb, `${filename}.xlsx`);
   };
 
@@ -605,26 +727,71 @@ export function TimesheetDataTable({
               <tbody className="divide-y divide-gray-200">
                 {table.getRowModel().rows.map((row) => {
                   if (row.getIsGrouped()) {
+                    const employeeName = row.getValue(
+                      "employee_name"
+                    ) as string;
+                    const summary = payPeriodSummaries.get(employeeName);
+
                     return (
                       <tr
                         key={row.id}
                         onClick={() => row.toggleExpanded()}
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:bg-muted"
                       >
-                        <td colSpan={columns.length + 1} className="px-1 py-1">
+                        {/* Employee Name Column */}
+                        <td className="py-2">
                           <div className="flex items-center">
                             {row.getIsExpanded() ? (
                               <DoubleArrowDownIcon className="mr-2 h-4 w-4" />
                             ) : (
                               <DoubleArrowRightIcon className="mr-2 h-4 w-4" />
                             )}
-                            <span>{row.getValue("employee_name")}</span>
+                            <span className="font-medium">{employeeName}</span>
                           </div>
                         </td>
+                        {/* Date Range Column */}
+                        <td className="py-2">
+                          {summary && (
+                            <span>
+                              {format(summary.startDate, "M/dd/yyyy")} -{" "}
+                              {format(summary.endDate, "M/dd/yyyy")}
+                            </span>
+                          )}
+                        </td>
+                        {/* Empty columns for other fields */}
+                        <td></td> {/* Start Time */}
+                        <td></td> {/* Lunch Start */}
+                        <td></td> {/* Lunch End */}
+                        <td></td> {/* End Time */}
+                        {/* Total Hours Column */}
+                        <td className="py-2">
+                          {summary && (
+                            <span
+                              className={
+                                summary.regularHours > 80
+                                  ? "text-yellow-600"
+                                  : ""
+                              }
+                            >
+                              {summary.regularHours.toFixed(2)} hours
+                            </span>
+                          )}
+                        </td>
+                        {/* Overtime Column */}
+                        <td className="py-2">
+                          {summary && summary.overtimeHours > 0 && (
+                            <span className="text-red-600">
+                              {summary.overtimeHours.toFixed(2)}h
+                            </span>
+                          )}
+                        </td>
+                        {/* Actions column placeholder */}
+                        <td></td>
                       </tr>
                     );
                   }
 
+                  // Regular row rendering for expanded view
                   return (
                     <tr key={row.id}>
                       {row.getVisibleCells().map((cell) => (
