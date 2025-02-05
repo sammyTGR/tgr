@@ -172,9 +172,21 @@ export function TimesheetDataTable({
     return { periodStart, periodEnd };
   };
 
-  // Calculate pay period summaries for each employee
+  // Calculate summaries based on selected date range or current pay period
   const payPeriodSummaries = React.useMemo(() => {
-    const { periodStart, periodEnd } = getCurrentPayPeriod();
+    // Get the date range to use for summaries
+    let startDate, endDate;
+
+    if (date?.from) {
+      startDate = date.from;
+      endDate = date.to || date.from;
+    } else {
+      // Fall back to current pay period if no date range selected
+      const { periodStart, periodEnd } = getCurrentPayPeriod();
+      startDate = periodStart;
+      endDate = periodEnd;
+    }
+
     const summaries = new Map<string, PayPeriodSummary>();
 
     filteredInitialData.forEach((timesheet) => {
@@ -186,7 +198,7 @@ export function TimesheetDataTable({
         return;
 
       const eventDate = parseISO(timesheet.event_date);
-      if (!isWithinInterval(eventDate, { start: periodStart, end: periodEnd }))
+      if (!isWithinInterval(eventDate, { start: startDate, end: endDate }))
         return;
 
       const hours = parseFloat(timesheet.total_hours);
@@ -195,28 +207,33 @@ export function TimesheetDataTable({
       const currentSummary = summaries.get(timesheet.employee_name) || {
         regularHours: 0,
         overtimeHours: 0,
-        startDate: periodStart,
-        endDate: periodEnd,
+        startDate,
+        endDate,
       };
 
-      // Add hours to regular or overtime
-      if (currentSummary.regularHours < 80) {
-        const remainingRegular = 80 - currentSummary.regularHours;
-        if (hours <= remainingRegular) {
-          currentSummary.regularHours += hours;
-        } else {
-          currentSummary.regularHours = 80;
-          currentSummary.overtimeHours += hours - remainingRegular;
-        }
+      // For selected date ranges, treat all hours as regular hours
+      if (date?.from) {
+        currentSummary.regularHours += hours;
       } else {
-        currentSummary.overtimeHours += hours;
+        // Only apply overtime rules for current pay period
+        if (currentSummary.regularHours < 80) {
+          const remainingRegular = 80 - currentSummary.regularHours;
+          if (hours <= remainingRegular) {
+            currentSummary.regularHours += hours;
+          } else {
+            currentSummary.regularHours = 80;
+            currentSummary.overtimeHours += hours - remainingRegular;
+          }
+        } else {
+          currentSummary.overtimeHours += hours;
+        }
       }
 
       summaries.set(timesheet.employee_name, currentSummary);
     });
 
     return summaries;
-  }, [filteredInitialData]);
+  }, [filteredInitialData, date]);
 
   // Filter data based on date range
   const filteredData = React.useMemo(() => {
@@ -438,6 +455,27 @@ export function TimesheetDataTable({
 
   // Excel export function
   const handleExportToExcel = () => {
+    // Create filename based on date range or current pay period
+    let filename;
+    if (date?.from) {
+      // If a date range is selected
+      if (date.to) {
+        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}_to_${format(
+          date.to,
+          "MM-dd-yyyy"
+        )}`;
+      } else {
+        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}`;
+      }
+    } else {
+      // If no date range is selected, use current pay period dates
+      const { periodStart, periodEnd } = getCurrentPayPeriod();
+      filename = `Timesheets_${format(periodStart, "MM-dd-yyyy")}_to_${format(
+        periodEnd,
+        "MM-dd-yyyy"
+      )}`;
+    }
+
     // Create the workbook
     const wb = XLSX.utils.book_new();
 
@@ -582,26 +620,11 @@ export function TimesheetDataTable({
       detailWs[cellRef].s = headerStyle;
     }
 
-    // Create filename based on date range
-    let filename = "Timesheets";
-    if (date?.from) {
-      if (date.to) {
-        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}_to_${format(
-          date.to,
-          "MM-dd-yyyy"
-        )}`;
-      } else {
-        filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}`;
-      }
-    } else {
-      filename = `Timesheets_${format(new Date(), "MM-dd-yyyy")}`;
-    }
-
     // Add both worksheets to the workbook
     XLSX.utils.book_append_sheet(wb, summaryWs, "Pay Period Summary");
     XLSX.utils.book_append_sheet(wb, detailWs, "Timesheet Details");
 
-    // Save the workbook
+    // Save the workbook with the dynamic filename
     XLSX.writeFile(wb, `${filename}.xlsx`);
   };
 
@@ -754,7 +777,6 @@ export function TimesheetDataTable({
                   </tr>
                 ))}
               </thead>
-
               <tbody className="divide-y divide-gray-200">
                 {table.getRowModel().rows.map((row) => {
                   if (row.getIsGrouped()) {
@@ -769,7 +791,6 @@ export function TimesheetDataTable({
                         onClick={() => row.toggleExpanded()}
                         className="cursor-pointer hover:bg-muted"
                       >
-                        {/* Employee Name Column */}
                         <td className="py-2">
                           <div className="flex items-center">
                             {row.getIsExpanded() ? (
@@ -780,7 +801,6 @@ export function TimesheetDataTable({
                             <span className="font-medium">{employeeName}</span>
                           </div>
                         </td>
-                        {/* Date Range Column */}
                         <td className="py-2">
                           {summary && (
                             <span>
@@ -789,12 +809,10 @@ export function TimesheetDataTable({
                             </span>
                           )}
                         </td>
-                        {/* Empty columns for other fields */}
-                        <td></td> {/* Start Time */}
-                        <td></td> {/* Lunch Start */}
-                        <td></td> {/* Lunch End */}
-                        <td></td> {/* End Time */}
-                        {/* Total Hours Column */}
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
                         <td className="py-2">
                           {summary && (
                             <span
@@ -808,7 +826,6 @@ export function TimesheetDataTable({
                             </span>
                           )}
                         </td>
-                        {/* Overtime Column */}
                         <td className="py-2">
                           {summary && summary.overtimeHours > 0 && (
                             <span className="text-red-600">
@@ -816,13 +833,11 @@ export function TimesheetDataTable({
                             </span>
                           )}
                         </td>
-                        {/* Actions column placeholder */}
                         <td></td>
                       </tr>
                     );
                   }
 
-                  // Regular row rendering for expanded view
                   return (
                     <tr key={row.id}>
                       {row.getVisibleCells().map((cell) => (
