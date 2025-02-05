@@ -2369,6 +2369,7 @@ function AdminDashboardContent() {
                 </Card>
               </div>
             </TabsContent>
+            <AnnualRevenueBarChart />
           </div>
         </Tabs>
       </div>
