@@ -122,6 +122,37 @@ export function TimesheetDataTable({
     },
   });
 
+  const { data: activeEmployees } = useQuery({
+    queryKey: ["activeHourlyEmployees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("employee_id, name")
+        .eq("status", "active")
+        .eq("pay_type", "hourly");
+
+      if (error) throw error;
+      return data as Employee[];
+    },
+  });
+
+  // Filter the initial data to only include active hourly employees
+  const filteredInitialData = React.useMemo(() => {
+    if (!activeEmployees) return [];
+
+    const activeEmployeeNames = new Set(activeEmployees.map((emp) => emp.name));
+    return initialData.filter(
+      (timesheet) =>
+        timesheet.employee_name &&
+        activeEmployeeNames.has(timesheet.employee_name)
+    );
+  }, [initialData, activeEmployees]);
+
+  // Update the data state to use filtered data
+  React.useEffect(() => {
+    setData(filteredInitialData);
+  }, [filteredInitialData]);
+
   const getCurrentPayPeriod = () => {
     // Get the current date
     const today = new Date();
@@ -146,7 +177,7 @@ export function TimesheetDataTable({
     const { periodStart, periodEnd } = getCurrentPayPeriod();
     const summaries = new Map<string, PayPeriodSummary>();
 
-    initialData.forEach((timesheet) => {
+    filteredInitialData.forEach((timesheet) => {
       if (
         !timesheet.employee_name ||
         !timesheet.event_date ||
@@ -185,13 +216,13 @@ export function TimesheetDataTable({
     });
 
     return summaries;
-  }, [initialData]);
+  }, [filteredInitialData]);
 
   // Filter data based on date range
   const filteredData = React.useMemo(() => {
-    if (!date?.from) return initialData;
+    if (!date?.from) return filteredInitialData;
 
-    return initialData.filter((item) => {
+    return filteredInitialData.filter((item) => {
       if (!item.event_date || !date.from) return false;
 
       // Create dates in the local timezone
@@ -206,7 +237,7 @@ export function TimesheetDataTable({
 
       return itemDateStr >= fromStr && itemDateStr <= toStr;
     });
-  }, [initialData, date]);
+  }, [filteredInitialData, date]);
 
   React.useEffect(() => {
     setData(filteredData);
