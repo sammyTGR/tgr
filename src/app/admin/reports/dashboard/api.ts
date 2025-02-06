@@ -339,74 +339,48 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
   const utcEndDate = new Date(endDate);
   utcEndDate.setUTCHours(23, 59, 59, 999);
 
+  // console.log("Fetching data for date range:", {
+  //   start: utcStartDate.toISOString(),
+  //   end: utcEndDate.toISOString(),
+  // });
+
   let allData: any[] = [];
-  let regularPage = 0;
-  let rentalPage = 0;
+  let page = 0;
   const pageSize = 1000;
-  let hasMoreRegular = true;
-  let hasMoreRental = true;
+  let hasMore = true;
 
-  // Fetch regular items
-  while (hasMoreRegular) {
-    const { data: regularData, error: regularError } = await supabase
+  while (hasMore) {
+    const { data, error, count } = await supabase
       .from("detailed_sales_data")
-      .select(
-        '"Desc", "SubDesc", "CatDesc", "Qty", total_net, "SoldDate", "Margin", "SoldPrice"',
-        { count: "exact" }
-      )
+      .select('"Desc", "Qty", total_net, "SoldDate"', { count: "exact" })
       .or(
-        "Desc.ilike.%Gunsmithing%,Desc.ilike.%Pistol Optic Zero Fee%,Desc.ilike.%Sight In/ Function Fee%,Desc.ilike.%Laser Engraving%,Desc.ilike.%Reloaded%,SubDesc.eq.Targets,CatDesc.eq.Personal Protection Equipment,CatDesc.eq.Station Rental"
+        "Desc.ilike.%Gunsmithing%," +
+          "Desc.ilike.%Pistol Optic Zero Fee%," +
+          "Desc.ilike.%Sight In/ Function Fee%," +
+          "Desc.ilike.%Laser Engraving%," +
+          "Desc.ilike.%Reloaded%"
       )
       .gte("SoldDate", utcStartDate.toISOString())
       .lte("SoldDate", utcEndDate.toISOString())
-      .range(regularPage * pageSize, (regularPage + 1) * pageSize - 1);
+      .range(page * pageSize, (page + 1) * pageSize - 1)
+      .order("SoldDate", { ascending: true });
 
-    if (regularError) {
-      console.error("Regular data fetch error:", regularError);
-      throw regularError;
+    if (error) {
+      console.error("KPI Data fetch error:", error);
+      throw error;
     }
 
-    if (regularData?.length) {
-      allData = [...allData, ...regularData];
-      regularPage++;
-      hasMoreRegular = regularData.length === pageSize;
+    if (!data || data.length === 0) {
+      hasMore = false;
     } else {
-      hasMoreRegular = false;
+      allData = [...allData, ...data];
+      page++;
+      hasMore = data.length === pageSize;
     }
   }
 
-  // Fetch rental items
-  while (hasMoreRental) {
-    const { data: rentalData, error: rentalError } = await supabase
-      .from("detailed_sales_data")
-      .select(
-        '"Desc", "SubDesc", "CatDesc", "Qty", total_net, "SoldDate", "Margin", "SoldPrice"',
-        { count: "exact" }
-      )
-      .eq("CatDesc", "Gun Range Rental")
-      .filter(
-        "SubDesc",
-        "not.in",
-        '("12 & Under Earmuff Rentals","Ear Muffs","")'
-      )
-      .not("SubDesc", "is", null)
-      .gte("SoldDate", utcStartDate.toISOString())
-      .lte("SoldDate", utcEndDate.toISOString())
-      .range(rentalPage * pageSize, (rentalPage + 1) * pageSize - 1);
-
-    if (rentalError) {
-      console.error("Rental data fetch error:", rentalError);
-      throw rentalError;
-    }
-
-    if (rentalData?.length) {
-      allData = [...allData, ...rentalData];
-      rentalPage++;
-      hasMoreRental = rentalData.length === pageSize;
-    } else {
-      hasMoreRental = false;
-    }
-  }
+  // console.log(`Total records fetched: ${allData.length}`);
+  // console.log("Sample data:", allData.slice(0, 3));
 
   // Group and aggregate the data
   const kpiGroups = allData.reduce(
