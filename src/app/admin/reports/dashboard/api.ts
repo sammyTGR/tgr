@@ -3,6 +3,24 @@
 import { supabase } from "@/utils/supabase/client";
 import { Domain, Suggestion, Certificate } from "./types";
 
+// First, define the types
+interface KPIVariant {
+  qty: number;
+  revenue: number;
+  margin?: number;
+  soldPrice?: number;
+}
+
+interface KPIGroup {
+  qty: number;
+  revenue: number;
+  margin?: number;
+  soldPrice?: number;
+  variants: Record<string, KPIVariant>;
+}
+
+type KPIGroups = Record<string, KPIGroup>;
+
 // Fetch functions
 export const fetchSuggestions = async () => {
   const { data, error } = await supabase
@@ -147,7 +165,7 @@ export const fetchDailyChecklistStatus = async () => {
   const lastSubmission = data.reduce((latest: string | null, current) => {
     return latest && latest > (current.last_maintenance_date ?? "")
       ? latest
-      : current.last_maintenance_date ?? null;
+      : (current.last_maintenance_date ?? null);
   }, null);
 
   const submitted = lastSubmission
@@ -315,98 +333,146 @@ export const replySuggestion = async ({
 };
 
 export const fetchKPIData = async (startDate: Date, endDate: Date) => {
-  const { data, error } = await supabase
-    .from("sales_data")
-    .select("Desc, SoldQty, total_net")
-    .or(
-      "Desc.ilike.%Gunsmithing%, Desc.ilike.%Gunsmithing Parts%, Desc.ilike.%Pistol Optic Zero Fee%, Desc.ilike.%Sight In/Function Fee%, Desc.ilike.%Laser Engraving%, Desc.ilike.%Reloaded%"
-    )
-    .gte("Date", startDate.toISOString())
-    .lte("Date", endDate.toISOString());
+  const utcStartDate = new Date(startDate);
+  utcStartDate.setUTCHours(0, 0, 0, 0);
 
-  if (error) throw error;
+  const utcEndDate = new Date(endDate);
+  utcEndDate.setUTCHours(23, 59, 59, 999);
 
-  // Define the order of categories
-  const categoryOrder = [
-    "Gunsmithing",
-    "Gunsmithing Parts",
-    "Laser Engraving/Stippling",
-    "Reloaded Ammunition",
-    "Pistol Optic Zero Fee",
-    "Sight In/Function Fee",
-  ];
+  let allData: any[] = [];
+  let regularPage = 0;
+  let rentalPage = 0;
+  const pageSize = 1000;
+  let hasMoreRegular = true;
+  let hasMoreRental = true;
+
+  // Fetch regular items
+  while (hasMoreRegular) {
+    const { data: regularData, error: regularError } = await supabase
+      .from("detailed_sales_data")
+      .select(
+        '"Desc", "SubDesc", "CatDesc", "Qty", total_net, "SoldDate", "Margin", "SoldPrice"',
+        { count: "exact" }
+      )
+      .or(
+        "Desc.ilike.%Gunsmithing%,Desc.ilike.%Pistol Optic Zero Fee%,Desc.ilike.%Sight In/ Function Fee%,Desc.ilike.%Laser Engraving%,Desc.ilike.%Reloaded%,SubDesc.eq.Targets,CatDesc.eq.Personal Protection Equipment,CatDesc.eq.Station Rental"
+      )
+      .gte("SoldDate", utcStartDate.toISOString())
+      .lte("SoldDate", utcEndDate.toISOString())
+      .range(regularPage * pageSize, (regularPage + 1) * pageSize - 1);
+
+    if (regularError) {
+      console.error("Regular data fetch error:", regularError);
+      throw regularError;
+    }
+
+    if (regularData?.length) {
+      allData = [...allData, ...regularData];
+      regularPage++;
+      hasMoreRegular = regularData.length === pageSize;
+    } else {
+      hasMoreRegular = false;
+    }
+  }
+
+  // Fetch rental items
+  while (hasMoreRental) {
+    const { data: rentalData, error: rentalError } = await supabase
+      .from("detailed_sales_data")
+      .select(
+        '"Desc", "SubDesc", "CatDesc", "Qty", total_net, "SoldDate", "Margin", "SoldPrice"',
+        { count: "exact" }
+      )
+      .eq("CatDesc", "Gun Range Rental")
+      .filter(
+        "SubDesc",
+        "not.in",
+        '("12 & Under Earmuff Rentals","Ear Muffs","")'
+      )
+      .not("SubDesc", "is", null)
+      .gte("SoldDate", utcStartDate.toISOString())
+      .lte("SoldDate", utcEndDate.toISOString())
+      .range(rentalPage * pageSize, (rentalPage + 1) * pageSize - 1);
+
+    if (rentalError) {
+      console.error("Rental data fetch error:", rentalError);
+      throw rentalError;
+    }
+
+    if (rentalData?.length) {
+      allData = [...allData, ...rentalData];
+      rentalPage++;
+      hasMoreRental = rentalData.length === pageSize;
+    } else {
+      hasMoreRental = false;
+    }
+  }
 
   // Group and aggregate the data
-  const kpiGroups = data.reduce(
-    (
-      acc: {
-        [key: string]: {
-          qty: number;
-          revenue: number;
-          variants?: { [key: string]: { qty: number; revenue: number } };
-        };
-      },
-      item
-    ) => {
+  const kpiGroups = allData.reduce(
+    (acc, item) => {
       let category = "";
-      if (item.Desc.includes("Gunsmithing") && !item.Desc.includes("Parts")) {
-        category = "Gunsmithing";
-      } else if (item.Desc.includes("Gunsmithing Parts")) {
-        category = "Gunsmithing Parts";
-      } else if (item.Desc.includes("Pistol Optic Zero Fee")) {
-        category = "Pistol Optic Zero Fee";
-      } else if (item.Desc.includes("Sight In/Function Fee")) {
-        category = "Sight In/Function Fee";
-      } else if (item.Desc.includes("Laser Engraving")) {
-        category = "Laser Engraving/Stippling";
-      } else if (item.Desc.includes("Reloaded")) {
-        category = "Reloaded Ammunition";
+      const desc = item.Desc?.toLowerCase() || "";
 
-        // Initialize the category if it doesn't exist
+      // Categorization logic
+      if (desc.includes("gunsmithing")) {
+        if (desc.includes("parts")) {
+          category = "Gunsmithing Parts";
+        } else {
+          category = "Gunsmithing";
+        }
+      } else if (desc.includes("pistol optic zero fee")) {
+        category = "Pistol Optic Zero Fee";
+      } else if (desc.includes("sight in/ function fee")) {
+        category = "Sight In/Function Fee";
+      } else if (desc.includes("laser engraving")) {
+        category = "Laser Engraving/Stippling";
+      } else if (desc.includes("reloaded")) {
+        category = "Reloaded Ammunition";
+      }
+
+      if (category) {
         if (!acc[category]) {
           acc[category] = { qty: 0, revenue: 0, variants: {} };
         }
 
-        // Ensure variants object exists and is initialized
-        if (!acc[category].variants) {
-          acc[category].variants = {};
+        const qty = Number(item.Qty) || 0;
+        const revenue = Number(item.total_net) || 0;
+
+        // Update category totals
+        acc[category].qty += qty;
+        acc[category].revenue += revenue;
+
+        // Track variants
+        const variant = item.Desc?.trim() || "Unknown";
+        if (!acc[category].variants[variant]) {
+          acc[category].variants[variant] = { qty: 0, revenue: 0 };
         }
-
-        // Use the full description as the variant name
-        const variant = item.Desc.trim();
-        const variants = acc[category].variants;
-
-        if (variants) {
-          if (!variants[variant]) {
-            variants[variant] = { qty: 0, revenue: 0 };
-          }
-
-          variants[variant].qty += item.SoldQty || 0;
-          variants[variant].revenue += item.total_net || 0;
-        }
+        acc[category].variants[variant].qty += qty;
+        acc[category].variants[variant].revenue += revenue;
       }
-
-      // Initialize category if it doesn't exist
-      if (!acc[category]) {
-        acc[category] = { qty: 0, revenue: 0 };
-      }
-
-      // Update category totals
-      acc[category].qty += item.SoldQty || 0;
-      acc[category].revenue += item.total_net || 0;
 
       return acc;
     },
-    {}
+    {} as Record<
+      string,
+      {
+        qty: number;
+        revenue: number;
+        variants: Record<string, { qty: number; revenue: number }>;
+      }
+    >
   );
 
-  // Create an ordered result object
-  const orderedKpiGroups: typeof kpiGroups = {};
-  categoryOrder.forEach((category) => {
-    if (kpiGroups[category]) {
-      orderedKpiGroups[category] = kpiGroups[category];
-    }
+  // Then use the types in the forEach
+  Object.entries(kpiGroups as KPIGroups).forEach(([category, data]) => {
+    // console.log(`${category} totals:`, {
+    //   qty: data.qty,
+    //   revenue: data.revenue,
+    //   dateRange: `${utcStartDate.toISOString()} to ${utcEndDate.toISOString()}`,
+    //   variantCount: Object.keys(data.variants).length,
+    // });
   });
 
-  return orderedKpiGroups;
+  return kpiGroups;
 };

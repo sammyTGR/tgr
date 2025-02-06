@@ -1677,19 +1677,18 @@ function AdminDashboardContent() {
             <TabsList className="border-b border-gray-200 dark:border-gray-700">
               <TabsTrigger value="reporting">Dashboard</TabsTrigger>
               <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
-              {(role === "ceo" || role === "dev") && (
-                <>
-                  <TabsTrigger value="sales-glance">
-                    Sales At A Glance
-                  </TabsTrigger>
 
-                  {flags.is_timesheet_dashboard_enabled.enabled && (
+              <>
+                <TabsTrigger value="sales-glance">
+                  Sales At A Glance
+                </TabsTrigger>
+
+                {/* {flags.is_timesheet_dashboard_enabled.enabled && (
                     <TabsTrigger value="time-tracking">
                       Time Tracking
                     </TabsTrigger>
-                  )}
-                </>
-              )}
+                  )} */}
+              </>
 
               <TabsTrigger value="sales-employee">
                 Sales By Employee
@@ -2259,190 +2258,185 @@ function AdminDashboardContent() {
               )} */}
             </TabsContent>
 
-            {(role === "ceo" || role === "dev") && (
-              <TabsContent value="sales-glance">
-                <div className="w-full overflow-hidden">
-                  <Card className="flex flex-col col-span-full h-full mb-4">
-                    <CardHeader className="flex-shrink-0">
-                      <CardTitle className="flex items-center gap-2">
-                        <TableIcon className="h-6 w-6" />
-                        Sales Overview
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-4 mb-8">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="flex max-w-[700px] justify-start"
-                            >
-                              {selectedEmployees.includes("all") ? (
-                                "All Employees"
-                              ) : (
-                                <div className="flex gap-1 flex-wrap">
-                                  {selectedEmployees.map((id) => {
-                                    const emp = validEmployees?.find(
-                                      (e) => e.lanid === id
-                                    );
-                                    return (
-                                      <Badge
-                                        key={id}
-                                        variant="secondary"
-                                        className="mr-1"
-                                      >
-                                        {`${emp?.name || ""} ${
-                                          emp?.last_name || ""
-                                        }`.trim() || "Unknown"}
-                                      </Badge>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className="w-[200px] p-0"
-                            align="start"
+            <TabsContent value="sales-glance">
+              <div className="w-full overflow-hidden">
+                <Card className="flex flex-col col-span-full h-full mb-4">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle className="flex items-center gap-2">
+                      <TableIcon className="h-6 w-6" />
+                      Sales Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 mb-8">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="flex max-w-[700px] justify-start"
                           >
-                            <Command shouldFilter={false}>
-                              <CommandInput
-                                placeholder="Search employees..."
-                                value={searchQuery}
-                                onValueChange={(value) =>
-                                  searchQueryMutation.mutate(value)
-                                }
-                              />
-                              <CommandList>
-                                {/* <CommandEmpty>No employee found.</CommandEmpty> */}
-                                <CommandGroup>
+                            {selectedEmployees.includes("all") ? (
+                              "All Employees"
+                            ) : (
+                              <div className="flex gap-1 flex-wrap">
+                                {selectedEmployees.map((id) => {
+                                  const emp = validEmployees?.find(
+                                    (e) => e.lanid === id
+                                  );
+                                  return (
+                                    <Badge
+                                      key={id}
+                                      variant="secondary"
+                                      className="mr-1"
+                                    >
+                                      {`${emp?.name || ""} ${
+                                        emp?.last_name || ""
+                                      }`.trim() || "Unknown"}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0" align="start">
+                          <Command shouldFilter={false}>
+                            <CommandInput
+                              placeholder="Search employees..."
+                              value={searchQuery}
+                              onValueChange={(value) =>
+                                searchQueryMutation.mutate(value)
+                              }
+                            />
+                            <CommandList>
+                              {/* <CommandEmpty>No employee found.</CommandEmpty> */}
+                              <CommandGroup>
+                                <CommandItem
+                                  onSelect={() => {
+                                    selectedEmployeesMutation.mutate(["all"]);
+                                    commandOpenMutation.mutate(false);
+                                    searchQueryMutation.mutate("");
+                                  }}
+                                >
+                                  All Employees
+                                </CommandItem>
+                                {filteredEmployees.map((employee) => (
                                   <CommandItem
+                                    key={employee.employee_id}
                                     onSelect={() => {
-                                      selectedEmployeesMutation.mutate(["all"]);
-                                      commandOpenMutation.mutate(false);
-                                      searchQueryMutation.mutate("");
+                                      selectedEmployeesMutation.mutate(
+                                        (() => {
+                                          const prev = selectedEmployees;
+                                          if (prev.includes("all"))
+                                            return [employee.lanid];
+                                          if (prev.includes(employee.lanid)) {
+                                            return prev.filter(
+                                              (id: string) =>
+                                                id !== employee.lanid
+                                            );
+                                          }
+                                          return [...prev, employee.lanid];
+                                        })()
+                                      );
                                     }}
                                   >
-                                    All Employees
+                                    {`${employee.name || ""}`.trim() ||
+                                      "Unknown"}
                                   </CommandItem>
-                                  {filteredEmployees.map((employee) => (
-                                    <CommandItem
-                                      key={employee.employee_id}
-                                      onSelect={() => {
-                                        selectedEmployeesMutation.mutate(
-                                          (() => {
-                                            const prev = selectedEmployees;
-                                            if (prev.includes("all"))
-                                              return [employee.lanid];
-                                            if (prev.includes(employee.lanid)) {
-                                              return prev.filter(
-                                                (id: string) =>
-                                                  id !== employee.lanid
-                                              );
-                                            }
-                                            return [...prev, employee.lanid];
-                                          })()
-                                        );
-                                      }}
-                                    >
-                                      {`${employee.name || ""}`.trim() ||
-                                        "Unknown"}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
 
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            selectedEmployeesMutation.mutate(["all"]);
-                          }}
-                        >
-                          Reset Filters
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          selectedEmployeesMutation.mutate(["all"]);
+                        }}
+                      >
+                        Reset Filters
+                      </Button>
+                    </div>
 
-                      <div className="space-y-8">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Previous Day&apos;s Sales</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <Suspense fallback={<div>Loading...</div>}>
-                              <SalesAtGlanceTable
-                                period="1day"
-                                selectedEmployees={selectedEmployees}
-                                dateRange={{
-                                  start: subDays(startOfDay(new Date()), 1),
-                                  end: endOfDay(subDays(new Date(), 1)),
-                                }}
-                              />
-                            </Suspense>
-                          </CardContent>
-                        </Card>
+                    <div className="space-y-8">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Previous Day&apos;s Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="1day"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: subDays(startOfDay(new Date()), 1),
+                                end: endOfDay(subDays(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
 
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Last 7 Days Sales</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <Suspense fallback={<div>Loading...</div>}>
-                              <SalesAtGlanceTable
-                                period="7days"
-                                selectedEmployees={selectedEmployees}
-                                dateRange={{
-                                  start: subDays(startOfDay(new Date()), 7),
-                                  end: endOfDay(subDays(new Date(), 1)),
-                                }}
-                              />
-                            </Suspense>
-                          </CardContent>
-                        </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Last 7 Days Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="7days"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: subDays(startOfDay(new Date()), 7),
+                                end: endOfDay(subDays(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
 
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Last 14 Days Sales</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <Suspense fallback={<div>Loading...</div>}>
-                              <SalesAtGlanceTable
-                                period="14days"
-                                selectedEmployees={selectedEmployees}
-                                dateRange={{
-                                  start: subDays(startOfDay(new Date()), 14),
-                                  end: endOfDay(subDays(new Date(), 1)),
-                                }}
-                              />
-                            </Suspense>
-                          </CardContent>
-                        </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Last 14 Days Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="14days"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: subDays(startOfDay(new Date()), 14),
+                                end: endOfDay(subDays(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
 
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Last Month&apos;s Sales</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <Suspense fallback={<div>Loading...</div>}>
-                              <SalesAtGlanceTable
-                                period="lastMonth"
-                                selectedEmployees={selectedEmployees}
-                                dateRange={{
-                                  start: startOfMonth(subMonths(new Date(), 1)),
-                                  end: endOfMonth(subMonths(new Date(), 1)),
-                                }}
-                              />
-                            </Suspense>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-            )}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Last Month&apos;s Sales</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <SalesAtGlanceTable
+                              period="lastMonth"
+                              selectedEmployees={selectedEmployees}
+                              dateRange={{
+                                start: startOfMonth(subMonths(new Date(), 1)),
+                                end: endOfMonth(subMonths(new Date(), 1)),
+                              }}
+                            />
+                          </Suspense>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
             <TabsContent value="sales-employee">
               <div className="w-full overflow-hidden">
