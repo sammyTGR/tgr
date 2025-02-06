@@ -31,7 +31,6 @@ import { supabase } from "@/utils/supabase/client";
 import {
   BarChartIcon,
   BellIcon,
-  CalendarIcon,
   CheckCircledIcon,
   ClipboardIcon,
   CrossCircledIcon,
@@ -58,6 +57,7 @@ import {
   endOfMonth,
   startOfMonth,
   subMonths,
+  addDays,
 } from "date-fns";
 import { format as formatTZ, toZonedTime } from "date-fns-tz";
 import { useFlags } from "flagsmith/react";
@@ -70,6 +70,7 @@ import * as XLSX from "xlsx";
 import TodoWrapper from "../../todo/todo-wrapper";
 import styles from "./table.module.css";
 import AnnualRevenueBarChart from "@/app/admin/reports/charts/AnnualRevenueBarChart";
+import StackedBarChartRange from "../charts/StackedBarChartRange";
 import {
   fetchDomains,
   fetchSuggestions,
@@ -100,6 +101,8 @@ import { CommandGroup } from "@/components/ui/command";
 import { CommandList } from "@/components/ui/command";
 import { DateRange } from "react-day-picker";
 import { TimeTrackingDataTable } from "./TimeTrackingDataTable";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 interface Certificate {
   id: number;
@@ -298,14 +301,14 @@ function AdminDashboardContent() {
     return (
       <div className="grid gap-6">
         {/* Annual Revenue Chart */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Annual Revenue Comparison</CardTitle>
           </CardHeader>
           <CardContent>
             <AnnualRevenueBarChart />
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Metrics Section */}
         {isMetricsLoading ? (
@@ -750,50 +753,54 @@ function AdminDashboardContent() {
               const worksheet = workbook.Sheets[firstSheetName];
               const jsonData = XLSX.utils.sheet_to_json(worksheet, {
                 header: 1,
+                raw: true,
+                dateNF: "yyyy-mm-dd",
               });
 
               const keys = jsonData[0] as string[];
               const formattedData = jsonData.slice(1).map((row: any) => {
                 const rowData: any = {};
                 keys.forEach((key, index) => {
-                  // Skip the Margin and Margin % columns
-                  if (key !== "Margin" && key !== "Margin %") {
-                    // Handle Primary Email column name change if needed
-                    const mappedKey =
-                      key === "Primary Email" ? "Primary Email" : key;
-                    rowData[mappedKey] = row[index];
+                  // Map Excel columns to database columns
+                  const value = row[index];
+
+                  // Handle date fields
+                  if (key === "SoldDate" || key === "DateRec") {
+                    if (value) {
+                      // Convert Excel date to YYYY-MM-DD format
+                      const dateValue =
+                        typeof value === "number"
+                          ? new Date((value - 25569) * 86400 * 1000)
+                          : new Date(value);
+                      rowData[key] = format(dateValue, "yyyy-MM-dd");
+                    }
+                  }
+                  // Handle numeric fields
+                  else if (
+                    [
+                      "Qty",
+                      "Cost",
+                      "SoldPrice",
+                      "Acct",
+                      "Margin",
+                      "RetailPrice",
+                      "SoldDisc",
+                      "AvailableQty",
+                    ].includes(key)
+                  ) {
+                    rowData[key] = value ? Number(value) : null;
+                  }
+                  // Handle integer fields
+                  else if (["Stloc", "Cat", "Sub", "TypeAcct"].includes(key)) {
+                    rowData[key] = value ? parseInt(value) : null;
+                  }
+                  // Handle all other fields as strings
+                  else {
+                    rowData[key] = value?.toString() || null;
                   }
                 });
 
-                const categoryLabel =
-                  categoryMap.get(parseInt(rowData.Cat)) || "";
-                const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
-                const subcategoryLabel =
-                  subcategoryMap.get(subcategoryKey) || "";
-
-                // Set Cost equal to SoldPrice for specific category/subcategory combinations
-                if (
-                  (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
-                  // Standard Ammunition Eligibility Check
-                  (rowData.Sub === "7" ||
-                    parseInt(rowData.Sub) === 7 ||
-                    // Dros Fee
-                    rowData.Sub === "1" ||
-                    parseInt(rowData.Sub) === 1 ||
-                    // Basic Ammunition Eligibility Check
-                    rowData.Sub === "8" ||
-                    parseInt(rowData.Sub) === 8)
-                  // Note: We exclude "DROS Reprocessing Fee (Dealer Sale)" (Sub: 16)
-                ) {
-                  rowData.Cost = rowData.SoldPrice;
-                }
-
-                return {
-                  ...rowData,
-                  Date: convertDateFormat(rowData.Date),
-                  category_label: categoryLabel,
-                  subcategory_label: subcategoryLabel,
-                };
+                return rowData;
               });
 
               const batchSize = 100;
@@ -803,36 +810,48 @@ function AdminDashboardContent() {
               for (let i = 0; i < formattedData.length; i += batchSize) {
                 const batch = formattedData.slice(i, i + batchSize);
                 chainPromise = chainPromise.then(() =>
-                  Promise.resolve(
-                    supabase
-                      .from("sales_data")
-                      .upsert(batch)
-                      .then(({ error }) => {
-                        if (error) {
-                          // console.error("Error upserting data batch:", error);
-                        } else {
-                          processedCount += batch.length;
-                          onProgress(
-                            Math.round(
-                              (processedCount / formattedData.length) * 100
-                            )
-                          );
-                        }
-                      })
-                  )
+                  supabase
+                    .from("detailed_sales_data")
+                    .upsert(batch, {
+                      onConflict: "SoldRef,Serial,SoldDate", // Adjust these fields based on your unique constraint
+                      ignoreDuplicates: false,
+                    })
+                    .then(({ error }) => {
+                      if (error) {
+                        console.error("Error upserting data batch:", error);
+                        toast.error(`Upload error: ${error.message}`);
+                      } else {
+                        processedCount += batch.length;
+                        onProgress(
+                          Math.round(
+                            (processedCount / formattedData.length) * 100
+                          )
+                        );
+                      }
+                    })
                 );
               }
 
-              chainPromise.then(() => resolve()).catch(reject);
+              chainPromise
+                .then(() => {
+                  toast.success(
+                    `Successfully uploaded ${processedCount} records`
+                  );
+                  resolve();
+                })
+                .catch((error) => {
+                  toast.error(`Upload failed: ${error.message}`);
+                  reject(error);
+                });
             } catch (error) {
-              // console.error("Error processing data:", error);
+              toast.error(`File processing error: ${error}`);
               reject(error);
             }
           });
         };
 
         reader.onerror = (error) => {
-          // console.error("Error reading file:", error);
+          toast.error(`File reading error: ${error}`);
           reject(error);
         };
 
@@ -1293,6 +1312,357 @@ function AdminDashboardContent() {
     }
   };
 
+  // Add new file data query for detailed sales
+  const { data: detailedSalesFileData } = useQuery({
+    queryKey: ["detailedSalesFileData"],
+    queryFn: () => ({ file: null, fileName: null, fileInputKey: 0 }),
+    staleTime: Infinity,
+  });
+
+  // Add mutation for updating detailed sales file data
+  const updateDetailedSalesFileDataMutation = useMutation({
+    mutationFn: (newFileData: {
+      file: File | null;
+      fileName: string | null;
+      fileInputKey: number;
+    }) => {
+      return Promise.resolve(newFileData);
+    },
+    onSuccess: (newFileData) => {
+      queryClient.setQueryData(["detailedSalesFileData"], newFileData);
+    },
+  });
+
+  // Add mutation for uploading detailed sales data
+  const uploadDetailedSalesMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error("File size exceeds 50MB limit");
+      }
+
+      const upload = (progress: number) => {
+        queryClient.setQueryData(["detailedSalesUploadProgress"], progress);
+      };
+      return handleDetailedSalesUpload(file, upload);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["detailedSalesUploadProgress"], 100);
+      toast.success("Detailed sales data uploaded and processed successfully");
+      updateDetailedSalesFileDataMutation.mutate({
+        file: null,
+        fileName: null,
+        fileInputKey: Date.now(),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(`Upload failed: ${error.message}`);
+      queryClient.setQueryData(["detailedSalesUploadProgress"], 0);
+    },
+  });
+
+  // Add progress tracking for detailed sales upload
+  const { data: detailedSalesUploadProgress = 0 } = useQuery({
+    queryKey: ["detailedSalesUploadProgress"],
+    queryFn: () =>
+      queryClient.getQueryData(["detailedSalesUploadProgress"]) ?? 0,
+    enabled: uploadDetailedSalesMutation.isPending,
+  });
+
+  // Add handler for detailed sales file change
+  const handleDetailedSalesFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files && e.target.files[0]) {
+      updateDetailedSalesFileDataMutation.mutate({
+        file: e.target.files[0],
+        fileName: e.target.files[0].name,
+        fileInputKey: Date.now(),
+      });
+    }
+  };
+
+  // Add function to handle detailed sales data upload
+  function handleDetailedSalesUpload(
+    file: File,
+    onProgress: (progress: number) => void
+  ) {
+    // Add state mapping
+    const stateMapping: { [key: string]: string } = {
+      // Standard mappings
+      ALABAMA: "AL",
+      ALBAMA: "AL",
+      ALA: "AL",
+      ALASKA: "AK",
+      ALSAKA: "AK",
+      ARIZONA: "AZ",
+      ARIZONIA: "AZ",
+      ARKANSAS: "AR",
+      ARKANSAW: "AR",
+      CALIFORNIA: "CA",
+      CALIFORNA: "CA",
+      CALIFORNNIA: "CA",
+      CALIF: "CA",
+      CALI: "CA",
+      COLORADO: "CO",
+      COLORODO: "CO",
+      CONNECTICUT: "CT",
+      CONNETICUT: "CT",
+      CONN: "CT",
+      DELAWARE: "DE",
+      DEL: "DE",
+      FLORIDA: "FL",
+      FLA: "FL",
+      FLORDIA: "FL",
+      GEORGIA: "GA",
+      GERGIA: "GA",
+      HAWAII: "HI",
+      HAWAI: "HI",
+      IDAHO: "ID",
+      ILLINOIS: "IL",
+      ILLNOIS: "IL",
+      ILL: "IL",
+      INDIANA: "IN",
+      IND: "IN",
+      IOWA: "IA",
+      KANSAS: "KS",
+      KANS: "KS",
+      KENTUCKY: "KY",
+      KENTUKY: "KY",
+      LOUISIANA: "LA",
+      LOUSIANA: "LA",
+      MAINE: "ME",
+      MARYLAND: "MD",
+      MARRYLAND: "MD",
+      MASSACHUSETTS: "MA",
+      MASSACHUSETS: "MA",
+      MASS: "MA",
+      MICHIGAN: "MI",
+      MICH: "MI",
+      MINNESOTA: "MN",
+      MINN: "MN",
+      MISSISSIPPI: "MS",
+      MISSISIPPI: "MS",
+      MISS: "MS",
+      MISSOURI: "MO",
+      MONTANA: "MT",
+      MONT: "MT",
+      NEBRASKA: "NE",
+      NEBR: "NE",
+      NEVADA: "NV",
+      NEVEDA: "NV",
+      "NEW HAMPSHIRE": "NH",
+      "N HAMPSHIRE": "NH",
+      "N.H.": "NH",
+      "NEW JERSEY": "NJ",
+      "N JERSEY": "NJ",
+      "N.J.": "NJ",
+      "NEW MEXICO": "NM",
+      "N MEXICO": "NM",
+      "N.M.": "NM",
+      "NEW YORK": "NY",
+      "N YORK": "NY",
+      "N.Y.": "NY",
+      "NORTH CAROLINA": "NC",
+      "N CAROLINA": "NC",
+      "N.C.": "NC",
+      "NORTH DAKOTA": "ND",
+      "N DAKOTA": "ND",
+      "N.D.": "ND",
+      OHIO: "OH",
+      OKLAHOMA: "OK",
+      OAKLAHOMA: "OK",
+      OREGON: "OR",
+      ORGON: "OR",
+      PENNSYLVANIA: "PA",
+      PENSYLVANIA: "PA",
+      PENN: "PA",
+      "RHODE ISLAND": "RI",
+      "R ISLAND": "RI",
+      "R.I.": "RI",
+      "SOUTH CAROLINA": "SC",
+      "S CAROLINA": "SC",
+      "S.C.": "SC",
+      "SOUTH DAKOTA": "SD",
+      "S DAKOTA": "SD",
+      "S.D.": "SD",
+      TENNESSEE: "TN",
+      TENNESEE: "TN",
+      TENN: "TN",
+      TEXAS: "TX",
+      TEX: "TX",
+      UTAH: "UT",
+      VERMONT: "VT",
+      VIRGINIA: "VA",
+      WASHINGTON: "WA",
+      WASH: "WA",
+      "WEST VIRGINIA": "WV",
+      "W VIRGINIA": "WV",
+      "W.V.": "WV",
+      WISCONSIN: "WI",
+      WISC: "WI",
+      WYOMING: "WY",
+      WYO: "WY",
+    };
+
+    function normalizeState(state: string): string | null {
+      if (!state) return null;
+
+      // Clean up the input
+      const cleanState = state
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, " ") // Normalize spaces
+        .replace(/\./g, "") // Remove periods
+        .replace(/^N\s/, "NEW ") // Expand N to NEW
+        .replace(/^S\s/, "SOUTH ") // Expand S to SOUTH
+        .replace(/^W\s/, "WEST "); // Expand W to WEST
+
+      // Check if it's already a valid 2-letter code
+      if (cleanState.length === 2 && /^[A-Z]{2}$/.test(cleanState)) {
+        return cleanState;
+      }
+
+      // Try direct lookup first
+      if (stateMapping[cleanState]) {
+        return stateMapping[cleanState];
+      }
+
+      // If not found, try to find the closest match
+      const states = Object.keys(stateMapping);
+      for (const validState of states) {
+        // Check if the valid state contains our input or vice versa
+        if (
+          validState.includes(cleanState) ||
+          cleanState.includes(validState)
+        ) {
+          return stateMapping[validState];
+        }
+      }
+
+      // Log unmatched states for review
+      console.warn(`Unmatched state: ${state}`);
+      return null;
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+            raw: true,
+            dateNF: "yyyy-mm-dd",
+          });
+
+          const keys = jsonData[0] as string[];
+          const formattedData = jsonData.slice(1).map((row: any) => {
+            const rowData: any = {};
+            keys.forEach((key, index) => {
+              const value = row[index];
+              const dbColumnName = key.replace(/\s+/g, "_");
+
+              // Handle state field specifically
+              if (dbColumnName === "State") {
+                if (value) {
+                  rowData[dbColumnName] = normalizeState(value.toString());
+                } else {
+                  rowData[dbColumnName] = null;
+                }
+              }
+              // Handle date fields
+              else if (
+                dbColumnName === "SoldDate" ||
+                dbColumnName === "DateRec"
+              ) {
+                if (value) {
+                  const dateValue =
+                    typeof value === "number"
+                      ? new Date((value - 25569) * 86400 * 1000)
+                      : new Date(value);
+                  rowData[dbColumnName] = format(dateValue, "yyyy-MM-dd");
+                }
+              }
+              // Handle numeric fields
+              else if (
+                [
+                  "Qty",
+                  "Cost",
+                  "SoldPrice",
+                  "Acct",
+                  "Margin",
+                  "RetailPrice",
+                  "SoldDisc",
+                  "AvailableQty",
+                ].includes(dbColumnName)
+              ) {
+                rowData[dbColumnName] = value ? Number(value) : null;
+              }
+              // Handle integer fields
+              else if (
+                ["Stloc", "Cat", "Sub", "TypeAcct"].includes(dbColumnName)
+              ) {
+                rowData[dbColumnName] = value ? parseInt(value) : null;
+              }
+              // Handle percentage field
+              else if (dbColumnName === "MarginPerc") {
+                rowData[dbColumnName] = value
+                  ? value.toString().replace("%", "")
+                  : null;
+              }
+              // Handle all other fields as strings
+              else {
+                rowData[dbColumnName] = value?.toString() || null;
+              }
+            });
+
+            return rowData;
+          });
+
+          // Process in batches
+          const batchSize = 100;
+          let processedCount = 0;
+
+          for (let i = 0; i < formattedData.length; i += batchSize) {
+            const batch = formattedData.slice(i, i + batchSize);
+            const { error } = await supabase
+              .from("detailed_sales_data")
+              .insert(batch);
+
+            if (error) {
+              console.error("Error inserting data batch:", error);
+              throw error;
+            }
+
+            processedCount += batch.length;
+            onProgress(
+              Math.round((processedCount / formattedData.length) * 100)
+            );
+          }
+
+          toast.success(`Successfully uploaded ${processedCount} records`);
+          resolve();
+        } catch (error) {
+          console.error("Error processing file:", error);
+          toast.error(`File processing error: ${error}`);
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error("File reading error:", error);
+        toast.error(`File reading error: ${error}`);
+        reject(error);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div className="max-w-[calc(100vw-40px)] py-4">
@@ -1337,6 +1707,51 @@ function AdminDashboardContent() {
             )}
             {/* <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1> */}
             {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden"> */}
+
+            {/* <TabsContent value="test">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sales Range Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline">
+                          {dateRange?.from ? (
+                            format(dateRange.from, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          initialFocus
+                          mode="single"
+                          selected={dateRange?.from}
+                          onSelect={(date) => {
+                            console.log("Selected date:", date); // Add logging
+                            if (date) {
+                              setDateRange({
+                                from: date,
+                                to: date,
+                              });
+                            }
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <StackedBarChartRange
+                    selectedRange={{
+                      start: dateRange?.from,
+                      end: dateRange?.to,
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent> */}
 
             <TabsContent value="reporting">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
@@ -1709,6 +2124,62 @@ function AdminDashboardContent() {
                               className="mt-4"
                             />
                           )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  {flags.is_historical_barchart_enabled.enabled &&
+                    (role === "super admin" || role === "dev") && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Upload Detailed Sales Data</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                              <Input
+                                type="file"
+                                accept=".csv,.xlsx"
+                                onChange={handleDetailedSalesFileChange}
+                                key={detailedSalesFileData?.fileInputKey}
+                                className="hidden"
+                              />
+                              <span>
+                                {detailedSalesFileData?.fileName ||
+                                  "Select Detailed Sales File"}
+                              </span>
+                            </label>
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                detailedSalesFileData?.file &&
+                                uploadDetailedSalesMutation.mutate(
+                                  detailedSalesFileData.file
+                                )
+                              }
+                              className="w-full"
+                              disabled={
+                                uploadDetailedSalesMutation.isPending ||
+                                !detailedSalesFileData?.file
+                              }
+                            >
+                              {uploadDetailedSalesMutation.isPending
+                                ? "Uploading Detailed Sales Data..."
+                                : "Upload & Process Detailed Sales Data"}
+                            </Button>
+
+                            {uploadDetailedSalesMutation.isPending && (
+                              <Progress
+                                value={
+                                  typeof detailedSalesUploadProgress ===
+                                  "number"
+                                    ? detailedSalesUploadProgress
+                                    : 0
+                                }
+                                className="mt-4"
+                              />
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     )}
@@ -2368,8 +2839,8 @@ function AdminDashboardContent() {
                   </CardContent>
                 </Card>
               </div>
+              <AnnualRevenueBarChart />
             </TabsContent>
-            <AnnualRevenueBarChart />
           </div>
         </Tabs>
       </div>
