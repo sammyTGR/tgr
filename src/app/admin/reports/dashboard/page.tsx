@@ -2801,7 +2801,7 @@ function AdminDashboardContent() {
                 </div>
 
                 {/* KPI Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-8">
                   {kpiQuery.isLoading ? (
                     <LoadingIndicator />
                   ) : kpiQuery.error ? (
@@ -2831,38 +2831,193 @@ function AdminDashboardContent() {
                     </Card>
                   ) : (
                     <>
-                      {/* Gunsmithing Services Group */}
-                      {Object.entries(kpiQuery.data || {}).some(([category]) =>
-                        ["Gunsmithing", "Gunsmithing Parts"].includes(category)
-                      ) && (
-                        <Card className="col-span-2">
-                          <CardHeader>
-                            <CardTitle>Gunsmithing Services</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {Object.entries(kpiQuery.data || {})
-                                .filter(([category]) =>
-                                  ["Gunsmithing", "Gunsmithing Parts"].includes(
-                                    category
-                                  )
-                                )
-                                .map(([category, data]) => {
-                                  const typedData = data as {
-                                    revenue: number;
-                                    qty: number;
-                                  };
-                                  return (
-                                    <div key={category} className="space-y-4">
-                                      <h3 className="font-semibold">
-                                        {category}
-                                      </h3>
+                      {/* Services Section */}
+                      <div>
+                        <h2 className="text-2xl font-bold mb-4">
+                          Gunsmithing & Reloads
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Gunsmithing Services */}
+                          {kpiQuery.data?.["Gunsmithing"] && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle>Gunsmithing Services</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                {kpiQuery.data["Gunsmithing"].variants && (
+                                  <div className="mt-4 space-y-2">
+                                    {Object.entries(
+                                      kpiQuery.data["Gunsmithing"].variants
+                                    ).map(([variant, stats]) => (
+                                      <div key={variant} className="text-sm">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-medium">
+                                            {variant}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between text-muted-foreground">
+                                          <span>
+                                            Qty:{" "}
+                                            {(stats as { qty: number }).qty}
+                                          </span>
+                                          <span>
+                                            {formatter.format(
+                                              (stats as { revenue: number })
+                                                .revenue
+                                            )}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+
+                          {/* Reloaded Ammunition */}
+                          <div>
+                            {kpiQuery.data?.["Reloads"] && (
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle>Reloaded Ammunition</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">
+                                        Total Net
+                                      </span>
+                                      <span className="text-2xl font-bold">
+                                        {formatter.format(
+                                          kpiQuery.data["Reloads"].revenue
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">
+                                        Quantity
+                                      </span>
+                                      <span className="text-2xl font-bold">
+                                        {kpiQuery.data["Reloads"].qty}
+                                      </span>
+                                    </div>
+                                    {/* Variants */}
+                                    {kpiQuery.data["Reloads"].variants && (
+                                      <div className="mt-4 space-y-2">
+                                        {Object.entries(
+                                          kpiQuery.data["Reloads"].variants
+                                        ).map(([variant, stats]) => (
+                                          <div
+                                            key={variant}
+                                            className="text-sm"
+                                          >
+                                            <div className="flex justify-between items-center">
+                                              <span className="font-medium">
+                                                {variant}
+                                              </span>
+                                            </div>
+                                            <div className="flex justify-between text-muted-foreground">
+                                              <span>
+                                                Qty:{" "}
+                                                {(stats as { qty: number }).qty}
+                                              </span>
+                                              <span>
+                                                {formatter.format(
+                                                  (stats as { revenue: number })
+                                                    .revenue
+                                                )}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+
+                          {/* Laser Engraving/Stippling */}
+                          {kpiQuery.data?.["Laser Engraving/Stippling"] && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle>Laser Engraving/Stippling</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                {kpiQuery.data["Laser Engraving/Stippling"]
+                                  .variants && (
+                                  <div className="mt-4 space-y-2">
+                                    {Object.entries(
+                                      kpiQuery.data["Laser Engraving/Stippling"]
+                                        .variants
+                                    ).map(([variant, stats]) => {
+                                      const typedStats = stats as {
+                                        qty: number;
+                                        revenue: number;
+                                      };
+                                      return (
+                                        <div key={variant} className="text-sm">
+                                          <div className="flex justify-between items-center">
+                                            <span className="font-medium">
+                                              {variant}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between text-muted-foreground">
+                                            <span>Qty: {typedStats.qty}</span>
+                                            <span>
+                                              {formatter.format(
+                                                typedStats.revenue
+                                              )}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Range Rentals Section */}
+                      <div>
+                        <h2 className="text-2xl font-bold mb-4">
+                          Range Rentals
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          {[
+                            "Range Targets",
+                            "Range Protection Equipment",
+                            "Range Station Rental",
+                            "Gun Range Rental",
+                          ].map(
+                            (category) =>
+                              kpiQuery.data?.[category] && (
+                                <Card key={category}>
+                                  <CardHeader>
+                                    <CardTitle>
+                                      {category.startsWith("Range ")
+                                        ? category.replace("Range ", "")
+                                        : category.replace(
+                                            "Gun Range ",
+                                            "Firearms "
+                                          )}
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="space-y-4">
                                       <div className="flex items-center justify-between">
                                         <span className="text-sm text-muted-foreground">
                                           Total Net
                                         </span>
                                         <span className="text-2xl font-bold">
-                                          {formatter.format(typedData.revenue)}
+                                          {formatter.format(
+                                            kpiQuery.data[category].revenue
+                                          )}
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">
@@ -2870,68 +3025,60 @@ function AdminDashboardContent() {
                                           Quantity
                                         </span>
                                         <span className="text-2xl font-bold">
-                                          {typedData.qty}
+                                          {kpiQuery.data[category].qty}
                                         </span>
                                       </div>
                                     </div>
-                                  );
-                                })}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
+                                  </CardContent>
+                                </Card>
+                              )
+                          )}
+                        </div>
+                      </div>
 
-                      {/* Other Services */}
-                      {Object.entries(kpiQuery.data || {})
-                        .filter(
-                          ([category]) =>
-                            !["Gunsmithing", "Gunsmithing Parts"].includes(
-                              category
-                            )
-                        )
-                        .map(([category, data]) => {
-                          const typedData = data as {
-                            revenue: number;
-                            qty: number;
-                            variants?: {
-                              [key: string]: { qty: number; revenue: number };
-                            };
-                          };
 
-                          return (
-                            <Card key={category} className="col-span-1">
-                              <CardHeader>
-                                <CardTitle>{category}</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-4">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                      Total Net
-                                    </span>
-                                    <span className="text-2xl font-bold">
-                                      {formatter.format(typedData.revenue)}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                      Quantity
-                                    </span>
-                                    <span className="text-2xl font-bold">
-                                      {typedData.qty}
-                                    </span>
-                                  </div>
-
-                                  {/* Show variants for Reloaded Ammunition */}
-                                  {category === "Reloaded Ammunition" &&
-                                    typedData.variants && (
-                                      <div className="mt-4 border-t pt-4">
-                                        <h4 className="text-sm font-semibold mb-2">
-                                          Variants
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Firearms Sold Section */}
+                      <div className="space-y-4">
+                        <h2 className="text-2xl font-bold">Firearms Sold</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                          {[
+                            "Pistol",
+                            "Receiver",
+                            "Revolver",
+                            "Rifle",
+                            "Shotgun",
+                          ].map(
+                            (category) =>
+                              kpiQuery.data?.[category] && (
+                                <Card key={category}>
+                                  <CardHeader>
+                                    <CardTitle>{category}</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="space-y-4">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                          Total Net
+                                        </span>
+                                        <span className="text-2xl font-bold">
+                                          {formatter.format(
+                                            kpiQuery.data[category].revenue
+                                          )}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                          Quantity
+                                        </span>
+                                        <span className="text-2xl font-bold">
+                                          {kpiQuery.data[category].qty}
+                                        </span>
+                                      </div>
+                                      {/* Variants */}
+                                      {/* {kpiQuery.data[category].variants && (
+                                        <div className="mt-4 space-y-2">
                                           {Object.entries(
-                                            typedData.variants
+                                            kpiQuery.data[category].variants
                                           ).map(([variant, stats]) => (
                                             <div
                                               key={variant}
@@ -2943,23 +3090,111 @@ function AdminDashboardContent() {
                                                 </span>
                                               </div>
                                               <div className="flex justify-between text-muted-foreground">
-                                                <span>Qty: {stats.qty}</span>
+                                                <span>
+                                                  Qty:{" "}
+                                                  {
+                                                    (stats as { qty: number })
+                                                      .qty
+                                                  }
+                                                </span>
                                                 <span>
                                                   {formatter.format(
-                                                    stats.revenue
+                                                    (
+                                                      stats as {
+                                                        revenue: number;
+                                                      }
+                                                    ).revenue
                                                   )}
                                                 </span>
                                               </div>
                                             </div>
                                           ))}
                                         </div>
+                                      )} */}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )
+                          )}
+                        </div>
+                      </div>
+
+                      
+                      {/* Ammo Sold Section */}
+                      <div className="mt-8">
+                        <h2 className="text-2xl font-bold mb-4">Ammo Sold</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {["Reloads", "Factory Ammo"].map(
+                            (category) =>
+                              kpiQuery.data?.[category] && (
+                                <Card key={category}>
+                                  <CardHeader>
+                                    <CardTitle>{category}</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="space-y-4">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                          Total Net
+                                        </span>
+                                        <span className="text-2xl font-bold">
+                                          {formatter.format(
+                                            kpiQuery.data[category].revenue
+                                          )}
+                                        </span>
                                       </div>
-                                    )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                          Quantity
+                                        </span>
+                                        <span className="text-2xl font-bold">
+                                          {kpiQuery.data[category].qty}
+                                        </span>
+                                      </div>
+                                      {/* Variants */}
+                                      {/* {kpiQuery.data[category].variants && (
+                                        <div className="mt-4 space-y-2">
+                                          {Object.entries(
+                                            kpiQuery.data[category].variants
+                                          ).map(([variant, stats]) => (
+                                            <div
+                                              key={variant}
+                                              className="text-sm"
+                                            >
+                                              <div className="flex justify-between items-center">
+                                                <span className="font-medium">
+                                                  {variant}
+                                                </span>
+                                              </div>
+                                              <div className="flex justify-between text-muted-foreground">
+                                                <span>
+                                                  Qty:{" "}
+                                                  {
+                                                    (stats as { qty: number })
+                                                      .qty
+                                                  }
+                                                </span>
+                                                <span>
+                                                  {formatter.format(
+                                                    (
+                                                      stats as {
+                                                        revenue: number;
+                                                      }
+                                                    ).revenue
+                                                  )}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )} */}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )
+                          )}
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>

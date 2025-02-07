@@ -339,11 +339,6 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
   const utcEndDate = new Date(endDate);
   utcEndDate.setUTCHours(23, 59, 59, 999);
 
-  // console.log("Fetching data for date range:", {
-  //   start: utcStartDate.toISOString(),
-  //   end: utcEndDate.toISOString(),
-  // });
-
   let allData: any[] = [];
   let page = 0;
   const pageSize = 1000;
@@ -352,13 +347,9 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
   while (hasMore) {
     const { data, error, count } = await supabase
       .from("detailed_sales_data")
-      .select('"Desc", "Qty", total_net, "SoldDate"', { count: "exact" })
+      .select('"Desc", "Qty", "Margin", "SoldDate", "SubDesc", "CatDesc"')
       .or(
-        "Desc.ilike.%Gunsmithing%," +
-          "Desc.ilike.%Pistol Optic Zero Fee%," +
-          "Desc.ilike.%Sight In/ Function Fee%," +
-          "Desc.ilike.%Laser Engraving%," +
-          "Desc.ilike.%Reloaded%"
+        "Desc.ilike.%Gunsmithing%,Desc.ilike.%Pistol Optic Zero Fee%,Desc.ilike.%Sight In/ Function Fee%,Desc.ilike.%Laser Engraving%,Desc.ilike.%Reloaded%,SubDesc.eq.Targets,CatDesc.eq.Personal Protection Equipment,CatDesc.eq.Station Rental,CatDesc.eq.Gun Range Rental,CatDesc.eq.Ammunition,CatDesc.eq.Pistol,CatDesc.eq.Receiver,CatDesc.eq.Revolver,CatDesc.eq.Rifle,CatDesc.eq.Shotgun"
       )
       .gte("SoldDate", utcStartDate.toISOString())
       .lte("SoldDate", utcEndDate.toISOString())
@@ -379,46 +370,116 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
     }
   }
 
-  // console.log(`Total records fetched: ${allData.length}`);
-  // console.log("Sample data:", allData.slice(0, 3));
-
   // Group and aggregate the data
   const kpiGroups = allData.reduce(
     (acc, item) => {
       let category = "";
+      let variant = "";
       const desc = item.Desc?.toLowerCase() || "";
+      const subDesc = item.SubDesc?.toLowerCase() || "";
 
-      // Categorization logic
-      if (desc.includes("gunsmithing")) {
+      // Updated categorization logic
+      if (
+        desc.includes("gunsmithing") ||
+        desc.includes("sight in/ function fee") ||
+        desc.includes("pistol optic zero fee")
+      ) {
+        category = "Gunsmithing";
+
         if (desc.includes("parts")) {
-          category = "Gunsmithing Parts";
+          variant = "Gunsmithing Parts";
+        } else if (desc.includes("sight in/ function fee")) {
+          variant = "Sight In/Function Fee";
+        } else if (desc.includes("pistol optic zero fee")) {
+          variant = "Pistol Optic Zero Fee";
         } else {
-          category = "Gunsmithing";
+          variant = "Gunsmithing";
         }
-      } else if (desc.includes("pistol optic zero fee")) {
-        category = "Pistol Optic Zero Fee";
-      } else if (desc.includes("sight in/ function fee")) {
-        category = "Sight In/Function Fee";
       } else if (desc.includes("laser engraving")) {
         category = "Laser Engraving/Stippling";
-      } else if (desc.includes("reloaded")) {
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Ammunition" && desc.includes("reloaded")) {
         category = "Reloaded Ammunition";
+        variant = item.Desc?.trim() || "Unknown";
+      }
+      // Range Rentals categorization logic
+      else if (item.SubDesc === "Targets") {
+        category = "Range Targets";
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Personal Protection Equipment") {
+        category = "Range Protection Equipment";
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Station Rental") {
+        category = "Range Station Rental";
+        variant = item.Desc?.trim() || "Unknown";
+      }
+
+      // Add new Gun Range Rental category
+      else if (
+        item.CatDesc === "Gun Range Rental" &&
+        item.SubDesc &&
+        !item.SubDesc.toLowerCase().includes("ear muff")
+      ) {
+        category = "Gun Range Rental";
+        variant = item.Desc?.trim() || "Unknown";
+      }
+
+      // In the reduce function, add new categories for ammunition
+      if (item.CatDesc === "Ammunition") {
+        if (
+          item.SubDesc === "Reloaded" &&
+          item.Desc.toLowerCase().includes("reloaded")
+        ) {
+          category = "Reloads";
+          variant = item.Desc?.trim() || "Unknown";
+        } else if (item.SubDesc === "Factory New") {
+          category = "Factory Ammo";
+          variant = item.Desc?.trim() || "Unknown";
+        }
+      }
+
+      // Add firearms categorization logic
+      if (item.CatDesc === "Pistol") {
+        category = "Pistol";
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Receiver") {
+        category = "Receiver";
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Revolver") {
+        category = "Revolver";
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Rifle") {
+        category = "Rifle";
+        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Shotgun") {
+        category = "Shotgun";
+        variant = item.Desc?.trim() || "Unknown";
       }
 
       if (category) {
         if (!acc[category]) {
-          acc[category] = { qty: 0, revenue: 0, variants: {} };
+          acc[category] = {
+            qty: 0,
+            revenue: 0,
+            variants: {},
+            group: category.startsWith("Range")
+              ? "Range Rentals"
+              : ["Pistol", "Receiver", "Revolver", "Rifle", "Shotgun"].includes(
+                    category
+                  )
+                ? "Firearms"
+                : "Services",
+          };
         }
 
         const qty = Number(item.Qty) || 0;
-        const revenue = Number(item.total_net) || 0;
+        const revenue = Number(item.Margin) || 0;
 
         // Update category totals
         acc[category].qty += qty;
         acc[category].revenue += revenue;
 
         // Track variants
-        const variant = item.Desc?.trim() || "Unknown";
         if (!acc[category].variants[variant]) {
           acc[category].variants[variant] = { qty: 0, revenue: 0 };
         }
@@ -434,19 +495,10 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         qty: number;
         revenue: number;
         variants: Record<string, { qty: number; revenue: number }>;
+        group: string;
       }
     >
   );
-
-  // Then use the types in the forEach
-  Object.entries(kpiGroups as KPIGroups).forEach(([category, data]) => {
-    // console.log(`${category} totals:`, {
-    //   qty: data.qty,
-    //   revenue: data.revenue,
-    //   dateRange: `${utcStartDate.toISOString()} to ${utcEndDate.toISOString()}`,
-    //   variantCount: Object.keys(data.variants).length,
-    // });
-  });
 
   return kpiGroups;
 };
