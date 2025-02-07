@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -26,21 +25,46 @@ export async function GET(request: Request) {
       );
     }
 
+    console.log("Calling RPC with params:", {
+      start_date: start,
+      end_date: end,
+    });
+
     const { data, error } = await supabase.rpc("get_sales_by_range", {
       start_date: start,
       end_date: end,
     });
 
     if (error) {
-      console.error("Error fetching data from Supabase:", error);
-      throw error;
+      console.error("Supabase RPC Error:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return NextResponse.json(
+        {
+          error: "Database error",
+          details: error.message,
+          hint: error.hint,
+        },
+        { status: 500 }
+      );
     }
 
+    if (!data) {
+      console.log("No data returned from RPC");
+      return NextResponse.json({ data: [] });
+    }
+
+    console.log("RPC successful, returned rows:", data.length);
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error in fetchSalesDataByRange API:", error);
+    console.error("Detailed error in fetchSalesDataByRange API:", error);
     return NextResponse.json(
-      { error: "Failed to fetch sales data by date range" },
+      {
+        error: "Failed to fetch sales data by date range",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

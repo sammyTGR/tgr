@@ -2248,87 +2248,292 @@ function AdminDashboardContent() {
             </TabsContent>
 
             <TabsContent value="sales">
-              <div className="space-y-6">
-                {/* Employee Selection */}
-                <div className="flex items-center space-x-4">
-                  <Command className="w-[200px]">
-                    <CommandInput
-                      placeholder="Search employees..."
-                      value={searchQuery}
-                      onValueChange={(value) =>
-                        searchQueryMutation.mutate(value)
-                      }
-                    />
-                    <CommandList>
-                      <CommandEmpty>No employees found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          onSelect={() =>
-                            selectedEmployeesMutation.mutate(["all"])
-                          }
-                          className="cursor-pointer"
-                        >
-                          <span
-                            className={
-                              selectedEmployees?.includes("all")
-                                ? "font-bold"
-                                : ""
-                            }
-                          >
-                            All Employees
-                          </span>
-                        </CommandItem>
-                        {filteredEmployees.map((employee) => (
-                          <CommandItem
-                            key={employee.lanid}
-                            onSelect={() => {
-                              const newSelection = selectedEmployees?.includes(
-                                employee.lanid
-                              )
-                                ? selectedEmployees.filter(
-                                    (id) => id !== employee.lanid
+              {/* Super Admin Only*/}
+              <div className="w-full overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 my-2 gap-6 overflow-hidden">
+                  {/* File Upload Section */}
+                  {flags.is_barchart_enabled.enabled &&
+                    (role === "super admin" || role === "dev") && (
+                      <Card className="flex flex-col h-full">
+                        <CardHeader className="flex-shrink-0">
+                          <CardTitle className="flex items-center gap-2">
+                            <FilePlusIcon className="h-6 w-6" />
+                            Select File To Upload
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                          <div className="mt-4 rounded-md border">
+                            <div className="flex flex-col items-start gap-2 p-2">
+                              <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                                <Input
+                                  type="file"
+                                  accept=".csv,.xlsx"
+                                  onChange={handleFileChange}
+                                  className="hidden"
+                                />
+                                <span>
+                                  {fileData?.fileName || "Select File"}
+                                </span>
+                              </label>
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  fileData?.file &&
+                                  uploadSalesDataMutation.mutate(fileData.file)
+                                }
+                                className="w-full"
+                                disabled={
+                                  uploadSalesDataMutation.isPending ||
+                                  !fileData?.file
+                                }
+                              >
+                                {uploadSalesDataMutation.isPending
+                                  ? "Uploading..."
+                                  : "Upload & Process"}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {uploadSalesDataMutation.isPending && (
+                            <Progress
+                              value={
+                                typeof uploadProgress === "number"
+                                  ? uploadProgress
+                                  : 0
+                              }
+                              className="mt-4"
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  {flags.is_barchart_enabled.enabled && (
+                    <Card className="flex flex-col h-full">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="flex items-center gap-2">
+                          <CalendarIcon className="h-6 w-6" />
+                          Select Date For Chart & Table Below
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                        <div className="mt-8">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full pl-3 text-left font-normal mb-2"
+                              >
+                                {selectedRange?.start
+                                  ? format(selectedRange.start, "PPP")
+                                  : "Select Date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <CustomCalendar
+                                selectedDate={selectedRange?.start || undefined}
+                                onDateChange={handleRangeChange}
+                                disabledDays={() => false}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {flags.is_historical_barchart_enabled.enabled &&
+                    (role === "super admin" || role === "dev") && (
+                      <Card className="flex flex-col h-full">
+                        <CardHeader className="flex-shrink-0">
+                          <CardTitle className="flex items-center gap-2">
+                            <FilePlusIcon className="h-6 w-6" />
+                            Upload Historical Sales Data
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                          <div className="mt-4 rounded-md border">
+                            <div className="flex flex-col items-start gap-2 p-2">
+                              <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                                <Input
+                                  type="file"
+                                  accept=".csv,.xlsx"
+                                  onChange={handleHistoricalFileChange}
+                                  className="hidden"
+                                />
+                                <span>
+                                  {historicalFileData?.fileName ||
+                                    "Select Historical File"}
+                                </span>
+                              </label>
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  historicalFileData?.file &&
+                                  uploadHistoricalSalesMutation.mutate(
+                                    historicalFileData.file
                                   )
-                                : [
-                                    ...(selectedEmployees || []),
-                                    employee.lanid,
-                                  ];
-                              selectedEmployeesMutation.mutate(newSelection);
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <span
-                              className={
-                                selectedEmployees?.includes(employee.lanid)
-                                  ? "font-bold"
-                                  : ""
+                                }
+                                className="w-full"
+                                disabled={
+                                  uploadHistoricalSalesMutation.isPending ||
+                                  !historicalFileData?.file
+                                }
+                              >
+                                {uploadHistoricalSalesMutation.isPending
+                                  ? "Uploading Historical Data..."
+                                  : "Upload & Process Historical Data"}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {uploadHistoricalSalesMutation.isPending && (
+                            <Progress
+                              value={
+                                typeof historicalSalesUploadProgress ===
+                                "number"
+                                  ? historicalSalesUploadProgress
+                                  : 0
+                              }
+                              className="mt-4"
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                  {flags.is_historical_barchart_enabled.enabled &&
+                    (role === "super admin" || role === "dev") && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Upload Detailed Sales Data</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                              <Input
+                                type="file"
+                                accept=".csv,.xlsx"
+                                onChange={handleDetailedSalesFileChange}
+                                key={detailedSalesFileData?.fileInputKey}
+                                className="hidden"
+                              />
+                              <span>
+                                {detailedSalesFileData?.fileName ||
+                                  "Select Detailed Sales File"}
+                              </span>
+                            </label>
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                detailedSalesFileData?.file &&
+                                uploadDetailedSalesMutation.mutate(
+                                  detailedSalesFileData.file
+                                )
+                              }
+                              className="w-full"
+                              disabled={
+                                uploadDetailedSalesMutation.isPending ||
+                                !detailedSalesFileData?.file
                               }
                             >
-                              {`${employee.name || ""} ${employee.last_name || ""}`}
-                            </span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </div>
+                              {uploadDetailedSalesMutation.isPending
+                                ? "Uploading Detailed Sales Data..."
+                                : "Upload & Process Detailed Sales Data"}
+                            </Button>
 
-                {/* Sales At Glance Table */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Sales At Glance</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <SalesAtGlanceTable
-                      period="30days"
-                      selectedEmployees={selectedEmployees || ["all"]}
-                      dateRange={{
-                        start: dateRange?.from || new Date(),
-                        end: dateRange?.to || new Date(),
-                      }}
-                    />
-                  </CardContent>
-                </Card>
+                            {uploadDetailedSalesMutation.isPending && (
+                              <Progress
+                                value={
+                                  typeof detailedSalesUploadProgress ===
+                                  "number"
+                                    ? detailedSalesUploadProgress
+                                    : 0
+                                }
+                                className="mt-4"
+                              />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                </div>
               </div>
+              {/* </div> */}
+
+              {/* Sales Chart*/}
+              {flags.is_barchart_enabled.enabled && (
+                <div className="col-span-full overflow-hidden">
+                  <Card className="flex flex-col col-span-full mt-2 mb-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChartIcon className="h-6 w-6" />
+                        Sales Report Chart
+                      </CardTitle>
+                    </CardHeader>
+                    <div className="overflow-hidden">
+                      <ScrollArea
+                        className={classNames(
+                          styles.noScroll,
+                          "w-[calc(100vw-100px)] overflow-auto relative"
+                        )}
+                      >
+                        <CardContent className="flex-grow overflow-auto">
+                          <div className="h-full">
+                            {selectedRange ? (
+                              <SalesRangeStackedBarChart
+                                selectedRange={{
+                                  start: selectedRange.start,
+                                  end: selectedRange.end,
+                                }}
+                              />
+                            ) : (
+                              <div>Please select a date range</div>
+                            )}
+                          </div>
+                        </CardContent>
+                        <ScrollBar orientation="horizontal" />
+                        <ScrollBar orientation="vertical" />
+                      </ScrollArea>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Sales Report Table*/}
+              {/* {flags.is_barchart_enabled.enabled && (
+                <div className="col-span-full overflow-hidden mt-2">
+                  <Card className="flex flex-col col-span-full h-full">
+                    <CardHeader className="flex-shrink-0">
+                      <CardTitle className="flex items-center gap-2">
+                        <TableIcon className="h-6 w-6" />
+                        Sales Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col max-h-[calc(100vh-600px)] overflow-hidden">
+                      <Suspense fallback={<div></div>}>
+                        <div className=" overflow-hidden ">
+                          <LazySalesDataTable
+                            startDate={
+                              selectedRange?.start
+                                ? format(selectedRange.start, "yyyy-MM-dd")
+                                : "N/A"
+                            }
+                            endDate={
+                              selectedRange?.end
+                                ? format(selectedRange.end, "yyyy-MM-dd")
+                                : "N/A"
+                            }
+                          />
+                        </div>
+                      </Suspense>
+                    </CardContent>
+                  </Card>
+                </div>
+              )} */}
             </TabsContent>
 
             <TabsContent value="sales-glance">

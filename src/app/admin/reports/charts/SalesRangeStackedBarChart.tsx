@@ -111,7 +111,11 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     },
   });
 
-  const { data: salesData, isLoading } = useQuery({
+  const {
+    data: salesData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: [
       "sales-range-data",
       selectedRange.start,
@@ -130,10 +134,19 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch data");
+        const errorData = await response.json();
+        throw new Error(
+          errorData.details || errorData.error || "Failed to fetch data"
+        );
       }
 
-      return response.json();
+      const data = await response.json();
+      if (!data || !Array.isArray(data)) {
+        console.error("Invalid data format received:", data);
+        throw new Error("Invalid data format received from server");
+      }
+
+      return data;
     },
     enabled: !!selectedRange.start && !!selectedRange.end,
   });
@@ -350,6 +363,14 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
     return <div>Loading...</div>;
   }
 
+  if (error) {
+    return (
+      <div>
+        Error: {error instanceof Error ? error.message : "Unknown error"}
+      </div>
+    );
+  }
+
   if (!chartData) {
     return <div>No data available</div>;
   }
@@ -382,10 +403,10 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
               <span className="text-lg font-bold leading-none sm:text-3xl">
                 {currencyFormatter.format(
                   key === "totalNetWithFirearms"
-                    ? chartData?.totalNet ?? 0
+                    ? (chartData?.totalNet ?? 0)
                     : key === "totalNetWithoutFirearms"
-                    ? chartData?.totalNetMinusExclusions ?? 0
-                    : chartData?.totalGross ?? 0
+                      ? (chartData?.totalNetMinusExclusions ?? 0)
+                      : (chartData?.totalGross ?? 0)
                 )}
               </span>
             </button>
@@ -444,8 +465,8 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
                 index === 0
                   ? [4, 4, 0, 0]
                   : index === chartData.categories.length - 1
-                  ? [0, 0, 4, 4]
-                  : [0, 0, 0, 0]
+                    ? [0, 0, 4, 4]
+                    : [0, 0, 0, 0]
               }
             />
           ))}
