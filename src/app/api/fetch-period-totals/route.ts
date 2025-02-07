@@ -8,30 +8,32 @@ export async function POST(request: Request) {
   try {
     const { dateRange, employeeLanids } = await request.json();
 
-    // Build the base query exactly like the sales API
+    // Build the base query for detailed_sales_data
     let query = supabase
-      .from("sales_data")
+      .from("detailed_sales_data")
       .select(
         `
         id,
         "Lanid",
+        "SoldPrice",
+        "Margin",
         total_gross,
-        total_net
+        Margin
       `
       )
-      .not("Date", "is", null);
+      .not("SoldDate", "is", null);
 
     // Apply date range filter with proper indexing
     if (dateRange?.from) {
       const fromDate = new Date(dateRange.from);
       fromDate.setUTCHours(0, 0, 0, 0);
-      query = query.gte("Date", fromDate.toISOString());
+      query = query.gte("SoldDate", fromDate.toISOString());
     }
 
     if (dateRange?.to) {
       const toDate = new Date(dateRange.to);
       toDate.setUTCHours(23, 59, 59, 999);
-      query = query.lte("Date", toDate.toISOString());
+      query = query.lte("SoldDate", toDate.toISOString());
     }
 
     // Apply employee filter
@@ -48,16 +50,16 @@ export async function POST(request: Request) {
     }
 
     // Log data for debugging
-    console.log("Total records:", salesData?.length);
-    console.log(
-      "Unique Lanids:",
-      new Set(salesData?.map((sale) => sale.Lanid))
-    );
+    // console.log("Total records:", salesData?.length);
+    // console.log(
+    //   "Unique Lanids:",
+    //   new Set(salesData?.map((sale) => sale.Lanid))
+    // );
 
     // Calculate totals from the retrieved data
     const totals = salesData?.reduce(
       (acc, curr) => ({
-        totalNet: acc.totalNet + Number(curr.total_net || 0),
+        totalNet: acc.totalNet + Number(curr.Margin || 0),
         totalGross: acc.totalGross + Number(curr.total_gross || 0),
       }),
       { totalNet: 0, totalGross: 0 }
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
     };
 
     // Log final totals
-    console.log("Final totals:", response);
+    // console.log("Final totals:", response);
 
     return NextResponse.json(response);
   } catch (error) {

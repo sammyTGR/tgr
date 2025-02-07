@@ -6,6 +6,24 @@ import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 
 const TIMEZONE = "America/Los_Angeles";
 
+// Add interface for the sales data
+interface DetailedSalesData {
+  id: number;
+  Lanid: string;
+  Invoice: string; // mapped from SoldRef
+  Sku: string;
+  Desc: string;
+  SoldPrice: number;
+  SoldQty: number; // mapped from Qty
+  Cost: number;
+  Date: string; // mapped from SoldDate
+  Type: string;
+  category_label: string; // mapped from CatDesc
+  subcategory_label: string; // mapped from SubDesc
+  total_gross: number;
+  Margin: number;
+}
+
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
@@ -20,35 +38,32 @@ export async function POST(request: Request) {
       descriptionSearch,
     } = await request.json();
 
-    // Build the base query with an optimized approach
+    // Build the base query with the new table and field mappings
     let query = supabase
-      .from("sales_data")
+      .from("detailed_sales_data")
       .select(
         `
         id,
         "Lanid",
-        "Invoice",
+        "SoldRef" as "Invoice",
         "Sku",
         "Desc",
         "SoldPrice",
-        "SoldQty",
+        "Qty" as "SoldQty",
         "Cost",
-        "Date",
+        "SoldDate" as "Date",
         "Type",
-        category_label,
-        subcategory_label,
+        "CatDesc" as category_label,
+        "SubDesc" as subcategory_label,
         total_gross,
-        total_net,
-        "LastName"
+        Margin
       `,
         { count: "exact" }
       )
-      .not("Date", "is", null);
+      .not("SoldDate", "is", null);
 
-    // Apply description search if provided - optimize the search
+    // Apply description search if provided
     if (descriptionSearch) {
-      // Create an index on the Desc column if you haven't already
-      // Add textSearch function for better performance
       query = query.or(
         `Desc.ilike.${descriptionSearch}%,Desc.ilike.%${descriptionSearch}%,Sku.ilike.${descriptionSearch}%`
       );
@@ -58,13 +73,13 @@ export async function POST(request: Request) {
     if (dateRange?.from) {
       const fromDate = new Date(dateRange.from);
       fromDate.setUTCHours(0, 0, 0, 0);
-      query = query.gte("Date", fromDate.toISOString());
+      query = query.gte("SoldDate", fromDate.toISOString());
     }
 
     if (dateRange?.to) {
       const toDate = new Date(dateRange.to);
       toDate.setUTCHours(23, 59, 59, 999);
-      query = query.lte("Date", toDate.toISOString());
+      query = query.lte("SoldDate", toDate.toISOString());
     }
 
     // Apply employee filter
@@ -90,15 +105,17 @@ export async function POST(request: Request) {
     // Apply sorting and pagination to the data query
     if (sorting && sorting.length > 0) {
       const { id, desc } = sorting[0];
-      query = query.order(id, { ascending: !desc });
+      // Map the Date field to SoldDate for sorting
+      const sortField = id === "Date" ? "SoldDate" : id;
+      query = query.order(sortField, { ascending: !desc });
     } else {
-      query = query.order("Date", { ascending: false });
+      query = query.order("SoldDate", { ascending: false });
     }
 
     // Add pagination
     query = query.range(from, to);
 
-    // Execute the data query
+    // Execute the data query with type annotation
     const { data: salesData, error: salesError } = await query;
 
     if (salesError) {
@@ -106,9 +123,16 @@ export async function POST(request: Request) {
       throw salesError;
     }
 
-    // Optimize employee data fetch by using a Set for unique lanids
+    if (!salesData) {
+      return NextResponse.json({
+        data: [],
+        count: 0,
+      });
+    }
+
+    // Add type assertion for salesData
     const uniqueLanids = new Set(
-      salesData?.map((sale) => sale.Lanid).filter(Boolean)
+      salesData.map((sale: any) => sale.Lanid).filter(Boolean)
     );
 
     const { data: employeeData } = await supabase
@@ -124,12 +148,12 @@ export async function POST(request: Request) {
       ]) || []
     );
 
-    const transformedData = salesData?.map((sale: any) => ({
+    const transformedData = salesData.map((sale: any) => ({
       ...sale,
       Date: sale.Date
         ? toZonedTime(new Date(sale.Date), TIMEZONE).toISOString()
         : null,
-      employee_name: employeeMap.get(sale.Lanid) || sale.LastName || "Unknown",
+      employee_name: employeeMap.get(sale.Lanid) || "Unknown",
     }));
 
     return NextResponse.json({

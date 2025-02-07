@@ -192,7 +192,12 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         body: JSON.stringify({
           pageIndex: Number(pageIndex),
           pageSize: Number(pageSize),
-          sorting: sorting || [],
+          sorting:
+            sorting.map((sort) => ({
+              ...sort,
+              // Map the Date field to SoldDate for sorting
+              id: sort.id === "Date" ? "SoldDate" : sort.id,
+            })) || [],
           dateRange: {
             from: format(dateRange.start, "yyyy-MM-dd"),
             to: format(dateRange.end, "yyyy-MM-dd"),
@@ -398,13 +403,13 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           const existingEmployee = acc.find((e) => e.Lanid === row.Lanid);
           if (existingEmployee) {
             existingEmployee.total_gross += row.total_gross || 0;
-            existingEmployee.total_net += row.total_net || 0;
+            existingEmployee.total_net += row.Margin || 0;
             existingEmployee.transaction_count += 1;
           } else {
             acc.push({
               "Employee Name": row.employee_name,
               "Total Gross": row.total_gross || 0,
-              "Total Net": row.total_net || 0,
+              "Total Net": row.Margin || 0,
               "Transaction Count": 1,
             });
           }
@@ -417,18 +422,18 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
       // Add detailed transactions sheet
       const detailsSheet = XLSX.utils.json_to_sheet(
         data.map((row: any) => ({
-          Date: row.Date,
-          Invoice: row.Invoice,
+          Date: row.SoldDate,
+          Invoice: row.SoldRef,
           Employee: row.Lanid,
           "Employee Name": row.employee_name,
           Description: row.Desc,
-          Category: row.category_label,
-          Subcategory: row.subcategory_label,
+          Category: row.CatDesc,
+          Subcategory: row.SubDesc,
           "Sold Price": row.SoldPrice,
-          "Sold Quantity": row.SoldQty,
+          "Sold Quantity": row.Qty,
           Cost: row.Cost,
           "Total Gross": row.total_gross,
-          "Total Net": row.total_net,
+          "Total Net": row.Margin,
         }))
       );
       XLSX.utils.book_append_sheet(wb, detailsSheet, "Detailed_Transactions");
@@ -575,10 +580,10 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
                       </span>
                       <span className="font-medium">
                         $
-                        {summary.total_net.toLocaleString("en-US", {
+                        {summary.total_net?.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}
+                        }) ?? "0.00"}
                       </span>
                     </div>
                     <div className="flex flex-col">
@@ -587,10 +592,10 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
                       </span>
                       <span className="font-medium">
                         $
-                        {summary.total_gross.toLocaleString("en-US", {
+                        {summary.total_gross?.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}
+                        }) ?? "0.00"}
                       </span>
                     </div>
                   </div>
