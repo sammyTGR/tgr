@@ -1154,9 +1154,15 @@ function AdminDashboardContent() {
             chainPromise = chainPromise.then(() =>
               supabase
                 .from("historical_sales")
-                .upsert(batch)
+                .upsert(batch, {
+                  onConflict: "SoldRef,Serial,SoldDate", // Adjust these fields based on your unique constraint
+                  ignoreDuplicates: false,
+                })
                 .then(({ error }) => {
-                  if (!error) {
+                  if (error) {
+                    console.error("Error upserting data batch:", error);
+                    toast.error(`Upload error: ${error.message}`);
+                  } else {
                     processedCount += batch.length;
                     onProgress(
                       Math.round((processedCount / formattedData.length) * 100)
@@ -1166,13 +1172,26 @@ function AdminDashboardContent() {
             );
           }
 
-          chainPromise.then(() => resolve()).catch(reject);
+          chainPromise
+            .then(() => {
+              toast.success(`Successfully uploaded ${processedCount} records`);
+              resolve();
+            })
+            .catch((error) => {
+              toast.error(`Upload failed: ${error.message}`);
+              reject(error);
+            });
         } catch (error) {
+          toast.error(`File processing error: ${error}`);
           reject(error);
         }
       };
 
-      reader.onerror = (error) => reject(error);
+      reader.onerror = (error) => {
+        toast.error(`File reading error: ${error}`);
+        reject(error);
+      };
+
       reader.readAsArrayBuffer(file);
     });
   }
@@ -1383,6 +1402,194 @@ function AdminDashboardContent() {
   };
 
   // Add function to handle detailed sales data upload
+  function handleSalesDataUpload(
+    file: File,
+    onProgress: (progress: number) => void
+  ) {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+          });
+
+          const keys = jsonData[0] as string[];
+          const formattedData = jsonData.slice(1).map((row: any) => {
+            const rowData: any = {};
+            keys.forEach((key, index) => {
+              // Skip the Margin and Margin % columns
+              if (key !== "Margin" && key !== "Margin %") {
+                // Handle Primary Email column name change if needed
+                const mappedKey =
+                  key === "Primary Email" ? "Primary Email" : key;
+                rowData[mappedKey] = row[index];
+              }
+            });
+
+            const categoryLabel = categoryMap.get(parseInt(rowData.Cat)) || "";
+            const subcategoryKey = `${rowData.Cat}-${rowData.Sub}`;
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+
+            // Set Cost equal to SoldPrice for specific category/subcategory combinations
+            if (
+              (rowData.Cat === "170" || parseInt(rowData.Cat) === 170) &&
+              (rowData.Sub === "7" ||
+                parseInt(rowData.Sub) === 7 ||
+                rowData.Sub === "1" ||
+                parseInt(rowData.Sub) === 1 ||
+                rowData.Sub === "8" ||
+                parseInt(rowData.Sub) === 8)
+            ) {
+              rowData.Cost = rowData.SoldPrice;
+            }
+
+            return {
+              ...rowData,
+              Date: convertDateFormat(rowData.Date),
+              category_label: categoryLabel,
+              subcategory_label: subcategoryLabel,
+            };
+          });
+
+          const batchSize = 100;
+          let processedCount = 0;
+          let chainPromise = Promise.resolve();
+
+          for (let i = 0; i < formattedData.length; i += batchSize) {
+            const batch = formattedData.slice(i, i + batchSize);
+            chainPromise = chainPromise.then(() =>
+              supabase
+                .from("sales_data")
+                .upsert(batch)
+                .then(({ error }) => {
+                  if (error) {
+                    console.error("Error upserting data batch:", error);
+                    throw error;
+                  }
+                  processedCount += batch.length;
+                  onProgress(
+                    Math.round((processedCount / formattedData.length) * 100)
+                  );
+                })
+            );
+          }
+
+          await chainPromise;
+          toast.success(`Successfully uploaded ${processedCount} records`);
+          resolve();
+        } catch (error) {
+          console.error("Error processing data:", error);
+          toast.error(
+            `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`
+          );
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        reject(error);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function handleHistoricalSalesUpload(
+    file: File,
+    onProgress: (progress: number) => void
+  ) {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          // Use same mapping logic as sales_data
+          const formattedData = jsonData.map((row: any) => {
+            const categoryLabel = categoryMap.get(parseInt(row.Cat)) || "";
+            const subcategoryKey = `${row.Cat}-${row.Sub}`;
+            const subcategoryLabel = subcategoryMap.get(subcategoryKey) || "";
+
+            const cost =
+              (row.Cat === "170" || parseInt(row.Cat) === 170) &&
+              (row.Sub === "7" ||
+                parseInt(row.Sub) === 7 ||
+                row.Sub === "1" ||
+                parseInt(row.Sub) === 1 ||
+                row.Sub === "8" ||
+                parseInt(row.Sub) === 8)
+                ? row.SoldPrice
+                : row.Cost;
+
+            return {
+              // Same structure as sales_data
+              Lanid: row.Lanid?.toString(),
+              Invoice: row.Invoice ? parseInt(row.Invoice) : null,
+              Sku: row.Sku?.toString(),
+              Desc: row.Desc?.toString(),
+              SoldPrice: row.SoldPrice ? parseFloat(row.SoldPrice) : null,
+              SoldQty: row.SoldQty ? parseFloat(row.SoldQty) : null,
+              Cost: cost ? parseFloat(cost) : null,
+              Acct: row.Acct ? parseFloat(row.Acct) : null,
+              Date: convertDateFormat(row.Date),
+              Disc: row.Disc ? parseFloat(row.Disc) : null,
+              Type: row.Type?.toString(),
+              Spiff: row.Spiff ? parseFloat(row.Spiff) : null,
+              Last: row.Last?.toString(),
+              LastName: row.LastName?.toString(),
+              Legacy: row.Legacy?.toString(),
+              Stloc: row.Stloc ? parseInt(row.Stloc) : null,
+              Cat: row.Cat ? parseInt(row.Cat) : null,
+              Sub: row.Sub ? parseInt(row.Sub) : null,
+              Mfg: row.Mfg?.toString(),
+              CustType: row.CustType?.toString(),
+              category_label: categoryLabel,
+              subcategory_label: subcategoryLabel,
+              status: row.status?.toString(),
+              "Primary Email": row["Primary Email"]?.toString(),
+            };
+          });
+
+          const batchSize = 100;
+          let processedCount = 0;
+
+          for (let i = 0; i < formattedData.length; i += batchSize) {
+            const batch = formattedData.slice(i, i + batchSize);
+            const { error } = await supabase
+              .from("historical_sales_data")
+              .upsert(batch);
+
+            if (error) {
+              console.error("Error upserting historical data batch:", error);
+              throw error;
+            }
+
+            processedCount += batch.length;
+            onProgress(
+              Math.round((processedCount / formattedData.length) * 100)
+            );
+          }
+
+          resolve();
+        } catch (error) {
+          console.error("Error processing historical data:", error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => reject(error);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   function handleDetailedSalesUpload(
     file: File,
     onProgress: (progress: number) => void
@@ -1662,6 +1869,76 @@ function AdminDashboardContent() {
       reader.readAsArrayBuffer(file);
     });
   }
+
+  // Mutations for file uploads
+  const uploadSalesDataMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error("File size exceeds 50MB limit");
+      }
+
+      const upload = (progress: number) => {
+        queryClient.setQueryData(["salesUploadProgress"], progress);
+      };
+      return handleSalesDataUpload(file, upload);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["salesUploadProgress"], 100);
+      toast.success("Sales data uploaded and processed successfully");
+      updateFileDataMutation.mutate({
+        file: null,
+        fileName: null,
+        fileInputKey: Date.now(),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(`Upload failed: ${error.message}`);
+      queryClient.setQueryData(["salesUploadProgress"], 0);
+    },
+  });
+
+  const uploadHistoricalSalesMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error("File size exceeds 50MB limit");
+      }
+
+      const upload = (progress: number) => {
+        queryClient.setQueryData(["historicalSalesUploadProgress"], progress);
+      };
+      return handleHistoricalSalesUpload(file, upload);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["historicalSalesUploadProgress"], 100);
+      toast.success(
+        "Historical sales data uploaded and processed successfully"
+      );
+      updateHistoricalFileDataMutation.mutate({
+        file: null,
+        fileName: null,
+        fileInputKey: Date.now(),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(`Upload failed: ${error.message}`);
+      queryClient.setQueryData(["historicalSalesUploadProgress"], 0);
+    },
+  });
+
+  const { data: salesUploadProgress = 0 } = useQuery({
+    queryKey: ["salesUploadProgress"],
+    queryFn: () => queryClient.getQueryData(["salesUploadProgress"]) ?? 0,
+    enabled: uploadSalesDataMutation.isPending,
+  });
+
+  const { data: historicalSalesUploadProgress = 0 } = useQuery({
+    queryKey: ["historicalSalesUploadProgress"],
+    queryFn: () =>
+      queryClient.getQueryData(["historicalSalesUploadProgress"]) ?? 0,
+    enabled: uploadHistoricalSalesMutation.isPending,
+  });
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
@@ -2002,22 +2279,22 @@ function AdminDashboardContent() {
                                 variant="outline"
                                 onClick={() =>
                                   fileData?.file &&
-                                  uploadFileMutation.mutate(fileData.file)
+                                  uploadSalesDataMutation.mutate(fileData.file)
                                 }
                                 className="w-full"
                                 disabled={
-                                  uploadFileMutation.isPending ||
+                                  uploadSalesDataMutation.isPending ||
                                   !fileData?.file
                                 }
                               >
-                                {uploadFileMutation.isPending
+                                {uploadSalesDataMutation.isPending
                                   ? "Uploading..."
                                   : "Upload & Process"}
                               </Button>
                             </div>
                           </div>
 
-                          {uploadFileMutation.isPending && (
+                          {uploadSalesDataMutation.isPending && (
                             <Progress
                               value={
                                 typeof uploadProgress === "number"
@@ -2096,28 +2373,29 @@ function AdminDashboardContent() {
                                 variant="outline"
                                 onClick={() =>
                                   historicalFileData?.file &&
-                                  uploadHistoricalFileMutation.mutate(
+                                  uploadHistoricalSalesMutation.mutate(
                                     historicalFileData.file
                                   )
                                 }
                                 className="w-full"
                                 disabled={
-                                  uploadHistoricalFileMutation.isPending ||
+                                  uploadHistoricalSalesMutation.isPending ||
                                   !historicalFileData?.file
                                 }
                               >
-                                {uploadHistoricalFileMutation.isPending
+                                {uploadHistoricalSalesMutation.isPending
                                   ? "Uploading Historical Data..."
                                   : "Upload & Process Historical Data"}
                               </Button>
                             </div>
                           </div>
 
-                          {uploadHistoricalFileMutation.isPending && (
+                          {uploadHistoricalSalesMutation.isPending && (
                             <Progress
                               value={
-                                typeof historicalUploadProgress === "number"
-                                  ? historicalUploadProgress
+                                typeof historicalSalesUploadProgress ===
+                                "number"
+                                  ? historicalSalesUploadProgress
                                   : 0
                               }
                               className="mt-4"
