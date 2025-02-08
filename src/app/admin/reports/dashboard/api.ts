@@ -347,9 +347,25 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
   while (hasMore) {
     const { data, error, count } = await supabase
       .from("detailed_sales_data")
-      .select('"Desc", "Qty", "Margin", "SoldDate", "SubDesc", "CatDesc"')
+      .select(
+        '"Desc", "Qty", "Margin", "SoldDate", "SubDesc", "CatDesc", "MPN"'
+      )
       .or(
-        "Desc.ilike.%Gunsmithing%,Desc.ilike.%Pistol Optic Zero Fee%,Desc.ilike.%Sight In/ Function Fee%,Desc.ilike.%Laser Engraving%,Desc.ilike.%Reloaded%,SubDesc.eq.Targets,CatDesc.eq.Personal Protection Equipment,CatDesc.eq.Station Rental,CatDesc.eq.Gun Range Rental,CatDesc.eq.Ammunition,CatDesc.eq.Pistol,CatDesc.eq.Receiver,CatDesc.eq.Revolver,CatDesc.eq.Rifle,CatDesc.eq.Shotgun"
+        "Desc.ilike.%Gunsmithing%," +
+          "Desc.ilike.%Pistol Optic Zero Fee%," +
+          "Desc.ilike.%Sight In/ Function Fee%," +
+          "Desc.ilike.%Laser Engraving%," +
+          "Desc.ilike.%Reloaded%," +
+          "SubDesc.eq.Targets," +
+          "CatDesc.eq.Station Rental," +
+          "CatDesc.eq.Gun Range Rental," +
+          "CatDesc.eq.Ammunition," +
+          "CatDesc.eq.Pistol," +
+          "CatDesc.eq.Receiver," +
+          "CatDesc.eq.Revolver," +
+          "CatDesc.eq.Rifle," +
+          "CatDesc.eq.Shotgun," +
+          "and(CatDesc.eq.Personal Protection Equipment,or(MPN.eq.DISPOSABLE CLASSIC EARPLUGS,MPN.eq.DISPOSABLE EAR PLUGS))"
       )
       .gte("SoldDate", utcStartDate.toISOString())
       .lte("SoldDate", utcEndDate.toISOString())
