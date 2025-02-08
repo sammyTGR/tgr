@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { KPICard } from "@/components/kpi-card";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { DateRange } from "react-day-picker";
 
 function DashboardKPI({
   kpiQuery,
@@ -18,6 +19,32 @@ function DashboardKPI({
   getDefaultDateRange,
   formatter,
 }: any) {
+  // Update the function to handle DateRange type
+  const handleDateSelect = (range: DateRange | undefined) => {
+    if (!range) return;
+
+    const { from, to } = range;
+
+    if (from) {
+      if (!to) {
+        // For single date selection, set both from and to to the same date
+        const singleDate = new Date(from);
+        setDateRange({
+          from: singleDate,
+          to: singleDate,
+        });
+      } else {
+        // For date range, ensure we have the full days
+        const startDate = new Date(from);
+        const endDate = new Date(to);
+        setDateRange({
+          from: startDate,
+          to: endDate,
+        });
+      }
+    }
+  };
+
   return (
     <TabsContent value="sales-kpis">
       <div className="space-y-4">
@@ -45,7 +72,7 @@ function DashboardKPI({
                 mode="range"
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
-                onSelect={setDateRange}
+                onSelect={handleDateSelect}
                 numberOfMonths={2}
               />
             </PopoverContent>
@@ -196,20 +223,68 @@ function DashboardKPI({
                   "Range Protection Equipment",
                   "Range Station Rental",
                   "Gun Range Rental",
-                ].map((category) => (
-                  <div key={category}>
-                    {kpiQuery.data?.[category] && (
-                      <KPICard
-                        category={
-                          category.startsWith("Range ")
-                            ? category.replace("Range ", "")
-                            : category.replace("Gun Range ", "Firearms ")
-                        }
-                        data={kpiQuery.data[category]}
-                      />
-                    )}
-                  </div>
-                ))}
+                ].map(
+                  (category) =>
+                    kpiQuery.data?.[category] && (
+                      <Card key={category}>
+                        <CardHeader>
+                          <CardTitle>
+                            {category.startsWith("Range ")
+                              ? category.replace("Range ", "")
+                              : category.replace("Gun Range ", "Firearms ")}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Total Net
+                              </span>
+                              <span className="text-2xl font-bold">
+                                {formatter.format(
+                                  kpiQuery.data[category].revenue
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Quantity
+                              </span>
+                              <span className="text-2xl font-bold">
+                                {kpiQuery.data[category].qty}
+                              </span>
+                            </div>
+                            {/* Variants */}
+                            {kpiQuery.data[category].variants && (
+                              <div className="mt-4 space-y-2">
+                                {Object.entries(
+                                  kpiQuery.data[category].variants
+                                ).map(([variant, stats]) => (
+                                  <div key={variant} className="text-sm">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-medium">
+                                        {variant}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between text-muted-foreground">
+                                      <span>
+                                        Qty: {(stats as { qty: number }).qty}
+                                      </span>
+                                      <span>
+                                        {formatter.format(
+                                          (stats as { revenue: number }).revenue
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                )}
               </div>
             </div>
 

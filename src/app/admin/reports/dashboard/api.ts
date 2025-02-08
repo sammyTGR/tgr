@@ -333,42 +333,69 @@ export const replySuggestion = async ({
 };
 
 export const fetchKPIData = async (startDate: Date, endDate: Date) => {
-  const utcStartDate = new Date(startDate);
-  utcStartDate.setUTCHours(0, 0, 0, 0);
+  // Ensure we have valid dates and set them to start/end of day
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
 
-  const utcEndDate = new Date(endDate);
-  utcEndDate.setUTCHours(23, 59, 59, 999);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  // Format dates for Supabase query
+  const formattedStartDate = start.toISOString().split("T")[0];
+  const formattedEndDate = end.toISOString().split("T")[0];
 
   let allData: any[] = [];
   let page = 0;
   const pageSize = 1000;
   let hasMore = true;
 
+  // Create a Set to track processed items
+  const processedItems = new Set();
+
   while (hasMore) {
-    const { data, error, count } = await supabase
+    let query = supabase
       .from("detailed_sales_data")
       .select(
-        '"Desc", "Qty", "Margin", "SoldDate", "SubDesc", "CatDesc", "MPN"'
+        `
+      id,
+      Desc,
+      Qty,
+      Margin,
+      SoldDate,
+      SubDesc,
+      CatDesc,
+      MPN,
+      Mfg
+    `
       )
       .or(
-        "Desc.ilike.%Gunsmithing%," +
-          "Desc.ilike.%Pistol Optic Zero Fee%," +
-          "Desc.ilike.%Sight In/ Function Fee%," +
-          "Desc.ilike.%Laser Engraving%," +
-          "Desc.ilike.%Reloaded%," +
-          "SubDesc.eq.Targets," +
-          "CatDesc.eq.Station Rental," +
-          "CatDesc.eq.Gun Range Rental," +
-          "CatDesc.eq.Ammunition," +
-          "CatDesc.eq.Pistol," +
-          "CatDesc.eq.Receiver," +
-          "CatDesc.eq.Revolver," +
-          "CatDesc.eq.Rifle," +
-          "CatDesc.eq.Shotgun," +
-          "and(CatDesc.eq.Personal Protection Equipment,or(MPN.eq.DISPOSABLE CLASSIC EARPLUGS,MPN.eq.DISPOSABLE EAR PLUGS))"
-      )
-      .gte("SoldDate", utcStartDate.toISOString())
-      .lte("SoldDate", utcEndDate.toISOString())
+        `Desc.ilike.%Gunsmithing%,` +
+          `Desc.ilike.%Pistol Optic Zero Fee%,` +
+          `Desc.ilike.%Sight In/ Function Fee%,` +
+          `Desc.ilike.%Laser Engraving%,` +
+          `Desc.ilike.%Reloaded%,` +
+          `SubDesc.eq.Targets,` +
+          `CatDesc.eq.Station Rental,` +
+          `CatDesc.eq.Gun Range Rental,` +
+          `CatDesc.eq.Ammunition,` +
+          `CatDesc.eq.Pistol,` +
+          `CatDesc.eq.Receiver,` +
+          `CatDesc.eq.Revolver,` +
+          `CatDesc.eq.Rifle,` +
+          `CatDesc.eq.Shotgun,` +
+          `and(CatDesc.eq.Personal Protection Equipment,SubDesc.in.(Eye Protection,Ear Protection))`
+      );
+
+    // Single date vs date range handling
+    if (formattedStartDate === formattedEndDate) {
+      query = query.filter("SoldDate", "eq", formattedStartDate);
+    } else {
+      query = query
+        .filter("SoldDate", "gte", formattedStartDate)
+        .filter("SoldDate", "lte", formattedEndDate);
+    }
+
+    const { data, error } = await query
       .range(page * pageSize, (page + 1) * pageSize - 1)
       .order("SoldDate", { ascending: true });
 
@@ -380,7 +407,22 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
     if (!data || data.length === 0) {
       hasMore = false;
     } else {
-      allData = [...allData, ...data];
+      // Filter data to ensure it's within the exact date range
+      const filteredData = data.filter((item) => {
+        const itemDate = new Date(item.SoldDate);
+        return itemDate >= start && itemDate <= end;
+      });
+
+      // Filter out processed items
+      const processedData = filteredData.filter((item) => {
+        const itemId = `${item.SoldDate}-${item.SubDesc}-${item.Margin}-${item.Qty}`;
+        if (processedItems.has(itemId)) {
+        }
+        processedItems.add(itemId);
+        return true;
+      });
+
+      allData = [...allData, ...processedData];
       page++;
       hasMore = data.length === pageSize;
     }
@@ -392,7 +434,7 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       let category = "";
       let variant = "";
       const desc = item.Desc?.toLowerCase() || "";
-      const subDesc = item.SubDesc?.toLowerCase() || "";
+      const subDesc = item.SubDesc || "Unknown";
 
       // Updated categorization logic
       if (
@@ -421,23 +463,77 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       // Range Rentals categorization logic
       else if (item.SubDesc === "Targets") {
         category = "Range Targets";
-        variant = item.Desc?.trim() || "Unknown";
-      } else if (item.CatDesc === "Personal Protection Equipment") {
+        // variant = item.Desc?.trim() || "Unknown";
+      } else if (
+        item.CatDesc === "Personal Protection Equipment" &&
+        item.SubDesc &&
+        ["Ear Protection", "Eye Protection"].includes(item.SubDesc.trim())
+      ) {
         category = "Range Protection Equipment";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.SubDesc.trim();
+
+        // Create a unique key using available data
+        const itemKey = `${item.SoldDate}-${item.SubDesc}-${item.Margin}-${item.Qty}`;
+
+        if (!acc[category]) {
+          acc[category] = {
+            qty: 0,
+            revenue: 0,
+            variants: {},
+            group: "Range Rentals",
+          };
+        }
+
+        if (!processedItems.has(itemKey)) {
+          const qty = Number(item.Qty) || 0;
+          const revenue = Number(item.Margin) || 0;
+
+          acc[category].qty += qty;
+          acc[category].revenue += revenue;
+
+          if (!acc[category].variants[variant]) {
+            acc[category].variants[variant] = { qty: 0, revenue: 0 };
+          }
+          acc[category].variants[variant].qty += qty;
+          acc[category].variants[variant].revenue += revenue;
+
+          processedItems.add(itemKey);
+
+          console.log(
+            "Raw PPE Data:",
+            allData.filter(
+              (item) =>
+                item.CatDesc === "Personal Protection Equipment" &&
+                ["Ear Protection", "Eye Protection"].includes(
+                  item.SubDesc?.trim()
+                )
+            )
+          );
+
+          // In the PPE processing section:
+          console.log("Processing PPE item:", {
+            date: item.SoldDate,
+            subDesc: item.SubDesc,
+            qty: Number(item.Qty),
+            revenue: Number(item.Margin),
+            itemKey,
+          });
+        }
       } else if (item.CatDesc === "Station Rental") {
         category = "Range Station Rental";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.SubDesc?.trim() || "Standard Station Rental";
       }
 
       // Add new Gun Range Rental category
       else if (
         item.CatDesc === "Gun Range Rental" &&
         item.SubDesc &&
-        !item.SubDesc.toLowerCase().includes("ear muff")
+        !["Ear Muffs", "12 & Under Earmuff Rentals", ""].includes(
+          item.SubDesc.trim()
+        )
       ) {
         category = "Gun Range Rental";
-        variant = item.Desc?.trim() || "Unknown";
+        // variant = item.Desc?.trim() || "Unknown";
       }
 
       // In the reduce function, add new categories for ammunition
@@ -450,26 +546,26 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
           variant = item.Desc?.trim() || "Unknown";
         } else if (item.SubDesc === "Factory New") {
           category = "Factory Ammo";
-          variant = item.Desc?.trim() || "Unknown";
+          variant = item.Mfg?.trim() || "Unknown";
         }
       }
 
-      // Add firearms categorization logic
+      // Update firearms categorization logic to use Mfg
       if (item.CatDesc === "Pistol") {
         category = "Pistol";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.Mfg?.trim() || "Unknown Manufacturer";
       } else if (item.CatDesc === "Receiver") {
         category = "Receiver";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.Mfg?.trim() || "Unknown Manufacturer";
       } else if (item.CatDesc === "Revolver") {
         category = "Revolver";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.Mfg?.trim() || "Unknown Manufacturer";
       } else if (item.CatDesc === "Rifle") {
         category = "Rifle";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.Mfg?.trim() || "Unknown Manufacturer";
       } else if (item.CatDesc === "Shotgun") {
         category = "Shotgun";
-        variant = item.Desc?.trim() || "Unknown";
+        variant = item.Mfg?.trim() || "Unknown Manufacturer";
       }
 
       if (category) {
