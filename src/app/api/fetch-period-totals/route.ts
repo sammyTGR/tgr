@@ -8,6 +8,9 @@ export async function POST(request: Request) {
   try {
     const { dateRange, employeeLanids } = await request.json();
 
+    // Debug log the incoming date range
+    // console.log("Incoming date range:", dateRange);
+
     // Build the base query for detailed_sales_data
     let query = supabase
       .from("detailed_sales_data")
@@ -18,22 +21,25 @@ export async function POST(request: Request) {
         "SoldPrice",
         "Margin",
         total_gross,
-        Margin
-      `
+        "SoldDate"
+      `,
+        { count: "exact" } // Add exact count
       )
       .not("SoldDate", "is", null);
 
-    // Apply date range filter with proper indexing
+    // Apply date range filter with UTC handling
     if (dateRange?.from) {
       const fromDate = new Date(dateRange.from);
       fromDate.setUTCHours(0, 0, 0, 0);
       query = query.gte("SoldDate", fromDate.toISOString());
+      // console.log("From date:", fromDate.toISOString());
     }
 
     if (dateRange?.to) {
       const toDate = new Date(dateRange.to);
       toDate.setUTCHours(23, 59, 59, 999);
       query = query.lte("SoldDate", toDate.toISOString());
+      // console.log("To date:", toDate.toISOString());
     }
 
     // Apply employee filter
@@ -41,38 +47,59 @@ export async function POST(request: Request) {
       query = query.in("Lanid", employeeLanids);
     }
 
-    // Execute the query without pagination
-    const { data: salesData, error: salesError } = await query;
+    // Initialize totals
+    let totalNet = 0;
+    let totalGross = 0;
+    let totalRecords = 0;
 
-    if (salesError) {
-      console.error("Sales Query Error:", salesError);
-      throw salesError;
+    // Fetch all records using pagination
+    let page = 0;
+    const pageSize = 1000;
+
+    while (true) {
+      const {
+        data: salesData,
+        error: salesError,
+        count,
+      } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (salesError) {
+        console.error("Sales Query Error:", salesError);
+        throw salesError;
+      }
+
+      if (!salesData || salesData.length === 0) break;
+
+      // Calculate totals for this page
+      const pageTotals = salesData.reduce(
+        (acc, curr) => ({
+          totalNet: acc.totalNet + (Number(curr.Margin) || 0),
+          totalGross: acc.totalGross + (Number(curr.total_gross) || 0),
+        }),
+        { totalNet: 0, totalGross: 0 }
+      );
+
+      totalNet += pageTotals.totalNet;
+      totalGross += pageTotals.totalGross;
+      totalRecords += salesData.length;
+
+      // Break if we've fetched all records
+      if (salesData.length < pageSize || (count && totalRecords >= count))
+        break;
+
+      page++;
     }
-
-    // Log data for debugging
-    // console.log("Total records:", salesData?.length);
-    // console.log(
-    //   "Unique Lanids:",
-    //   new Set(salesData?.map((sale) => sale.Lanid))
-    // );
-
-    // Calculate totals from the retrieved data
-    const totals = salesData?.reduce(
-      (acc, curr) => ({
-        totalNet: acc.totalNet + Number(curr.Margin || 0),
-        totalGross: acc.totalGross + Number(curr.total_gross || 0),
-      }),
-      { totalNet: 0, totalGross: 0 }
-    ) || { totalNet: 0, totalGross: 0 };
 
     // Round to 2 decimal places for consistency
     const response = {
-      totalNet: Math.round(totals.totalNet * 100) / 100,
-      totalGross: Math.round(totals.totalGross * 100) / 100,
+      totalNet: Math.round(totalNet * 100) / 100,
+      totalGross: Math.round(totalGross * 100) / 100,
+      recordCount: totalRecords,
+      dateRange: { from: dateRange.from, to: dateRange.to },
     };
 
-    // Log final totals
-    // console.log("Final totals:", response);
+    // Log final response
+    // console.log("Final response:", response);
 
     return NextResponse.json(response);
   } catch (error) {
