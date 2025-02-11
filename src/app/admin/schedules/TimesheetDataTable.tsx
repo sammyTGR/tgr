@@ -909,6 +909,7 @@ export function TimesheetDataTable({
                           )}
                         </td>
                       ))}
+                      <td className="px-1 py-1 whitespace-nowrap"></td>
                       <td>
                         <TimesheetRowActions
                           row={row}
