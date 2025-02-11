@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 interface TimeOffRequest {
   request_id: number;
@@ -25,10 +25,12 @@ export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data, error } = await supabase
@@ -80,7 +82,7 @@ export async function GET() {
 
         return {
           ...request,
-          available_sick_time: sickTimeError ? 40 : (sickTimeData as number),
+          available_sick_time: sickTimeError ? 0 : (sickTimeData as number),
           pay_type: employeeData?.pay_type || "unknown",
           hire_date: employeeData?.hire_date || null,
           vacation_time: employeeData?.vacation_time || 0,

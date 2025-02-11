@@ -365,60 +365,66 @@ export default function ApproveRequestsPage() {
 
   // Update the JSX for the switches
   const renderTimeUsageSwitches = (request: TimeOffRequest) => {
-    const currentYearUsage =
-      request.sick_time_history?.reduce(
-        (total, record) => total + (record.hours_used || 0),
-        0
-      ) || 0;
-    const remainingSickTime = 40 - currentYearUsage; // 40 hours annual limit
-
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <div className="space-y-1">
-            <p>
-              <strong>Available Sick Time:</strong>{" "}
-              {Math.max(0, remainingSickTime).toFixed(1)} Hours
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Used this year: {currentYearUsage.toFixed(1)} hours
-            </p>
-          </div>
-          <div className="flex items-center space-x-2 mt-2">
-            <Switch
-              checked={request.use_sick_time}
-              onCheckedChange={(checked) =>
-                timeUsageMutation.mutate({
-                  requestId: request.request_id,
-                  useSickTime: checked,
-                  useVacationTime: false,
-                })
-              }
-              disabled={request.use_vacation_time || remainingSickTime <= 0}
-            />
-            <span>Use Sick Time</span>
-          </div>
+          {request.pay_type?.toLowerCase() === "salary" ? (
+            <p className="text-sm mt-2">Not applicable for salary employees</p>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <p>
+                  <strong>Available Sick Time:</strong>{" "}
+                  {request.available_sick_time.toFixed(1)} Hours
+                </p>
+                {request.use_sick_time && request.hours_deducted && (
+                  <p className="text-sm text-muted-foreground">
+                    Potential usage with this request:{" "}
+                    {request.hours_deducted.toFixed(1)} hours
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <Switch
+                  checked={request.use_sick_time}
+                  onCheckedChange={(checked) =>
+                    timeUsageMutation.mutate({
+                      requestId: request.request_id,
+                      useSickTime: checked,
+                      useVacationTime: false,
+                    })
+                  }
+                  disabled={
+                    request.use_vacation_time ||
+                    (request.available_sick_time <= 0 && !request.use_sick_time)
+                  }
+                />
+                <span>Use Sick Time</span>
+              </div>
+            </>
+          )}
         </div>
         <div>
-          <p>
-            <strong>Available Vacation Time:</strong> {request.vacation_time}{" "}
-            Hours
-          </p>
           {request.pay_type?.toLowerCase() === "salary" ? (
-            <div className="flex items-center space-x-2 mt-2">
-              <Switch
-                checked={request.use_vacation_time}
-                onCheckedChange={(checked) =>
-                  timeUsageMutation.mutate({
-                    requestId: request.request_id,
-                    useSickTime: false,
-                    useVacationTime: checked,
-                  })
-                }
-                disabled={request.use_sick_time}
-              />
-              <span>Use Vacation Time</span>
-            </div>
+            <>
+              <p>
+                <strong>Available Vacation Time:</strong>{" "}
+                {request.vacation_time} Hours
+              </p>
+              <div className="flex items-center space-x-2 mt-2">
+                <Switch
+                  checked={request.use_vacation_time}
+                  onCheckedChange={(checked) =>
+                    timeUsageMutation.mutate({
+                      requestId: request.request_id,
+                      useSickTime: false,
+                      useVacationTime: checked,
+                    })
+                  }
+                />
+                <span>Use Vacation Time</span>
+              </div>
+            </>
           ) : (
             <p className="text-sm mt-2">
               Not applicable for non-salaried employees
@@ -597,16 +603,16 @@ export default function ApproveRequestsPage() {
     const subject = action.startsWith("Custom: Left Early @")
       ? "Left Early Notification"
       : action === "deny"
-      ? "Time Off Request Denied"
-      : action === "called_out"
-      ? "You've Called Out"
-      : action === "left_early"
-      ? "You've Left Early"
-      : action === "time_off"
-      ? "Time Off Request Approved"
-      : action.startsWith("Custom: ")
-      ? "Time Off Request Approval"
-      : "Time Off Request Status Update";
+        ? "Time Off Request Denied"
+        : action === "called_out"
+          ? "You've Called Out"
+          : action === "left_early"
+            ? "You've Left Early"
+            : action === "time_off"
+              ? "Time Off Request Approved"
+              : action.startsWith("Custom: ")
+                ? "Time Off Request Approval"
+                : "Time Off Request Status Update";
 
     // Chain mutations
     return Promise.resolve()
@@ -714,7 +720,7 @@ export default function ApproveRequestsPage() {
       handleRequest(
         dialogState.currentRequestId,
         `Custom: Left Early @ ${dialogState.time}` as RequestAction,
-        "Your Schedule Has Been Updated To Reflect That You Left Early."
+        `Your schedule has been updated to reflect that you left early at ${dialogState.time}.`
       );
       leftEarlyDialogMutation.mutate({
         isOpen: false,
@@ -780,96 +786,7 @@ export default function ApproveRequestsPage() {
                     </div>
                   </TabsContent>
                   <TabsContent value="time">
-                    {(() => {
-                      // Get current year's actual used sick time
-                      const currentYearUsage =
-                        request.sick_time_history?.reduce(
-                          (total, record) => total + (record.hours_used || 0),
-                          0
-                        ) || 0;
-
-                      // Use the pre-calculated hours_deducted from the request
-                      const requestHours = request.hours_deducted || 0;
-
-                      // Calculate potential usage based on switch state
-                      const potentialUsage = request.use_sick_time
-                        ? requestHours
-                        : 0;
-                      const adjustedYearUsage =
-                        currentYearUsage + potentialUsage;
-                      const remainingSickTime = 40 - adjustedYearUsage; // 40 hours annual limit
-
-                      return (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <div className="space-y-1">
-                              <p>
-                                <strong>Available Sick Time:</strong>{" "}
-                                {Math.max(0, remainingSickTime).toFixed(1)}{" "}
-                                Hours
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Used this year: {currentYearUsage.toFixed(1)}{" "}
-                                hours
-                              </p>
-                              {request.use_sick_time && (
-                                <p className="text-sm text-muted-foreground">
-                                  Potential usage with this request:{" "}
-                                  {adjustedYearUsage.toFixed(1)} hours{" "}
-                                  <span className="text-muted-foreground">
-                                    (+{requestHours.toFixed(1)} scheduled hours)
-                                  </span>
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Switch
-                                checked={request.use_sick_time}
-                                onCheckedChange={(checked) =>
-                                  timeUsageMutation.mutate({
-                                    requestId: request.request_id,
-                                    useSickTime: checked,
-                                    useVacationTime: false,
-                                  })
-                                }
-                                disabled={
-                                  request.use_vacation_time ||
-                                  (remainingSickTime <= 0 &&
-                                    !request.use_sick_time)
-                                }
-                              />
-                              <span>Use Sick Time</span>
-                            </div>
-                          </div>
-                          <div>
-                            <p>
-                              <strong>Available Vacation Time:</strong>{" "}
-                              {request.vacation_time} Hours
-                            </p>
-                            {request.pay_type?.toLowerCase() === "salary" ? (
-                              <div className="flex items-center space-x-2 mt-2">
-                                <Switch
-                                  checked={request.use_vacation_time}
-                                  onCheckedChange={(checked) =>
-                                    timeUsageMutation.mutate({
-                                      requestId: request.request_id,
-                                      useSickTime: false,
-                                      useVacationTime: checked,
-                                    })
-                                  }
-                                  disabled={request.use_sick_time}
-                                />
-                                <span>Use Vacation Time</span>
-                              </div>
-                            ) : (
-                              <p className="text-sm mt-2">
-                                Not applicable for non-salaried employees
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    {renderTimeUsageSwitches(request)}
                   </TabsContent>
                   <TabsContent value="actions">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
