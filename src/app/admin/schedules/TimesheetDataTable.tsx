@@ -51,6 +51,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { startOfWeek, endOfWeek, addWeeks, isWithinInterval } from "date-fns";
+import { formatHoursAndMinutes } from "@/utils/format-hours";
 
 interface TimesheetData {
   id: number;
@@ -174,14 +175,12 @@ export function TimesheetDataTable({
 
   // Calculate summaries based on selected date range or current pay period
   const payPeriodSummaries = React.useMemo(() => {
-    // Get the date range to use for summaries
     let startDate, endDate;
 
     if (date?.from) {
       startDate = date.from;
       endDate = date.to || date.from;
     } else {
-      // Fall back to current pay period if no date range selected
       const { periodStart, periodEnd } = getCurrentPayPeriod();
       startDate = periodStart;
       endDate = periodEnd;
@@ -189,6 +188,11 @@ export function TimesheetDataTable({
 
     const summaries = new Map<string, PayPeriodSummary>();
 
+    // Create a map to track daily and weekly hours for each employee
+    const dailyHours = new Map<string, Map<string, number>>();
+    const weeklyHours = new Map<string, Map<string, number>>();
+
+    // Process each timesheet entry
     filteredInitialData.forEach((timesheet) => {
       if (
         !timesheet.employee_name ||
@@ -204,32 +208,72 @@ export function TimesheetDataTable({
       const hours = parseFloat(timesheet.total_hours);
       if (isNaN(hours)) return;
 
-      const currentSummary = summaries.get(timesheet.employee_name) || {
+      const employeeName = timesheet.employee_name;
+      const dateStr = format(eventDate, "yyyy-MM-dd");
+      const weekStr = format(startOfWeek(eventDate), "yyyy-MM-dd");
+
+      // Initialize maps if they don't exist
+      if (!dailyHours.has(employeeName)) {
+        dailyHours.set(employeeName, new Map());
+      }
+      if (!weeklyHours.has(employeeName)) {
+        weeklyHours.set(employeeName, new Map());
+      }
+
+      // Update daily hours
+      const employeeDailyHours = dailyHours.get(employeeName)!;
+      employeeDailyHours.set(
+        dateStr,
+        (employeeDailyHours.get(dateStr) || 0) + hours
+      );
+
+      // Update weekly hours
+      const employeeWeeklyHours = weeklyHours.get(employeeName)!;
+      employeeWeeklyHours.set(
+        weekStr,
+        (employeeWeeklyHours.get(weekStr) || 0) + hours
+      );
+
+      // Get or create summary for employee
+      const currentSummary = summaries.get(employeeName) || {
         regularHours: 0,
         overtimeHours: 0,
         startDate,
         endDate,
       };
 
-      // For selected date ranges, treat all hours as regular hours
-      if (date?.from) {
-        currentSummary.regularHours += hours;
-      } else {
-        // Only apply overtime rules for current pay period
-        if (currentSummary.regularHours < 80) {
-          const remainingRegular = 80 - currentSummary.regularHours;
-          if (hours <= remainingRegular) {
-            currentSummary.regularHours += hours;
-          } else {
-            currentSummary.regularHours = 80;
-            currentSummary.overtimeHours += hours - remainingRegular;
-          }
-        } else {
-          currentSummary.overtimeHours += hours;
-        }
+      // Calculate overtime based on rules
+      let regularHours = hours;
+      let overtimeHours = 0;
+
+      // Check daily overtime (over 8 hours)
+      const dailyTotal = employeeDailyHours.get(dateStr) || 0;
+      if (dailyTotal > 8) {
+        const dailyOvertime = dailyTotal - 8;
+        regularHours = hours - dailyOvertime;
+        overtimeHours = dailyOvertime;
       }
 
-      summaries.set(timesheet.employee_name, currentSummary);
+      // Check weekly overtime (over 40 hours)
+      const weeklyTotal = employeeWeeklyHours.get(weekStr) || 0;
+      if (weeklyTotal > 40) {
+        const weeklyOvertime = Math.min(regularHours, weeklyTotal - 40);
+        regularHours -= weeklyOvertime;
+        overtimeHours += weeklyOvertime;
+      }
+
+      // Check pay period overtime (over 80 hours)
+      const totalRegularHours = currentSummary.regularHours + regularHours;
+      if (totalRegularHours > 80) {
+        const periodOvertime = totalRegularHours - 80;
+        regularHours -= periodOvertime;
+        overtimeHours += periodOvertime;
+      }
+
+      // Update summary
+      currentSummary.regularHours += regularHours;
+      currentSummary.overtimeHours += overtimeHours;
+      summaries.set(employeeName, currentSummary);
     });
 
     return summaries;
@@ -496,9 +540,11 @@ export function TimesheetDataTable({
       summaryRows.push([
         employeeName,
         `${format(summary.startDate, "MM/dd/yyyy")} - ${format(summary.endDate, "MM/dd/yyyy")}`,
-        summary.regularHours.toFixed(2),
-        summary.overtimeHours.toFixed(2),
-        (summary.regularHours + summary.overtimeHours).toFixed(2),
+        formatHoursAndMinutes(String(summary.regularHours)),
+        formatHoursAndMinutes(String(summary.overtimeHours)),
+        formatHoursAndMinutes(
+          String(summary.regularHours + summary.overtimeHours)
+        ),
       ]);
     });
 
@@ -593,7 +639,9 @@ export function TimesheetDataTable({
           lunchStart,
           lunchEnd,
           safeFormatTime(item.end_time),
-          item.total_hours || "",
+          item.total_hours
+            ? formatHoursAndMinutes(String(item.total_hours))
+            : "",
           getLunchDuration(lunchStart, lunchEnd),
         ];
       })
@@ -774,6 +822,12 @@ export function TimesheetDataTable({
                             )}
                       </th>
                     ))}
+                    <th className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal">
+                      Overtime
+                    </th>
+                    <th className="px-1 py-1 text-left text-xs font-medium uppercase tracking-normal">
+                      Actions
+                    </th>
                   </tr>
                 ))}
               </thead>
@@ -822,14 +876,18 @@ export function TimesheetDataTable({
                                   : ""
                               }
                             >
-                              {summary.regularHours.toFixed(2)} hours
+                              {formatHoursAndMinutes(
+                                String(summary.regularHours)
+                              )}
                             </span>
                           )}
                         </td>
                         <td className="py-2">
                           {summary && summary.overtimeHours > 0 && (
                             <span className="text-red-600">
-                              {summary.overtimeHours.toFixed(2)}h
+                              {formatHoursAndMinutes(
+                                String(summary.overtimeHours)
+                              )}
                             </span>
                           )}
                         </td>

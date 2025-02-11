@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import AddTimesheetForm from "./AddTimesheetForm";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatHoursAndMinutes } from "@/utils/format-hours";
 
 interface ScheduleData {
   id: number;
@@ -273,7 +274,7 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
             className={hours > 8 ? "text-red-500 font-medium" : ""}
             title={`Total Hours: ${hours}`}
           >
-            {String(totalHours)}
+            {formatHoursAndMinutes(String(totalHours))} hours
           </span>
         );
       } catch (error) {
@@ -602,23 +603,23 @@ const ManageSchedules = () => {
           .from("employee_clock_events")
           .update(timesheetData)
           .match({ id: existingEntry.id });
-        
+
         if (error) throw error;
         return { updated: true };
       }
-      
+
       const { error } = await supabase
         .from("employee_clock_events")
         .insert(timesheetData);
-      
+
       if (error) throw error;
       return { inserted: true };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["timesheets"] });
       toast.success(
-        result.updated 
-          ? "Timesheet entry updated successfully" 
+        result.updated
+          ? "Timesheet entry updated successfully"
           : "Timesheet entry added successfully"
       );
     },

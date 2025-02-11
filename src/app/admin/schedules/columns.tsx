@@ -3,6 +3,7 @@ import { ColumnDef as BaseColumnDef } from "@tanstack/react-table";
 import { ScheduleColumnHeader } from "./schedule-column-header";
 import { parseISO } from "date-fns";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { formatHoursAndMinutes } from "@/utils/format-hours";
 
 export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
   TData,
@@ -115,11 +116,7 @@ export const columns: ColumnDef<ScheduleData>[] = [
     header: "Total Hours",
     cell: ({ row }) => {
       const totalHours = row.getValue("total_hours");
-      if (typeof totalHours === "string") {
-        const hours = parseFloat(totalHours);
-        return hours.toFixed(2);
-      }
-      return totalHours;
+      return formatHoursAndMinutes(totalHours as string);
     },
     meta: {
       style: { width: "100px" },
