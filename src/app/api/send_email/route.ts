@@ -26,23 +26,24 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-  if (!email || !subject || !templateName) {
-    return NextResponse.json(
-      {
-        error: "Missing required fields",
-        details: { email, subject, templateName },
-      },
-      { status: 400 }
-    );
-  }
+    if (!email || !subject || !templateName) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields",
+          details: { email, subject, templateName },
+        },
+        { status: 400 }
+      );
+    }
 
- 
     let emailTemplate;
     let fromEmail;
 
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
         break;
       case "CalledOut":
         emailTemplate = CalledOut({
-          ...templateData,
+          name: templateData.name,
           date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
@@ -100,15 +101,15 @@ export async function POST(request: Request) {
         });
         fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
         break;
-        case "GunsmithNewRequest":
-          emailTemplate = GunsmithNewRequest({
-            firearmId: templateData.firearmId,
-            firearmName: templateData.firearmName,
-            requestedBy: templateData.requestedBy,
-            requestMessage: templateData.requestMessage,
-          });
-          fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
-          break;
+      case "GunsmithNewRequest":
+        emailTemplate = GunsmithNewRequest({
+          firearmId: templateData.firearmId,
+          firearmName: templateData.firearmName,
+          requestedBy: templateData.requestedBy,
+          requestMessage: templateData.requestMessage,
+        });
+        fromEmail = `TGR <request@${process.env.RESEND_DOMAIN}>`;
+        break;
       case "OrderCustomerContacted":
         emailTemplate = OrderCustomerContacted({
           id: templateData.id,

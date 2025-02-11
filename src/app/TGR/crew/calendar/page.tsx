@@ -975,8 +975,12 @@ export default function Component() {
         } else if (status === "called_out") {
           emailPayload = {
             ...emailPayload,
-            subject: "Called Out Confirmation",
+            subject: "Called Out Notification",
             templateName: "CalledOut",
+            templateData: {
+              name: employeeData.name,
+              date: emailDisplayDate,
+            },
           };
         } else if (status.startsWith("Left Early @")) {
           // Handle Left Early status
