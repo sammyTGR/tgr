@@ -678,7 +678,7 @@ export function TimesheetDataTable({
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-h-[80vh]">
+    <div className="flex flex-col h-full w-full max-h-[80vh] px-1 sm:px-4">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
           <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">
@@ -817,14 +817,14 @@ export function TimesheetDataTable({
           )}
         </Button>
       </div>
-      <div className="overflow-y-auto">
+      <div className="overflow-y-auto -mx-4 sm:mx-0">
         <ScrollArea
           className={cn(
             "transition-all duration-200 ease-in-out",
             isTableExpanded ? "h-[calc(100vh-200px)]" : "h-[500px]"
           )}
         >
-          <div className="flex relative">
+          <div className="flex relative min-w-[calc(100vw-50px)]">
             <table className="w-full divide-y divide-gray-200">
               <thead className="sticky top-0 bg-background z-5">
                 {table.getHeaderGroups().map((headerGroup) => (
