@@ -16,6 +16,7 @@ import EmployeeOvertimeAlert from "../../../../emails/EmployeeOvertimeAlert";
 import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotification";
 import GunsmithNewRequest from "../../../../emails/GunsmithNewRequest";
 import LateStart from "../../../../emails/LateStart";
+import NoCallNoShow from "../../../../emails/NoCallNoShow";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -169,6 +170,13 @@ export async function POST(request: Request) {
           employeeName: templateData.employeeName,
           clockInTime: templateData.clockInTime,
           currentTime: templateData.currentTime,
+        });
+        fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "NoCallNoShow":
+        emailTemplate = NoCallNoShow({
+          name: templateData.name,
+          date: templateData.date,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;

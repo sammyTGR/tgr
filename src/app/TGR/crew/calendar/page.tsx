@@ -1003,6 +1003,16 @@ export default function Component() {
               status: status.replace("Custom:", "").trim(),
             },
           };
+        } else if (status === "no_call_no_show") {
+          emailPayload = {
+            ...emailPayload,
+            subject: "No Call No Show Alert",
+            templateName: "NoCallNoShow",
+            templateData: {
+              name: employeeData.name,
+              date: emailDisplayDate,
+            },
+          };
         }
 
         const emailResponse = await fetch("/api/send_email", {
@@ -1133,6 +1143,12 @@ export default function Component() {
         case "called_out":
           return (
             <div className="text-red-600 dark:text-red-600">Called Out</div>
+          );
+        case "no_call_no_show":
+          return (
+            <div className="text-red-600 dark:text-red-500">
+              No Call No Show
+            </div>
           );
         case "left_early":
           return (
@@ -1493,6 +1509,18 @@ export default function Component() {
                     </div>
                   </DialogContent>
                 </Dialog>
+                <Button
+                  variant="linkHover2"
+                  onClick={() => {
+                    updateStatusMutation.mutate({
+                      employee_id: calendarEvent.employee_id,
+                      schedule_date: calendarEvent.schedule_date,
+                      status: "no_call_no_show",
+                    });
+                  }}
+                >
+                  No Call No Show
+                </Button>
               </PopoverContent>
             </Popover>
           </div>
