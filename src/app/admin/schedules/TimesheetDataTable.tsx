@@ -47,7 +47,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { startOfWeek, endOfWeek, addWeeks, isWithinInterval } from "date-fns";
@@ -107,6 +107,7 @@ export function TimesheetDataTable({
   const [open, setOpen] = React.useState(false);
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>("");
   const supabase = createClientComponentClient();
+  const [isTableExpanded, setIsTableExpanded] = React.useState(false);
 
   const { data: employees } = useQuery({
     queryKey: ["activeEmployees"],
@@ -802,8 +803,27 @@ export function TimesheetDataTable({
           </div>
         </div>
       </div>
-      <div className="overflow-auto">
-        <ScrollArea className="h-[calc(100vh-600px)]">
+      <div className="flex justify-end mb-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsTableExpanded(!isTableExpanded)}
+          className="h-8 w-8 p-0"
+        >
+          {isTableExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+      <div className="overflow-y-auto">
+        <ScrollArea
+          className={cn(
+            "transition-all duration-200 ease-in-out",
+            isTableExpanded ? "h-[calc(100vh-200px)]" : "h-[500px]"
+          )}
+        >
           <div className="flex relative">
             <table className="w-full divide-y divide-gray-200">
               <thead className="sticky top-0 bg-background z-5">

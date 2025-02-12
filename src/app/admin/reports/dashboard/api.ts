@@ -597,7 +597,14 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       // Simplify Gun Range Rental categorization
       else if (item.CatDesc === "Gun Range Rental") {
         category = "Gun Range Rental";
-        variant = item.Mfg?.trim() || "Unknown";
+        if (
+          item.SubDesc === "Shooting Bag" ||
+          item.SubDesc === "Shooting Sled"
+        ) {
+          variant = item.SubDesc;
+        } else {
+          variant = item.SubDesc?.trim() || "Unknown";
+        }
       }
 
       // Add firearms categorization
