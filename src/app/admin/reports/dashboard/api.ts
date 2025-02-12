@@ -21,6 +21,26 @@ interface KPIGroup {
 
 type KPIGroups = Record<string, KPIGroup>;
 
+// Add at the top with other interfaces
+interface SalesItem {
+  id: string;
+  Desc: string;
+  Qty: number;
+  Margin: number;
+  SoldDate: string;
+  SubDesc: string;
+  CatDesc: string;
+  MPN: string;
+  Mfg: string;
+}
+
+interface KPIResult {
+  qty: number;
+  revenue: number;
+  variants: Record<string, { qty: number; revenue: number }>;
+  group: string;
+}
+
 // Fetch functions
 export const fetchSuggestions = async () => {
   const { data, error } = await supabase
@@ -333,104 +353,164 @@ export const replySuggestion = async ({
 };
 
 export const fetchKPIData = async (startDate: Date, endDate: Date) => {
-  // Ensure we have valid dates and set them to start/end of day
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
+  try {
+    // Ensure we have valid dates and set them to start/end of day
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
 
-  const end = new Date(endDate);
-  end.setHours(23, 59, 59, 999);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
 
-  // Format dates for Supabase query
-  const formattedStartDate = start.toISOString().split("T")[0];
-  const formattedEndDate = end.toISOString().split("T")[0];
+    // Format dates for Supabase query
+    const formattedStartDate = start.toISOString();
+    const formattedEndDate = end.toISOString();
 
-  let allData: any[] = [];
-  let page = 0;
-  const pageSize = 1000;
-  let hasMore = true;
+    // Add validation for dates
+    if (start > end) {
+      throw new Error("Start date cannot be after end date");
+    }
 
-  // Create a Set to track processed items
-  const processedItems = new Set();
+    let allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-  while (hasMore) {
-    let query = supabase
-      .from("detailed_sales_data")
-      .select(
+    // Create a Set to track processed items
+    const processedItems = new Set();
+
+    while (hasMore) {
+      let query = supabase
+        .from("detailed_sales_data")
+        .select(
+          `
+          id,
+          Desc,
+          Qty,
+          Margin,
+          SoldDate,
+          SubDesc,
+          CatDesc,
+          MPN,
+          Mfg
         `
-      id,
-      Desc,
-      Qty,
-      Margin,
-      SoldDate,
-      SubDesc,
-      CatDesc,
-      MPN,
-      Mfg
-    `
-      )
-      .or(
-        `Desc.ilike.%Gunsmithing%,` +
-          `Desc.ilike.%Pistol Optic Zero Fee%,` +
-          `Desc.ilike.%Sight In/ Function Fee%,` +
-          `Desc.ilike.%Laser Engraving%,` +
-          `Desc.ilike.%Reloaded%,` +
-          `SubDesc.eq.Targets,` +
-          `CatDesc.eq.Station Rental,` +
-          `CatDesc.eq.Gun Range Rental,` +
-          `CatDesc.eq.Ammunition,` +
-          `CatDesc.eq.Pistol,` +
-          `CatDesc.eq.Receiver,` +
-          `CatDesc.eq.Revolver,` +
-          `CatDesc.eq.Rifle,` +
-          `CatDesc.eq.Shotgun,` +
-          `and(CatDesc.eq.Personal Protection Equipment,SubDesc.in.(Eye Protection,Ear Protection))`
-      );
+        )
+        .or(
+          `Desc.eq.Ear Muffs,` +
+            `Desc.eq.12 & Under Earmuff Rentals,` +
+            `Desc.eq.Disposable Earplugs 32db 1 Pair,` +
+            `Desc.eq.3M Disposable earplugs 1 pair/pack 200 pack/case,` +
+            `Desc.eq.Mirage Clear Lens Safety Glasses,` +
+            `Desc.eq.Radians Mirage Clear Lens Safety Glasses,` +
+            `Desc.ilike.%Gunsmithing%,` +
+            `Desc.ilike.%Pistol Optic Zero Fee%,` +
+            `Desc.ilike.%Sight In/ Function Fee%,` +
+            `Desc.ilike.%Laser Engraving%,` +
+            `Desc.ilike.%Reloaded%,` +
+            `SubDesc.eq.Targets,` +
+            `CatDesc.eq.Station Rental,` +
+            `CatDesc.eq.Gun Range Rental,` +
+            `CatDesc.eq.Ammunition,` +
+            `CatDesc.eq.Pistol,` +
+            `CatDesc.eq.Receiver,` +
+            `CatDesc.eq.Revolver,` +
+            `CatDesc.eq.Rifle,` +
+            `CatDesc.eq.Shotgun`
+        )
+        .gte("SoldDate", formattedStartDate)
+        .lte("SoldDate", formattedEndDate);
 
-    // Single date vs date range handling
-    if (formattedStartDate === formattedEndDate) {
-      query = query.filter("SoldDate", "eq", formattedStartDate);
-    } else {
-      query = query
-        .filter("SoldDate", "gte", formattedStartDate)
-        .filter("SoldDate", "lte", formattedEndDate);
+      // Add debug logging right after the query
+      // console.log("Full query:", query.toString());
+
+      const { data, error } = await query
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+        .order("SoldDate", { ascending: true });
+
+      // Add detailed logging for the raw data
+      // console.log(
+      //   "Raw data for 2/11/2025:",
+      //   data?.filter((item) => {
+      //     const itemDate = new Date(item.SoldDate).toISOString().split("T")[0];
+      //     return itemDate === "2025-02-11";
+      //   })
+      // );
+
+      if (error) {
+        console.error("KPI Data fetch error:", error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        // Modify the processedItems check to be more specific
+        const processedData = data.filter((item) => {
+          // Create a more detailed unique identifier
+          const itemId = `${item.SoldDate}-${item.Desc}-${item.id}`; // Changed to use item.id instead
+          if (processedItems.has(itemId)) {
+            // console.log("Duplicate found:", itemId);
+            return false;
+          }
+          processedItems.add(itemId);
+          return true;
+        });
+
+        allData = [...allData, ...processedData];
+        page++;
+        hasMore = data.length === pageSize;
+      }
     }
 
-    const { data, error } = await query
-      .range(page * pageSize, (page + 1) * pageSize - 1)
-      .order("SoldDate", { ascending: true });
-
-    if (error) {
-      console.error("KPI Data fetch error:", error);
-      throw error;
-    }
-
-    if (!data || data.length === 0) {
-      hasMore = false;
-    } else {
-      // Filter data to ensure it's within the exact date range
-      const filteredData = data.filter((item) => {
-        const itemDate = new Date(item.SoldDate);
-        return itemDate >= start && itemDate <= end;
+    // Add debug logging for empty results
+    if (allData.length === 0) {
+      console.warn("No KPI data found for date range:", {
+        start: formattedStartDate,
+        end: formattedEndDate,
       });
-
-      // Filter out processed items
-      const processedData = filteredData.filter((item) => {
-        const itemId = `${item.SoldDate}-${item.SubDesc}-${item.Margin}-${item.Qty}`;
-        if (processedItems.has(itemId)) {
-        }
-        processedItems.add(itemId);
-        return true;
-      });
-
-      allData = [...allData, ...processedData];
-      page++;
-      hasMore = data.length === pageSize;
     }
-  }
 
-  // Group and aggregate the data
-  const kpiGroups = allData.reduce(
-    (acc, item) => {
+    // Add this specific debug logging
+    // console.log(
+    //   "2/11/2025 PPE Breakdown:",
+    //   allData
+    //     .filter((item) => {
+    //       const itemDate = new Date(item.SoldDate).toISOString().split("T")[0];
+    //       return (
+    //         itemDate === "2025-02-11" &&
+    //         [
+    //           "Ear Muffs",
+    //           "12 & Under Earmuff Rentals",
+    //           "Disposable Earplugs 32db 1 Pair",
+    //           "3M Disposable earplugs 1 pair/pack 200 pack/case",
+    //           "Mirage Clear Lens Safety Glasses",
+    //           "Radians Mirage Clear Lens Safety Glasses",
+    //         ].includes(item.Desc)
+    //       );
+    //     })
+    //     .reduce(
+    //       (acc, item) => {
+    //         if (!acc[item.Desc]) {
+    //           acc[item.Desc] = {
+    //             count: 0,
+    //             totalQty: 0,
+    //             totalMargin: 0,
+    //           };
+    //         }
+    //         acc[item.Desc].count++;
+    //         acc[item.Desc].totalQty += Number(item.Qty) || 0;
+    //         acc[item.Desc].totalMargin +=
+    //           (Number(item.Qty) || 0) * (Number(item.Margin) || 0);
+    //         return acc;
+    //       },
+    //       {} as Record<
+    //         string,
+    //         { count: number; totalQty: number; totalMargin: number }
+    //       >
+    //     )
+    // );
+
+    // Group and aggregate the data
+    const kpiGroups = allData.reduce<Record<string, KPIResult>>((acc, item) => {
       let category = "";
       let variant = "";
       const desc = item.Desc?.toLowerCase() || "";
@@ -456,24 +536,34 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       } else if (desc.includes("laser engraving")) {
         category = "Laser Engraving/Stippling";
         variant = item.Desc?.trim() || "Unknown";
-      } else if (item.CatDesc === "Ammunition" && desc.includes("reloaded")) {
-        category = "Reloaded Ammunition";
-        variant = item.Desc?.trim() || "Unknown";
+      } else if (item.CatDesc === "Ammunition") {
+        if (desc.includes("reloaded")) {
+          category = "Reloads";
+          variant = item.Desc?.trim() || "Unknown";
+        } else {
+          category = "Factory Ammo";
+          variant = item.Mfg?.trim() || "Unknown Manufacturer";
+        }
       }
       // Range Rentals categorization logic
       else if (item.SubDesc === "Targets") {
         category = "Range Targets";
         // variant = item.Desc?.trim() || "Unknown";
       } else if (
-        item.CatDesc === "Personal Protection Equipment" &&
-        item.SubDesc &&
-        ["Ear Protection", "Eye Protection"].includes(item.SubDesc.trim())
+        [
+          "Ear Muffs",
+          "12 & Under Earmuff Rentals",
+          "Disposable Earplugs 32db 1 Pair",
+          "3M Disposable earplugs 1 pair/pack 200 pack/case",
+          "Mirage Clear Lens Safety Glasses",
+          "Radians Mirage Clear Lens Safety Glasses",
+        ].includes(item.Desc)
       ) {
         category = "Range Protection Equipment";
-        variant = item.SubDesc.trim();
+        variant = item.Desc; // Use exact description as variant
 
-        // Create a unique key using available data
-        const itemKey = `${item.SoldDate}-${item.SubDesc}-${item.Margin}-${item.Qty}`;
+        const qty = Number(item.Qty) || 0;
+        const margin = Number(item.Margin) || 0;
 
         if (!acc[category]) {
           acc[category] = {
@@ -484,88 +574,40 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
           };
         }
 
-        if (!processedItems.has(itemKey)) {
-          const qty = Number(item.Qty) || 0;
-          const revenue = Number(item.Margin) || 0;
+        // Update category totals
+        acc[category].qty += qty;
+        acc[category].revenue += margin * qty;
 
-          acc[category].qty += qty;
-          acc[category].revenue += revenue;
-
-          if (!acc[category].variants[variant]) {
-            acc[category].variants[variant] = { qty: 0, revenue: 0 };
-          }
-          acc[category].variants[variant].qty += qty;
-          acc[category].variants[variant].revenue += revenue;
-
-          processedItems.add(itemKey);
-
-          console.log(
-            "Raw PPE Data:",
-            allData.filter(
-              (item) =>
-                item.CatDesc === "Personal Protection Equipment" &&
-                ["Ear Protection", "Eye Protection"].includes(
-                  item.SubDesc?.trim()
-                )
-            )
-          );
-
-          // In the PPE processing section:
-          console.log("Processing PPE item:", {
-            date: item.SoldDate,
-            subDesc: item.SubDesc,
-            qty: Number(item.Qty),
-            revenue: Number(item.Margin),
-            itemKey,
-          });
+        // Initialize variant if it doesn't exist
+        if (!acc[category].variants[variant]) {
+          acc[category].variants[variant] = { qty: 0, revenue: 0 };
         }
+
+        // Update variant totals
+        acc[category].variants[variant].qty += qty;
+        acc[category].variants[variant].revenue += margin * qty;
+
+        // Skip the rest of the categorization logic for these items
+        return acc;
       } else if (item.CatDesc === "Station Rental") {
         category = "Range Station Rental";
         variant = item.SubDesc?.trim() || "Standard Station Rental";
       }
 
-      // Add new Gun Range Rental category
+      // Simplify Gun Range Rental categorization
+      else if (item.CatDesc === "Gun Range Rental") {
+        category = "Gun Range Rental";
+        variant = item.Mfg?.trim() || "Unknown";
+      }
+
+      // Add firearms categorization
       else if (
-        item.CatDesc === "Gun Range Rental" &&
-        item.SubDesc &&
-        !["Ear Muffs", "12 & Under Earmuff Rentals", ""].includes(
-          item.SubDesc.trim()
+        ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].includes(
+          item.CatDesc
         )
       ) {
-        category = "Gun Range Rental";
-        // variant = item.Desc?.trim() || "Unknown";
-      }
-
-      // In the reduce function, add new categories for ammunition
-      if (item.CatDesc === "Ammunition") {
-        if (
-          item.SubDesc === "Reloaded" &&
-          item.Desc.toLowerCase().includes("reloaded")
-        ) {
-          category = "Reloads";
-          variant = item.Desc?.trim() || "Unknown";
-        } else if (item.SubDesc === "Factory New") {
-          category = "Factory Ammo";
-          variant = item.Mfg?.trim() || "Unknown";
-        }
-      }
-
-      // Update firearms categorization logic to use Mfg
-      if (item.CatDesc === "Pistol") {
-        category = "Pistol";
-        variant = item.Mfg?.trim() || "Unknown Manufacturer";
-      } else if (item.CatDesc === "Receiver") {
-        category = "Receiver";
-        variant = item.Mfg?.trim() || "Unknown Manufacturer";
-      } else if (item.CatDesc === "Revolver") {
-        category = "Revolver";
-        variant = item.Mfg?.trim() || "Unknown Manufacturer";
-      } else if (item.CatDesc === "Rifle") {
-        category = "Rifle";
-        variant = item.Mfg?.trim() || "Unknown Manufacturer";
-      } else if (item.CatDesc === "Shotgun") {
-        category = "Shotgun";
-        variant = item.Mfg?.trim() || "Unknown Manufacturer";
+        category = item.CatDesc;
+        variant = item.Mfg?.trim() || "Unknown";
       }
 
       if (category) {
@@ -574,43 +616,124 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
             qty: 0,
             revenue: 0,
             variants: {},
-            group: category.startsWith("Range")
-              ? "Range Rentals"
-              : ["Pistol", "Receiver", "Revolver", "Rifle", "Shotgun"].includes(
-                    category
-                  )
-                ? "Firearms"
-                : "Services",
+            group: [
+              "Ear Muffs Rental",
+              "12 & Under Ear Protection",
+              "Disposable Protection",
+            ].includes(category)
+              ? "Range Protection"
+              : category.startsWith("Range") || category === "PPE"
+                ? "Range Rentals"
+                : [
+                      "Pistol",
+                      "Receiver",
+                      "Revolver",
+                      "Rifle",
+                      "Shotgun",
+                    ].includes(category)
+                  ? "Firearms"
+                  : "Services",
           };
         }
 
         const qty = Number(item.Qty) || 0;
-        const revenue = Number(item.Margin) || 0;
+        const margin = Number(item.Margin) || 0;
+        const revenue = qty * margin; // Calculate revenue as qty * margin
 
         // Update category totals
         acc[category].qty += qty;
-        acc[category].revenue += revenue;
+        acc[category].revenue += revenue; // Use calculated revenue
 
         // Track variants
         if (!acc[category].variants[variant]) {
           acc[category].variants[variant] = { qty: 0, revenue: 0 };
         }
         acc[category].variants[variant].qty += qty;
-        acc[category].variants[variant].revenue += revenue;
+        acc[category].variants[variant].revenue += revenue; // Use calculated revenue
       }
 
       return acc;
-    },
-    {} as Record<
-      string,
-      {
-        qty: number;
-        revenue: number;
-        variants: Record<string, { qty: number; revenue: number }>;
-        group: string;
-      }
-    >
-  );
+    }, {});
 
-  return kpiGroups;
+    // Add more specific debug logging
+    // console.log(
+    //   "Protection Equipment Items (Raw):",
+    //   allData.filter((item) =>
+    //     [
+    //       "Ear Muffs",
+    //       "12 & Under Earmuff Rentals",
+    //       "Disposable Earplugs 32db 1 Pair",
+    //       "3M Disposable earplugs 1 pair/pack 200 pack/case",
+    //       "Mirage Clear Lens Safety Glasses",
+    //       "Radians Mirage Clear Lens Safety Glasses",
+    //     ].includes(item.Desc)
+    //   )
+    // );
+
+    // Add debug logging for firearms
+    // console.log(
+    //   "Firearms Items:",
+    //   allData.filter((item) =>
+    //     ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].includes(
+    //       item.CatDesc
+    //     )
+    //   )
+    // );
+
+    // Add specific debug logging for disposable earplugs
+    // console.log(
+    //   "Disposable Earplugs Items:",
+    //   allData.filter(
+    //     (item) =>
+    //       item.Desc === "Disposable Earplugs 32db 1 Pair" ||
+    //       item.Desc === "3M Disposable earplugs 1 pair/pack 200 pack/case"
+    //   )
+    // );
+
+    // Add debug logging for totals
+    // console.log("PPE Totals:", {
+    //   items: allData
+    //     .filter((item) =>
+    //       [
+    //         "Ear Muffs",
+    //         "12 & Under Earmuff Rentals",
+    //         "Disposable Earplugs 32db 1 Pair",
+    //         "3M Disposable earplugs 1 pair/pack 200 pack/case",
+    //         "Mirage Clear Lens Safety Glasses",
+    //         "Radians Mirage Clear Lens Safety Glasses",
+    //       ].includes(item.Desc)
+    //     )
+    //     .reduce(
+    //       (acc, item) => ({
+    //         qty: acc.qty + (Number(item.Qty) || 0),
+    //         revenue:
+    //           acc.revenue +
+    //           (Number(item.Margin) || 0) * (Number(item.Qty) || 0),
+    //       }),
+    //       { qty: 0, revenue: 0 }
+    //     ),
+    // });
+
+    // Update the debug logging
+    // console.log(
+    //   "2/11/2025 Detailed PPE Breakdown:",
+    //   allData
+    //     .filter((item) => {
+    //       const itemDate = new Date(item.SoldDate).toISOString().split("T")[0];
+    //       return itemDate === "2025-02-11";
+    //     })
+    //     .map((item) => ({
+    //       id: item.id,
+    //       Desc: item.Desc,
+    //       Qty: item.Qty,
+    //       Margin: item.Margin,
+    //       Total: (Number(item.Qty) || 0) * (Number(item.Margin) || 0),
+    //     }))
+    // );
+
+    return kpiGroups;
+  } catch (error) {
+    console.error("Error in fetchKPIData:", error);
+    throw error;
+  }
 };
