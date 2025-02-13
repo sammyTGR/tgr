@@ -11,33 +11,22 @@ export async function GET() {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
-    if (userError) {
-      console.error("User auth error:", userError);
-      return NextResponse.json(
-        { error: "Authentication error", details: userError },
-        { status: 401 }
-      );
-    }
-
-    if (!user) {
+    if (userError || !user) {
       // console.log("No user found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {
-      // Fetch sales data first to verify the connection
+      // Verify connection with the new table
       const { data: testData, error: testError } = await supabase
-        .from("sales_data")
+        .from("detailed_sales_data")
         .select("count")
         .single();
 
       if (testError) {
         console.error("Database connection test error:", testError);
         return NextResponse.json(
-          {
-            error: "Database connection error",
-            details: testError,
-          },
+          { error: "Database connection error", details: testError },
           { status: 500 }
         );
       }
@@ -114,40 +103,32 @@ async function fetchYearMetrics(
     // console.log(`Fetching metrics for ${startDate} to ${endDate}`);
 
     const { data: salesData, error: salesError } = await supabase
-      .from("sales_data")
+      .from("detailed_sales_data")
       .select("*")
-      .gte("Date", startDate)
-      .lte("Date", endDate);
+      .gte("SoldDate", startDate)
+      .lte("SoldDate", endDate);
 
-    if (salesError) {
-      console.error(
-        `Sales data fetch error for ${startDate}-${endDate}:`,
-        salesError
-      );
-      return getDefaultMetrics();
-    }
-
-    if (!salesData || salesData.length === 0) {
+    if (salesError || !salesData || salesData.length === 0) {
       // console.log(`No sales data found for ${startDate} to ${endDate}`);
       return getDefaultMetrics();
     }
 
-    // Calculate metrics
+    // Calculate metrics using the new table structure
     const monthlyGrossRevenue = salesData.reduce(
-      (acc: any, sale: any) => acc + (parseFloat(sale.SoldPrice) || 0),
+      (acc: number, sale: any) => acc + (sale.total_gross || 0),
       0
     );
-    const monthlyNetRevenue = salesData.reduce((acc: any, sale: any) => {
-      const soldPrice = parseFloat(sale.SoldPrice) || 0;
-      const cost = parseFloat(sale.Cost) || 0;
-      return acc + (soldPrice - cost);
-    }, 0);
 
-    // Calculate categories performance
+    const monthlyNetRevenue = salesData.reduce(
+      (acc: number, sale: any) => acc + (sale.Margin || 0),
+      0
+    );
+
+    // Calculate categories performance using CatDesc
     const categoryPerformance = salesData.reduce((acc: any, sale: any) => {
-      const category = sale.category_label || "Uncategorized";
+      const category = sale.CatDesc || "Uncategorized";
       if (!acc[category]) acc[category] = 0;
-      acc[category] += parseFloat(sale.SoldPrice) || 0;
+      acc[category] += sale.total_gross || 0;
       return acc;
     }, {});
 
@@ -158,7 +139,7 @@ async function fetchYearMetrics(
 
     // Calculate peak hours
     const hourlyTransactions = salesData.reduce((acc: any, sale: any) => {
-      const hour = new Date(sale.Date).getHours();
+      const hour = new Date(sale.SoldDate).getHours();
       if (!acc[hour]) acc[hour] = 0;
       acc[hour]++;
       return acc;
@@ -168,14 +149,12 @@ async function fetchYearMetrics(
       .map(([hour, transactions]) => ({
         hour: parseInt(hour),
         transactions: transactions as number,
-        formattedHour: `${parseInt(hour) % 12 || 12}${
-          parseInt(hour) < 12 ? "AM" : "PM"
-        }`,
+        formattedHour: `${parseInt(hour) % 12 || 12}${parseInt(hour) < 12 ? "AM" : "PM"}`,
       }))
       .sort((a, b) => b.transactions - a.transactions)
       .slice(0, 5);
 
-    // First, get all transactions for each customer
+    // Customer frequency calculation
     const customerTransactions = salesData.reduce(
       (acc: Record<string, any[]>, sale: any) => {
         if (sale.Acct) {
@@ -184,42 +163,34 @@ async function fetchYearMetrics(
             acc[customerKey] = [];
           }
           acc[customerKey].push({
-            date: new Date(sale.Date),
-            monthKey: new Date(sale.Date).toISOString().slice(0, 7),
+            date: new Date(sale.SoldDate),
+            monthKey: new Date(sale.SoldDate).toISOString().slice(0, 7),
           });
         }
         return acc;
       },
       {}
     );
+    const customerVisitFrequency = Object.entries(customerTransactions).reduce<
+      Record<string, number>
+    >((acc, [customerId, transactions]) => {
+      const monthlyVisits = (transactions as any[]).reduce<
+        Record<string, number>
+      >((monthAcc, trans) => {
+        monthAcc[trans.monthKey] = (monthAcc[trans.monthKey] || 0) + 1;
+        return monthAcc;
+      }, {});
 
-    // Calculate monthly visit frequency for each customer
-    const customerVisitFrequency = Object.entries(customerTransactions).reduce(
-      (
-        acc: Record<string, number>,
-        [customerId, transactions]: [string, unknown]
-      ) => {
-        // Group transactions by month
-        const monthlyVisits = (
-          transactions as Array<{ monthKey: string }>
-        ).reduce((monthAcc: Record<string, number>, trans) => {
-          const monthKey = trans.monthKey;
-          monthAcc[monthKey] = (monthAcc[monthKey] || 0) + 1;
-          return monthAcc;
-        }, {});
+      const avgVisitsPerMonth = Math.round(
+        Object.values(monthlyVisits).reduce(
+          (sum: number, visits: number) => sum + visits,
+          0
+        ) / Object.keys(monthlyVisits).length
+      );
 
-        // Calculate average monthly visits
-        const months = Object.values(monthlyVisits);
-        const avgVisitsPerMonth = Math.round(
-          months.reduce((sum: any, visits: any) => sum + visits, 0) /
-            months.length
-        );
-
-        acc[customerId] = avgVisitsPerMonth;
-        return acc;
-      },
-      {}
-    );
+      acc[customerId] = avgVisitsPerMonth;
+      return acc;
+    }, {});
 
     // console.log(
     //   "Customer visit frequency sample:",
@@ -239,7 +210,7 @@ async function fetchYearMetrics(
       };
     }
 
-    // Categorize customers based on their average monthly visits
+    // Calculate customer frequency percentages
     const firstTimeCount = Object.values(customerVisitFrequency).filter(
       (visits: number) => visits === 1
     ).length;
