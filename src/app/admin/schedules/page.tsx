@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/utils/supabase/client";
 import { useRole } from "@/context/RoleContext";
 import {
@@ -25,6 +25,9 @@ import { format, parseISO } from "date-fns";
 import AddTimesheetForm from "./AddTimesheetForm";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatHoursAndMinutes } from "@/utils/format-hours";
+import { ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ScheduleData {
   id: number;
@@ -286,6 +289,9 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
 ];
 
 const ManageSchedules = () => {
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  );
   const queryClient = useQueryClient();
   const { user } = useRole();
 
@@ -927,6 +933,55 @@ const ManageSchedules = () => {
     }
   };
 
+  const toggleCardExpansion = (cardId: string) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
+
+  interface ExpandableCardProps {
+    id: string;
+    title: string;
+    children: React.ReactNode;
+  }
+
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({
+    id,
+    title,
+    children,
+  }) => {
+    const isExpanded = expandedCards[id];
+
+    return (
+      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{title}</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleCardExpansion(id)}
+            className="h-8 w-8 p-0"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent
+          className={`
+            ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+            space-y-4
+          `}
+        >
+          {children}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Card className="flex flex-col h-full max-w-full sm:max-w-[calc(100vw-32px)] lg:max-w-[calc(100vw-40px)] mx-2 sm:mx-auto my-12">
@@ -1083,28 +1138,28 @@ const ManageSchedules = () => {
           </TabsContent>
 
           <TabsContent value="timesheets">
-            <CardContent className="px-1 sm:px-6">
-              {/* <div className="grid p-2 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader>
-                    <h2 className="text-lg font-bold">Add Timesheet Entry</h2>
-                  </CardHeader>
-                  <CardContent className="flex flex-col mx-auto">
+            <Card>
+              <CardContent className="px-1 sm:px-6">
+                <div className="grid p-2 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+                  <ExpandableCard
+                    id="add-timesheet"
+                    title="Add Timesheet Entry"
+                  >
                     <AddTimesheetForm
                       onTimesheetAdded={handleAddTimeSheetEntry}
                     />
-                  </CardContent>
-                </Card>
-              </div> */}
+                  </ExpandableCard>
+                </div>
 
-              <div className="w-full overflow-hidden">
-                <TimesheetDataTable
-                  columns={timesheetColumns}
-                  data={timesheets}
-                  fetchTimesheets={fetchTimesheets}
-                />
-              </div>
-            </CardContent>
+                <div className="w-full overflow-hidden">
+                  <TimesheetDataTable
+                    columns={timesheetColumns}
+                    data={timesheets}
+                    fetchTimesheets={fetchTimesheets}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </Card>
