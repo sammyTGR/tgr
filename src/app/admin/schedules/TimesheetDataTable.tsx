@@ -817,7 +817,7 @@ export function TimesheetDataTable({
           )}
         </Button>
       </div>
-      <div className="overflow-y-auto -mx-4 sm:mx-0">
+      <div className="overflow-y-auto overflow-x-auto mx-4 sm:mx-0">
         <ScrollArea
           className={cn(
             "transition-all duration-200 ease-in-out",
@@ -944,6 +944,7 @@ export function TimesheetDataTable({
             </table>
           </div>
           <ScrollBar orientation="vertical" />
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
     </div>
