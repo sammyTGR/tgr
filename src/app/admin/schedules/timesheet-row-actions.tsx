@@ -215,8 +215,29 @@ export function TimesheetRowActions({
       if (error) {
         console.error("Error updating timesheet:", error);
       } else if (data && data.length > 0) {
+        // Get current states before invalidation
+        const currentExpandedState = queryClient.getQueryData([
+          "timesheetExpandedState",
+        ]);
+        const currentSortingState = queryClient.getQueryData([
+          "timesheetSortingState",
+        ]);
+
+        // Update the timesheet
         updateTimesheet(data[0] as TimesheetData);
-        fetchTimesheets();
+
+        // Invalidate and refetch timesheets
+        await queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+
+        // Restore states after refetch
+        queryClient.setQueryData(
+          ["timesheetExpandedState"],
+          currentExpandedState
+        );
+        queryClient.setQueryData(
+          ["timesheetSortingState"],
+          currentSortingState
+        );
       }
     }
 
@@ -257,7 +278,9 @@ export function TimesheetRowActions({
       <DropdownMenuContent align="end" className="w-[400px] p-2">
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex items-center gap-2 w-full">
-            <label className="block text-sm font-medium min-w-[80px]">Start Time</label>
+            <label className="block text-sm font-medium min-w-[80px]">
+              Start Time
+            </label>
             <Input
               type="time"
               value={startTime}
@@ -276,7 +299,9 @@ export function TimesheetRowActions({
         </div>
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex items-center gap-2 w-full">
-            <label className="block text-sm font-medium min-w-[80px]">Lunch Start</label>
+            <label className="block text-sm font-medium min-w-[80px]">
+              Lunch Start
+            </label>
             <Input
               type="time"
               value={lunchStart}
@@ -295,7 +320,9 @@ export function TimesheetRowActions({
         </div>
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex items-center gap-2 w-full">
-            <label className="block text-sm font-medium min-w-[80px]">Lunch End</label>
+            <label className="block text-sm font-medium min-w-[80px]">
+              Lunch End
+            </label>
             <Input
               type="time"
               value={lunchEnd}
@@ -314,7 +341,9 @@ export function TimesheetRowActions({
         </div>
         <div className="flex items-center space-x-2 mb-2">
           <div className="flex items-center gap-2 w-full">
-            <label className="block text-sm font-medium min-w-[80px]">End Time</label>
+            <label className="block text-sm font-medium min-w-[80px]">
+              End Time
+            </label>
             <Input
               type="time"
               value={endTime}

@@ -930,7 +930,7 @@ const ManageSchedules = () => {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Card className="flex flex-col h-full max-w-full sm:max-w-[calc(100vw-32px)] lg:max-w-[calc(100vw-40px)] mx-2 sm:mx-auto my-12">
-        <CardHeader className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-muted dark:bg-muted px-6 py-4 border-b rounded-t-lg border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-bold">Manage Employee Schedules</h1>
         </CardHeader>
         <Tabs defaultValue="scheduling" className="w-full">
@@ -1084,7 +1084,7 @@ const ManageSchedules = () => {
 
           <TabsContent value="timesheets">
             <CardContent className="px-1 sm:px-6">
-              <div className="grid p-2 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+              {/* <div className="grid p-2 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader>
                     <h2 className="text-lg font-bold">Add Timesheet Entry</h2>
@@ -1095,7 +1095,7 @@ const ManageSchedules = () => {
                     />
                   </CardContent>
                 </Card>
-              </div>
+              </div> */}
 
               <div className="w-full overflow-hidden">
                 <TimesheetDataTable

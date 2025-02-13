@@ -163,8 +163,8 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
               onChange={(e) => setEndTime(e.target.value)}
             />
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleSubmit}
             disabled={isSubmitting || !employeeId || !date || !startTime}
           >

@@ -52,6 +52,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { startOfWeek, endOfWeek, addWeeks, isWithinInterval } from "date-fns";
 import { formatHoursAndMinutes } from "@/utils/format-hours";
+import { Updater } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import AddTimesheetForm from "./AddTimesheetForm";
+import { useState } from "react";
 
 interface TimesheetData {
   id: number;
@@ -95,7 +100,6 @@ export function TimesheetDataTable({
     []
   );
   const [searchInput, setSearchInput] = React.useState("");
-  const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "event_date", desc: true },
   ]);
@@ -108,6 +112,32 @@ export function TimesheetDataTable({
   const [selectedEmployee, setSelectedEmployee] = React.useState<string>("");
   const supabase = createClientComponentClient();
   const [isTableExpanded, setIsTableExpanded] = React.useState(false);
+  const queryClient = useQueryClient();
+  const [isAddCardExpanded, setIsAddCardExpanded] = React.useState(false);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  const { data: expandedState = {} } = useQuery({
+    queryKey: ["timesheetExpandedState"],
+    queryFn: () => ({}),
+    initialData: {},
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  const [expanded, setExpanded] = React.useState<ExpandedState>(expandedState);
+
+  const handleExpandedChange = React.useCallback(
+    (updater: Updater<ExpandedState, unknown>) => {
+      setExpanded((old) => {
+        const newState = typeof updater === "function" ? updater(old) : updater;
+        queryClient.setQueryData(["timesheetExpandedState"], newState);
+        return newState;
+      });
+    },
+    [queryClient]
+  );
 
   const { data: employees } = useQuery({
     queryKey: ["activeEmployees"],
@@ -138,7 +168,6 @@ export function TimesheetDataTable({
     },
   });
 
-  // Filter the initial data to only include active hourly employees
   const filteredInitialData = React.useMemo(() => {
     if (!activeEmployees) return [];
 
@@ -150,31 +179,23 @@ export function TimesheetDataTable({
     );
   }, [initialData, activeEmployees]);
 
-  // Update the data state to use filtered data
   React.useEffect(() => {
     setData(filteredInitialData);
   }, [filteredInitialData]);
 
   const getCurrentPayPeriod = () => {
-    // Get the current date
     const today = new Date();
-    // Find the start of the week (Sunday)
     let periodStart = startOfWeek(today, { weekStartsOn: 0 });
 
-    // If today is after Wednesday, we're in the second week of the pay period
-    // So we need to go back to the previous week's Sunday
     if (today.getDay() >= 3) {
-      // Wednesday is 3
       periodStart = addWeeks(periodStart, -1);
     }
 
-    // Pay period ends on Saturday of the next week
     const periodEnd = endOfWeek(addWeeks(periodStart, 1), { weekStartsOn: 0 });
 
     return { periodStart, periodEnd };
   };
 
-  // Calculate summaries based on selected date range or current pay period
   const payPeriodSummaries = React.useMemo(() => {
     let startDate, endDate;
 
@@ -189,11 +210,9 @@ export function TimesheetDataTable({
 
     const summaries = new Map<string, PayPeriodSummary>();
 
-    // Create a map to track daily and weekly hours for each employee
     const dailyHours = new Map<string, Map<string, number>>();
     const weeklyHours = new Map<string, Map<string, number>>();
 
-    // Process each timesheet entry
     filteredInitialData.forEach((timesheet) => {
       if (
         !timesheet.employee_name ||
@@ -213,7 +232,6 @@ export function TimesheetDataTable({
       const dateStr = format(eventDate, "yyyy-MM-dd");
       const weekStr = format(startOfWeek(eventDate), "yyyy-MM-dd");
 
-      // Initialize maps if they don't exist
       if (!dailyHours.has(employeeName)) {
         dailyHours.set(employeeName, new Map());
       }
@@ -221,21 +239,18 @@ export function TimesheetDataTable({
         weeklyHours.set(employeeName, new Map());
       }
 
-      // Update daily hours
       const employeeDailyHours = dailyHours.get(employeeName)!;
       employeeDailyHours.set(
         dateStr,
         (employeeDailyHours.get(dateStr) || 0) + hours
       );
 
-      // Update weekly hours
       const employeeWeeklyHours = weeklyHours.get(employeeName)!;
       employeeWeeklyHours.set(
         weekStr,
         (employeeWeeklyHours.get(weekStr) || 0) + hours
       );
 
-      // Get or create summary for employee
       const currentSummary = summaries.get(employeeName) || {
         regularHours: 0,
         overtimeHours: 0,
@@ -243,11 +258,9 @@ export function TimesheetDataTable({
         endDate,
       };
 
-      // Calculate overtime based on rules
       let regularHours = hours;
       let overtimeHours = 0;
 
-      // Check daily overtime (over 8 hours)
       const dailyTotal = employeeDailyHours.get(dateStr) || 0;
       if (dailyTotal > 8) {
         const dailyOvertime = dailyTotal - 8;
@@ -255,7 +268,6 @@ export function TimesheetDataTable({
         overtimeHours = dailyOvertime;
       }
 
-      // Check weekly overtime (over 40 hours)
       const weeklyTotal = employeeWeeklyHours.get(weekStr) || 0;
       if (weeklyTotal > 40) {
         const weeklyOvertime = Math.min(regularHours, weeklyTotal - 40);
@@ -263,7 +275,6 @@ export function TimesheetDataTable({
         overtimeHours += weeklyOvertime;
       }
 
-      // Check pay period overtime (over 80 hours)
       const totalRegularHours = currentSummary.regularHours + regularHours;
       if (totalRegularHours > 80) {
         const periodOvertime = totalRegularHours - 80;
@@ -271,7 +282,6 @@ export function TimesheetDataTable({
         overtimeHours += periodOvertime;
       }
 
-      // Update summary
       currentSummary.regularHours += regularHours;
       currentSummary.overtimeHours += overtimeHours;
       summaries.set(employeeName, currentSummary);
@@ -280,19 +290,16 @@ export function TimesheetDataTable({
     return summaries;
   }, [filteredInitialData, date]);
 
-  // Filter data based on date range
   const filteredData = React.useMemo(() => {
     if (!date?.from) return filteredInitialData;
 
     return filteredInitialData.filter((item) => {
       if (!item.event_date || !date.from) return false;
 
-      // Create dates in the local timezone
       const itemDate = parseISO(item.event_date);
       const from = date.from;
       const to = date.to || date.from;
 
-      // Format all dates to YYYY-MM-DD for comparison
       const itemDateStr = format(itemDate, "yyyy-MM-dd");
       const fromStr = format(from, "yyyy-MM-dd");
       const toStr = format(to, "yyyy-MM-dd");
@@ -342,18 +349,15 @@ export function TimesheetDataTable({
               const start = parseTimeString(startTime);
               const lunchStartTime = parseTimeString(lunchStart);
 
-              // Calculate total minutes
               const startTotalMinutes = start.hours * 60 + start.minutes;
               const lunchStartTotalMinutes =
                 lunchStartTime.hours * 60 + lunchStartTime.minutes;
 
-              // Handle case where lunch start is on the next day
               const adjustedLunchStartMinutes =
                 lunchStartTotalMinutes < startTotalMinutes
                   ? lunchStartTotalMinutes + 24 * 60
                   : lunchStartTotalMinutes;
 
-              // Calculate duration in minutes
               const durationInMinutes =
                 adjustedLunchStartMinutes - startTotalMinutes;
               const durationInHours = durationInMinutes / 60;
@@ -416,17 +420,14 @@ export function TimesheetDataTable({
               const start = parseTimeString(lunchStart);
               const end = parseTimeString(lunchEnd);
 
-              // Calculate total minutes
               const startTotalMinutes = start.hours * 60 + start.minutes;
               const endTotalMinutes = end.hours * 60 + end.minutes;
 
-              // Handle case where lunch end is on the next day
               const adjustedEndTotalMinutes =
                 endTotalMinutes < startTotalMinutes
                   ? endTotalMinutes + 24 * 60
                   : endTotalMinutes;
 
-              // Calculate duration
               const durationInMinutes =
                 adjustedEndTotalMinutes - startTotalMinutes;
 
@@ -461,6 +462,25 @@ export function TimesheetDataTable({
     });
   }, [providedColumns]);
 
+  const { data: sortingState = [{ id: "event_date", desc: true }] } = useQuery({
+    queryKey: ["timesheetSortingState"],
+    queryFn: () => [{ id: "event_date", desc: true }],
+    initialData: [{ id: "event_date", desc: true }],
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  const handleSortingChange = React.useCallback(
+    (updater: Updater<SortingState, unknown>) => {
+      setSorting((old) => {
+        const newState = typeof updater === "function" ? updater(old) : updater;
+        queryClient.setQueryData(["timesheetSortingState"], newState);
+        return newState;
+      });
+    },
+    [queryClient]
+  );
+
   const table = useReactTable({
     data,
     columns: formattedColumns,
@@ -470,8 +490,8 @@ export function TimesheetDataTable({
       sorting,
     },
     onColumnFiltersChange: setColumnFilters,
-    onExpandedChange: setExpanded,
-    onSortingChange: setSorting,
+    onExpandedChange: handleExpandedChange,
+    onSortingChange: handleSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
@@ -489,21 +509,15 @@ export function TimesheetDataTable({
   };
 
   const handleExpandCollapseAll = () => {
-    if (isExpanded) {
-      table.toggleAllRowsExpanded(false);
-      setIsExpanded(false);
-    } else {
-      table.toggleAllRowsExpanded(true);
-      setIsExpanded(true);
-    }
+    const newState = Object.keys(expanded).length > 0 ? {} : true;
+    setExpanded(newState);
+    queryClient.setQueryData(["timesheetExpandedState"], newState);
+    table.toggleAllRowsExpanded(!!newState);
   };
 
-  // Excel export function
   const handleExportToExcel = () => {
-    // Create filename based on date range or current pay period
     let filename;
     if (date?.from) {
-      // If a date range is selected
       if (date.to) {
         filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}_to_${format(
           date.to,
@@ -513,7 +527,6 @@ export function TimesheetDataTable({
         filename = `Timesheets_${format(date.from, "MM-dd-yyyy")}`;
       }
     } else {
-      // If no date range is selected, use current pay period dates
       const { periodStart, periodEnd } = getCurrentPayPeriod();
       filename = `Timesheets_${format(periodStart, "MM-dd-yyyy")}_to_${format(
         periodEnd,
@@ -521,12 +534,9 @@ export function TimesheetDataTable({
       )}`;
     }
 
-    // Create the workbook
     const wb = XLSX.utils.book_new();
 
-    // First, create the Summaries worksheet
     const summaryRows = [
-      // Headers for summary sheet
       [
         "Employee Name",
         "Pay Period",
@@ -536,7 +546,6 @@ export function TimesheetDataTable({
       ],
     ];
 
-    // Add summary data
     payPeriodSummaries.forEach((summary, employeeName) => {
       summaryRows.push([
         employeeName,
@@ -549,33 +558,27 @@ export function TimesheetDataTable({
       ]);
     });
 
-    // Create and style the summary worksheet
     const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
 
-    // Set column widths for summary sheet
     summaryWs["!cols"] = [
-      { width: 25 }, // Employee Name
-      { width: 25 }, // Pay Period
-      { width: 15 }, // Regular Hours
-      { width: 15 }, // Overtime Hours
-      { width: 15 }, // Total Hours
+      { width: 25 },
+      { width: 25 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
     ];
 
-    // Style header row in summary sheet
     const headerStyle = {
       font: { bold: true },
       fill: { fgColor: { rgb: "CCCCCC" } },
     };
 
-    // Apply header style to summary sheet
     for (let i = 0; i < 5; i++) {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
       summaryWs[cellRef].s = headerStyle;
     }
 
-    // Then create the Details worksheet
     const detailRows = [
-      // Headers for detail sheet
       [
         "Employee Name",
         "Date",
@@ -588,7 +591,6 @@ export function TimesheetDataTable({
       ],
     ];
 
-    // Add detail data
     detailRows.push(
       ...data.map((item) => {
         const safeFormatTime = (timeStr: string | null) => {
@@ -648,37 +650,116 @@ export function TimesheetDataTable({
       })
     );
 
-    // Create and style the details worksheet
     const detailWs = XLSX.utils.aoa_to_sheet(detailRows);
 
-    // Set column widths for detail sheet
     detailWs["!cols"] = [
-      { width: 25 }, // Employee Name
-      { width: 12 }, // Date
-      { width: 12 }, // Start Time
-      { width: 12 }, // Lunch Start
-      { width: 12 }, // Lunch End
-      { width: 12 }, // End Time
-      { width: 12 }, // Total Hours
-      { width: 15 }, // Lunch Duration
+      { width: 25 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 15 },
     ];
 
-    // Apply header style to detail sheet
     for (let i = 0; i < 8; i++) {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: i });
       detailWs[cellRef].s = headerStyle;
     }
 
-    // Add both worksheets to the workbook
     XLSX.utils.book_append_sheet(wb, summaryWs, "Pay Period Summary");
     XLSX.utils.book_append_sheet(wb, detailWs, "Timesheet Details");
 
-    // Save the workbook with the dynamic filename
     XLSX.writeFile(wb, `${filename}.xlsx`);
+  };
+
+  const handleAddTimeSheetEntry = (newTimesheet: TimesheetData) => {
+    setData((prevData) => [...prevData, newTimesheet]);
+  };
+
+  const toggleCardExpansion = (cardId: string) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
+
+  interface ExpandableCardProps {
+    id: string;
+    title: string;
+    children: React.ReactNode;
+  }
+
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({
+    id,
+    title,
+    children,
+  }) => {
+    const isExpanded = expandedCards[id];
+
+    return (
+      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{title}</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleCardExpansion(id)}
+            className="h-8 w-8 p-0"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent
+          className={`
+            ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+            space-y-4
+          `}
+        >
+          {children}
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh] px-1 sm:px-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-4 mb-4">
+        <div className="col-span-1">
+          <ExpandableCard id="add-timesheet" title="Add Timesheet Entry">
+            <AddTimesheetForm
+              onTimesheetAdded={(
+                employeeId,
+                date,
+                startTime,
+                lunchStart,
+                lunchEnd,
+                endTime
+              ) => {
+                handleAddTimeSheetEntry({
+                  id: Math.random(),
+                  employee_id: employeeId,
+                  employee_name:
+                    employees?.find((e) => e.employee_id === employeeId)
+                      ?.name || "",
+                  event_date: date,
+                  start_time: startTime,
+                  lunch_start: lunchStart,
+                  lunch_end: lunchEnd,
+                  end_time: endTime,
+                  total_hours: "0",
+                  created_at: new Date().toISOString(),
+                });
+              }}
+            />
+          </ExpandableCard>
+        </div>
+      </div>
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
           <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">
@@ -695,13 +776,7 @@ export function TimesheetDataTable({
               </PopoverTrigger>
               <PopoverContent className="w-[250px] p-0">
                 <Command>
-                  {/* <CommandInput
-                    placeholder="Search employee..."
-                    value={searchInput}
-                    onValueChange={setSearchInput}
-                  /> */}
                   <CommandList>
-                    {/* <CommandEmpty>No employee found.</CommandEmpty> */}
                     <CommandGroup>
                       {employees
                         ?.filter((employee) => {
@@ -727,7 +802,7 @@ export function TimesheetDataTable({
                                     : employee.name
                                 );
                               setOpen(false);
-                              setSearchInput(""); // Reset search input after selection
+                              setSearchInput("");
                             }}
                           >
                             <Check
@@ -798,7 +873,7 @@ export function TimesheetDataTable({
               Export to Excel
             </Button>
             <Button variant="outline" onClick={handleExpandCollapseAll}>
-              {isExpanded ? "Collapse All" : "Expand All"}
+              {Object.keys(expanded).length > 0 ? "Collapse All" : "Expand All"}
             </Button>
           </div>
         </div>
@@ -824,7 +899,7 @@ export function TimesheetDataTable({
             isTableExpanded ? "h-[calc(100vh-200px)]" : "h-[500px]"
           )}
         >
-          <div className="flex relative min-w-[calc(100vw-50px)]">
+          <div className="flex relative min-w-[calc(100vw-150px)]">
             <table className="w-full divide-y divide-gray-200">
               <thead className="sticky top-0 bg-background z-5">
                 {table.getHeaderGroups().map((headerGroup) => (
