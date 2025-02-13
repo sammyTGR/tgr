@@ -45,20 +45,22 @@ function CorrectionDocs({ className }: { className?: string }) {
                 A Valid CA CCW Permit Can Be Used As An Address Corrector &
                 Second Proof Of Address
               </li>
-              <li>Valid CA Disabled Person Placard Identification Card</li>
               <li>
+                Valid CA Disabled Person Placard Identification Card
                 <ul className="list-none list-inside pl-4">
                   <li>- AKA Handicap Placard Registration Card</li>
                 </ul>
+              </li>
+              <li>
                 Valid CA DMV Registration With The Current Physical Address For
                 Any Of The Following:
+                <ul className="list-none list-inside pl-4">
+                  <li>- Vehicle Registration</li>
+                  <li>- Boat Registration</li>
+                  <li>- Motorcycle Registration</li>
+                  <li>- Off Road Vehicle Registration</li>
+                </ul>
               </li>
-              <ul className="list-none list-inside pl-4">
-                <li>- Vehicle Registration</li>
-                <li>- Boat Registration</li>
-                <li>- Motorcycle Registration</li>
-                <li>- Off Road Vehicle Registration</li>
-              </ul>
               <li>Valid CA CCW Permit</li>
               <li>Valid CA Hunting License</li>
               <li>Valid CA Fishing License</li>
