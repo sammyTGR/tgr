@@ -195,41 +195,6 @@ const SalesDataTableAllEmployees: React.FC = () => {
     initialData: { data: [], count: 0 },
   });
 
-  // Export query with simplified date handling
-  const exportQuery = useQuery({
-    queryKey: ["exportSales", dateRange, selectedEmployees],
-    queryFn: async () => {
-      const adjustedDateRange = {
-        from: dateRange.from
-          ? format(new Date(dateRange.from), "yyyy-MM-dd")
-          : undefined,
-        to: dateRange.to
-          ? format(new Date(dateRange.to), "yyyy-MM-dd")
-          : undefined,
-      };
-
-      const response = await fetch("/api/fetch-all-employees-sales-export", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          dateRange: adjustedDateRange,
-          employeeLanids: selectedEmployees.includes("all")
-            ? null
-            : selectedEmployees,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch export data");
-      }
-
-      return response.json();
-    },
-    enabled: false,
-  });
-
   const handleExport = async () => {
     try {
       if (!dateRange.from || !dateRange.to) {

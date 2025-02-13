@@ -41,20 +41,20 @@ export async function POST(request: Request) {
       ]) || []
     );
 
-    // Get total count first with the exact same conditions as the display query
+    // Get total count first
     let query = supabase
-      .from("sales_data")
+      .from("detailed_sales_data")
       .select("*", { count: "exact", head: true })
-      .gte("Date", dateRange.from)
-      .lte("Date", dateRange.to)
-      .not("Date", "is", null);
+      .gte("SoldDate", dateRange.from)
+      .lte("SoldDate", dateRange.to)
+      .not("SoldDate", "is", null);
 
-    // Apply employee filter only if specific employees are selected
+    // Apply employee filter
     if (employeeLanids && !employeeLanids.includes("all")) {
       query = query.in("Lanid", employeeLanids);
     }
 
-    // Add description search if provided - match the display query exactly
+    // Add description search
     if (descriptionSearch) {
       query = query.or(
         `Desc.ilike.${descriptionSearch}%,Desc.ilike.%${descriptionSearch}%,Sku.ilike.${descriptionSearch}%`
@@ -62,7 +62,6 @@ export async function POST(request: Request) {
     }
 
     const { count } = await query;
-    // console.log("Initial count:", count);
 
     if (!count) {
       return NextResponse.json({ data: [] });
@@ -72,42 +71,41 @@ export async function POST(request: Request) {
     const pages = Math.ceil(count / PAGE_SIZE);
     let allData: any[] = [];
 
-    // Fetch data page by page with the exact same conditions
+    // Fetch data page by page
     for (let page = 0; page < pages; page++) {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
       let pageQuery = supabase
-        .from("sales_data")
+        .from("detailed_sales_data")
         .select(
           `
-          "Date",
+          "SoldDate",
           "Lanid",
-          "Invoice",
+          "SoldRef",
           "Sku",
           "Desc",
           "SoldPrice",
-          "SoldQty",
+          "Qty",
           "Cost",
           "Type",
-          category_label,
-          subcategory_label,
+          "CatDesc",
+          "SubDesc",
           total_gross,
-          total_net
+          "Margin",
+          "Full_Name"
         `
         )
-        .gte("Date", dateRange.from)
-        .lte("Date", dateRange.to)
-        .not("Date", "is", null)
-        .order("Date", { ascending: true })
+        .gte("SoldDate", dateRange.from)
+        .lte("SoldDate", dateRange.to)
+        .not("SoldDate", "is", null)
+        .order("SoldDate", { ascending: true })
         .range(from, to);
 
-      // Apply employee filter only if specific employees are selected
       if (employeeLanids && !employeeLanids.includes("all")) {
         pageQuery = pageQuery.in("Lanid", employeeLanids);
       }
 
-      // Add description search if provided - match the display query exactly
       if (descriptionSearch) {
         pageQuery = pageQuery.or(
           `Desc.ilike.${descriptionSearch}%,Desc.ilike.%${descriptionSearch}%,Sku.ilike.${descriptionSearch}%`
@@ -123,37 +121,25 @@ export async function POST(request: Request) {
 
       if (pageData) {
         allData = [...allData, ...pageData];
-        // console.log(
-        //   `Fetched page ${page + 1}/${pages}, rows: ${pageData.length}`
-        // );
       }
     }
 
-    // Transform the data without filtering out any rows
+    // Transform the data
     const transformedData = allData
-      .filter((sale) => sale.Date) // Only filter out null dates
+      .filter((sale) => sale.SoldDate)
       .map((sale) => ({
         ...sale,
-        Date: formatInTimeZone(parseISO(sale.Date), TIMEZONE, "yyyy-MM-dd"),
+        Date: formatInTimeZone(parseISO(sale.SoldDate), TIMEZONE, "yyyy-MM-dd"),
+        Invoice: sale.SoldRef,
         employee_name:
           employeeMap.get(sale.Lanid?.toLowerCase() || "") ||
-          sale.LastName ||
+          sale.Full_Name ||
           "Unknown",
+        Category: sale.CatDesc,
+        Subcategory: sale.SubDesc,
+        "Sold Quantity": sale.Qty,
+        total_net: sale.Margin, // Using Margin as total_net
       }));
-
-    // console.log("Export Summary:", {
-    //   initialCount: count,
-    //   fetchedRows: allData.length,
-    //   transformedRows: transformedData.length,
-    //   totalGross: transformedData.reduce(
-    //     (sum, row) => sum + (row.total_gross || 0),
-    //     0
-    //   ),
-    //   totalNet: transformedData.reduce(
-    //     (sum, row) => sum + (row.total_net || 0),
-    //     0
-    //   ),
-    // });
 
     return NextResponse.json({
       data: transformedData,

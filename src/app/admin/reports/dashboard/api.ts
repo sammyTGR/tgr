@@ -395,12 +395,12 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         `
         )
         .or(
-          `Desc.eq.Ear Muffs,` +
-            `Desc.eq.12 & Under Earmuff Rentals,` +
-            `Desc.eq.Disposable Earplugs 32db 1 Pair,` +
-            `Desc.eq.3M Disposable earplugs 1 pair/pack 200 pack/case,` +
-            `Desc.eq.Mirage Clear Lens Safety Glasses,` +
-            `Desc.eq.Radians Mirage Clear Lens Safety Glasses,` +
+          `Desc.ilike.%Ear Muffs%,` +
+            `Desc.ilike.%12 & Under Earmuff Rentals%,` +
+            `Desc.ilike.%Disposable Earplugs 32db%,` +
+            `Desc.ilike.%3M Disposable earplugs%,` +
+            `Desc.ilike.%Mirage Clear Lens Safety Glasses%,` +
+            `Desc.ilike.%Radians Mirage Clear Lens Safety Glasses%,` +
             `Desc.ilike.%Gunsmithing%,` +
             `Desc.ilike.%Pistol Optic Zero Fee%,` +
             `Desc.ilike.%Sight In/ Function Fee%,` +
@@ -657,6 +657,26 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         }
         acc[category].variants[variant].qty += qty;
         acc[category].variants[variant].revenue += revenue; // Use calculated revenue
+      }
+
+      // Inside the reduce function, before processing PPE items
+      if (
+        [
+          "Ear Muffs",
+          "12 & Under Earmuff Rentals",
+          "Disposable Earplugs 32db 1 Pair",
+          "3M Disposable earplugs 1 pair/pack 200 pack/case",
+          "Mirage Clear Lens Safety Glasses",
+          "Radians Mirage Clear Lens Safety Glasses",
+        ].includes(item.Desc)
+      ) {
+        // console.log("Processing PPE item:", {
+        //   desc: item.Desc,
+        //   qty: Number(item.Qty),
+        //   margin: Number(item.Margin),
+        //   total: Number(item.Qty) * Number(item.Margin),
+        //   date: item.SoldDate,
+        // });
       }
 
       return acc;

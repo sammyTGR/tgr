@@ -137,6 +137,20 @@ function DashboardKPI({
   ];
   const ammoCategories = ["Reloads", "Factory Ammo"];
 
+  // Add this inside the component, before the return statement
+  React.useEffect(() => {
+    if (kpiQuery.data) {
+      // console.log("KPI Data:", {
+      //   allCategories: Object.keys(kpiQuery.data),
+      //   gunsmithing: kpiQuery.data["Gunsmithing"],
+      //   services: serviceCategories.map((cat) => ({
+      //     category: cat,
+      //     exists: !!kpiQuery.data?.[cat],
+      //   })),
+      // });
+    }
+  }, [kpiQuery.data]);
+
   return (
     <TabsContent value="sales-kpis">
       <div className="space-y-4">
