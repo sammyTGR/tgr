@@ -102,7 +102,7 @@ import { CommandList } from "@/components/ui/command";
 import { DateRange } from "react-day-picker";
 import { TimeTrackingDataTable } from "./TimeTrackingDataTable";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
 import DashboardKPI from "./dashboard-kpi";
 
 interface Certificate {
@@ -171,6 +171,12 @@ interface ReportCardProps {
   details?: Certificate[] | DepositDetail[];
 }
 
+interface ExpandableCardProps {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}
+
 declare global {
   interface Function {
     timeoutId?: number;
@@ -204,6 +210,9 @@ const columns = [
 ];
 
 function AdminDashboardContent() {
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  );
   const flags = useFlags([
     "is_todo_enabled",
     "is_barchart_enabled",
@@ -392,6 +401,49 @@ function AdminDashboardContent() {
           </>
         )}
       </div>
+    );
+  };
+
+  const toggleCardExpansion = (cardId: string) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
+
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({
+    id,
+    title,
+    children,
+  }) => {
+    const isExpanded = expandedCards[id];
+
+    return (
+      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{title}</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleCardExpansion(id)}
+            className="h-8 w-8 p-0"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent
+          className={`
+            ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+            space-y-2
+          `}
+        >
+          {children}
+        </CardContent>
+      </Card>
     );
   };
 
@@ -2253,7 +2305,7 @@ function AdminDashboardContent() {
               <div className="w-full overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 my-2 gap-6 overflow-hidden">
                   {/* File Upload Section */}
-                  {flags.is_barchart_enabled.enabled &&
+                  {/* {flags.is_barchart_enabled.enabled &&
                     (role === "super admin" || role === "dev") && (
                       <Card className="flex flex-col h-full">
                         <CardHeader className="flex-shrink-0">
@@ -2307,16 +2359,19 @@ function AdminDashboardContent() {
                           )}
                         </CardContent>
                       </Card>
-                    )}
+                    )} */}
 
                   {flags.is_barchart_enabled.enabled && (
-                    <Card className="flex flex-col h-full">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <ExpandableCard
+                      id="select-date-for-chart-and-table-below"
+                      title="Select Date For Chart & Table Below"
+                    >
+                      {/* <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="flex items-center gap-2">
                           <CalendarIcon className="h-6 w-6" />
                           Select Date For Chart & Table Below
                         </CardTitle>
-                      </CardHeader>
+                      </CardHeader> */}
                       <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
                         <div className="mt-8">
                           <Popover>
@@ -2343,10 +2398,10 @@ function AdminDashboardContent() {
                           </Popover>
                         </div>
                       </CardContent>
-                    </Card>
+                    </ExpandableCard>
                   )}
 
-                  {flags.is_historical_barchart_enabled.enabled &&
+                  {/* {flags.is_historical_barchart_enabled.enabled &&
                     (role === "super admin" || role === "dev") && (
                       <Card className="flex flex-col h-full">
                         <CardHeader className="flex-shrink-0">
@@ -2404,14 +2459,17 @@ function AdminDashboardContent() {
                           )}
                         </CardContent>
                       </Card>
-                    )}
+                    )} */}
 
                   {flags.is_historical_barchart_enabled.enabled &&
                     (role === "super admin" || role === "dev") && (
-                      <Card>
-                        <CardHeader>
+                      <ExpandableCard
+                        id="upload-detailed-sales-data"
+                        title="Upload Detailed Sales Data"
+                      >
+                        {/* <CardHeader>
                           <CardTitle>Upload Detailed Sales Data</CardTitle>
-                        </CardHeader>
+                        </CardHeader> */}
                         <CardContent>
                           <div className="space-y-4">
                             <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
@@ -2459,7 +2517,7 @@ function AdminDashboardContent() {
                             )}
                           </div>
                         </CardContent>
-                      </Card>
+                      </ExpandableCard>
                     )}
                 </div>
               </div>

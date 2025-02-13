@@ -9,19 +9,20 @@ const TIMEZONE = "America/Los_Angeles";
 // Add interface for the sales data
 interface DetailedSalesData {
   id: number;
-  Lanid: string;
-  Invoice: string; // mapped from SoldRef
-  Sku: string;
-  Desc: string;
-  SoldPrice: number;
-  SoldQty: number; // mapped from Qty
-  Cost: number;
-  Date: string; // mapped from SoldDate
-  Type: string;
-  category_label: string; // mapped from CatDesc
-  subcategory_label: string; // mapped from SubDesc
-  total_gross: number;
-  Margin: number;
+  Lanid: string | null;
+  SoldRef: string | null;
+  Sku: string | null;
+  Desc: string | null;
+  SoldPrice: number | null;
+  Qty: number | null;
+  Cost: number | null;
+  SoldDate: string | null;
+  Type: string | null;
+  CatDesc: string | null;
+  SubDesc: string | null;
+  total_gross: number | null;
+  total_net: number | null;
+  Margin: number | null;
 }
 
 export async function POST(request: Request) {
@@ -45,18 +46,19 @@ export async function POST(request: Request) {
         `
         id,
         "Lanid",
-        "SoldRef" as "Invoice",
+        "SoldRef",
         "Sku",
         "Desc",
-        "SoldPrice",
-        "Qty" as "SoldQty",
-        "Cost",
-        "SoldDate" as "Date",
+        "SoldPrice"::numeric,
+        "Qty"::numeric,
+        "Cost"::numeric,
+        "SoldDate",
         "Type",
-        "CatDesc" as category_label,
-        "SubDesc" as subcategory_label,
-        total_gross,
-        Margin
+        "CatDesc",
+        "SubDesc",
+        total_gross::numeric,
+        total_net::numeric,
+        "Margin"::numeric
       `,
         { count: "exact" }
       )

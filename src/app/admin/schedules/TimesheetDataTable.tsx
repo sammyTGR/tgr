@@ -729,37 +729,6 @@ export function TimesheetDataTable({
 
   return (
     <div className="flex flex-col h-full w-full max-h-[80vh] px-1 sm:px-4">
-      {/* <div className="grid gap-4 grid-cols-1 sm:grid-cols-4 mb-4">
-        <div className="col-span-1">
-          <ExpandableCard id="add-timesheet" title="Add Timesheet Entry">
-            <AddTimesheetForm
-              onTimesheetAdded={(
-                employeeId,
-                date,
-                startTime,
-                lunchStart,
-                lunchEnd,
-                endTime
-              ) => {
-                handleAddTimeSheetEntry({
-                  id: Math.random(),
-                  employee_id: employeeId,
-                  employee_name:
-                    employees?.find((e) => e.employee_id === employeeId)
-                      ?.name || "",
-                  event_date: date,
-                  start_time: startTime,
-                  lunch_start: lunchStart,
-                  lunch_end: lunchEnd,
-                  end_time: endTime,
-                  total_hours: "0",
-                  created_at: new Date().toISOString(),
-                });
-              }}
-            />
-          </ExpandableCard>
-        </div>
-      </div> */}
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
           <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">

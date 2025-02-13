@@ -153,40 +153,46 @@ const SalesDataTableAllEmployees: React.FC = () => {
       descriptionSearch,
     ],
     queryFn: async () => {
-      const adjustedDateRange =
-        dateRange.from && dateRange.to
-          ? {
-              from: format(new Date(dateRange.from), "yyyy-MM-dd"),
-              to: format(new Date(dateRange.to), "yyyy-MM-dd"),
-            }
-          : undefined;
+      try {
+        const response = await fetch("/api/fetch-all-employees-sales", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pageIndex: Number(pageIndex),
+            pageSize: Number(pageSize),
+            filters: filters || [],
+            sorting: sorting || [],
+            dateRange:
+              dateRange.from && dateRange.to
+                ? {
+                    from: format(new Date(dateRange.from), "yyyy-MM-dd"),
+                    to: format(new Date(dateRange.to), "yyyy-MM-dd"),
+                  }
+                : undefined,
+            employeeLanids: selectedEmployees.includes("all")
+              ? null
+              : selectedEmployees,
+            descriptionSearch: descriptionSearch.trim(),
+          }),
+        });
 
-      const response = await fetch("/api/fetch-all-employees-sales", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pageIndex: Number(pageIndex),
-          pageSize: Number(pageSize),
-          filters: filters || [],
-          sorting: sorting || [],
-          dateRange: adjustedDateRange,
-          employeeLanids: selectedEmployees.includes("all")
-            ? null
-            : selectedEmployees,
-          descriptionSearch: descriptionSearch.trim(),
-        }),
-      });
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Sales data fetch error:", errorData);
+          throw new Error(
+            `Failed to fetch sales data: ${errorData.message || response.statusText}`
+          );
+        }
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch sales data");
+        return response.json();
+      } catch (error) {
+        console.error("Sales query error:", error);
+        throw error;
       }
-
-      return response.json();
     },
     initialData: { data: [], count: 0 },
-    refetchInterval: 300000,
   });
 
   // Export query with simplified date handling
@@ -334,8 +340,21 @@ const SalesDataTableAllEmployees: React.FC = () => {
   const showEmptyState =
     !salesQuery.data?.data?.length && !salesQuery.isLoading;
 
-  if (salesQuery.isLoading || employeesQuery.isLoading) {
-    return <div>Loading...</div>;
+  if (salesQuery.isError) {
+    console.error("Sales query error:", salesQuery.error);
+    return (
+      <div className="text-center py-8 text-red-500">
+        Error loading sales data. Please try again.
+      </div>
+    );
+  }
+
+  if (salesQuery.isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
   }
 
   return (

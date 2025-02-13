@@ -66,7 +66,7 @@ function DashboardKPI({
         <CardContent
           className={`
             ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
-            space-y-4
+            space-y-2
           `}
         >
           {children}
@@ -198,7 +198,7 @@ function DashboardKPI({
             {/* Services Section */}
             <div>
               <h2 className="text-2xl font-bold mb-4">
-                Services
+                Gunsmithing, Laser & Reloading
                 <span className="text-sm font-normal text-muted-foreground ml-2">
                   {`(${serviceCategories.filter((cat) => kpiQuery.data?.[cat]).length} categories)`}
                 </span>

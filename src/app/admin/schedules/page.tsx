@@ -954,7 +954,7 @@ const ManageSchedules = () => {
     const isExpanded = expandedCards[id];
 
     return (
-      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+      <Card className={`relative ${isExpanded ? "h-[140px]" : "h-[200px]"}`}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{title}</CardTitle>
           <Button
@@ -973,7 +973,7 @@ const ManageSchedules = () => {
         <CardContent
           className={`
             ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
-            space-y-4
+            space-y-2
           `}
         >
           {children}
@@ -1004,15 +1004,18 @@ const ManageSchedules = () => {
                   First By Checking The Work Schedules Table Below
                 </h4>
                 <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  <Card>
-                    <CardHeader>
+                  <ExpandableCard
+                    id="generate-single-schedule"
+                    title="Generate A Single Schedule"
+                  >
+                    {/* <CardHeader>
                       <h2 className="text-lg font-bold">
                         Generate A Single Schedule
                       </h2>
                       <p className="text-sm text-muted-foreground">
                         Create schedule for one employee
                       </p>
-                    </CardHeader>
+                    </CardHeader> */}
                     <CardContent>
                       <PopoverForm
                         onSubmit={(employeeName: string, weeks?: string) =>
@@ -1023,17 +1026,20 @@ const ManageSchedules = () => {
                         formType="generate"
                       />
                     </CardContent>
-                  </Card>
+                  </ExpandableCard>
 
-                  <Card>
-                    <CardHeader>
+                  <ExpandableCard
+                    id="generate-all-schedules"
+                    title="Generate All Schedules"
+                  >
+                    {/* <CardHeader>
                       <h2 className="text-lg font-bold">
                         Generate All Schedules
                       </h2>
                       <p className="text-sm text-muted-foreground">
                         Create schedules for all employees
                       </p>
-                    </CardHeader>
+                    </CardHeader> */}
                     <CardContent>
                       <PopoverForm
                         onSubmit={(_, weeks?: string) => {
@@ -1044,7 +1050,7 @@ const ManageSchedules = () => {
                         formType="generateAll"
                       />
                     </CardContent>
-                  </Card>
+                  </ExpandableCard>
                 </div>
               </div>
 
@@ -1052,13 +1058,13 @@ const ManageSchedules = () => {
               <div>
                 <h3 className="text-lg font-bold mb-4">Schedule Management</h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  <Card>
-                    <CardHeader>
+                  <ExpandableCard id="add-schedule" title="Add A Shift">
+                    {/* <CardHeader>
                       <h2 className="text-lg font-bold">Add A Shift</h2>
                       <p className="text-sm text-muted-foreground">
                         Add an unscheduled shift
                       </p>
-                    </CardHeader>
+                    </CardHeader> */}
                     <CardContent>
                       <PopoverForm
                         onSubmit={handleAddSchedule}
@@ -1074,15 +1080,15 @@ const ManageSchedules = () => {
                         }}
                       />
                     </CardContent>
-                  </Card>
+                  </ExpandableCard>
 
-                  <Card>
-                    <CardHeader>
+                  <ExpandableCard id="update-schedule" title="Update A Shift">
+                    {/* <CardHeader>
                       <h2 className="text-lg font-bold">Update A Shift</h2>
                       <p className="text-sm text-muted-foreground">
                         Modify an existing shift
                       </p>
-                    </CardHeader>
+                    </CardHeader> */}
                     <CardContent>
                       <PopoverForm
                         onSubmit={handleUpdateSchedule}
@@ -1094,15 +1100,15 @@ const ManageSchedules = () => {
                         onOpenChange={setUpdateSchedulePopoverOpen}
                       />
                     </CardContent>
-                  </Card>
+                  </ExpandableCard>
 
-                  <Card>
-                    <CardHeader>
+                  <ExpandableCard id="clear-schedule" title="Clear A Schedule">
+                    {/* <CardHeader>
                       <h2 className="text-lg font-bold">Clear A Schedule</h2>
                       <p className="text-sm text-muted-foreground">
                         Remove all shifts for an employee
                       </p>
-                    </CardHeader>
+                    </CardHeader> */}
                     <CardContent>
                       <PopoverForm
                         onSubmit={(employeeName: string) =>
@@ -1113,7 +1119,7 @@ const ManageSchedules = () => {
                         formType="clearSchedule"
                       />
                     </CardContent>
-                  </Card>
+                  </ExpandableCard>
                 </div>
               </div>
 
