@@ -106,7 +106,7 @@ function DashboardKPI({
     }
   }, [kpiQuery.data]);
 
-  // Update the function to handle DateRange type
+  // Update the handleDateSelect function
   const handleDateSelect = (range: DateRange | undefined) => {
     if (!range) return;
 
@@ -114,16 +114,23 @@ function DashboardKPI({
 
     if (from) {
       if (!to) {
-        // For single date selection, set both from and to to the same date
+        // For single date selection, set start of day and end of day
         const singleDate = new Date(from);
+        singleDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(from);
+        endDate.setHours(23, 59, 59, 999);
+
         setDateRange({
           from: singleDate,
-          to: singleDate,
+          to: endDate,
         });
       } else {
         // For date range, ensure we have the full days
         const startDate = new Date(from);
+        startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(to);
+        endDate.setHours(23, 59, 59, 999);
+
         setDateRange({
           from: startDate,
           to: endDate,
@@ -341,8 +348,26 @@ function DashboardKPI({
                   "Range Protection Equipment",
                   "Range Station Rental",
                   "Gun Range Rental",
-                ].map(
-                  (category) =>
+                ].map((category) => {
+                  // Add debug logging for PPE
+                  if (
+                    category === "Range Protection Equipment" &&
+                    kpiQuery.data?.[category]
+                  ) {
+                    // console.log("PPE Data in UI:", {
+                    //   category,
+                    //   data: kpiQuery.data[category],
+                    //   variants: Object.entries(
+                    //     kpiQuery.data[category].variants
+                    //   ).map(([variant, stats]) => ({
+                    //     variant,
+                    //     qty: (stats as { qty: number }).qty,
+                    //     revenue: (stats as { revenue: number }).revenue,
+                    //   })),
+                    // });
+                  }
+
+                  return (
                     kpiQuery.data?.[category] && (
                       <ExpandableCard
                         key={category}
@@ -403,7 +428,8 @@ function DashboardKPI({
                         </div>
                       </ExpandableCard>
                     )
-                )}
+                  );
+                })}
               </div>
             </div>
 

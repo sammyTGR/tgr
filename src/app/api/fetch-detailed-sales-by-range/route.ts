@@ -1,6 +1,9 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { toZonedTime } from "date-fns-tz";
+
+const TIMEZONE = "America/Los_Angeles";
 
 export async function GET(request: Request) {
   try {
@@ -9,7 +12,7 @@ export async function GET(request: Request) {
     const start = searchParams.get("start");
     const end = searchParams.get("end");
 
-    console.log("Date range:", { start, end });
+    console.log("Raw date range:", { start, end });
 
     if (!start || !end) {
       return NextResponse.json(
@@ -17,6 +20,20 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
+
+    // Convert dates to UTC with timezone consideration
+    const startDateTemp = new Date(start);
+    startDateTemp.setHours(0, 0, 0, 0);
+    const startDate = toZonedTime(startDateTemp, TIMEZONE);
+
+    const endDateTemp = new Date(end);
+    endDateTemp.setHours(23, 59, 59, 999);
+    const endDate = toZonedTime(endDateTemp, TIMEZONE);
+
+    console.log("Converted date range:", {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
 
     // Fetch detailed sales data with the correct column names
     const { data, error } = await supabase
@@ -36,11 +53,15 @@ export async function GET(request: Request) {
           "SoldDate"
         `
       )
-      .gte("SoldDate", start)
-      .lte("SoldDate", end)
+      .gte("SoldDate", startDate.toISOString())
+      .lte("SoldDate", endDate.toISOString())
       .order("SoldDate", { ascending: true });
 
-    console.log("Query result:", { data: data?.length, error });
+    console.log("Query result:", {
+      recordCount: data?.length,
+      error,
+      sampleDates: data?.slice(0, 3).map((d) => d.SoldDate),
+    });
 
     if (error) {
       console.error("Database error:", error);
@@ -53,14 +74,14 @@ export async function GET(request: Request) {
     // Process the data to group by lanid and category
     const processedData = data.reduce((acc: any, sale: any) => {
       const lanid = sale.Lanid || "Unknown";
-      const category = sale.CatDesc || "Uncategorized"; // Using CatDesc instead of category_label
-      const grossValue = sale.total_gross || 0;
-      const netValue = sale.total_net || 0;
+      const category = sale.CatDesc || "Uncategorized";
+      const grossValue = Number(sale.total_gross) || 0;
+      const netValue = Number(sale.total_net) || 0;
 
       if (!acc[lanid]) {
         acc[lanid] = {
-          Lanid: lanid, // Keep uppercase for consistency
-          last_name: sale.Last || "Unknown", // Using Last instead of last_name
+          Lanid: lanid,
+          last_name: sale.Last || "Unknown",
           Total: 0,
           TotalMinusExclusions: 0,
         };
@@ -73,7 +94,6 @@ export async function GET(request: Request) {
       acc[lanid][category] += netValue;
       acc[lanid].Total += netValue;
 
-      // Define categories to exclude based on Cat and Sub values
       const excludeFromTotal = [
         "CA Tax Gun Transfer",
         "CA Tax Adjust",
@@ -88,7 +108,13 @@ export async function GET(request: Request) {
       return acc;
     }, {});
 
-    return NextResponse.json(Object.values(processedData));
+    const result = Object.values(processedData);
+    console.log("Processed data:", {
+      employeeCount: result.length,
+      sampleEmployee: result[0],
+    });
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Server error:", error);
     return NextResponse.json(

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 
-const timeZone = "America/Los_Angeles";
+const TIMEZONE = "America/Los_Angeles";
 
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies });
@@ -13,19 +13,22 @@ export async function GET() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const startDate = "2024-01-01";
-    const endDate = formatTZ(toZonedTime(new Date(), timeZone), "yyyy-MM-dd", {
-      timeZone,
-    });
+    // Convert dates to UTC with timezone consideration
+    const startDateTemp = new Date("2024-01-01");
+    startDateTemp.setHours(0, 0, 0, 0);
+    const startDate = toZonedTime(startDateTemp, TIMEZONE);
+
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    const endDate = toZonedTime(now, TIMEZONE);
 
     const { data, error } = await supabase.rpc("calculate_monthly_revenue", {
-      start_date: startDate,
-      end_date: endDate,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
     });
 
     if (error) {
@@ -49,16 +52,19 @@ export async function GET() {
       "Dec 2024",
     ];
 
-    const monthlyRevenue = months.reduce((acc, month) => {
-      acc[month] = { grossRevenue: 0, netRevenue: 0 };
-      return acc;
-    }, {} as Record<string, { grossRevenue: number; netRevenue: number }>);
+    const monthlyRevenue = months.reduce(
+      (acc, month) => {
+        acc[month] = { grossRevenue: 0, netRevenue: 0 };
+        return acc;
+      },
+      {} as Record<string, { grossRevenue: number; netRevenue: number }>
+    );
 
     // Fill in the actual revenue data
     data?.forEach((row: any) => {
-      const date = toZonedTime(new Date(row.month), timeZone);
+      const date = toZonedTime(new Date(row.month), TIMEZONE);
       date.setDate(date.getDate() + 1);
-      const monthKey = formatTZ(date, "MMM yyyy", { timeZone });
+      const monthKey = formatTZ(date, "MMM yyyy", { timeZone: TIMEZONE });
       monthlyRevenue[monthKey] = {
         grossRevenue: Number(row.gross_revenue || 0),
         netRevenue: Number(row.net_revenue || 0),

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { formatInTimeZone } from "date-fns-tz";
 import { parseISO } from "date-fns";
 import { Database } from "@/types_db";
+import { toZonedTime } from "date-fns-tz";
 
 const TIMEZONE = "America/Los_Angeles";
 const PAGE_SIZE = 1000;
@@ -21,6 +22,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Convert dates to UTC with timezone consideration
+    const fromDateTemp = new Date(dateRange.from);
+    fromDateTemp.setHours(0, 0, 0, 0);
+    const fromDate = toZonedTime(fromDateTemp, TIMEZONE);
+
+    const toDateTemp = new Date(dateRange.to);
+    toDateTemp.setHours(23, 59, 59, 999);
+    const toDate = toZonedTime(toDateTemp, TIMEZONE);
 
     // First get active employees
     const { data: activeEmployees, error: employeesError } = await supabase
@@ -45,8 +55,8 @@ export async function POST(request: Request) {
     let query = supabase
       .from("detailed_sales_data")
       .select("*", { count: "exact", head: true })
-      .gte("SoldDate", dateRange.from)
-      .lte("SoldDate", dateRange.to)
+      .gte("SoldDate", fromDate.toISOString())
+      .lte("SoldDate", toDate.toISOString())
       .not("SoldDate", "is", null);
 
     // Apply employee filter
@@ -96,8 +106,8 @@ export async function POST(request: Request) {
           "Full_Name"
         `
         )
-        .gte("SoldDate", dateRange.from)
-        .lte("SoldDate", dateRange.to)
+        .gte("SoldDate", fromDate.toISOString())
+        .lte("SoldDate", toDate.toISOString())
         .not("SoldDate", "is", null)
         .order("SoldDate", { ascending: true })
         .range(from, to);
@@ -124,22 +134,35 @@ export async function POST(request: Request) {
       }
     }
 
-    // Transform the data
+    // Transform the data with proper timezone handling
     const transformedData = allData
       .filter((sale) => sale.SoldDate)
-      .map((sale) => ({
-        ...sale,
-        Date: formatInTimeZone(parseISO(sale.SoldDate), TIMEZONE, "yyyy-MM-dd"),
-        Invoice: sale.SoldRef,
-        employee_name:
-          employeeMap.get(sale.Lanid?.toLowerCase() || "") ||
-          sale.Full_Name ||
-          "Unknown",
-        Category: sale.CatDesc,
-        Subcategory: sale.SubDesc,
-        "Sold Quantity": sale.Qty,
-        total_net: sale.Margin, // Using Margin as total_net
-      }));
+      .map((sale) => {
+        const saleDate = toZonedTime(new Date(sale.SoldDate), TIMEZONE);
+        return {
+          ...sale,
+          Date: formatInTimeZone(saleDate, TIMEZONE, "yyyy-MM-dd"),
+          Invoice: sale.SoldRef,
+          employee_name:
+            employeeMap.get(sale.Lanid?.toLowerCase() || "") ||
+            sale.Full_Name ||
+            "Unknown",
+          Category: sale.CatDesc,
+          Subcategory: sale.SubDesc,
+          "Sold Quantity": sale.Qty,
+          total_net: sale.Margin,
+        };
+      });
+
+    // Add debug logging
+    // console.log("Export Query Parameters:", {
+    //   dateRange: {
+    //     from: fromDate.toISOString(),
+    //     to: toDate.toISOString(),
+    //   },
+    //   resultCount: transformedData.length,
+    //   sampleDates: transformedData.slice(0, 3).map((d) => d.Date),
+    // });
 
     return NextResponse.json({
       data: transformedData,

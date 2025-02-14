@@ -30,6 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { toZonedTime } from "date-fns-tz";
 
 interface SalesAtGlanceTableProps {
   period: "1day" | "7days" | "14days" | "30days" | "lastMonth" | "custom";
@@ -108,6 +109,8 @@ const MonthSelect: React.FC<{
     </Popover>
   );
 };
+
+const TIMEZONE = "America/Los_Angeles";
 
 export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
   period,
@@ -199,8 +202,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
               id: sort.id === "Date" ? "SoldDate" : sort.id,
             })) || [],
           dateRange: {
-            from: format(dateRange.start, "yyyy-MM-dd"),
-            to: format(dateRange.end, "yyyy-MM-dd"),
+            from: format(
+              toZonedTime(startOfDay(dateRange.start), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
+            to: format(
+              toZonedTime(endOfDay(dateRange.end), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
           },
           employeeLanids: selectedEmployees.includes("all")
             ? null
@@ -255,8 +264,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         },
         body: JSON.stringify({
           dateRange: {
-            from: format(dateRange.start, "yyyy-MM-dd'T'00:00:00.000'Z'"),
-            to: format(dateRange.end, "yyyy-MM-dd'T'23:59:59.999'Z'"),
+            from: format(
+              toZonedTime(startOfDay(dateRange.start), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
+            to: format(
+              toZonedTime(endOfDay(dateRange.end), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
           },
           employeeLanids: selectedEmployees.includes("all")
             ? null
@@ -284,8 +299,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         },
         body: JSON.stringify({
           dateRange: {
-            from: format(dateRange.start, "yyyy-MM-dd"),
-            to: format(dateRange.end, "yyyy-MM-dd"),
+            from: format(
+              toZonedTime(startOfDay(dateRange.start), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
+            to: format(
+              toZonedTime(endOfDay(dateRange.end), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
           },
           employeeLanids: selectedEmployees.includes("all")
             ? null
@@ -313,8 +334,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
         },
         body: JSON.stringify({
           dateRange: {
-            from: format(dateRange.start, "yyyy-MM-dd"),
-            to: format(dateRange.end, "yyyy-MM-dd"),
+            from: format(
+              toZonedTime(startOfDay(dateRange.start), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
+            to: format(
+              toZonedTime(endOfDay(dateRange.end), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+            ),
           },
           employeeLanids: selectedEmployees.includes("all")
             ? null
@@ -341,8 +368,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           },
           body: JSON.stringify({
             dateRange: {
-              from: format(dateRange.start, "yyyy-MM-dd'T'00:00:00.000'Z'"),
-              to: format(dateRange.end, "yyyy-MM-dd'T'23:59:59.999'Z'"),
+              from: format(
+                toZonedTime(startOfDay(dateRange.start), TIMEZONE),
+                "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+              ),
+              to: format(
+                toZonedTime(endOfDay(dateRange.end), TIMEZONE),
+                "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+              ),
             },
             employeeLanids: selectedEmployees.includes("all")
               ? null
@@ -357,8 +390,14 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
           },
           body: JSON.stringify({
             dateRange: {
-              from: format(dateRange.start, "yyyy-MM-dd"),
-              to: format(dateRange.end, "yyyy-MM-dd"),
+              from: format(
+                toZonedTime(startOfDay(dateRange.start), TIMEZONE),
+                "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+              ),
+              to: format(
+                toZonedTime(endOfDay(dateRange.end), TIMEZONE),
+                "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+              ),
             },
             employeeLanids: selectedEmployees.includes("all")
               ? null
@@ -422,7 +461,10 @@ export const SalesAtGlanceTable: React.FC<SalesAtGlanceTableProps> = ({
       // Add detailed transactions sheet
       const detailsSheet = XLSX.utils.json_to_sheet(
         data.map((row: any) => ({
-          Date: row.SoldDate,
+          Date: format(
+            toZonedTime(new Date(row.SoldDate), TIMEZONE),
+            "yyyy-MM-dd HH:mm:ss"
+          ),
           Invoice: row.SoldRef,
           Employee: row.Lanid,
           "Employee Name": row.employee_name,

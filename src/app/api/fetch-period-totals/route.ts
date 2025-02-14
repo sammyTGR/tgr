@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
+import { toZonedTime as zonedTimeToUtc } from "date-fns-tz";
+
+const TIMEZONE = "America/Los_Angeles";
 
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
       )
       .not("SoldDate", "is", null);
 
-    // Apply date range filter with UTC handling
+    // Apply date range filter with timezone handling
     if (dateRange?.from) {
       const fromDate = new Date(dateRange.from);
       fromDate.setUTCHours(0, 0, 0, 0);

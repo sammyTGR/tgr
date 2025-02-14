@@ -810,50 +810,37 @@ function AdminDashboardContent() {
                 dateNF: "yyyy-mm-dd",
               });
 
-              const keys = jsonData[0] as string[];
+              // Inside handleFileUpload function, update the data formatting
               const formattedData = jsonData.slice(1).map((row: any) => {
-                const rowData: any = {};
-                keys.forEach((key, index) => {
-                  // Map Excel columns to database columns
-                  const value = row[index];
+                // Convert Excel date number to proper timestamp
+                let soldDate = null;
+                if (row.SoldDate) {
+                  // Check if it's an Excel date number
+                  if (typeof row.SoldDate === "number") {
+                    // Convert Excel date number to JavaScript Date
+                    soldDate = new Date((row.SoldDate - 25569) * 86400 * 1000);
+                  } else {
+                    // If it's already a string or date, parse it directly
+                    soldDate = new Date(row.SoldDate);
+                  }
+                  // Format as ISO string to preserve time component
+                  soldDate = soldDate.toISOString();
+                }
 
-                  // Handle date fields
-                  if (key === "SoldDate" || key === "DateRec") {
-                    if (value) {
-                      // Convert Excel date to YYYY-MM-DD format
-                      const dateValue =
-                        typeof value === "number"
-                          ? new Date((value - 25569) * 86400 * 1000)
-                          : new Date(value);
-                      rowData[key] = format(dateValue, "yyyy-MM-dd");
-                    }
-                  }
-                  // Handle numeric fields
-                  else if (
-                    [
-                      "Qty",
-                      "Cost",
-                      "SoldPrice",
-                      "Acct",
-                      "Margin",
-                      "RetailPrice",
-                      "SoldDisc",
-                      "AvailableQty",
-                    ].includes(key)
-                  ) {
-                    rowData[key] = value ? Number(value) : null;
-                  }
-                  // Handle integer fields
-                  else if (["Stloc", "Cat", "Sub", "TypeAcct"].includes(key)) {
-                    rowData[key] = value ? parseInt(value) : null;
-                  }
-                  // Handle all other fields as strings
-                  else {
-                    rowData[key] = value?.toString() || null;
-                  }
-                });
-
-                return rowData;
+                return {
+                  ...row,
+                  SoldDate: soldDate,
+                  Qty: row.Qty ? Number(row.Qty) : null,
+                  Cost: row.Cost ? Number(row.Cost) : null,
+                  SoldPrice: row.SoldPrice ? Number(row.SoldPrice) : null,
+                  Margin: row.Margin ? Number(row.Margin) : null,
+                  Acct: row.Acct ? Number(row.Acct) : null,
+                  RetailPrice: row.RetailPrice ? Number(row.RetailPrice) : null,
+                  SoldDisc: row.SoldDisc ? Number(row.SoldDisc) : null,
+                  AvailableQty: row.AvailableQty
+                    ? Number(row.AvailableQty)
+                    : null,
+                };
               });
 
               const batchSize = 100;
@@ -866,7 +853,7 @@ function AdminDashboardContent() {
                   supabase
                     .from("detailed_sales_data")
                     .upsert(batch, {
-                      onConflict: "SoldRef,Serial,SoldDate", // Adjust these fields based on your unique constraint
+                      onConflict: "SoldRef,Serial,SoldDate",
                       ignoreDuplicates: false,
                     })
                     .then(({ error }) => {
@@ -1208,7 +1195,7 @@ function AdminDashboardContent() {
               supabase
                 .from("historical_sales")
                 .upsert(batch, {
-                  onConflict: "SoldRef,Serial,SoldDate", // Adjust these fields based on your unique constraint
+                  onConflict: "SoldRef,Serial,SoldDate",
                   ignoreDuplicates: false,
                 })
                 .then(({ error }) => {
@@ -1840,11 +1827,18 @@ function AdminDashboardContent() {
                 dbColumnName === "DateRec"
               ) {
                 if (value) {
-                  const dateValue =
-                    typeof value === "number"
-                      ? new Date((value - 25569) * 86400 * 1000)
-                      : new Date(value);
-                  rowData[dbColumnName] = format(dateValue, "yyyy-MM-dd");
+                  let dateValue;
+                  if (typeof value === "number") {
+                    // Convert Excel serial number to full timestamp
+                    dateValue = new Date((value - 25569) * 86400 * 1000);
+                  } else {
+                    // Parse string date
+                    dateValue = new Date(value);
+                  }
+                  // Format with timezone info preserved
+                  rowData[dbColumnName] = dateValue.toISOString();
+                } else {
+                  rowData[dbColumnName] = null;
                 }
               }
               // Handle numeric fields

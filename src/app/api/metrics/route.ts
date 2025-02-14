@@ -1,6 +1,9 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { toZonedTime as zonedTimeToUtc } from "date-fns-tz";
+
+const TIMEZONE = "America/Los_Angeles";
 
 export async function GET() {
   try {
@@ -100,13 +103,20 @@ async function fetchYearMetrics(
   endDate: string
 ) {
   try {
-    // console.log(`Fetching metrics for ${startDate} to ${endDate}`);
+    // Convert dates to UTC with timezone consideration
+    const startDateTemp = new Date(startDate);
+    startDateTemp.setHours(0, 0, 0, 0);
+    const utcStartDate = zonedTimeToUtc(startDateTemp, TIMEZONE);
+
+    const endDateTemp = new Date(endDate);
+    endDateTemp.setHours(23, 59, 59, 999);
+    const utcEndDate = zonedTimeToUtc(endDateTemp, TIMEZONE);
 
     const { data: salesData, error: salesError } = await supabase
       .from("detailed_sales_data")
       .select("*")
-      .gte("SoldDate", startDate)
-      .lte("SoldDate", endDate);
+      .gte("SoldDate", utcStartDate.toISOString())
+      .lte("SoldDate", utcEndDate.toISOString());
 
     if (salesError || !salesData || salesData.length === 0) {
       // console.log(`No sales data found for ${startDate} to ${endDate}`);
@@ -115,12 +125,12 @@ async function fetchYearMetrics(
 
     // Calculate metrics using the new table structure
     const monthlyGrossRevenue = salesData.reduce(
-      (acc: number, sale: any) => acc + (sale.total_gross || 0),
+      (acc: number, sale: any) => acc + (Number(sale.total_gross) || 0),
       0
     );
 
     const monthlyNetRevenue = salesData.reduce(
-      (acc: number, sale: any) => acc + (sale.Margin || 0),
+      (acc: number, sale: any) => acc + (Number(sale.Margin) || 0),
       0
     );
 
@@ -128,7 +138,7 @@ async function fetchYearMetrics(
     const categoryPerformance = salesData.reduce((acc: any, sale: any) => {
       const category = sale.CatDesc || "Uncategorized";
       if (!acc[category]) acc[category] = 0;
-      acc[category] += sale.total_gross || 0;
+      acc[category] += Number(sale.total_gross) || 0;
       return acc;
     }, {});
 
@@ -137,9 +147,13 @@ async function fetchYearMetrics(
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // Calculate peak hours
+    // Calculate peak hours with timezone consideration
     const hourlyTransactions = salesData.reduce((acc: any, sale: any) => {
-      const hour = new Date(sale.SoldDate).getHours();
+      const saleDate = new Date(sale.SoldDate);
+      const localDate = new Date(
+        saleDate.toLocaleString("en-US", { timeZone: TIMEZONE })
+      );
+      const hour = localDate.getHours();
       if (!acc[hour]) acc[hour] = 0;
       acc[hour]++;
       return acc;
@@ -154,7 +168,7 @@ async function fetchYearMetrics(
       .sort((a, b) => b.transactions - a.transactions)
       .slice(0, 5);
 
-    // Customer frequency calculation
+    // Customer frequency calculation with timezone consideration
     const customerTransactions = salesData.reduce(
       (acc: Record<string, any[]>, sale: any) => {
         if (sale.Acct) {
@@ -162,9 +176,13 @@ async function fetchYearMetrics(
           if (!acc[customerKey]) {
             acc[customerKey] = [];
           }
+          const saleDate = new Date(sale.SoldDate);
+          const localDate = new Date(
+            saleDate.toLocaleString("en-US", { timeZone: TIMEZONE })
+          );
           acc[customerKey].push({
-            date: new Date(sale.SoldDate),
-            monthKey: new Date(sale.SoldDate).toISOString().slice(0, 7),
+            date: localDate,
+            monthKey: localDate.toISOString().slice(0, 7),
           });
         }
         return acc;

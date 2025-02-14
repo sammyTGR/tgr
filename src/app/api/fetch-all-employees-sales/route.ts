@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { startOfDay, endOfDay } from "date-fns";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { format } from "date-fns";
+import { toZonedTime as zonedTimeToUtc } from "date-fns-tz";
 
 const TIMEZONE = "America/Los_Angeles";
 
@@ -71,16 +71,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Apply date range filter with proper indexing
+    // Apply date range filter with timezone handling
     if (dateRange?.from) {
-      const fromDate = new Date(dateRange.from);
-      fromDate.setUTCHours(0, 0, 0, 0);
+      const fromDate = zonedTimeToUtc(
+        new Date(dateRange.from).setHours(0, 0, 0, 0),
+        TIMEZONE
+      );
       query = query.gte("SoldDate", fromDate.toISOString());
     }
 
     if (dateRange?.to) {
-      const toDate = new Date(dateRange.to);
-      toDate.setUTCHours(23, 59, 59, 999);
+      const toDate = zonedTimeToUtc(
+        new Date(dateRange.to).setHours(23, 59, 59, 999),
+        TIMEZONE
+      );
       query = query.lte("SoldDate", toDate.toISOString());
     }
 
@@ -152,8 +156,9 @@ export async function POST(request: Request) {
 
     const transformedData = salesData.map((sale: any) => ({
       ...sale,
-      Date: sale.Date
-        ? toZonedTime(new Date(sale.Date), TIMEZONE).toISOString()
+      // Format the date in the local timezone
+      SoldDate: sale.SoldDate
+        ? format(new Date(sale.SoldDate), "yyyy-MM-dd HH:mm:ss")
         : null,
       employee_name: employeeMap.get(sale.Lanid) || "Unknown",
     }));
