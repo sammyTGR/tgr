@@ -21,10 +21,22 @@ function DashboardKPI({
   getDefaultDateRange,
   formatter,
 }: any) {
-  // Add state for expanded cards
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  );
+  // Update the initial state to have all cards collapsed by default
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
+    gunsmithing: false,
+    reloads: false,
+    "laser-engraving-stippling": false,
+    "range-targets": false,
+    "range-protection-equipment": false,
+    "range-station-rental": false,
+    "gun-range-rental": false,
+    pistol: false,
+    receiver: false,
+    revolver: false,
+    rifle: false,
+    shotgun: false,
+    "factory-ammo": false,
+  });
 
   // Helper function to toggle card expansion
   const toggleCardExpansion = (cardId: string) => {
@@ -44,7 +56,7 @@ function DashboardKPI({
     title: string;
     children: React.ReactNode;
   }) => {
-    const isExpanded = expandedCards[id];
+    const isExpanded = expandedCards[id] ?? false;
 
     return (
       <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
@@ -65,7 +77,11 @@ function DashboardKPI({
         </CardHeader>
         <CardContent
           className={`
-            ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+            ${
+              isExpanded
+                ? "h-auto max-h-[500px] overflow-y-auto pr-4"
+                : "h-[100px] overflow-y-auto pr-4"
+            }
             space-y-2
           `}
         >

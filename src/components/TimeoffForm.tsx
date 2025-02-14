@@ -760,19 +760,21 @@ export default function TimeoffForm({ onSubmitSuccess }: TimeoffFormProps) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Important Notice</AlertDialogTitle>
                     <AlertDialogDescription>
-                      <p className="text-red-500">
+                      <span className="text-red-500">
                         Submitting A Request Does NOT Mean It Will Be Approved!
-                      </p>
-                      <p className="mt-4">
+                      </span>
+                      <br className="mb-4" />
+                      <span>
                         You Are REQUIRED To Find Someone Trained In Your Duties
                         To Cover For You Before A Request Can Be Approved.
-                      </p>
-                      <p className="mt-4">
-                        <span className="text-red-500 font-bold">
-                          If you DO NOT have someone to cover for you listed
-                          below, your request will be denied.
-                        </span>
-                      </p>
+                      </span>
+
+                      <br className="mt-4" />
+
+                      <span className="text-red-500 font-bold">
+                        If you DO NOT have someone to cover for you listed
+                        below, your request will be denied.
+                      </span>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
