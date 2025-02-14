@@ -16,7 +16,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
+import { startOfDay, endOfDay } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { type DateRange } from "react-day-picker";
 import {
   Select,
@@ -167,8 +169,14 @@ const SalesDataTableAllEmployees: React.FC = () => {
             dateRange:
               dateRange.from && dateRange.to
                 ? {
-                    from: format(new Date(dateRange.from), "yyyy-MM-dd"),
-                    to: format(new Date(dateRange.to), "yyyy-MM-dd"),
+                    from: format(
+                      toZonedTime(startOfDay(dateRange.from), TIMEZONE),
+                      "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+                    ),
+                    to: format(
+                      toZonedTime(endOfDay(dateRange.to), TIMEZONE),
+                      "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+                    ),
                   }
                 : undefined,
             employeeLanids: selectedEmployees.includes("all")
@@ -212,12 +220,12 @@ const SalesDataTableAllEmployees: React.FC = () => {
         body: JSON.stringify({
           dateRange: {
             from: format(
-              startOfDay(new Date(dateRange.from)),
-              "yyyy-MM-dd'T'00:00:00.000'Z'"
+              toZonedTime(startOfDay(dateRange.from), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
             ),
             to: format(
-              endOfDay(new Date(dateRange.to)),
-              "yyyy-MM-dd'T'23:59:59.999'Z'"
+              toZonedTime(endOfDay(dateRange.to), TIMEZONE),
+              "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
             ),
           },
           employeeLanids: selectedEmployees.includes("all")
@@ -238,7 +246,10 @@ const SalesDataTableAllEmployees: React.FC = () => {
       }
 
       const exportData = data.data.map((row: any) => ({
-        Date: row.Date,
+        Date: format(
+          toZonedTime(new Date(row.SoldDate), TIMEZONE),
+          "yyyy-MM-dd HH:mm:ss"
+        ),
         Invoice: row.Invoice,
         Employee: row.Lanid,
         "Employee Name": row.employee_name,
