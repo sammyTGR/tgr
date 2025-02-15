@@ -792,22 +792,8 @@ const ManageSchedules = () => {
     editTimesheetMutation.mutate({ id, lunch_start, lunch_end });
   };
 
-  const handleAddTimeSheetEntry = (
-    employeeId: number,
-    date: string,
-    startTime: string,
-    lunchStart: string | null,
-    lunchEnd: string | null,
-    endTime: string | null
-  ) => {
-    addTimesheetMutation.mutate({
-      employeeId,
-      date,
-      startTime,
-      lunchStart,
-      lunchEnd,
-      endTime,
-    });
+  const handleAddTimeSheetEntry = async (timesheet: TimesheetData) => {
+    await queryClient.invalidateQueries({ queryKey: ["timesheets"] });
   };
 
   const handleGenerateSingleSchedule = async (

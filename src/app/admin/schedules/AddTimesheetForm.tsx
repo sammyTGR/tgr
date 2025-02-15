@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimesheetData } from "./data-schema";
 
 interface Employee {
   employee_id: number;
@@ -25,14 +26,7 @@ interface Employee {
 }
 
 interface AddTimesheetFormProps {
-  onTimesheetAdded: (
-    employeeId: number,
-    date: string,
-    startTime: string,
-    lunchStart: string | null,
-    lunchEnd: string | null,
-    endTime: string | null
-  ) => void;
+  onTimesheetAdded: (timesheet: TimesheetData) => void;
 }
 
 const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
@@ -73,20 +67,42 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
     setEndTime("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (employeeId && date && startTime) {
       setIsSubmitting(true);
       try {
-        onTimesheetAdded(
-          employeeId,
-          date,
-          startTime,
-          lunchStart || null,
-          lunchEnd || null,
-          endTime || null
-        );
-        setOpen(false); // Close popover after successful submission
-        resetForm(); // Reset form fields
+        // Format time to match PostgreSQL time without time zone format
+        const formatTimeForDB = (time: string) => {
+          if (!time) return null;
+          return time + ":00"; // Add seconds to match "HH:mm:ss" format
+        };
+
+        const { data, error } = await supabase
+          .from("employee_clock_events")
+          .insert({
+            employee_id: employeeId,
+            event_date: date,
+            start_time: formatTimeForDB(startTime),
+            lunch_start: formatTimeForDB(lunchStart),
+            lunch_end: formatTimeForDB(lunchEnd),
+            end_time: formatTimeForDB(endTime),
+            // total_hours will be calculated by trigger
+            // lunch_lock and created_at will be handled by database
+          })
+          .select("*, employees(name)")
+          .single();
+
+        if (error) throw error;
+
+        const newTimesheet = {
+          ...data,
+          employee_name: data.employees?.name,
+        } as TimesheetData;
+
+        onTimesheetAdded(newTimesheet);
+        setOpen(false);
+        resetForm();
+        toast.success("Timesheet entry added successfully");
       } catch (error) {
         console.error("Error submitting timesheet:", error);
         toast.error("Failed to submit timesheet");

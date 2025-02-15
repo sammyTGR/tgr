@@ -2345,7 +2345,30 @@ const useClockEvents = (employeeId: number) => {
       const endTime = formatTZ(now, "HH:mm:ss", { timeZone });
       const eventDate = formatTZ(now, "yyyy-MM-dd", { timeZone });
 
-      const { data: currentShift, error: fetchError } = await supabase
+      const { data: currentShift } = await supabase
+        .from("employee_clock_events")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .eq("event_date", eventDate)
+        .single();
+
+      if (!currentShift) {
+        throw new Error("No active shift found");
+      }
+
+      // Just update the end_time - the trigger will calculate total_hours
+      const { error } = await supabase
+        .from("employee_clock_events")
+        .update({
+          end_time: endTime,
+        })
+        .eq("employee_id", employeeId)
+        .eq("event_date", eventDate);
+
+      if (error) throw error;
+
+      // Fetch the updated record to get the calculated total_hours
+      const { data: updatedShift, error: fetchError } = await supabase
         .from("employee_clock_events")
         .select("*")
         .eq("employee_id", employeeId)
@@ -2353,33 +2376,7 @@ const useClockEvents = (employeeId: number) => {
         .single();
 
       if (fetchError) throw fetchError;
-
-      if (!currentShift) {
-        throw new Error("No active shift found");
-      }
-
-      let duration = calculateDurationWithLunch(
-        currentShift.start_time,
-        endTime,
-        currentShift.lunch_start,
-        currentShift.lunch_end
-      );
-
-      if (duration === "00:00:00") {
-        throw new Error("Invalid duration calculated");
-      }
-
-      const { error } = await supabase
-        .from("employee_clock_events")
-        .update({
-          end_time: endTime,
-          total_hours: duration,
-        })
-        .eq("id", currentShift.id);
-
-      if (error) throw error;
-
-      return { ...currentShift, end_time: endTime, total_hours: duration };
+      return updatedShift;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["currentShift", employeeId], data);

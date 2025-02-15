@@ -323,6 +323,59 @@ export function TimesheetDataTable({
     []
   );
 
+  const calculateTotalHours = (timesheet: TimesheetData) => {
+    try {
+      const parseTimeString = (timeStr: string) => {
+        const [time, meridiem] = timeStr.split(" ");
+        let [hours, minutes] = time.split(":").map(Number);
+        if (meridiem === "PM" && hours !== 12) hours += 12;
+        if (meridiem === "AM" && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      };
+
+      const startMinutes = parseTimeString(timesheet.start_time);
+      const endMinutes = parseTimeString(timesheet.end_time || "");
+      const lunchStartMinutes = timesheet.lunch_start
+        ? parseTimeString(timesheet.lunch_start)
+        : null;
+      const lunchEndMinutes = timesheet.lunch_end
+        ? parseTimeString(timesheet.lunch_end)
+        : null;
+
+      console.log("Start minutes:", startMinutes); // 5:30 AM = 330
+      console.log("End minutes:", endMinutes); // 1:59 PM = 839
+      console.log("Lunch start minutes:", lunchStartMinutes); // 10:46 AM = 646
+      console.log("Lunch end minutes:", lunchEndMinutes); // 11:16 AM = 676
+
+      if (!endMinutes) return "0:00";
+
+      let totalMinutes = endMinutes - startMinutes; // 839 - 330 = 509 minutes
+      console.log("Total minutes before lunch:", totalMinutes);
+
+      // Subtract lunch break if both lunch start and end times exist
+      if (lunchStartMinutes !== null && lunchEndMinutes !== null) {
+        const lunchDuration = lunchEndMinutes - lunchStartMinutes; // 676 - 646 = 30 minutes
+        console.log("Lunch duration:", lunchDuration);
+        totalMinutes -= lunchDuration;
+      }
+
+      console.log("Final total minutes:", totalMinutes);
+
+      // Convert minutes to hours and minutes
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      // Format with leading zeros for minutes
+      const result = `${hours}:${minutes.toString().padStart(2, "0")}`;
+      console.log("Calculated result:", result);
+
+      return result;
+    } catch (error) {
+      console.error("Error calculating total hours:", error);
+      return "0:00";
+    }
+  };
+
   const formattedColumns = React.useMemo(() => {
     return providedColumns.map((column) => {
       if (column.id === "lunch_start") {
@@ -458,6 +511,26 @@ export function TimesheetDataTable({
         };
       }
 
+      if (column.id === "total_hours") {
+        return {
+          ...column,
+          cell: (info: any) => {
+            const row = info.row.original;
+            if (!row.total_hours) return "";
+
+            // PostgreSQL interval comes in format like "08:02:00" or "8:02:00"
+            // We want to convert it to "8:02"
+            try {
+              const [hours, minutes] = row.total_hours.split(":");
+              return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
+            } catch (error) {
+              console.error("Error formatting total hours:", error);
+              return row.total_hours;
+            }
+          },
+        };
+      }
+
       return column;
     });
   }, [providedColumns]);
@@ -513,6 +586,37 @@ export function TimesheetDataTable({
     setExpanded(newState);
     queryClient.setQueryData(["timesheetExpandedState"], newState);
     table.toggleAllRowsExpanded(!!newState);
+  };
+
+  const formatIntervalForExcel = (intervalStr: string | null) => {
+    if (!intervalStr) return "";
+    try {
+      // Handle different PostgreSQL interval formats
+      // Could be "HH:MM:SS" or "H hours M minutes" or just a number
+      if (intervalStr.includes(":")) {
+        const [hours, minutes] = intervalStr.split(":");
+        return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
+      } else if (intervalStr.includes("hours")) {
+        const parts = intervalStr.split(" ");
+        const hours = parseInt(parts[0]);
+        const minutes = parts.includes("minutes") ? parseInt(parts[2]) : 0;
+        return `${hours}:${minutes.toString().padStart(2, "0")}`;
+      } else {
+        // If it's just a number, assume it's hours
+        const hours = parseFloat(intervalStr);
+        const wholeHours = Math.floor(hours);
+        const minutes = Math.round((hours - wholeHours) * 60);
+        return `${wholeHours}:${minutes.toString().padStart(2, "0")}`;
+      }
+    } catch (error) {
+      console.error(
+        "Error formatting interval for Excel:",
+        error,
+        "Input:",
+        intervalStr
+      );
+      return intervalStr || "";
+    }
   };
 
   const handleExportToExcel = () => {
@@ -642,9 +746,7 @@ export function TimesheetDataTable({
           lunchStart,
           lunchEnd,
           safeFormatTime(item.end_time),
-          item.total_hours
-            ? formatHoursAndMinutes(String(item.total_hours))
-            : "",
+          formatIntervalForExcel(item.total_hours),
           getLunchDuration(lunchStart, lunchEnd),
         ];
       })
@@ -675,7 +777,7 @@ export function TimesheetDataTable({
   };
 
   const handleAddTimeSheetEntry = (newTimesheet: TimesheetData) => {
-    setData((prevData) => [...prevData, newTimesheet]);
+    queryClient.invalidateQueries({ queryKey: ["timesheets"] });
   };
 
   const toggleCardExpansion = (cardId: string) => {

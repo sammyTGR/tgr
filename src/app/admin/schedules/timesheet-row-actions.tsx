@@ -206,15 +206,22 @@ export function TimesheetRowActions({
     }
 
     if (Object.keys(updates).length > 0) {
+      // Remove total_hours from updates as it will be calculated by the trigger
       const { data, error } = await supabase
         .from("employee_clock_events")
         .update(updates)
         .eq("id", timesheet.id)
-        .select();
+        .select("*, employees(name)"); // Include employee name in the response
 
       if (error) {
         console.error("Error updating timesheet:", error);
+        toast.error("Failed to update timesheet");
       } else if (data && data.length > 0) {
+        const updatedTimesheet = {
+          ...data[0],
+          employee_name: data[0].employees?.name,
+        };
+
         // Get current states before invalidation
         const currentExpandedState = queryClient.getQueryData([
           "timesheetExpandedState",
@@ -224,7 +231,7 @@ export function TimesheetRowActions({
         ]);
 
         // Update the timesheet
-        updateTimesheet(data[0] as TimesheetData);
+        updateTimesheet(updatedTimesheet as TimesheetData);
 
         // Invalidate and refetch timesheets
         await queryClient.invalidateQueries({ queryKey: ["timesheets"] });
@@ -238,6 +245,8 @@ export function TimesheetRowActions({
           ["timesheetSortingState"],
           currentSortingState
         );
+
+        toast.success("Timesheet updated successfully");
       }
     }
 
