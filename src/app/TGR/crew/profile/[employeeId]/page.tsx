@@ -445,11 +445,6 @@ const EmployeeProfilePage = () => {
   const { data: unacknowledgedBulletins } = useQuery({
     queryKey: ["unacknowledgedBulletins", employeeId],
     queryFn: async () => {
-      // console.log(
-      //   "Checking unacknowledged bulletins for employee:",
-      //   employeeId
-      // );
-
       // First get all bulletins that require acknowledgment
       const { data: bulletins, error: bulletinsError } = await supabase
         .from("bulletin_posts")
@@ -461,14 +456,29 @@ const EmployeeProfilePage = () => {
         throw bulletinsError;
       }
 
-      // console.log("Bulletins requiring acknowledgment:", bulletins);
+      // Get employee's department
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("department")
+        .eq("employee_id", employeeId)
+        .single();
 
-      if (!bulletins || bulletins.length === 0) return [];
+      if (employeeError) {
+        console.error("Error fetching employee department:", employeeError);
+        throw employeeError;
+      }
+
+      // Filter bulletins that are relevant to the employee's department
+      const relevantBulletins = bulletins.filter((bulletin) =>
+        bulletin.required_departments.includes(employeeData.department)
+      );
+
+      if (!relevantBulletins || relevantBulletins.length === 0) return [];
 
       // Then get all acknowledgments for this employee
       const { data: acknowledgments, error: acksError } = await supabase
         .from("bulletin_acknowledgments")
-        .select("post_id") // Changed from bulletin_id to post_id
+        .select("post_id")
         .eq("employee_id", employeeId);
 
       if (acksError) {
@@ -476,19 +486,15 @@ const EmployeeProfilePage = () => {
         throw acksError;
       }
 
-      // console.log("Employee acknowledgments:", acknowledgments);
-
       // Create a set of acknowledged bulletin IDs
       const acknowledgedIds = new Set(
         acknowledgments?.map((ack) => ack.post_id)
       );
 
       // Filter out bulletins that have been acknowledged
-      const unacknowledged = bulletins.filter(
+      const unacknowledged = relevantBulletins.filter(
         (bulletin) => !acknowledgedIds.has(bulletin.id)
       );
-
-      // console.log("Unacknowledged bulletins:", unacknowledged);
 
       return unacknowledged;
     },

@@ -11,6 +11,7 @@ export type BulletinPost = {
   created_at: string;
   created_by: string;
   requires_acknowledgment: boolean;
+  required_departments: string[];
 };
 
 export type Acknowledgment = {

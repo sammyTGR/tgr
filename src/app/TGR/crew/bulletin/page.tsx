@@ -59,6 +59,20 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { MinimalTiptapEditor } from "@/components/minimal-tiptap";
 import { Content } from "@tiptap/react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type BulletinPost = {
   id: number;
@@ -68,6 +82,7 @@ type BulletinPost = {
   created_at: string;
   created_by: string;
   requires_acknowledgment: boolean;
+  required_departments: string[];
 };
 
 type Acknowledgment = {
@@ -99,6 +114,7 @@ type BulletinFormState = {
   content: string;
   category: string;
   requires_acknowledgment: boolean;
+  required_departments: string[];
 };
 
 export default function BulletinBoard() {
@@ -187,12 +203,31 @@ export default function BulletinBoard() {
     },
   });
 
-  const hasAcknowledged = (postId: number) => {
-    return acknowledgments.some(
+  const hasAcknowledged = (post: BulletinPost) => {
+    // If no acknowledgment required, return true
+    if (!post.requires_acknowledgment) return true;
+
+    // Check if the employee has already acknowledged
+    const hasAlreadyAcknowledged = acknowledgments.some(
       (ack) =>
-        ack.post_id === postId &&
+        ack.post_id === post.id &&
         ack.employee_id === currentEmployee?.employee_id
     );
+
+    // If post has required departments
+    if (post.required_departments?.length > 0) {
+      // Only show acknowledgment if employee is in required departments
+      const isInRequiredDepartment = post.required_departments.includes(
+        currentEmployee?.department || ""
+      );
+
+      // Return true (no need to acknowledge) if employee is NOT in required departments
+      // OR if they have already acknowledged
+      return !isInRequiredDepartment || hasAlreadyAcknowledged;
+    }
+
+    // If no required departments specified, check only acknowledgment status
+    return hasAlreadyAcknowledged;
   };
 
   const createBulletinMutation = useMutation({
@@ -201,6 +236,7 @@ export default function BulletinBoard() {
       content: string;
       category: string;
       requires_acknowledgment: boolean;
+      required_departments: string[];
     }) => {
       const { error } = await supabase.from("bulletin_posts").insert({
         ...newBulletin,
@@ -244,6 +280,7 @@ export default function BulletinBoard() {
       content: "",
       category: "",
       requires_acknowledgment: false,
+      required_departments: [],
     }),
     staleTime: Infinity,
   });
@@ -257,6 +294,7 @@ export default function BulletinBoard() {
           content: bulletin.content,
           category: bulletin.category,
           requires_acknowledgment: bulletin.requires_acknowledgment,
+          required_departments: bulletin.required_departments,
         })
         .eq("id", bulletin.id);
       if (error) throw error;
@@ -439,6 +477,79 @@ export default function BulletinBoard() {
                       Requires Acknowledgment
                     </Label>
                   </div>
+
+                  {bulletinFormQuery.data?.requires_acknowledgment && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="required_departments">
+                        Required Departments
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                          >
+                            {bulletinFormQuery.data?.required_departments
+                              ?.length > 0
+                              ? `${bulletinFormQuery.data.required_departments.length} departments selected`
+                              : "Select departments"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search departments..." />
+                            <CommandEmpty>No department found.</CommandEmpty>
+                            <CommandGroup>
+                              {[
+                                "Operations",
+                                "Sales",
+                                "Range",
+                                "Reloading",
+                              ].map((department) => (
+                                <CommandItem
+                                  key={department}
+                                  onSelect={() => {
+                                    queryClient.setQueryData(
+                                      ["bulletinForm"],
+                                      (old: BulletinFormState | undefined) => {
+                                        const current =
+                                          old?.required_departments || [];
+                                        const updated = current.includes(
+                                          department
+                                        )
+                                          ? current.filter(
+                                              (d) => d !== department
+                                            )
+                                          : [...current, department];
+                                        return {
+                                          ...old!,
+                                          required_departments: updated,
+                                        };
+                                      }
+                                    );
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      bulletinFormQuery.data?.required_departments?.includes(
+                                        department
+                                      )
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {department}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button
@@ -463,6 +574,7 @@ export default function BulletinBoard() {
                               content: "",
                               category: "",
                               requires_acknowledgment: false,
+                              required_departments: [],
                             });
                           },
                         });
@@ -597,8 +709,35 @@ export default function BulletinBoard() {
                                     <Label htmlFor="edit-content">
                                       Content
                                     </Label>
-                                    <div className="min-h-[200px] max-h-[400px] border rounded-md overflow-y-auto p-4">
-                                      <EditorContent editor={editor} />
+                                    <div className="min-h-[200px] max-h-[400px] border rounded-md overflow-y-auto">
+                                      <MinimalTiptapEditor
+                                        value={
+                                          editingBulletinQuery.data?.content
+                                        }
+                                        onChange={(newContent: Content) => {
+                                          queryClient.setQueryData<BulletinPost | null>(
+                                            ["editingBulletin"],
+                                            (old) =>
+                                              old
+                                                ? {
+                                                    ...old,
+                                                    content:
+                                                      typeof newContent ===
+                                                      "string"
+                                                        ? newContent
+                                                        : newContent?.toString() ||
+                                                          "",
+                                                  }
+                                                : null
+                                          );
+                                        }}
+                                        className="w-full"
+                                        editorContentClassName="p-4 max-h-[380px] overflow-y-auto"
+                                        output="html"
+                                        placeholder="Enter bulletin content..."
+                                        editorClassName="focus:outline-none"
+                                        editable={true}
+                                      />
                                     </div>
                                   </div>
                                   <div className="flex items-center space-x-2">
@@ -625,6 +764,91 @@ export default function BulletinBoard() {
                                       Requires Acknowledgment
                                     </Label>
                                   </div>
+
+                                  {editingBulletinQuery.data
+                                    ?.requires_acknowledgment && (
+                                    <div className="grid gap-2">
+                                      <Label htmlFor="edit-required-departments">
+                                        Required Departments
+                                      </Label>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full justify-between"
+                                          >
+                                            {editingBulletinQuery.data
+                                              ?.required_departments?.length > 0
+                                              ? `${editingBulletinQuery.data.required_departments.length} departments selected`
+                                              : "Select departments"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                          <Command>
+                                            <CommandInput placeholder="Search departments..." />
+                                            <CommandEmpty>
+                                              No department found.
+                                            </CommandEmpty>
+                                            <CommandGroup>
+                                              {[
+                                                "Operations",
+                                                "Sales",
+                                                "Range",
+                                                "Reloading",
+                                              ].map((department) => (
+                                                <CommandItem
+                                                  key={department}
+                                                  onSelect={() => {
+                                                    queryClient.setQueryData<BulletinPost | null>(
+                                                      ["editingBulletin"],
+                                                      (old) => {
+                                                        if (!old) return null;
+                                                        const current =
+                                                          old.required_departments ||
+                                                          [];
+                                                        const updated =
+                                                          current.includes(
+                                                            department
+                                                          )
+                                                            ? current.filter(
+                                                                (d) =>
+                                                                  d !==
+                                                                  department
+                                                              )
+                                                            : [
+                                                                ...current,
+                                                                department,
+                                                              ];
+                                                        return {
+                                                          ...old,
+                                                          required_departments:
+                                                            updated,
+                                                        };
+                                                      }
+                                                    );
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      editingBulletinQuery.data?.required_departments?.includes(
+                                                        department
+                                                      )
+                                                        ? "opacity-100"
+                                                        : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {department}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </Command>
+                                        </PopoverContent>
+                                      </Popover>
+                                    </div>
+                                  )}
                                 </div>
                                 <DialogFooter>
                                   <Button
@@ -714,62 +938,61 @@ export default function BulletinBoard() {
                       dangerouslySetInnerHTML={{ __html: post.content }}
                     />
                   </CardContent>
-                  {post.requires_acknowledgment &&
-                    !hasAcknowledged(post.id) && (
-                      <CardFooter>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  {post.requires_acknowledgment && !hasAcknowledged(post) && (
+                    <CardFooter>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            Acknowledge
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Acknowledge Bulletin</DialogTitle>
+                          </DialogHeader>
+                          <Form {...form}>
+                            <form
+                              onSubmit={form.handleSubmit((data) => {
+                                acknowledgeMutation.mutate({
+                                  postId: post.id,
+                                  summary: data.summary,
+                                });
+                              })}
+                              className="space-y-4 py-4"
                             >
-                              Acknowledge
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Acknowledge Bulletin</DialogTitle>
-                            </DialogHeader>
-                            <Form {...form}>
-                              <form
-                                onSubmit={form.handleSubmit((data) => {
-                                  acknowledgeMutation.mutate({
-                                    postId: post.id,
-                                    summary: data.summary,
-                                  });
-                                })}
-                                className="space-y-4 py-4"
-                              >
-                                <p className="text-sm text-muted-foreground">
-                                  Please provide a brief summary of this
-                                  bulletin to acknowledge that you have read and
-                                  understood it. Typing &quot;Ok / Okay&quot;
-                                  will NOT be accepted as acknowledgment.
-                                </p>
-                                <FormField
-                                  control={form.control}
-                                  name="summary"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Textarea
-                                          placeholder="Enter your summary..."
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <Button type="submit">
-                                  Submit Acknowledgment
-                                </Button>
-                              </form>
-                            </Form>
-                          </DialogContent>
-                        </Dialog>
-                      </CardFooter>
-                    )}
+                              <p className="text-sm text-muted-foreground">
+                                Please provide a brief summary of this bulletin
+                                to acknowledge that you have read and understood
+                                it. Typing &quot;Ok / Okay&quot; will NOT be
+                                accepted as acknowledgment.
+                              </p>
+                              <FormField
+                                control={form.control}
+                                name="summary"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Enter your summary..."
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <Button type="submit">
+                                Submit Acknowledgment
+                              </Button>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
+                    </CardFooter>
+                  )}
                 </Card>
               ))}
             </div>
