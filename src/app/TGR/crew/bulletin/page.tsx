@@ -55,8 +55,6 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { MinimalTiptapEditor } from "@/components/minimal-tiptap";
 import { Content } from "@tiptap/react";
 import {
@@ -116,6 +114,15 @@ type BulletinFormState = {
   requires_acknowledgment: boolean;
   required_departments: string[];
 };
+
+// Add departments array at the top level of the component
+const departments = [
+  "All Departments",
+  "Operations",
+  "Sales",
+  "Range",
+  "Reloading",
+];
 
 export default function BulletinBoard() {
   const queryClient = useQueryClient();
@@ -214,20 +221,22 @@ export default function BulletinBoard() {
         ack.employee_id === currentEmployee?.employee_id
     );
 
+    // If already acknowledged, return true
+    if (hasAlreadyAcknowledged) return true;
+
     // If post has required departments
     if (post.required_departments?.length > 0) {
-      // Only show acknowledgment if employee is in required departments
+      // Check if employee's department is in the required departments
       const isInRequiredDepartment = post.required_departments.includes(
         currentEmployee?.department || ""
       );
 
       // Return true (no need to acknowledge) if employee is NOT in required departments
-      // OR if they have already acknowledged
-      return !isInRequiredDepartment || hasAlreadyAcknowledged;
+      return !isInRequiredDepartment;
     }
 
-    // If no required departments specified, check only acknowledgment status
-    return hasAlreadyAcknowledged;
+    // If no required departments specified, acknowledgment is required
+    return false;
   };
 
   const createBulletinMutation = useMutation({
@@ -339,18 +348,6 @@ export default function BulletinBoard() {
     staleTime: Infinity,
   });
 
-  // Add this editor state at the component level
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: editingBulletinQuery.data?.content || "",
-    onUpdate: ({ editor }) => {
-      queryClient.setQueryData<BulletinPost | null>(
-        ["editingBulletin"],
-        (old) => (old ? { ...old, content: editor.getHTML() } : null)
-      );
-    },
-  });
-
   return (
     <RoleBasedWrapper
       allowedRoles={[
@@ -388,7 +385,7 @@ export default function BulletinBoard() {
                   <DialogTitle>Create New Bulletin</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4 overflow-y-auto">
-                  <div className="grid gap-2">
+                  <div className="grid gap-2 p-2">
                     <Label htmlFor="title">Title</Label>
                     <Input
                       id="title"
@@ -405,7 +402,7 @@ export default function BulletinBoard() {
                       }}
                     />
                   </div>
-                  <div className="grid gap-2">
+                  <div className="grid gap-2 p-2">
                     <Label htmlFor="category">Category</Label>
                     <Select
                       value={bulletinFormQuery.data?.category}
@@ -433,7 +430,7 @@ export default function BulletinBoard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
+                  <div className="grid gap-2 p-2">
                     <Label htmlFor="content">Content</Label>
                     <div className="min-h-[200px] max-h-[400px] border rounded-md overflow-y-auto">
                       <MinimalTiptapEditor
@@ -469,6 +466,10 @@ export default function BulletinBoard() {
                           (old: BulletinFormState | undefined) => ({
                             ...old!,
                             requires_acknowledgment: checked,
+                            // Set all departments explicitly when enabling acknowledgment
+                            required_departments: checked
+                              ? ["Operations", "Sales", "Range", "Reloading"]
+                              : [],
                           })
                         );
                       }}
@@ -479,7 +480,7 @@ export default function BulletinBoard() {
                   </div>
 
                   {bulletinFormQuery.data?.requires_acknowledgment && (
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 p-2">
                       <Label htmlFor="required_departments">
                         Required Departments
                       </Label>
@@ -502,18 +503,25 @@ export default function BulletinBoard() {
                             <CommandInput placeholder="Search departments..." />
                             <CommandEmpty>No department found.</CommandEmpty>
                             <CommandGroup>
-                              {[
-                                "Operations",
-                                "Sales",
-                                "Range",
-                                "Reloading",
-                              ].map((department) => (
+                              {departments.map((department) => (
                                 <CommandItem
                                   key={department}
                                   onSelect={() => {
                                     queryClient.setQueryData(
                                       ["bulletinForm"],
                                       (old: BulletinFormState | undefined) => {
+                                        if (department === "All Departments") {
+                                          return {
+                                            ...old!,
+                                            required_departments: [
+                                              "Operations",
+                                              "Sales",
+                                              "Range",
+                                              "Reloading",
+                                            ],
+                                          };
+                                        }
+
                                         const current =
                                           old?.required_departments || [];
                                         const updated = current.includes(
@@ -523,6 +531,7 @@ export default function BulletinBoard() {
                                               (d) => d !== department
                                             )
                                           : [...current, department];
+
                                         return {
                                           ...old!,
                                           required_departments: updated,
@@ -648,7 +657,7 @@ export default function BulletinBoard() {
                                   <DialogTitle>Edit Bulletin</DialogTitle>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4 overflow-y-auto">
-                                  <div className="grid gap-2">
+                                  <div className="grid gap-2 p-2">
                                     <Label htmlFor="edit-title">Title</Label>
                                     <Input
                                       id="edit-title"
@@ -667,7 +676,7 @@ export default function BulletinBoard() {
                                       }}
                                     />
                                   </div>
-                                  <div className="grid gap-2">
+                                  <div className="grid gap-2 p-2">
                                     <Label htmlFor="edit-category">
                                       Category
                                     </Label>
@@ -705,7 +714,7 @@ export default function BulletinBoard() {
                                       </SelectContent>
                                     </Select>
                                   </div>
-                                  <div className="grid gap-2">
+                                  <div className="grid gap-2 p-2">
                                     <Label htmlFor="edit-content">
                                       Content
                                     </Label>
@@ -767,7 +776,7 @@ export default function BulletinBoard() {
 
                                   {editingBulletinQuery.data
                                     ?.requires_acknowledgment && (
-                                    <div className="grid gap-2">
+                                    <div className="grid gap-2 p-2">
                                       <Label htmlFor="edit-required-departments">
                                         Required Departments
                                       </Label>
@@ -792,12 +801,7 @@ export default function BulletinBoard() {
                                               No department found.
                                             </CommandEmpty>
                                             <CommandGroup>
-                                              {[
-                                                "Operations",
-                                                "Sales",
-                                                "Range",
-                                                "Reloading",
-                                              ].map((department) => (
+                                              {departments.map((department) => (
                                                 <CommandItem
                                                   key={department}
                                                   onSelect={() => {
@@ -805,6 +809,22 @@ export default function BulletinBoard() {
                                                       ["editingBulletin"],
                                                       (old) => {
                                                         if (!old) return null;
+                                                        if (
+                                                          department ===
+                                                          "All Departments"
+                                                        ) {
+                                                          return {
+                                                            ...old,
+                                                            required_departments:
+                                                              [
+                                                                "Operations",
+                                                                "Sales",
+                                                                "Range",
+                                                                "Reloading",
+                                                              ],
+                                                          };
+                                                        }
+
                                                         const current =
                                                           old.required_departments ||
                                                           [];
@@ -821,6 +841,7 @@ export default function BulletinBoard() {
                                                                 ...current,
                                                                 department,
                                                               ];
+
                                                         return {
                                                           ...old,
                                                           required_departments:
@@ -934,7 +955,7 @@ export default function BulletinBoard() {
                       </span>
                     </div>
                     <div
-                      className="prose dark:prose-invert max-w-none"
+                      className="prose dark:prose-invert max-w-none [&>ul]:list-disc [&>ol]:list-decimal [&>ul]:ml-6 [&>ol]:ml-6 [&>ul]:my-4 [&>ol]:my-4"
                       dangerouslySetInnerHTML={{ __html: post.content }}
                     />
                   </CardContent>
