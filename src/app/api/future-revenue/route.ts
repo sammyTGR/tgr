@@ -16,22 +16,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Convert dates to UTC with timezone consideration
     try {
-      const startDateTemp = new Date("2025-01-01");
-      startDateTemp.setHours(0, 0, 0, 0);
-      const startDate = toZonedTime(startDateTemp, TIMEZONE);
-
-      const endDateTemp = new Date("2025-12-31");
-      endDateTemp.setHours(23, 59, 59, 999);
-      const endDate = toZonedTime(endDateTemp, TIMEZONE);
-
-      console.log("Date conversion:", {
-        startDateTemp: startDateTemp.toISOString(),
-        endDateTemp: endDateTemp.toISOString(),
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
+      // Create dates in LA timezone
+      const startDate = new Date("2025-01-01T00:00:00-08:00");
+      const endDate = new Date("2025-12-31T23:59:59-08:00");
 
       const { data, error } = await supabase.rpc("calculate_monthly_revenue", {
         start_date: startDate.toISOString(),

@@ -97,6 +97,12 @@ function getDefaultMetrics() {
   };
 }
 
+function formatTo12Hour(hour: number): string {
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12; // Convert 0 to 12 for midnight
+  return `${hour12}:00 ${period}`;
+}
+
 async function fetchYearMetrics(
   supabase: any,
   startDate: string,
@@ -147,26 +153,41 @@ async function fetchYearMetrics(
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // Calculate peak hours with timezone consideration
+    // Update the peak hours calculation
     const hourlyTransactions = salesData.reduce((acc: any, sale: any) => {
+      if (!sale.SoldDate) return acc;
+
+      // Parse the SoldDate which is already in UTC
       const saleDate = new Date(sale.SoldDate);
-      const localDate = new Date(
-        saleDate.toLocaleString("en-US", { timeZone: TIMEZONE })
-      );
-      const hour = localDate.getHours();
+
+      // Convert UTC to LA timezone using toZonedTime
+      const laDate = zonedTimeToUtc(saleDate, TIMEZONE);
+
+      // Get the hour in LA time
+      const hour = laDate.getHours();
+
+      // Initialize or increment the counter for this hour
       if (!acc[hour]) acc[hour] = 0;
       acc[hour]++;
       return acc;
     }, {});
 
-    const peakHours = Object.entries(hourlyTransactions)
+    // Filter out hours outside of business hours (e.g., 9AM to 9PM)
+    const businessHours = Object.entries(hourlyTransactions)
+      .filter(([hour]) => {
+        const hourNum = parseInt(hour);
+        // Adjust business hours as needed
+        return hourNum >= 9 && hourNum <= 21; // 9AM to 9PM
+      })
       .map(([hour, transactions]) => ({
         hour: parseInt(hour),
         transactions: transactions as number,
-        formattedHour: `${parseInt(hour) % 12 || 12}${parseInt(hour) < 12 ? "AM" : "PM"}`,
+        formattedHour: formatTo12Hour(parseInt(hour)),
       }))
       .sort((a, b) => b.transactions - a.transactions)
       .slice(0, 5);
+
+    const peakHours = businessHours;
 
     // Customer frequency calculation with timezone consideration
     const customerTransactions = salesData.reduce(

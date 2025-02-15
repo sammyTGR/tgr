@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
+const TIMEZONE = "America/Los_Angeles";
+
+interface SalesDataRow {
+  Lanid: string | null;
+  LastName: string | null;
+  category_label: string | null;
+  subcategory_label: string | null;
+  total_gross: number;
+  total_net: number;
+}
+
 export async function GET(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
@@ -25,39 +36,98 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log("Calling RPC with params:", {
-      start_date: start,
-      end_date: end,
-    });
+    // Apply date range filter with timezone handling
+    const fromDate = new Date(start);
+    fromDate.setUTCHours(0, 0, 0, 0);
+    const toDate = new Date(end);
+    toDate.setUTCHours(23, 59, 59, 999);
 
-    const { data, error } = await supabase.rpc("get_sales_by_range", {
-      start_date: start,
-      end_date: end,
-    });
+    let query = supabase
+      .from("detailed_sales_data")
+      .select(
+        `
+        "Lanid",
+        "CatDesc",
+        "SubDesc",
+        "Margin",
+        total_gross
+      `
+      )
+      .not("SoldDate", "is", null)
+      .gte("SoldDate", fromDate.toISOString())
+      .lte("SoldDate", toDate.toISOString())
+      .not("CatDesc", "is", null);
 
-    if (error) {
-      console.error("Supabase RPC Error:", {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
-      return NextResponse.json(
-        {
-          error: "Database error",
-          details: error.message,
-          hint: error.hint,
-        },
-        { status: 500 }
+    // Fetch employee data separately
+    const { data: employees } = await supabase
+      .from("employees")
+      .select("lanid, last_name");
+
+    // Create employee lookup map
+    const employeeMap = new Map(
+      employees?.map((emp) => [emp.lanid?.toLowerCase(), emp.last_name]) || []
+    );
+
+    // Fetch all records using pagination
+    let page = 0;
+    const pageSize = 1000;
+    let allSalesData: any[] = [];
+
+    while (true) {
+      const {
+        data: salesData,
+        error: salesError,
+        count,
+      } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (salesError) {
+        console.error("Sales Query Error:", salesError);
+        throw salesError;
+      }
+
+      if (!salesData || salesData.length === 0) break;
+
+      allSalesData = allSalesData.concat(salesData);
+
+      if (salesData.length < pageSize) break;
+      page++;
+    }
+
+    // Group and aggregate the data
+    const groupedData = allSalesData.reduce((acc: any[], curr) => {
+      const key = `${curr.Lanid}-${curr.CatDesc}-${curr.SubDesc}`;
+      const existing = acc.find(
+        (item) =>
+          item.Lanid === curr.Lanid &&
+          item.category_label === curr.CatDesc &&
+          item.subcategory_label === curr.SubDesc
       );
-    }
 
-    if (!data) {
-      console.log("No data returned from RPC");
-      return NextResponse.json({ data: [] });
-    }
+      if (existing) {
+        existing.total_gross += Number(curr.total_gross) || 0;
+        existing.total_net += Number(curr.Margin) || 0;
+      } else {
+        acc.push({
+          Lanid: curr.Lanid,
+          LastName: employeeMap.get(curr.Lanid?.toLowerCase() || "") || null,
+          category_label: curr.CatDesc,
+          subcategory_label: curr.SubDesc,
+          total_gross: Number(curr.total_gross) || 0,
+          total_net: Number(curr.Margin) || 0,
+        });
+      }
+      return acc;
+    }, []);
 
-    console.log("RPC successful, returned rows:", data.length);
-    return NextResponse.json(data);
+    // Round numeric values for consistency
+    const formattedData = groupedData.map((row) => ({
+      ...row,
+      total_gross: Math.round(row.total_gross * 100) / 100,
+      total_net: Math.round(row.total_net * 100) / 100,
+    }));
+
+    console.log("Query successful, returned rows:", formattedData.length);
+    return NextResponse.json(formattedData);
   } catch (error) {
     console.error("Detailed error in fetchSalesDataByRange API:", error);
     return NextResponse.json(

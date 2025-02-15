@@ -17,14 +17,20 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Convert dates to UTC with timezone consideration
-    const startDateTemp = new Date("2024-01-01");
-    startDateTemp.setHours(0, 0, 0, 0);
-    const startDate = toZonedTime(startDateTemp, TIMEZONE);
-
+    // Create dates in LA timezone
+    const startDate = new Date("2024-01-01T00:00:00-08:00"); // -08:00 for LA timezone
     const now = new Date();
-    now.setHours(23, 59, 59, 999);
-    const endDate = toZonedTime(now, TIMEZONE);
+    const endDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    );
 
     const { data, error } = await supabase.rpc("calculate_monthly_revenue", {
       start_date: startDate.toISOString(),
