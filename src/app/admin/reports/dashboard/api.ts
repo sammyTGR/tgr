@@ -392,11 +392,13 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
           SubDesc,
           CatDesc,
           MPN,
-          Mfg
+          Mfg,
+          Full_Name
         `
         )
         .or(
           `CatDesc.eq.Station Rental,` +
+            `CatDesc.eq.Class,` +
             `Desc.ilike.%Gunsmithing%,` +
             `Desc.ilike.%Pistol Optic Zero Fee%,` +
             `Desc.ilike.%Sight In/ Function Fee%,` +
@@ -617,6 +619,39 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       ) {
         category = item.CatDesc;
         variant = item.Mfg?.trim() || "Unknown";
+      }
+
+      // Add class categorization
+      else if (item.CatDesc === "Class") {
+        category = "Classes";
+        // Combine SubDesc with Full_Name for the variant
+        variant = `${item.SubDesc?.trim() || "Unknown Class"} - ${item.Full_Name?.trim() || "Unknown Student"}`;
+
+        const qty = Number(item.Qty) || 0;
+        const margin = Number(item.Margin) || 0;
+        const revenue = qty * margin;
+
+        if (!acc[category]) {
+          acc[category] = {
+            qty: 0,
+            revenue: 0,
+            variants: {},
+            group: "Classes",
+          };
+        }
+
+        // Update category totals
+        acc[category].qty += qty;
+        acc[category].revenue += revenue;
+
+        // Initialize and update variant
+        if (!acc[category].variants[variant]) {
+          acc[category].variants[variant] = { qty: 0, revenue: 0 };
+        }
+        acc[category].variants[variant].qty += qty;
+        acc[category].variants[variant].revenue += revenue;
+
+        return acc;
       }
 
       if (category) {

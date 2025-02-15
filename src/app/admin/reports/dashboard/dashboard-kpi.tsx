@@ -36,6 +36,9 @@ function DashboardKPI({
     rifle: false,
     shotgun: false,
     "factory-ammo": false,
+    "class-ccw": false,
+    "class-basic-handgun": false,
+    "class-advanced-handgun": false,
   });
 
   // Helper function to toggle card expansion
@@ -159,6 +162,7 @@ function DashboardKPI({
     "Shotgun",
   ];
   const ammoCategories = ["Reloads", "Factory Ammo"];
+  const classCategories = ["Classes"];
 
   // Add this inside the component, before the return statement
   React.useEffect(() => {
@@ -173,6 +177,23 @@ function DashboardKPI({
       // });
     }
   }, [kpiQuery.data]);
+
+  // Helper function to group classes by type
+  const groupClassesByType = (
+    variants: Record<string, { qty: number; revenue: number }>
+  ) => {
+    return Object.entries(variants).reduce(
+      (acc, [variant, stats]) => {
+        const [classType, studentName] = variant.split(" - ");
+        if (!acc[classType]) {
+          acc[classType] = {};
+        }
+        acc[classType][variant] = stats;
+        return acc;
+      },
+      {} as Record<string, Record<string, { qty: number; revenue: number }>>
+    );
+  };
 
   return (
     <TabsContent value="sales-kpis">
@@ -568,6 +589,77 @@ function DashboardKPI({
                       </ExpandableCard>
                     )
                 )}
+              </div>
+            </div>
+
+            {/* Classes Section */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">
+                Classes
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {`(${Object.keys(groupClassesByType(kpiQuery.data?.["Classes"]?.variants || {})).length} types)`}
+                </span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {kpiQuery.data?.["Classes"] &&
+                  Object.entries(
+                    groupClassesByType(kpiQuery.data["Classes"].variants)
+                  )
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([classType, students]) => (
+                      <ExpandableCard
+                        key={classType}
+                        id={`class-${classType.toLowerCase().replace(/\s+/g, "-")}`}
+                        title={classType}
+                      >
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">
+                              Total Net
+                            </span>
+                            <span className="text-2xl font-bold">
+                              {formatter.format(
+                                Object.values(students).reduce(
+                                  (sum, stats) => sum + stats.revenue,
+                                  0
+                                )
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">
+                              Total Students
+                            </span>
+                            <span className="text-2xl font-bold">
+                              {Object.values(students).reduce(
+                                (sum, stats) => sum + stats.qty,
+                                0
+                              )}
+                            </span>
+                          </div>
+                          {/* Students list */}
+                          <div className="mt-4 space-y-2">
+                            {Object.entries(students)
+                              .sort(([a], [b]) => a.localeCompare(b))
+                              .map(([fullName, stats]) => (
+                                <div key={fullName} className="text-sm">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium">
+                                      {fullName.split(" - ")[1]}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between text-muted-foreground">
+                                    <span>Qty: {stats.qty}</span>
+                                    <span>
+                                      {formatter.format(stats.revenue)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </ExpandableCard>
+                    ))}
               </div>
             </div>
           </div>
