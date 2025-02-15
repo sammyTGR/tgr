@@ -955,7 +955,27 @@ export default function BulletinBoard() {
                       </span>
                     </div>
                     <div
-                      className="prose dark:prose-invert max-w-none [&>ul]:list-disc [&>ol]:list-decimal [&>ul]:ml-6 [&>ol]:ml-6 [&>ul]:my-4 [&>ol]:my-4"
+                      className="prose dark:prose-invert max-w-none 
+                        [&>ul]:list-disc [&>ol]:list-decimal 
+                        [&>ul]:ml-6 [&>ol]:ml-6 
+                        [&>ul]:my-4 [&>ol]:my-4
+                        [&>ul>li>ul]:list-[circle] [&_ol]:list-decimal
+                        [&>ul>li>ul]:ml-6 [&_ol]:ml-6 
+                        [&>ul>li>ul]:my-2 [&_ol]:my-2
+                        [&>ul>li>ul>li>ul]:list-[square]
+                        [&_a]:text-blue-500 [&_a]:underline 
+                        [&_a:hover]:text-blue-600
+                        [&_strong]:font-bold
+                        [&_em]:italic
+                        [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 
+                        [&_blockquote]:pl-4 [&_blockquote]:italic
+                        [&_code]:bg-gray-100 [&_code]:p-1 [&_code]:rounded
+                        dark:[&_code]:bg-gray-800
+                        [&_pre]:bg-gray-100 [&_pre]:p-4 [&_pre]:rounded
+                        dark:[&_pre]:bg-gray-800
+                        [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-4
+                        [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-3
+                        [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-2"
                       dangerouslySetInnerHTML={{ __html: post.content }}
                     />
                   </CardContent>
