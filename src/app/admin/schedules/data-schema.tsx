@@ -20,6 +20,8 @@ export const timesheetData = z.object({
   created_at: z.string().nullable(),
   employee_name: z.string().nullable(),
   event_date: z.string().nullable(),
+  sick_time: z.string().nullable(),
+  vto: z.string().nullable(),
 });
 
 export type ScheduleData = z.infer<typeof scheduleData>;

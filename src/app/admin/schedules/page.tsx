@@ -50,6 +50,8 @@ interface TimesheetData {
   created_at: string | null;
   employee_name: string | null;
   event_date: string | null;
+  sick_time: string | null;
+  vto: string | null;
 }
 
 interface Schedule {
@@ -127,7 +129,7 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
               new Date(`${info.getValue()}T00:00:00`),
               "America/Los_Angeles"
             ),
-            "M/dd/yyyy", // Change the format string to M/dd/yyyy
+            "M/dd/yyyy",
             { timeZone: "America/Los_Angeles" }
           )
         : "N/A",
@@ -135,7 +137,7 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
     accessorKey: "start_time",
     header: "Start Time",
-    cell: (info) => info.getValue(), // Ensure this properly accesses the formatted time
+    cell: (info) => info.getValue(),
   },
   {
     accessorKey: "lunch_start",
@@ -262,6 +264,16 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
   {
     accessorKey: "end_time",
     header: "End Time",
+    cell: (info) => info.getValue(),
+  },
+  {
+    accessorKey: "sick_time",
+    header: "Sick Time",
+    cell: (info) => info.getValue(),
+  },
+  {
+    accessorKey: "vto",
+    header: "VTO",
     cell: (info) => info.getValue(),
   },
   {

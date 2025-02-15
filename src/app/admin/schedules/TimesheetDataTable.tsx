@@ -13,6 +13,7 @@ import {
   ColumnFiltersState,
   ExpandedState,
   SortingState,
+  Row,
 } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,8 @@ interface TimesheetData {
   created_at: string | null;
   employee_name: string | null;
   event_date: string | null;
+  sick_time: string | null;
+  vto: string | null;
 }
 
 interface Employee {
@@ -531,6 +534,126 @@ export function TimesheetDataTable({
         };
       }
 
+      if (column.id === "sick_time") {
+        return {
+          id: "sick_time",
+          header: "Sick Time",
+          cell: ({ row }: { row: Row<TimesheetData> }) => {
+            const isGrouped = row.getIsGrouped();
+            const employeeName = row.getValue("employee_name");
+
+            // Use React Query to fetch sick time data
+            const { data: sickTimeData } = useQuery({
+              queryKey: [
+                "sickTime",
+                employeeName,
+                row.original?.employee_id,
+                row.original?.event_date,
+              ],
+              queryFn: async () => {
+                const supabase = createClientComponentClient();
+                if (isGrouped) {
+                  // For grouped rows, get available sick time
+                  const { data } = await supabase.rpc(
+                    "calculate_available_sick_time",
+                    {
+                      p_emp_id: row.original.employee_id,
+                    }
+                  );
+                  return { available: data };
+                } else {
+                  // For individual rows, get used sick time for that day
+                  const { data: historyData } = await supabase
+                    .from("employee_sick_time_history")
+                    .select("hours_used")
+                    .eq("employee_id", row.original.employee_id)
+                    .eq("date_used::date", row.original.event_date)
+                    .maybeSingle();
+
+                  // Also check time_off_requests for this date
+                  const { data: requestData } = await supabase
+                    .from("time_off_requests")
+                    .select("hours_deducted")
+                    .eq("employee_id", row.original.employee_id)
+                    .eq("start_date", row.original.event_date)
+                    .eq("use_sick_time", true)
+                    .maybeSingle();
+
+                  return {
+                    used:
+                      (historyData?.hours_used || 0) +
+                      (requestData?.hours_deducted || 0),
+                  };
+                }
+              },
+              enabled:
+                !!employeeName &&
+                !!row.original?.employee_id &&
+                !!row.original?.event_date,
+            });
+
+            if (isGrouped) {
+              return (
+                <span className="font-medium">
+                  Available: {sickTimeData?.available?.toFixed(2) || "0.00"} hrs
+                </span>
+              );
+            }
+            return sickTimeData?.used ? (
+              <span className="text-red-500 font-medium">
+                {sickTimeData.used.toFixed(2)} hrs
+              </span>
+            ) : (
+              ""
+            );
+          },
+        };
+      }
+
+      if (column.id === "vto") {
+        return {
+          id: "vto",
+          header: "VTO",
+          cell: ({ row }: { row: Row<TimesheetData> }) => {
+            if (row.getIsGrouped()) return null;
+
+            const { data: scheduleData } = useQuery({
+              queryKey: [
+                "schedule",
+                row.original?.employee_id,
+                row.original?.event_date,
+              ],
+              queryFn: async () => {
+                const supabase = createClientComponentClient();
+                const { data } = await supabase
+                  .from("schedules")
+                  .select("status, total_hours")
+                  .eq("employee_id", row.original.employee_id)
+                  .eq("schedule_date", row.original.event_date)
+                  .maybeSingle();
+                return data;
+              },
+              enabled:
+                !!row.original?.employee_id && !!row.original?.event_date,
+            });
+
+            // Show scheduled hours if employee called out or has relevant custom status
+            if (
+              scheduleData?.status === "called_out" ||
+              (scheduleData?.status?.startsWith("Custom:") &&
+                !scheduleData?.status?.includes("Left Early"))
+            ) {
+              return (
+                <span className="text-yellow-600 font-medium">
+                  {scheduleData.total_hours || "8:00"}
+                </span>
+              );
+            }
+            return "";
+          },
+        };
+      }
+
       return column;
     });
   }, [providedColumns]);
@@ -970,7 +1093,7 @@ export function TimesheetDataTable({
             isTableExpanded ? "h-[calc(100vh-200px)]" : "h-[500px]"
           )}
         >
-          <div className="flex relative min-w-[calc(100vw-150px)]">
+          <div className="flex relative min-w-[calc(100vw-180px)]">
             <table className="w-full divide-y divide-gray-200">
               <thead className="sticky top-0 bg-background z-5">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -1029,6 +1152,8 @@ export function TimesheetDataTable({
                             </span>
                           )}
                         </td>
+                        <td></td>
+                        <td></td>
                         <td></td>
                         <td></td>
                         <td></td>
