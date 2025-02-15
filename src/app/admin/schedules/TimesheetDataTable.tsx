@@ -536,121 +536,17 @@ export function TimesheetDataTable({
 
       if (column.id === "sick_time") {
         return {
-          id: "sick_time",
-          header: "Sick Time",
-          cell: ({ row }: { row: Row<TimesheetData> }) => {
-            const isGrouped = row.getIsGrouped();
-            const employeeName = row.getValue("employee_name");
-
-            // Use React Query to fetch sick time data
-            const { data: sickTimeData } = useQuery({
-              queryKey: [
-                "sickTime",
-                employeeName,
-                row.original?.employee_id,
-                row.original?.event_date,
-              ],
-              queryFn: async () => {
-                const supabase = createClientComponentClient();
-                if (isGrouped) {
-                  // For grouped rows, get available sick time
-                  const { data } = await supabase.rpc(
-                    "calculate_available_sick_time",
-                    {
-                      p_emp_id: row.original.employee_id,
-                    }
-                  );
-                  return { available: data };
-                } else {
-                  // For individual rows, get used sick time for that day
-                  const { data: historyData } = await supabase
-                    .from("employee_sick_time_history")
-                    .select("hours_used")
-                    .eq("employee_id", row.original.employee_id)
-                    .eq("date_used::date", row.original.event_date)
-                    .maybeSingle();
-
-                  // Also check time_off_requests for this date
-                  const { data: requestData } = await supabase
-                    .from("time_off_requests")
-                    .select("hours_deducted")
-                    .eq("employee_id", row.original.employee_id)
-                    .eq("start_date", row.original.event_date)
-                    .eq("use_sick_time", true)
-                    .maybeSingle();
-
-                  return {
-                    used:
-                      (historyData?.hours_used || 0) +
-                      (requestData?.hours_deducted || 0),
-                  };
-                }
-              },
-              enabled:
-                !!employeeName &&
-                !!row.original?.employee_id &&
-                !!row.original?.event_date,
-            });
-
-            if (isGrouped) {
-              return (
-                <span className="font-medium">
-                  Available: {sickTimeData?.available?.toFixed(2) || "0.00"} hrs
-                </span>
-              );
-            }
-            return sickTimeData?.used ? (
-              <span className="text-red-500 font-medium">
-                {sickTimeData.used.toFixed(2)} hrs
-              </span>
-            ) : (
-              ""
-            );
-          },
+          ...column,
+          cell: ({ row }: { row: Row<TimesheetData> }) => (
+            <SickTimeCell row={row} />
+          ),
         };
       }
 
       if (column.id === "vto") {
         return {
-          id: "vto",
-          header: "VTO",
-          cell: ({ row }: { row: Row<TimesheetData> }) => {
-            if (row.getIsGrouped()) return null;
-
-            const { data: scheduleData } = useQuery({
-              queryKey: [
-                "schedule",
-                row.original?.employee_id,
-                row.original?.event_date,
-              ],
-              queryFn: async () => {
-                const supabase = createClientComponentClient();
-                const { data } = await supabase
-                  .from("schedules")
-                  .select("status, total_hours")
-                  .eq("employee_id", row.original.employee_id)
-                  .eq("schedule_date", row.original.event_date)
-                  .maybeSingle();
-                return data;
-              },
-              enabled:
-                !!row.original?.employee_id && !!row.original?.event_date,
-            });
-
-            // Show scheduled hours if employee called out or has relevant custom status
-            if (
-              scheduleData?.status === "called_out" ||
-              (scheduleData?.status?.startsWith("Custom:") &&
-                !scheduleData?.status?.includes("Left Early"))
-            ) {
-              return (
-                <span className="text-yellow-600 font-medium">
-                  {scheduleData.total_hours || "8:00"}
-                </span>
-              );
-            }
-            return "";
-          },
+          ...column,
+          cell: ({ row }: { row: Row<TimesheetData> }) => <VTOCell row={row} />,
         };
       }
 
@@ -950,6 +846,102 @@ export function TimesheetDataTable({
         </CardContent>
       </Card>
     );
+  };
+
+  // Create separate components for Sick Time and VTO cells
+  const SickTimeCell = ({ row }: { row: Row<TimesheetData> }) => {
+    const isGrouped = row.getIsGrouped();
+    const employeeName = row.getValue("employee_name");
+
+    const { data: sickTimeData } = useQuery({
+      queryKey: [
+        "sickTime",
+        employeeName,
+        row.original?.employee_id,
+        row.original?.event_date,
+      ],
+      queryFn: async () => {
+        const supabase = createClientComponentClient();
+        if (isGrouped) {
+          const { data } = await supabase.rpc("calculate_available_sick_time", {
+            p_emp_id: row.original.employee_id,
+          });
+          return { available: data };
+        } else {
+          const { data: historyData } = await supabase
+            .from("employee_sick_time_history")
+            .select("hours_used")
+            .eq("employee_id", row.original.employee_id)
+            .eq("date_used::date", row.original.event_date)
+            .maybeSingle();
+
+          const { data: requestData } = await supabase
+            .from("time_off_requests")
+            .select("hours_deducted")
+            .eq("employee_id", row.original.employee_id)
+            .eq("start_date", row.original.event_date)
+            .eq("use_sick_time", true)
+            .maybeSingle();
+
+          return {
+            used:
+              (historyData?.hours_used || 0) +
+              (requestData?.hours_deducted || 0),
+          };
+        }
+      },
+      enabled:
+        !!employeeName &&
+        !!row.original?.employee_id &&
+        !!row.original?.event_date,
+    });
+
+    if (isGrouped) {
+      return (
+        <span>
+          Available: {sickTimeData?.available?.toFixed(2) || "0.00"} hrs
+        </span>
+      );
+    }
+    return sickTimeData?.used ? (
+      <span className="text-red-500">{sickTimeData.used.toFixed(2)} hrs</span>
+    ) : null;
+  };
+
+  const VTOCell = ({ row }: { row: Row<TimesheetData> }) => {
+    if (row.getIsGrouped()) return null;
+
+    const { data: scheduleData } = useQuery({
+      queryKey: [
+        "schedule",
+        row.original?.employee_id,
+        row.original?.event_date,
+      ],
+      queryFn: async () => {
+        const supabase = createClientComponentClient();
+        const { data } = await supabase
+          .from("schedules")
+          .select("status, total_hours")
+          .eq("employee_id", row.original.employee_id)
+          .eq("schedule_date", row.original.event_date)
+          .maybeSingle();
+        return data;
+      },
+      enabled: !!row.original?.employee_id && !!row.original?.event_date,
+    });
+
+    if (
+      scheduleData?.status === "called_out" ||
+      (scheduleData?.status?.startsWith("Custom:") &&
+        !scheduleData?.status?.includes("Left Early"))
+    ) {
+      return (
+        <span className="text-yellow-600">
+          {scheduleData.total_hours || "8:00"}
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
