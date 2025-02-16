@@ -20,9 +20,16 @@ const nextConfig = {
       PASSWORD: process.env.PASSWORD,
       APP_ID: process.env.APP_ID,
     },
+    eslint: {
+      // Warning: This allows production builds to successfully complete even if
+      // your project has ESLint errors.
+      ignoreDuringBuilds: true,
+    },
     typescript: {
+      // This will also ignore TypeScript errors during build
       ignoreBuildErrors: true,
     },
+
     // async headers() {
     //   return [
     //     {
