@@ -58,21 +58,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import AddTimesheetForm from "./AddTimesheetForm";
 import { useState, useEffect, useCallback } from "react";
-
-interface TimesheetData {
-  id: number;
-  employee_id: number;
-  start_time: string;
-  lunch_start: string | null;
-  lunch_end: string | null;
-  end_time: string | null;
-  total_hours: string | null;
-  created_at: string | null;
-  employee_name: string | null;
-  event_date: string | null;
-  sick_time: string | null;
-  vto: string | null;
-}
+import { TimesheetData } from './data-schema';
 
 interface Employee {
   employee_id: number;
@@ -154,8 +140,7 @@ export function TimesheetDataTable({
 
       if (error) throw error;
       return data as Employee[];
-    },
-    enabled: true
+    }
   });
 
   const { data: activeEmployees } = useQuery({
@@ -169,7 +154,7 @@ export function TimesheetDataTable({
 
       if (error) throw error;
       return data as Employee[];
-    },
+    }
   });
 
   const filteredInitialData = React.useMemo(() => {
@@ -891,10 +876,11 @@ export function TimesheetDataTable({
           };
         }
       },
-      enabled:
-        !!employeeName &&
-        !!row.original?.employee_id &&
-        !!row.original?.event_date,
+      enabled: Boolean(
+        employeeName && 
+        row.original?.employee_id && 
+        row.original?.event_date
+      )
     });
 
     if (isGrouped) {
@@ -928,7 +914,7 @@ export function TimesheetDataTable({
           .maybeSingle();
         return data;
       },
-      enabled: !!row.original?.employee_id && !!row.original?.event_date,
+      enabled: Boolean(row.original?.employee_id && row.original?.event_date)
     });
 
     if (

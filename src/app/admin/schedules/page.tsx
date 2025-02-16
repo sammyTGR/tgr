@@ -28,31 +28,7 @@ import { formatHoursAndMinutes } from "@/utils/format-hours";
 import { ChevronUp } from "lucide-react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface ScheduleData {
-  id: number;
-  employee_id: number;
-  employee_name: string;
-  day_of_week: string;
-  start_time: string;
-  end_time: string;
-  user_uuid: string;
-}
-
-interface TimesheetData {
-  id: number;
-  employee_id: number;
-  start_time: string;
-  lunch_start: string | null;
-  lunch_end: string | null;
-  end_time: string | null;
-  total_hours: string | null;
-  created_at: string | null;
-  employee_name: string | null;
-  event_date: string | null;
-  sick_time: string | null;
-  vto: string | null;
-}
+import { TimesheetData, ScheduleData } from './data-schema';
 
 interface Schedule {
   employee_id: number;
