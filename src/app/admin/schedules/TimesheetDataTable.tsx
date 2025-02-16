@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -58,7 +57,7 @@ import { Updater } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import AddTimesheetForm from "./AddTimesheetForm";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface TimesheetData {
   id: number;
@@ -156,6 +155,7 @@ export function TimesheetDataTable({
       if (error) throw error;
       return data as Employee[];
     },
+    enabled: true
   });
 
   const { data: activeEmployees } = useQuery({
@@ -183,7 +183,7 @@ export function TimesheetDataTable({
     );
   }, [initialData, activeEmployees]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setData(filteredInitialData);
   }, [filteredInitialData]);
 
@@ -312,7 +312,7 @@ export function TimesheetDataTable({
     });
   }, [filteredInitialData, date]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setData(filteredData);
   }, [filteredData]);
 
