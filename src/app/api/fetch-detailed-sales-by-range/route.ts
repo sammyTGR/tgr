@@ -44,12 +44,12 @@ export async function GET(request: Request) {
           "Last",
           "SoldPrice",
           "Cost",
+          "Margin",
           "Cat",
           "Sub",
           "CatDesc",
           "SubDesc",
           total_gross,
-          total_net,
           "SoldDate"
         `
       )
@@ -71,12 +71,25 @@ export async function GET(request: Request) {
       );
     }
 
-    // Process the data to group by lanid and category
-    const processedData = data.reduce((acc: any, sale: any) => {
+    // Create a map to track unique transactions
+    const uniqueTransactions = new Map();
+
+    // Filter out duplicate entries based on a unique identifier
+    const uniqueData = data.filter((sale) => {
+      const transactionKey = `${sale.Lanid}-${sale.SoldDate}-${sale.CatDesc}-${sale.SoldPrice}`;
+      if (uniqueTransactions.has(transactionKey)) {
+        return false;
+      }
+      uniqueTransactions.set(transactionKey, true);
+      return true;
+    });
+
+    // Process the filtered data
+    const processedData = uniqueData.reduce((acc: any, sale: any) => {
       const lanid = sale.Lanid || "Unknown";
       const category = sale.CatDesc || "Uncategorized";
       const grossValue = Number(sale.total_gross) || 0;
-      const netValue = Number(sale.total_net) || 0;
+      const netValue = Number(sale.Margin) || 0;
 
       if (!acc[lanid]) {
         acc[lanid] = {
@@ -87,6 +100,7 @@ export async function GET(request: Request) {
         };
       }
 
+      // Ensure we're not adding duplicate categories
       if (!acc[lanid][category]) {
         acc[lanid][category] = 0;
       }
@@ -108,12 +122,18 @@ export async function GET(request: Request) {
       return acc;
     }, {});
 
-    const result = Object.values(processedData);
-    console.log("Processed data:", {
-      employeeCount: result.length,
-      sampleEmployee: result[0],
+    // Add debug logging
+    console.log("Data processing stats:", {
+      originalCount: data.length,
+      uniqueCount: uniqueData.length,
+      processedCount: Object.keys(processedData).length,
+      dateRange: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+      },
     });
 
+    const result = Object.values(processedData);
     return NextResponse.json(result);
   } catch (error) {
     console.error("Server error:", error);
