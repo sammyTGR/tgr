@@ -968,7 +968,7 @@ export default function Component() {
             employee_name: employeeData.name,
           };
 
-          console.log("Sending timesheet data:", timesheetData);
+          // console.log("Sending timesheet data:", timesheetData);
 
           const timesheetResponse = await fetch("/api/timesheets", {
             method: "POST",

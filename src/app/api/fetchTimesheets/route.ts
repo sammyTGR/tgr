@@ -80,8 +80,8 @@ export async function GET() {
       };
     });
 
-    console.log("Raw Timesheets:", timesheets);
-    console.log("Formatted Timesheets:", formattedTimesheets);
+    // console.log("Raw Timesheets:", timesheets);
+    // console.log("Formatted Timesheets:", formattedTimesheets);
 
     return NextResponse.json(formattedTimesheets);
   } catch (error) {
