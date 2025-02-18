@@ -2456,7 +2456,9 @@ function AdminDashboardContent() {
                     )} */}
 
                   {flags.is_historical_barchart_enabled.enabled &&
-                    (role === "super admin" || role === "dev") && (
+                    (role === "super admin" ||
+                      role === "dev" ||
+                      role === "ceo") && (
                       <ExpandableCard
                         id="upload-detailed-sales-data"
                         title="Upload Detailed Sales Data"

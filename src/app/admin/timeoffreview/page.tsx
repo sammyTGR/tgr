@@ -68,6 +68,11 @@ interface TimeOffRequest {
     employee_name: string;
   }[];
   hours_deducted: number;
+  hours_breakdown?: {
+    total_scheduled_hours: number;
+    sick_time_hours: number;
+    unpaid_hours: number;
+  };
 }
 
 type RequestAction =
@@ -278,10 +283,16 @@ export default function ApproveRequestsPage() {
         throw new Error(errorData.error || "Failed to update time usage");
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log("Time usage mutation response:", data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Time usage mutation success, data:", data);
       queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+    },
+    onError: (error) => {
+      console.error("Time usage mutation failed:", error);
     },
   });
 
@@ -346,25 +357,17 @@ export default function ApproveRequestsPage() {
       },
     });
 
-    timeUsageMutation.mutate(
-      {
-        requestId,
-        useSickTime: type === "sick" ? checked : false,
-        useVacationTime: type === "vacation" ? checked : false,
-      },
-      {
-        onSuccess: () => {
-          console.log("Switch update successful");
-        },
-        onError: (error) => {
-          console.error("Switch update failed:", error);
-        },
-      }
-    );
+    timeUsageMutation.mutate({
+      requestId,
+      useSickTime: type === "sick" ? checked : false,
+      useVacationTime: type === "vacation" ? checked : false,
+    });
   };
 
   // Update the JSX for the switches
   const renderTimeUsageSwitches = (request: TimeOffRequest) => {
+    console.log("Hours breakdown data:", request.hours_breakdown); // Debug log
+
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -375,31 +378,63 @@ export default function ApproveRequestsPage() {
               <div className="space-y-1">
                 <p>
                   <strong>Available Sick Time:</strong>{" "}
-                  {request.available_sick_time.toFixed(1)} Hours
+                  {Number(request.available_sick_time).toFixed(2)} Hours
                 </p>
-                {request.use_sick_time && request.hours_deducted && (
-                  <p className="text-sm text-muted-foreground">
-                    Potential usage with this request:{" "}
-                    {request.hours_deducted.toFixed(1)} hours
-                  </p>
+
+                {request.use_sick_time && request.hours_breakdown && (
+                  <div className="text-sm space-y-1 mt-2 p-2 border rounded-md bg-muted">
+                    <p>
+                      <strong>Total Scheduled Hours:</strong>{" "}
+                      {request.hours_breakdown.total_scheduled_hours
+                        ? Number(
+                            request.hours_breakdown.total_scheduled_hours
+                          ).toFixed(2)
+                        : "0.00"}
+                    </p>
+                    <p>
+                      <strong>Paid Sick Time:</strong>{" "}
+                      {request.hours_breakdown.sick_time_hours
+                        ? Number(
+                            request.hours_breakdown.sick_time_hours
+                          ).toFixed(2)
+                        : "0.00"}
+                    </p>
+                    {(request.hours_breakdown.unpaid_hours || 0) > 0 && (
+                      <p className="text-yellow-600 dark:text-yellow-500">
+                        <strong>Unpaid Time (VTO):</strong>{" "}
+                        {Number(
+                          request.hours_breakdown.unpaid_hours || 0
+                        ).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
+
               <div className="flex items-center space-x-2 mt-2">
                 <Switch
-                  checked={request.use_sick_time}
-                  onCheckedChange={(checked) =>
+                  id={`sick-time-${request.request_id}`}
+                  checked={Boolean(request.use_sick_time)}
+                  onCheckedChange={(checked) => {
+                    console.log("Switch toggled:", {
+                      requestId: request.request_id,
+                      checked,
+                      currentHoursBreakdown: request.hours_breakdown, // Debug log
+                    });
                     timeUsageMutation.mutate({
                       requestId: request.request_id,
                       useSickTime: checked,
                       useVacationTime: false,
-                    })
-                  }
+                    });
+                  }}
                   disabled={
                     request.use_vacation_time ||
                     (request.available_sick_time <= 0 && !request.use_sick_time)
                   }
                 />
-                <span>Use Sick Time</span>
+                <Label htmlFor={`sick-time-${request.request_id}`}>
+                  Use Sick Time
+                </Label>
               </div>
             </>
           )}
