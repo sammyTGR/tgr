@@ -2455,7 +2455,7 @@ function AdminDashboardContent() {
                       </Card>
                     )} */}
 
-                  {flags.is_historical_barchart_enabled.enabled &&
+                  {flags.is_barchart_enabled.enabled &&
                     (role === "super admin" ||
                       role === "dev" ||
                       role === "ceo") && (

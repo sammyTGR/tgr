@@ -30,8 +30,6 @@ export async function POST(request: Request) {
 
     // If this is just a toggle update (action is "pending"), don't deduct hours
     if (action === "pending") {
-      console.log("Processing pending action for request:", request_id);
-
       const { error: updateError } = await supabase
         .from("time_off_requests")
         .update({
@@ -47,8 +45,9 @@ export async function POST(request: Request) {
           { status: 500, headers: corsHeaders }
         );
       }
-      // Get the time off request with employee data
-      const { data: timeOffData, error: timeOffError } = await supabase
+
+      // Get the updated request data
+      const { data: updatedRequest, error: fetchError } = await supabase
         .from("time_off_requests")
         .select(
           `
@@ -65,93 +64,41 @@ export async function POST(request: Request) {
         .eq("request_id", request_id)
         .single();
 
-      if (timeOffError) {
-        console.error("Error fetching time off request:", timeOffError);
-        return NextResponse.json(
-          {
-            error: "Failed to fetch request data",
-            details: timeOffError.message,
-          },
-          {
-            status: 500,
-            headers: corsHeaders,
-          }
-        );
-      }
-
-      // If sick time is being used, calculate the hours breakdown
-      if (use_sick_time) {
-        console.log("Calculating hours breakdown for employee");
-
-        const { data: hoursBreakdown, error: breakdownError } =
-          await supabase.rpc("calculate_scheduled_hours", {
-            p_employee_id: timeOffData.employee_id,
-            p_start_date: timeOffData.start_date,
-            p_end_date: timeOffData.end_date,
-          });
-
-        console.log("Raw hours breakdown response:", hoursBreakdown);
-
-        if (breakdownError) {
-          console.error("Error calculating hours breakdown:", breakdownError);
-        } else {
-          // Ensure the data is properly formatted
-          const formattedHoursBreakdown = {
-            total_scheduled_hours: Number(
-              hoursBreakdown.total_scheduled_hours || 0
-            ),
-            sick_time_hours: Number(hoursBreakdown.sick_time_hours || 0),
-            unpaid_hours: Number(hoursBreakdown.unpaid_hours || 0),
-          };
-
-          console.log("Formatted hours breakdown:", formattedHoursBreakdown);
-
-          // Update the request with the formatted hours breakdown
-          const { error: updateError } = await supabase
-            .from("time_off_requests")
-            .update({
-              use_sick_time: use_sick_time ?? false,
-              use_vacation_time: use_vacation_time ?? false,
-              hours_breakdown: formattedHoursBreakdown,
-            })
-            .eq("request_id", request_id);
-
-          if (updateError) {
-            console.error(
-              "Error updating request with hours breakdown:",
-              updateError
-            );
-          }
-        }
-      }
-
-      // Get the updated request data with all necessary fields
-      const { data: updatedRequest, error: fetchError } = await supabase
-        .from("time_off_requests")
-        .select(
-          `
-          *,
-          employees!time_off_requests_user_uuid_fkey (
-            employee_id,
-            sick_time_used,
-            vacation_time,
-            pay_type,
-            name
-          ),
-          hours_breakdown
-        `
-        )
-        .eq("request_id", request_id)
-        .single();
-
-      console.log("Final updated request:", updatedRequest);
-
       if (fetchError) {
         console.error("Error fetching updated request:", fetchError);
         return NextResponse.json(
           { error: "Failed to fetch updated request" },
           { status: 500, headers: corsHeaders }
         );
+      }
+
+      // Calculate potential hours to be deducted
+      if (use_sick_time || use_vacation_time) {
+        const { data: hours, error: hoursError } = await supabase.rpc(
+          "calculate_hours_between_dates",
+          {
+            start_date: updatedRequest.start_date,
+            end_date: updatedRequest.end_date,
+          }
+        );
+
+        if (!hoursError) {
+          // Update the hours_deducted field without actually deducting the time
+          await supabase
+            .from("time_off_requests")
+            .update({ hours_deducted: hours })
+            .eq("request_id", request_id);
+
+          updatedRequest.hours_deducted = hours;
+        }
+      } else {
+        // Clear hours_deducted if neither time type is selected
+        await supabase
+          .from("time_off_requests")
+          .update({ hours_deducted: null })
+          .eq("request_id", request_id);
+
+        updatedRequest.hours_deducted = null;
       }
 
       return NextResponse.json(updatedRequest, { headers: corsHeaders });
