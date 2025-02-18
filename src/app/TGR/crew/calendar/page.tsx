@@ -67,6 +67,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { isHoliday } from "@/utils/holidays";
 import styles from "./calendar.module.css";
 import { HolidayManager } from "@/components/HolidayManager";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 // Constants
 const TITLE = "TGR Team Calendar";
@@ -198,25 +199,35 @@ const isSameDayOfYear = (date1: Date, date2: Date) => {
 };
 
 const fetchEmployeeData = async (employee_id: number) => {
-  const searchParams = new URLSearchParams({
-    select: "name,contact_info",
-    equals: `employee_id:${employee_id}`,
-    single: "true",
-  });
+  try {
+    const supabase = createClientComponentClient();
 
-  const response = await fetch(`/api/fetchEmployees?${searchParams}`);
+    // Get employee data including contact_info
+    const { data: employeeData, error: employeeError } = await supabase
+      .from("employees")
+      .select("name, contact_info")
+      .eq("employee_id", employee_id)
+      .single();
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch employee data");
+    if (employeeError) {
+      console.error("Error fetching employee data:", employeeError);
+      throw new Error("Failed to fetch employee data");
+    }
+
+    if (!employeeData) {
+      throw new Error("Employee not found");
+    }
+
+    return {
+      name: employeeData.name,
+      contact_info: {
+        email: employeeData.contact_info || "", // Use contact_info directly as email
+      },
+    };
+  } catch (error) {
+    console.error("Error in fetchEmployeeData:", error);
+    throw error;
   }
-
-  const employeeData = await response.json();
-
-  if (!employeeData) {
-    throw new Error("Failed to fetch employee data");
-  }
-
-  return employeeData;
 };
 
 // API functions
@@ -930,12 +941,13 @@ export default function Component() {
           throw new Error("Failed to fetch employee data");
         }
 
+        // Update schedule status
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date, // Send the original date string
+            schedule_date,
             status,
           }),
         });
@@ -944,96 +956,65 @@ export default function Component() {
           throw new Error("Failed to update schedule status");
         }
 
-        // For email display, format date in Pacific time
-        const emailDisplayDate = formatInTimeZone(
-          parseISO(schedule_date),
-          TIME_ZONE,
-          "EEEE, MMMM d, yyyy"
-        );
-
-        let emailPayload: EmailPayload = {
-          email: employeeData.contact_info,
-          subject: "",
-          templateName: "",
-          templateData: {
-            name: employeeData.name,
-            date: emailDisplayDate,
-          },
-        };
-
-        // Update email logic to handle the new status format
-        if (status.startsWith("Late Start")) {
-          emailPayload = {
-            ...emailPayload,
-            subject: "Late Start Notification",
-            templateName: "LateStart",
-            templateData: {
-              ...emailPayload.templateData,
-              startTime: status.split("Late Start ")[1],
-            },
+        // Create timesheet entry for both called out and no call no show
+        if (status === "called_out" || status === "no_call_no_show") {
+          const timesheetData = {
+            employee_id,
+            event_date: schedule_date,
+            employee_name: employeeData.name,
           };
-        } else if (status === "called_out") {
-          emailPayload = {
-            ...emailPayload,
-            subject: "Called Out Notification",
-            templateName: "CalledOut",
+
+          console.log("Sending timesheet data:", timesheetData);
+
+          const timesheetResponse = await fetch("/api/timesheets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(timesheetData),
+          });
+
+          if (!timesheetResponse.ok) {
+            const errorData = await timesheetResponse.json();
+            console.error("Timesheet creation error:", errorData);
+            throw new Error(
+              `Failed to create timesheet entry: ${errorData.error || "Unknown error"}`
+            );
+          }
+
+          // Send appropriate email notification
+          const emailPayload: EmailPayload = {
+            email: employeeData.contact_info?.email || "",
+            subject: status === "called_out" ? "Called Out" : "No Call No Show",
+            templateName:
+              status === "called_out" ? "CalledOut" : "NoCallNoShow",
             templateData: {
               name: employeeData.name,
-              date: emailDisplayDate,
+              date: formatDateForEmail(schedule_date),
             },
           };
-        } else if (status.startsWith("Left Early @")) {
-          // Handle Left Early status
-          emailPayload = {
-            ...emailPayload,
-            subject: "Left Early Notification",
-            templateName: "LeftEarly",
-            templateData: {
-              ...emailPayload.templateData,
-              startTime: status.split("Left Early @ ")[1], // Changed 'time' to 'startTime' to match the type
-            },
-          };
-        } else if (status.startsWith("Custom:")) {
-          emailPayload = {
-            ...emailPayload,
-            subject: "Schedule Update",
-            templateName: "CustomStatus",
-            templateData: {
-              ...emailPayload.templateData,
-              status: status.replace("Custom:", "").trim(),
-            },
-          };
-        } else if (status === "no_call_no_show") {
-          emailPayload = {
-            ...emailPayload,
-            subject: "No Call No Show Alert",
-            templateName: "NoCallNoShow",
-            templateData: {
-              name: employeeData.name,
-              date: emailDisplayDate,
-            },
-          };
-        }
 
-        const emailResponse = await fetch("/api/send_email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(emailPayload),
-        });
+          const emailResponse = await fetch("/api/send_email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(emailPayload),
+          });
 
-        if (!emailResponse.ok) {
-          throw new Error("Failed to send email notification");
+          if (!emailResponse.ok) {
+            console.error(
+              "Failed to send email notification:",
+              await emailResponse.json()
+            );
+          }
         }
 
         return { success: true };
       } catch (error) {
         console.error("Error in updateStatusMutation:", error);
-        console.error("Failed date:", schedule_date);
         throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendarData"] });
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
       updatePopoverOpenMutation.mutate(false);
     },
     onError: (error) => {

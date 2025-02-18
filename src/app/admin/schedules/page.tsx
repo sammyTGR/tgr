@@ -28,7 +28,7 @@ import { formatHoursAndMinutes } from "@/utils/format-hours";
 import { ChevronUp } from "lucide-react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TimesheetData, ScheduleData } from './data-schema';
+import { TimesheetData, ScheduleData } from "./data-schema";
 
 interface Schedule {
   employee_id: number;
@@ -473,7 +473,9 @@ const ManageSchedules = () => {
   const { data: timesheets = [] } = useQuery({
     queryKey: ["timesheets"],
     queryFn: async () => {
-      const response = await fetch("/api/fetchTimesheets");
+      const response = await fetch(
+        "/api/fetchTimesheets?payTypes=hourly,salary"
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch timesheets");
       }

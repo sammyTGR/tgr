@@ -42,11 +42,19 @@ export async function GET(request: Request) {
         if (key === "equals") {
           const [field, fieldValue] = value.split(":");
           query = query.eq(field, fieldValue);
+        } else if (key === "pay_type") {
+          // Handle pay_type filter to include both hourly and salary
+          query = query.in("pay_type", value.split(","));
         } else {
           query = query.eq(key, value);
         }
       }
     });
+
+    // If no specific pay_type filter is provided, include both hourly and salary
+    if (!searchParams.has("pay_type")) {
+      query = query.in("pay_type", ["hourly", "salary"]);
+    }
 
     const { data, error } = await (searchParams.get("single") === "true"
       ? query.single()

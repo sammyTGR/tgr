@@ -19,9 +19,19 @@ export async function GET() {
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
 
+    // Update the query to join with employees table
     const { data: timesheets, error } = await supabase
       .from("employee_clock_events")
-      .select("*")
+      .select(
+        `
+        *,
+        employees!inner (
+          employee_id,
+          name,
+          pay_type
+        )
+      `
+      )
       // .gte("event_date", thirtyDaysAgo.toISOString().split("T")[0])
       // .lte("event_date", today.toISOString().split("T")[0])
       .order("event_date", { ascending: false });
@@ -57,8 +67,11 @@ export async function GET() {
         totalHours = duration.toFixed(2);
       }
 
+      // Include employee information in the returned data
       return {
         ...timesheet,
+        employee_name: timesheet.employees?.name || timesheet.employee_name,
+        pay_type: timesheet.employees?.pay_type,
         start_time: formatTime(timesheet.start_time),
         lunch_start: formatTime(timesheet.lunch_start),
         lunch_end: formatTime(timesheet.lunch_end),
@@ -66,6 +79,9 @@ export async function GET() {
         total_hours: totalHours ? `${totalHours} hours` : "",
       };
     });
+
+    console.log("Raw Timesheets:", timesheets);
+    console.log("Formatted Timesheets:", formattedTimesheets);
 
     return NextResponse.json(formattedTimesheets);
   } catch (error) {

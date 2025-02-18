@@ -58,12 +58,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import AddTimesheetForm from "./AddTimesheetForm";
 import { useState, useEffect, useCallback } from "react";
-import { TimesheetData } from './data-schema';
+import { TimesheetData } from "./data-schema";
 
 interface Employee {
   employee_id: number;
   name: string;
   status: string;
+  pay_type: string;
 }
 
 interface PayPeriodSummary {
@@ -71,6 +72,17 @@ interface PayPeriodSummary {
   overtimeHours: number;
   startDate: Date;
   endDate: Date;
+}
+
+interface ScheduleData {
+  status: string;
+  start_time: string;
+  end_time: string;
+  clockEventHours?: string;
+}
+
+interface TimesheetDataWithSchedule extends TimesheetData {
+  scheduleData?: ScheduleData;
 }
 
 interface TimesheetDataTableProps {
@@ -129,46 +141,32 @@ export function TimesheetDataTable({
   );
 
   const { data: employees } = useQuery({
-    queryKey: ["activeEmployees"],
+    queryKey: ["employees"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name")
-        .eq("status", "active")
-        .eq("pay_type", "hourly")
-        .order("name");
-
-      if (error) throw error;
+      const response = await fetch(
+        "/api/fetchEmployees?status=active&pay_type=hourly,salary"
+      );
+      if (!response.ok) throw new Error("Failed to fetch employees");
+      const data = await response.json();
       return data as Employee[];
-    }
-  });
-
-  const { data: activeEmployees } = useQuery({
-    queryKey: ["activeHourlyEmployees"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("employee_id, name")
-        .eq("status", "active")
-        .eq("pay_type", "hourly");
-
-      if (error) throw error;
-      return data as Employee[];
-    }
+    },
   });
 
   const filteredInitialData = React.useMemo(() => {
-    if (!activeEmployees) return [];
+    if (!employees) return [];
 
-    const activeEmployeeNames = new Set(activeEmployees.map((emp) => emp.name));
+    const activeEmployeeNames = new Set(employees.map((emp) => emp.name));
     return initialData.filter(
       (timesheet) =>
         timesheet.employee_name &&
         activeEmployeeNames.has(timesheet.employee_name)
     );
-  }, [initialData, activeEmployees]);
+  }, [initialData, employees]);
 
   useEffect(() => {
+    // console.log("Initial Data:", initialData);
+    // console.log("Employees:", employees);
+    // console.log("Filtered Data:", filteredInitialData);
     setData(filteredInitialData);
   }, [filteredInitialData]);
 
@@ -331,24 +329,24 @@ export function TimesheetDataTable({
         ? parseTimeString(timesheet.lunch_end)
         : null;
 
-      console.log("Start minutes:", startMinutes); // 5:30 AM = 330
-      console.log("End minutes:", endMinutes); // 1:59 PM = 839
-      console.log("Lunch start minutes:", lunchStartMinutes); // 10:46 AM = 646
-      console.log("Lunch end minutes:", lunchEndMinutes); // 11:16 AM = 676
+      // console.log("Start minutes:", startMinutes); // 5:30 AM = 330
+      // console.log("End minutes:", endMinutes); // 1:59 PM = 839
+      // console.log("Lunch start minutes:", lunchStartMinutes); // 10:46 AM = 646
+      // console.log("Lunch end minutes:", lunchEndMinutes); // 11:16 AM = 676
 
       if (!endMinutes) return "0:00";
 
       let totalMinutes = endMinutes - startMinutes; // 839 - 330 = 509 minutes
-      console.log("Total minutes before lunch:", totalMinutes);
+      // console.log("Total minutes before lunch:", totalMinutes);
 
       // Subtract lunch break if both lunch start and end times exist
       if (lunchStartMinutes !== null && lunchEndMinutes !== null) {
         const lunchDuration = lunchEndMinutes - lunchStartMinutes; // 676 - 646 = 30 minutes
-        console.log("Lunch duration:", lunchDuration);
+        // console.log("Lunch duration:", lunchDuration);
         totalMinutes -= lunchDuration;
       }
 
-      console.log("Final total minutes:", totalMinutes);
+      // console.log("Final total minutes:", totalMinutes);
 
       // Convert minutes to hours and minutes
       const hours = Math.floor(totalMinutes / 60);
@@ -356,7 +354,7 @@ export function TimesheetDataTable({
 
       // Format with leading zeros for minutes
       const result = `${hours}:${minutes.toString().padStart(2, "0")}`;
-      console.log("Calculated result:", result);
+      // console.log("Calculated result:", result);
 
       return result;
     } catch (error) {
@@ -404,9 +402,9 @@ export function TimesheetDataTable({
                 adjustedLunchStartMinutes - startTotalMinutes;
               const durationInHours = durationInMinutes / 60;
 
-              console.log(
-                `Duration in minutes: ${durationInMinutes}, hours: ${durationInHours}`
-              );
+              // console.log(
+              //   `Duration in minutes: ${durationInMinutes}, hours: ${durationInHours}`
+              // );
 
               let colorClass = "";
               if (durationInHours < 5.5) {
@@ -505,10 +503,18 @@ export function TimesheetDataTable({
           ...column,
           cell: (info: any) => {
             const row = info.row.original;
-            if (!row.total_hours) return "";
+            const scheduleData = row.scheduleData;
 
-            // PostgreSQL interval comes in format like "08:02:00" or "8:02:00"
-            // We want to convert it to "8:02"
+            // If it's a called out day or no call no show, don't show in total_hours
+            if (
+              scheduleData?.status === "called_out" ||
+              scheduleData?.status === "no_call_no_show"
+            ) {
+              return null;
+            }
+
+            // For all other cases, show the total hours as normal
+            if (!row.total_hours) return "";
             try {
               const [hours, minutes] = row.total_hours.split(":");
               return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
@@ -532,7 +538,9 @@ export function TimesheetDataTable({
       if (column.id === "vto") {
         return {
           ...column,
-          cell: ({ row }: { row: Row<TimesheetData> }) => <VTOCell row={row} />,
+          cell: ({ row }: { row: Row<TimesheetDataWithSchedule> }) => (
+            <VTOCell row={row} />
+          ),
         };
       }
 
@@ -877,10 +885,8 @@ export function TimesheetDataTable({
         }
       },
       enabled: Boolean(
-        employeeName && 
-        row.original?.employee_id && 
-        row.original?.event_date
-      )
+        employeeName && row.original?.employee_id && row.original?.event_date
+      ),
     });
 
     if (isGrouped) {
@@ -895,10 +901,10 @@ export function TimesheetDataTable({
     ) : null;
   };
 
-  const VTOCell = ({ row }: { row: Row<TimesheetData> }) => {
+  const VTOCell = ({ row }: { row: Row<TimesheetDataWithSchedule> }) => {
     if (row.getIsGrouped()) return null;
 
-    const { data: scheduleData } = useQuery({
+    const { data: scheduleData } = useQuery<ScheduleData | null>({
       queryKey: [
         "schedule",
         row.original?.employee_id,
@@ -906,25 +912,58 @@ export function TimesheetDataTable({
       ],
       queryFn: async () => {
         const supabase = createClientComponentClient();
-        const { data } = await supabase
+        const { data: scheduleData } = await supabase
           .from("schedules")
-          .select("status, total_hours")
+          .select("status, start_time, end_time")
           .eq("employee_id", row.original.employee_id)
           .eq("schedule_date", row.original.event_date)
           .maybeSingle();
-        return data;
+
+        if (
+          scheduleData?.status === "called_out" ||
+          scheduleData?.status === "no_call_no_show"
+        ) {
+          // If called out or no call no show, get the scheduled hours
+          if (scheduleData.start_time && scheduleData.end_time) {
+            return scheduleData;
+          }
+          // If no scheduled times, return with default status
+          return {
+            ...scheduleData,
+            start_time: "08:00:00",
+            end_time: "16:30:00",
+          };
+        }
+
+        return scheduleData;
       },
-      enabled: Boolean(row.original?.employee_id && row.original?.event_date)
+      enabled: Boolean(row.original?.employee_id && row.original?.event_date),
     });
+
+    // Store schedule data for use in total_hours column
+    if (row.original && scheduleData) {
+      row.original.scheduleData = scheduleData;
+    }
 
     if (
       scheduleData?.status === "called_out" ||
-      (scheduleData?.status?.startsWith("Custom:") &&
-        !scheduleData?.status?.includes("Left Early"))
+      scheduleData?.status === "no_call_no_show"
     ) {
+      // Calculate from schedule times
+      const startTime = new Date(`1970-01-01T${scheduleData.start_time}`);
+      const endTime = new Date(`1970-01-01T${scheduleData.end_time}`);
+      const diffInMinutes =
+        (endTime.getTime() - startTime.getTime()) / 1000 / 60;
+
+      // Subtract 30 minutes for lunch if shift is 6 hours or longer
+      const totalMinutes =
+        diffInMinutes >= 360 ? diffInMinutes - 30 : diffInMinutes;
+      const finalHours = Math.floor(totalMinutes / 60);
+      const finalMinutes = Math.round(totalMinutes % 60);
+
       return (
         <span className="text-yellow-600">
-          {scheduleData.total_hours || "8:00"}
+          {`${finalHours}:${finalMinutes.toString().padStart(2, "0")}`}
         </span>
       );
     }
