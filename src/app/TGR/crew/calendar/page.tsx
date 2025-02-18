@@ -63,6 +63,7 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ShiftFilter } from "./ShiftFilter";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { toast } from "sonner";
 
 import { isHoliday } from "@/utils/holidays";
 import styles from "./calendar.module.css";
@@ -934,6 +935,9 @@ export default function Component() {
       schedule_date: string;
       status: string;
     }) => {
+      // Show processing toast
+      const toastId = toast.loading("Processing schedule update...");
+
       try {
         // Fetch employee data first
         const employeeData = await fetchEmployeeData(employee_id);
@@ -1006,9 +1010,14 @@ export default function Component() {
           }
         }
 
+        // Dismiss loading toast and show success
+        toast.dismiss(toastId);
+        toast.success("Schedule updated successfully");
         return { success: true };
       } catch (error) {
-        console.error("Error in updateStatusMutation:", error);
+        // Dismiss loading toast and show error
+        toast.dismiss(toastId);
+        toast.error("Failed to update schedule");
         throw error;
       }
     },
@@ -1198,6 +1207,7 @@ export default function Component() {
               <PopoverContent>
                 <Button
                   variant="linkHover2"
+                  disabled={updateStatusMutation.isPending}
                   onClick={() => {
                     updateStatusMutation.mutate({
                       employee_id: calendarEvent.employee_id,
@@ -1213,6 +1223,7 @@ export default function Component() {
                     <Button
                       className="p-4"
                       variant="linkHover2"
+                      disabled={updateStatusMutation.isPending}
                       onClick={() => {
                         queryClient.setQueryData(["leftEarlyData"], {
                           hour: "",
@@ -1300,6 +1311,7 @@ export default function Component() {
                     <div className="flex justify-end space-x-2 mt-4">
                       <DialogClose asChild>
                         <Button
+                          disabled={updateStatusMutation.isPending}
                           onClick={() => {
                             const data = queryClient.getQueryData([
                               "leftEarlyData",
@@ -1347,6 +1359,7 @@ export default function Component() {
                 </Dialog>
                 <Button
                   variant="linkHover2"
+                  disabled={updateStatusMutation.isPending}
                   onClick={() => {
                     updateStatusMutation.mutate({
                       employee_id: calendarEvent.employee_id,
@@ -1362,6 +1375,7 @@ export default function Component() {
                     <Button
                       className="p-4"
                       variant="linkHover2"
+                      disabled={updateStatusMutation.isPending}
                       onClick={() => {
                         queryClient.setQueryData(["lateStartData"], {
                           hour: "",
@@ -1445,6 +1459,7 @@ export default function Component() {
                     <div className="flex justify-end space-x-2 mt-4">
                       <DialogClose asChild>
                         <Button
+                          disabled={updateStatusMutation.isPending}
                           onClick={() => {
                             const data = queryClient.getQueryData([
                               "lateStartData",
@@ -1492,6 +1507,7 @@ export default function Component() {
                 </Dialog>
                 <Button
                   variant="linkHover2"
+                  disabled={updateStatusMutation.isPending}
                   onClick={() => {
                     updateStatusMutation.mutate({
                       employee_id: calendarEvent.employee_id,
