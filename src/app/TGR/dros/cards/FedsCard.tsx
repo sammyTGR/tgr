@@ -31,21 +31,39 @@ function FedsCard({ className }: { className?: string }) {
               </span>
               In The Top Right Corner
             </p>
-            <p className="text-red-500">
-              If There Is A Suffix On One Of The Docs Below, It Must Be Included
-              On The DL | ID, Otherwise They Are Required To Get An Interim DL |
-              ID To Match
-            </p>
-            <p>
-              If The DL | ID Shows A Middle Initial or No Middle Name, But The
-              Doc Shows The Full Middle Name, We Can Accept It, But All Other
-              Docs (Fishing License, DMV Reg, etc.) Must Match The DL | ID
-            </p>
           </div>
         </CardHeader>
         <CardContent>
           <div className="max-w-full">
-            <h2>Accepted Documents:</h2>
+            <ul className="text-red-500">
+              <li>
+                If One Of The Docs Below Contains A Suffix, It MUST BE Included
+                On The DL | ID, Otherwise They Need To Get An Interim DL | ID
+                With Their Suffix
+              </li>
+            </ul>
+            <ul>
+              <li>
+                If One Of The Docs Below DOES NOT Contain A Suffix, But The DL |
+                ID Shows A Suffix, Process The DROS With According To The
+                Document, Not The DL | ID (Without The Suffix)
+              </li>
+            </ul>
+            <ul>
+              <li>
+                If One Of the Docs Shows A Full Middle Name, But The DL | ID
+                Shows A Middle Initial or No Middle Name, We Can Accept It. But
+                All Other Docs (Fishing License, DMV Reg, etc.) Must Match The
+                DL | ID
+              </li>
+            </ul>
+            <ul>
+              <li>
+                All Other Docs (Fishing License, DMV Reg, etc.) Must Match The
+                DL | ID
+              </li>
+            </ul>
+            Accepted Documents:
             <ul className="list-disc pl-4">
               <li>Valid, Unexpired U.S. Passport Or Passport Card</li>
               <li>
