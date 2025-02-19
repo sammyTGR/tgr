@@ -150,8 +150,12 @@ export const validateAuditData = (data: Partial<AuditData>): boolean => {
 export const formatAuditForDisplay = (audit: AuditData): AuditData => {
   return {
     ...audit,
-    trans_date: format(new Date(audit.trans_date), "MM/dd/yyyy"),
-    audit_date: format(new Date(audit.audit_date), "MM/dd/yyyy"),
+    trans_date: audit.trans_date
+      ? format(new Date(audit.trans_date), "MM/dd/yyyy")
+      : "",
+    audit_date: audit.audit_date
+      ? format(new Date(audit.audit_date), "MM/dd/yyyy")
+      : "",
     error_details: sanitizeData(audit.error_details || ""),
     error_notes: sanitizeData(audit.error_notes || ""),
     dros_cancel: audit.dros_cancel || "",

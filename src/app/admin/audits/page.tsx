@@ -79,11 +79,19 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryForm } from "./components/CategoryForm";
+import { ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 // Type definitions
 interface OptionType {
   label: string;
   value: string;
+}
+
+interface ExpandableCardProps {
+  id: string;
+  title: string;
+  children: React.ReactNode;
 }
 
 interface CellProps {
@@ -1669,12 +1677,40 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     }) => {
       return api.updateAuditCategory(id, data);
     },
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["audit-categories"] });
+
+      // Snapshot the previous value
+      const previousCategories = queryClient.getQueryData<AuditCategory[]>([
+        "audit-categories",
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<AuditCategory[]>(
+        ["audit-categories"],
+        (old = []) => {
+          return old.map((cat) => (cat.id === id ? { ...cat, ...data } : cat));
+        }
+      );
+
+      return { previousCategories };
+    },
+    onError: (err, { id }, context) => {
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(
+        ["audit-categories"],
+        context?.previousCategories
+      );
+      toast.error(`Failed to update category: ${err.message}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
       toast.success("Category updated successfully");
     },
-    onError: (error) => {
-      toast.error(`Failed to update category: ${error.message}`);
+    onSettled: () => {
+      // Always close the dialog after the mutation settles
+      setIsEditDialogOpen(false);
     },
   });
 
@@ -2061,6 +2097,56 @@ function AuditsPage() {
     );
   }
 
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null
+  );
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  const toggleCardExpansion = (cardId: string) => {
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId],
+    }));
+  };
+
+  const ExpandableCard: React.FC<ExpandableCardProps> = ({
+    id,
+    title,
+    children,
+  }) => {
+    const isExpanded = expandedCards[id];
+
+    return (
+      <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{title}</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleCardExpansion(id)}
+            className="h-8 w-8 p-0"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent
+          className={`
+          ${isExpanded ? "" : "h-[100px] overflow-y-auto pr-4"}
+          space-y-2
+        `}
+        >
+          {children}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <RoleBasedWrapper
       allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
@@ -2406,97 +2492,153 @@ function AuditsPage() {
                       started.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
                       {categoriesQuery.data?.map((category) => (
-                        <Card key={category.id}>
-                          <CardHeader>
-                            <div className="flex justify-between items-center">
-                              <CardTitle>{category.name}</CardTitle>
-                              <div className="flex gap-2">
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <Pencil1Icon className="h-4 w-4" />
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="sm:max-w-[800px] w-[90vw]">
-                                    <DialogHeader>
-                                      <DialogTitle>Edit Category</DialogTitle>
-                                    </DialogHeader>
-                                    <CategoryForm
-                                      category={category}
-                                      onSubmit={async (data) => {
-                                        await updateCategoryMutation.mutateAsync(
-                                          {
-                                            id: category.id,
-                                            data,
-                                          }
-                                        );
-                                        setIsEditDialogOpen(false);
-                                      }}
-                                      onCancel={() =>
-                                        setIsEditDialogOpen(false)
-                                      }
-                                      isSubmitting={
-                                        updateCategoryMutation.isPending
-                                      }
-                                    />
-                                  </DialogContent>
-                                </Dialog>
+                        <ExpandableCard
+                          key={category.id}
+                          id={category.id}
+                          title={category.name}
+                        >
+                          <div className="flex justify-end gap-2 mb-4">
+                            <Dialog
+                              open={editingCategoryId === category.id}
+                              onOpenChange={(open) => {
+                                if (!open) setEditingCategoryId(null);
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setEditingCategoryId(category.id)
+                                  }
+                                >
+                                  <Pencil1Icon className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[800px] w-[90vw]">
+                                <DialogHeader>
+                                  <DialogTitle>Edit Category</DialogTitle>
+                                </DialogHeader>
+                                <CategoryForm
+                                  category={category}
+                                  onSubmit={async (data) => {
+                                    await updateCategoryMutation.mutateAsync({
+                                      id: category.id,
+                                      data,
+                                    });
+                                    setEditingCategoryId(null); // Close dialog after successful update
+                                  }}
+                                  onCancel={() => setEditingCategoryId(null)}
+                                  isSubmitting={
+                                    updateCategoryMutation.isPending
+                                  }
+                                />
+                              </DialogContent>
+                            </Dialog>
 
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <TrashIcon className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Delete Category
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to delete this
-                                        category? This action cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={async () => {
-                                          try {
-                                            await deleteCategoryMutation.mutateAsync(
-                                              category.id
-                                            );
-                                            toast.success(
-                                              "Category deleted successfully"
-                                            );
-                                          } catch (error) {
-                                            // Error will be handled by onError callback
-                                          }
-                                        }}
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="prose max-w-none">
-                              <div
-                                className="whitespace-pre-wrap text-muted-foreground"
-                                dangerouslySetInnerHTML={{
-                                  __html: category.guidelines,
-                                }}
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete Category
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this
+                                    category? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={async () => {
+                                      try {
+                                        await deleteCategoryMutation.mutateAsync(
+                                          category.id
+                                        );
+                                        toast.success(
+                                          "Category deleted successfully"
+                                        );
+                                      } catch (error) {
+                                        // Error will be handled by onError callback
+                                      }
+                                    }}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                          <div
+                            className="prose dark:prose-invert max-w-none
+                              [&>ul]:list-disc [&>ol]:list-decimal 
+                              [&>ul]:ml-6 [&>ol]:ml-6 
+                              [&>ul]:my-4 [&>ol]:my-4
+                              [&>ul>li>ul]:list-[circle] [&_ol]:list-decimal
+                              [&>ul>li>ul]:ml-6 [&_ol]:ml-6 
+                              [&>ul>li>ul]:my-2 [&_ol]:my-2
+                              [&>ul>li>ul>li>ul]:list-[square]
+                              [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 
+                              [&_blockquote]:pl-4 [&_blockquote]:italic
+                              [&_code]:bg-gray-100 [&_code]:p-1 [&_code]:rounded
+                              dark:[&_code]:bg-gray-800
+                              [&_pre]:bg-gray-100 [&_pre]:p-4 [&_pre]:rounded
+                              dark:[&_pre]:bg-gray-800
+                              [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-4
+                              [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-3
+                              [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-2"
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(category.guidelines, {
+                                ALLOWED_TAGS: [
+                                  "p",
+                                  "br",
+                                  "strong",
+                                  "em",
+                                  "u",
+                                  "h1",
+                                  "h2",
+                                  "h3",
+                                  "h4",
+                                  "h5",
+                                  "h6",
+                                  "ul",
+                                  "ol",
+                                  "li",
+                                  "blockquote",
+                                  "code",
+                                  "pre",
+                                  "div",
+                                  "span",
+                                  "a",
+                                  "img",
+                                  "table",
+                                  "thead",
+                                  "tbody",
+                                  "tr",
+                                  "th",
+                                  "td",
+                                ],
+                                ALLOWED_ATTR: [
+                                  "href",
+                                  "src",
+                                  "class",
+                                  "style",
+                                  "target",
+                                  "rel",
+                                  "data-type",
+                                  "data-align",
+                                ],
+                              }),
+                            }}
+                          />
+                        </ExpandableCard>
                       ))}
                     </div>
                   )}

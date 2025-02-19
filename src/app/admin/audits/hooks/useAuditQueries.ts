@@ -103,10 +103,18 @@ export const useAudits = () => {
         if (error) throw error;
         return (data || []).map((audit: AuditData) => ({
           ...audit,
-          dros_number: DOMPurify.sanitize(audit.dros_number),
-          salesreps: DOMPurify.sanitize(audit.salesreps),
-          error_details: DOMPurify.sanitize(audit.error_details),
-          error_notes: DOMPurify.sanitize(audit.error_notes),
+          dros_number: audit.dros_number
+            ? DOMPurify.sanitize(audit.dros_number)
+            : null,
+          salesreps: audit.salesreps
+            ? DOMPurify.sanitize(audit.salesreps)
+            : null,
+          error_details: audit.error_details
+            ? DOMPurify.sanitize(audit.error_details)
+            : null,
+          error_notes: audit.error_notes
+            ? DOMPurify.sanitize(audit.error_notes)
+            : null,
         }));
       });
     },

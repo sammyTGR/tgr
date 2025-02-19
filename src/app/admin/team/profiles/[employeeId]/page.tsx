@@ -117,6 +117,7 @@ interface SalesData {
   name: string;
   subcategory_label: string;
   dros_cancel: string | null;
+  SoldDate: string;
   // other fields
 }
 
@@ -690,9 +691,13 @@ const EmployeeProfile = () => {
       const calculator = new WeightedScoringCalculator({
         salesData: validSalesData.map((sale) => ({
           ...sale,
+          id: sale.id,
+          Lanid: sale.Lanid,
+          SoldDate: sale.Date, // Map the Date field to SoldDate
+          Desc: "Dros Fee", // Add the required Desc field
           dros_cancel:
-            sale.cancelled_dros !== undefined && sale.cancelled_dros !== null
-              ? sale.cancelled_dros.toString()
+            sale.dros_cancel !== undefined && sale.dros_cancel !== null
+              ? sale.dros_cancel.toString()
               : "0",
         })),
         auditData: validAuditData.map((audit) => ({
@@ -770,8 +775,8 @@ const EmployeeProfile = () => {
                       newRecord.status === "called_out"
                         ? "Called Out"
                         : newRecord.status === "left_early"
-                        ? "Left Early"
-                        : newRecord.status.replace(/^Custom:\s*/i, "").trim();
+                          ? "Left Early"
+                          : newRecord.status.replace(/^Custom:\s*/i, "").trim();
 
                     const createdByName = await fetchEmployeeNameByUserUUID(
                       user.id
@@ -1744,6 +1749,8 @@ const EmployeeProfile = () => {
       const calculator = new WeightedScoringCalculator({
         salesData: salesData.map((sale) => ({
           ...sale,
+          SoldDate: sale.SoldDate,
+          Desc: "Dros Fee",
           dros_cancel:
             sale.dros_cancel !== undefined && sale.dros_cancel !== null
               ? sale.dros_cancel.toString()
@@ -2884,9 +2891,7 @@ const EmployeeProfile = () => {
                               </Label>
                               <ul className="list-disc pl-5">
                                 {currentReview?.areas_growth.map(
-                                  (area, index) => (
-                                    <li key={index}>{area}</li>
-                                  )
+                                  (area, index) => <li key={index}>{area}</li>
                                 )}
                               </ul>
                             </div>
@@ -2896,9 +2901,7 @@ const EmployeeProfile = () => {
                               </Label>
                               <ul className="list-disc pl-5">
                                 {currentReview?.recognition.map(
-                                  (rec, index) => (
-                                    <li key={index}>{rec}</li>
-                                  )
+                                  (rec, index) => <li key={index}>{rec}</li>
                                 )}
                               </ul>
                             </div>
