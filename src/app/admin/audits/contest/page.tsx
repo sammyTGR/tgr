@@ -77,23 +77,22 @@ const ContestPage = () => {
           selectedMonth.getFullYear(),
           selectedMonth.getMonth(),
           1
-        )
-          .toISOString()
-          .split("T")[0];
+        ).toISOString();
         const endDate = new Date(
           selectedMonth.getFullYear(),
           selectedMonth.getMonth() + 1,
-          0
-        )
-          .toISOString()
-          .split("T")[0];
+          0,
+          23,
+          59,
+          59
+        ).toISOString();
 
         if (showAllEmployees) {
           const { data: allAuditData, error: allAuditError } = await supabase
             .from("Auditsinput")
             .select("*")
-            .gte("audit_date", startDate)
-            .lte("audit_date", endDate);
+            .gte("audit_date", startDate.split("T")[0])
+            .lte("audit_date", endDate.split("T")[0]);
 
           if (allAuditError) {
             console.error(allAuditError);
@@ -102,13 +101,12 @@ const ContestPage = () => {
               new Set(allAuditData.map((audit) => audit.salesreps))
             );
             const { data: allSalesData, error: allSalesError } = await supabase
-              .from("sales_data")
+              .from("detailed_sales_data")
               .select("*")
               .in("Lanid", lanids)
-              .gte("Date", startDate)
-              .lte("Date", endDate)
-              .not("subcategory_label", "is", null)
-              .not("subcategory_label", "eq", "");
+              .gte("SoldDate", startDate)
+              .lte("SoldDate", endDate)
+              .eq("Desc", "Dros Fee");
 
             if (allSalesError) {
               console.error(allSalesError);
@@ -125,20 +123,19 @@ const ContestPage = () => {
           }
         } else if (selectedLanid) {
           const { data: salesData, error: salesError } = await supabase
-            .from("sales_data")
+            .from("detailed_sales_data")
             .select("*")
             .eq("Lanid", selectedLanid)
-            .gte("Date", startDate)
-            .lte("Date", endDate)
-            .not("subcategory_label", "is", null)
-            .not("subcategory_label", "eq", "");
+            .gte("SoldDate", startDate)
+            .lte("SoldDate", endDate)
+            .eq("Desc", "Dros Fee");
 
           const { data: auditData, error: auditError } = await supabase
             .from("Auditsinput")
             .select("*")
             .eq("salesreps", selectedLanid)
-            .gte("audit_date", startDate)
-            .lte("audit_date", endDate);
+            .gte("audit_date", startDate.split("T")[0])
+            .lte("audit_date", endDate.split("T")[0]);
 
           if (salesError || auditError) {
             console.error(salesError || auditError);
@@ -159,7 +156,7 @@ const ContestPage = () => {
       .channel("custom-all-channel")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "sales_data" },
+        { event: "*", schema: "public", table: "detailed_sales_data" },
         () => {
           fetchData();
         }
@@ -193,6 +190,14 @@ const ContestPage = () => {
       const employeeSalesData = salesData.filter(
         (sale) => sale.Lanid === lanid
       );
+
+      // Add detailed logging
+      // console.log(`Processing ${lanid}:`, {
+      //   totalSalesData: salesData.length,
+      //   employeeSalesData: employeeSalesData.length,
+      //   sampleSale: employeeSalesData[0],
+      // });
+
       const employeeAuditData = auditData.filter(
         (audit) => audit.salesreps === lanid
       );

@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/utils/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabase/client";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
 interface PointsCalculation {
   category: string;
@@ -7,77 +8,92 @@ interface PointsCalculation {
   points_deducted: number;
 }
 
+const isDrosTransaction = (sale: any) => {
+  // A transaction counts as a DROS if:
+  // 1. It's in the Dros Fee description
+  return sale.Desc?.toLowerCase() === "Dros Fee".toLowerCase();
+};
+
 export const useSummaryData = (
   selectedLanid: string | null,
   showAllEmployees: boolean,
   selectedDate: Date | null
 ) => {
   return useQuery({
-    queryKey: ['summaryData', selectedLanid, showAllEmployees, selectedDate],
+    queryKey: ["summaryData", selectedLanid, showAllEmployees, selectedDate],
     enabled: !!selectedDate,
     queryFn: async () => {
       if (!selectedDate) return [];
 
-      const startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-        .toISOString()
-        .split('T')[0];
-      const endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0];
+      // Use date-fns to handle date boundaries properly
+      const startDate = startOfMonth(selectedDate);
+      const endDate = endOfMonth(selectedDate);
+
+      // Format dates for database query
+      const formattedStartDate = format(
+        startDate,
+        "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"
+      );
+      const formattedEndDate = format(endDate, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 
       // Fetch all required data
       let employeesQuery = supabase
-        .from('employees')
-        .select('lanid, department');
+        .from("employees")
+        .select("lanid, department");
 
       let salesQuery = supabase
-        .from('sales_data')
-        .select('*')
-        .gte('Date', startDate)
-        .lte('Date', endDate)
-        .not('subcategory_label', 'is', null)
-        .not('subcategory_label', 'eq', '');
+        .from("detailed_sales_data")
+        .select("*")
+        .gte("SoldDate", formattedStartDate)
+        .lte("SoldDate", formattedEndDate)
+        .eq("Desc", "Dros Fee");
 
       let auditQuery = supabase
-        .from('Auditsinput')
-        .select('*')
-        .gte('audit_date', startDate)
-        .lte('audit_date', endDate);
+        .from("Auditsinput")
+        .select("*")
+        .gte("audit_date", format(startDate, "yyyy-MM-dd"))
+        .lte("audit_date", format(endDate, "yyyy-MM-dd"));
 
-      const pointsQuery = supabase
-        .from('points_calculation')
-        .select('*');
+      const pointsQuery = supabase.from("points_calculation").select("*");
 
       if (!showAllEmployees && selectedLanid) {
-        salesQuery = salesQuery.eq('Lanid', selectedLanid);
-        auditQuery = auditQuery.eq('salesreps', selectedLanid);
+        salesQuery = salesQuery.eq("Lanid", selectedLanid);
+        auditQuery = auditQuery.eq("salesreps", selectedLanid);
       }
 
       const [
         { data: employeesData, error: employeesError },
         { data: salesData, error: salesError },
         { data: auditData, error: auditError },
-        { data: pointsCalculation, error: pointsError }
+        { data: pointsCalculation, error: pointsError },
       ] = await Promise.all([
         employeesQuery,
         salesQuery,
         auditQuery,
-        pointsQuery
+        pointsQuery,
       ]);
 
       if (employeesError || salesError || auditError || pointsError) {
-        throw new Error('Error fetching data');
+        throw new Error("Error fetching data");
       }
 
       // Get unique lanids from audit data
-      const auditLanids = new Set(auditData?.map(audit => audit.salesreps));
-      
+      const auditLanids = new Set(auditData?.map((audit) => audit.salesreps));
+
       // Filter sales data to only include employees with audits
-      const relevantSalesData = salesData?.filter(sale => auditLanids.has(sale.Lanid));
+      const relevantSalesData = salesData?.filter((sale) => {
+        try {
+          const saleDate = new Date(sale.SoldDate);
+          return !isNaN(saleDate.getTime()); // Validate date
+        } catch {
+          console.error(`Invalid date for sale:`, sale);
+          return false;
+        }
+      });
 
       // Get unique lanids from filtered sales data
       const lanids = showAllEmployees
-        ? Array.from(new Set(relevantSalesData.map(sale => sale.Lanid)))
+        ? Array.from(new Set(relevantSalesData.map((sale) => sale.Lanid)))
         : [selectedLanid];
 
       const employeeDepartments = new Map(
@@ -85,7 +101,7 @@ export const useSummaryData = (
       );
 
       // Calculate summary data
-      const summary = lanids.map(lanid => {
+      const summary = lanids.map((lanid) => {
         const employeeSalesData = relevantSalesData.filter(
           (sale) => sale.Lanid === lanid
         );
@@ -93,9 +109,7 @@ export const useSummaryData = (
           (audit) => audit.salesreps === lanid
         );
 
-        const totalDros = employeeSalesData.filter(
-          (sale) => sale.subcategory_label
-        ).length;
+        const totalDros = employeeSalesData.filter(isDrosTransaction).length;
 
         let pointsDeducted = 0;
 
@@ -124,7 +138,8 @@ export const useSummaryData = (
         });
 
         const totalPoints = 300 - pointsDeducted;
-        const errorRate = totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
+        const errorRate =
+          totalDros > 0 ? (pointsDeducted / totalDros) * 100 : 0;
         const department = employeeDepartments.get(lanid);
         const isOperations = department?.toString() === "Operations";
         const isQualified = !isOperations && totalDros >= 20;
@@ -141,8 +156,8 @@ export const useSummaryData = (
             ? isOperations
               ? "Not Qualified (Operations Department)"
               : totalDros < 20
-              ? "Not Qualified (< 20 DROS)"
-              : "Not Qualified"
+                ? "Not Qualified (< 20 DROS)"
+                : "Not Qualified"
             : "Qualified",
         };
       });
@@ -157,6 +172,6 @@ export const useSummaryData = (
         .sort((a, b) => a.ErrorRate - b.ErrorRate);
 
       return [...qualifiedEmployees, ...unqualifiedEmployees];
-    }
+    },
   });
 };

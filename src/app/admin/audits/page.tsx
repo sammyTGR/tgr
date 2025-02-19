@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import DOMPurify from "dompurify";
 import dynamic from "next/dynamic";
 import * as XLSX from "xlsx";
@@ -43,7 +43,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import {
+  CalendarIcon,
+  Pencil1Icon,
+  TrashIcon,
+  PlusIcon,
+} from "@radix-ui/react-icons";
 import { CustomCalendar } from "@/components/ui/calendar";
 import {
   Select,
@@ -57,7 +62,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import { WeightedScoringCalculator } from "./contest/WeightedScoringCalculator";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { useMemo, useState, useRef } from "react";
 import { ModalStateProvider, useModalState } from "@/context/ModalStateContext";
 import AuditChart from "./AuditChart";
 import { useCallback } from "react";
@@ -66,11 +71,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import EditAuditForm, { AuditData } from "./submit/edit-audit-form";
 import { HistoricalAuditChart } from "./HistoricalAuditChart";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { CategoryForm } from "./components/CategoryForm";
 
 // Type definitions
 interface OptionType {
@@ -171,7 +179,8 @@ interface SummaryRowData {
 interface SalesData {
   Lanid: string;
   Date: string;
-  subcategory_label: string;
+  Desc: string;
+  SoldDate: string; // This will now be a datetime string
   dros_number: string;
   status: string;
   id: number;
@@ -205,6 +214,14 @@ interface TableMeta<T> {
 export interface ModalState {
   isOpen: boolean;
   selectedAudit: Audit | null;
+}
+
+interface AuditCategory {
+  id: string;
+  name: string;
+  guidelines: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const MODAL_KEY = ["edit-modal-state"] as const;
@@ -255,20 +272,14 @@ const LazyDataTableProfile = dynamic<any>(
 // API Functions
 const api = {
   fetchEmployees: async (): Promise<Employee[]> => {
-    const searchParams = new URLSearchParams({
-      select: "lanid,department,role,status,contact_info",
-      status: "active",
-      order: "lanid.asc",
-    });
+    const { data, error } = await supabase
+      .from("employees")
+      .select("lanid,department,role,status,contact_info")
+      .eq("status", "active")
+      .order("lanid", { ascending: true });
 
-    const response = await fetch(`/api/fetchEmployees?${searchParams}`);
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Error fetching employees: ${error.message}`);
-    }
-
-    return response.json();
+    if (error) throw new Error(`Error fetching employees: ${error.message}`);
+    return data || [];
   },
 
   fetchAudits: async (filters?: AuditFilters): Promise<Audit[]> => {
@@ -277,8 +288,7 @@ const api = {
       .select("*")
       .order("audit_date", { ascending: false });
 
-    // Only apply filters if they are provided AND we're in contest tab
-    if (filters && Object.keys(filters).length > 0) {
+    if (filters) {
       if (filters.startDate) query = query.gte("audit_date", filters.startDate);
       if (filters.endDate) query = query.lte("audit_date", filters.endDate);
       if (filters.lanid) query = query.eq("salesreps", filters.lanid);
@@ -286,18 +296,7 @@ const api = {
     }
 
     const { data, error } = await query;
-    if (error) {
-      throw new Error(`Error fetching audits: ${error.message}`);
-    }
-
-    // Only filter by date range if filters are provided
-    if (filters?.endDate) {
-      return (data || []).filter((audit) => {
-        const auditDate = new Date(audit.audit_date);
-        const endDate = new Date(filters.endDate!);
-        return auditDate <= endDate;
-      });
-    }
+    if (error) throw new Error(`Error fetching audits: ${error.message}`);
 
     return data || [];
   },
@@ -310,7 +309,7 @@ const api = {
       .order("audit_date", { ascending: true });
 
     if (error) throw error;
-    return data;
+    return data || [];
   },
 
   fetchPointsCalculation: async (): Promise<PointsCalculation[]> => {
@@ -319,9 +318,8 @@ const api = {
       .select("*")
       .order("category", { ascending: true });
 
-    if (error) {
+    if (error)
       throw new Error(`Error fetching points calculation: ${error.message}`);
-    }
     return data || [];
   },
 
@@ -332,12 +330,11 @@ const api = {
     showAllEmployees?: boolean
   ): Promise<SalesData[]> => {
     let query = supabase
-      .from("sales_data")
+      .from("detailed_sales_data")
       .select("*")
-      .gte("Date", startDate)
-      .lte("Date", endDate)
-      .not("subcategory_label", "is", null)
-      .not("subcategory_label", "eq", "");
+      .gte("SoldDate", `${startDate}T00:00:00.000Z`) // Start of day
+      .lte("SoldDate", `${endDate}T23:59:59.999Z`) // End of day
+      .eq("Desc", "Dros Fee");
 
     if (!showAllEmployees && lanid) {
       query = query.eq("Lanid", lanid);
@@ -346,36 +343,34 @@ const api = {
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching sales data: ${error.message}`);
 
-    // Filter out any data that doesn't match our date range
-    const filteredData = (data || []).filter((sale) => {
-      const saleDate = new Date(sale.Date);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      return saleDate >= start && saleDate <= end;
-    });
-
-    return filteredData;
+    return (data || [])
+      .filter((sale) => {
+        const saleDate = new Date(sale.SoldDate);
+        return !isNaN(saleDate.getTime());
+      })
+      .map((sale) => ({
+        ...sale,
+        SoldDate: format(new Date(sale.SoldDate), "yyyy-MM-dd HH:mm:ss"),
+        Date: format(new Date(sale.SoldDate), "yyyy-MM-dd"),
+        cancelled_dros: sale.cancelled_dros || 0,
+      }));
   },
 
   updateAudit: async (
     auditId: string,
     updateData: Partial<Audit>
   ): Promise<Audit> => {
-    const normalizedData = {
-      ...updateData,
-      dros_cancel: updateData.dros_cancel ? "True" : "",
-    };
-
     const { data, error } = await supabase
       .from("Auditsinput")
-      .update(normalizedData)
+      .update({
+        ...updateData,
+        dros_cancel: updateData.dros_cancel ? "True" : "",
+      })
       .eq("audits_id", auditId)
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Error updating audit: ${error.message}`);
-    }
+    if (error) throw new Error(`Error updating audit: ${error.message}`);
     return data;
   },
 
@@ -385,9 +380,54 @@ const api = {
       .delete()
       .eq("audits_id", auditId);
 
-    if (error) {
-      throw new Error(`Error deleting audit: ${error.message}`);
-    }
+    if (error) throw new Error(`Error deleting audit: ${error.message}`);
+  },
+
+  fetchAuditCategories: async (): Promise<AuditCategory[]> => {
+    const { data, error } = await supabase
+      .from("audit_categories")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  createAuditCategory: async (
+    category: Omit<AuditCategory, "id">
+  ): Promise<AuditCategory> => {
+    const { data, error } = await supabase
+      .from("audit_categories")
+      .insert([category])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  updateAuditCategory: async (
+    id: string,
+    category: Partial<AuditCategory>
+  ): Promise<AuditCategory> => {
+    const { data, error } = await supabase
+      .from("audit_categories")
+      .update(category)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  deleteAuditCategory: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from("audit_categories")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
   },
 };
 
@@ -437,8 +477,8 @@ const calculateSummaryData = (
   const lanids = showAllEmployees
     ? Array.from(new Set(salesData.map((sale) => sale.Lanid)))
     : selectedLanid
-    ? [selectedLanid]
-    : [];
+      ? [selectedLanid]
+      : [];
 
   const calculatedData = lanids
     .map((lanid): SummaryRowData | null => {
@@ -458,11 +498,11 @@ const calculateSummaryData = (
         const calculator = new WeightedScoringCalculator({
           salesData: employeeSalesData.map((sale) => ({
             ...sale,
-            // Add default value of "0" if cancelled_dros is undefined or null
-            dros_cancel:
-              sale.cancelled_dros !== undefined && sale.cancelled_dros !== null
-                ? sale.cancelled_dros.toString()
-                : "0",
+            Desc: sale.Desc || "",
+            SoldDate: format(new Date(sale.SoldDate), "yyyy-MM-dd HH:mm:ss"), // Format datetime
+            dros_cancel: sale.cancelled_dros?.toString() || "0",
+            Lanid: sale.Lanid,
+            id: sale.id,
           })),
           auditData: employeeAuditData.map((audit) => ({
             ...audit,
@@ -481,7 +521,7 @@ const calculateSummaryData = (
             calculator.metrics.TotalWeightedMistakes || null,
         };
       } catch (error) {
-        // console.error(`Error calculating metrics for ${lanid}:`, error);
+        console.error(`Error calculating metrics for ${lanid}:`, error);
         return null;
       }
     })
@@ -604,8 +644,8 @@ const exportToExcel = (
   const suffix = showAllEmployees
     ? "_all_employees"
     : selectedLanid
-    ? `_${selectedLanid}`
-    : "";
+      ? `_${selectedLanid}`
+      : "";
 
   XLSX.writeFile(wb, `Sales_Contest_Results_${dateStr}${suffix}.xlsx`);
 };
@@ -736,8 +776,8 @@ const summaryColumns: ColumnDef<SummaryRowData>[] = [
         {original.isDivider
           ? ""
           : original.WeightedErrorRate === null
-          ? ""
-          : `${original.WeightedErrorRate.toFixed(2)}%`}
+            ? ""
+            : `${original.WeightedErrorRate.toFixed(2)}%`}
       </div>
     ),
   },
@@ -1095,7 +1135,11 @@ const calculateDailyMetrics = (
     const calculator = new WeightedScoringCalculator({
       salesData: dailySalesData.map((sale) => ({
         ...sale,
+        Desc: sale.Desc || "", // Use direct field name from DB
+        SoldDate: sale.SoldDate || "", // Use direct field name from DB
         dros_cancel: sale.cancelled_dros?.toString() || "0",
+        Lanid: sale.Lanid,
+        id: sale.id,
       })),
       auditData: dailyAuditData.map((audit) => ({
         ...audit,
@@ -1103,7 +1147,7 @@ const calculateDailyMetrics = (
       })),
       pointsCalculation,
       isOperations: employeeDepartment?.toString() === "Operations",
-      minimumDros: 0, // Set to 0 for daily metrics
+      minimumDros: 0,
     });
 
     const metrics = {
@@ -1557,6 +1601,126 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
     [queryClient]
   );
 
+  // Inside useAuditsPage hook, add these queries and mutations
+  const categoriesQuery = useQuery({
+    queryKey: ["audit-categories"],
+    queryFn: api.fetchAuditCategories,
+  });
+
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const createCategoryMutation = useMutation({
+    mutationFn: api.createAuditCategory,
+    onMutate: async (newCategory) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["audit-categories"] });
+
+      // Snapshot the previous value
+      const previousCategories = queryClient.getQueryData<AuditCategory[]>([
+        "audit-categories",
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<AuditCategory[]>(
+        ["audit-categories"],
+        (old = []) => {
+          return [...old, { ...newCategory, id: `temp-${Date.now()}` }];
+        }
+      );
+
+      return { previousCategories };
+    },
+    onError: (err, newCategory, context) => {
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(
+        ["audit-categories"],
+        context?.previousCategories
+      );
+      toast.error(`Failed to create category: ${err.message}`);
+    },
+    onSuccess: (newCategory) => {
+      // Update the cache with the actual server response
+      queryClient.setQueryData<AuditCategory[]>(
+        ["audit-categories"],
+        (old = []) => {
+          return [
+            ...old.filter((cat) => !cat.id.startsWith("temp-")),
+            newCategory,
+          ];
+        }
+      );
+      toast.success("Category created successfully");
+      setIsAddDialogOpen(false);
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<AuditCategory>;
+    }) => {
+      return api.updateAuditCategory(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
+      toast.success("Category updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to update category: ${error.message}`);
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: string) => {
+      const { error } = await supabase
+        .from("audit_categories")
+        .delete()
+        .eq("id", categoryId);
+
+      if (error) throw error;
+      return categoryId;
+    },
+    onMutate: async (categoryId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["audit-categories"] });
+
+      // Snapshot the previous value
+      const previousCategories = queryClient.getQueryData<AuditCategory[]>([
+        "audit-categories",
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<AuditCategory[]>(
+        ["audit-categories"],
+        (old = []) => {
+          return old.filter((category) => category.id !== categoryId);
+        }
+      );
+
+      return { previousCategories };
+    },
+    onError: (err, categoryId, context) => {
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(
+        ["audit-categories"],
+        context?.previousCategories
+      );
+      toast.error(`Failed to delete category: ${err.message}`);
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ["audit-categories"] });
+    },
+  });
+
   return {
     // Queries
     employeesQuery,
@@ -1606,6 +1770,16 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
       handleSearchChange,
       handleTimeRangeChange,
     },
+
+    // New queries and mutations
+    categoriesQuery,
+    createCategoryMutation,
+    updateCategoryMutation,
+    deleteCategoryMutation,
+    isAddDialogOpen,
+    setIsAddDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
   };
 };
 
@@ -1826,6 +2000,16 @@ function AuditsPage() {
       handleSearchChange,
       handleTimeRangeChange,
     },
+
+    // New queries and mutations
+    categoriesQuery,
+    createCategoryMutation,
+    updateCategoryMutation,
+    deleteCategoryMutation,
+    isAddDialogOpen,
+    setIsAddDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
   } = useAuditsPage();
 
   // Add edit mutation
@@ -1894,6 +2078,7 @@ function AuditsPage() {
               <TabsTrigger value="submit">Submit Audits</TabsTrigger>
               <TabsTrigger value="review">Review Audits</TabsTrigger>
               <TabsTrigger value="contest">Sales Performance</TabsTrigger>
+              <TabsTrigger value="guidelines">Auditing Guidelines</TabsTrigger>
             </TabsList>
           </div>
 
@@ -2179,6 +2364,145 @@ function AuditsPage() {
             )}
             {/* </CardContent>
             </Card> */}
+          </TabsContent>
+
+          <TabsContent value="guidelines">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Auditing Guidelines</CardTitle>
+                  <Dialog
+                    open={isAddDialogOpen}
+                    onOpenChange={(open) => setIsAddDialogOpen(open)}
+                  >
+                    <DialogTrigger asChild>
+                      <Button onClick={() => setIsAddDialogOpen(true)}>
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add Category
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[800px] w-[90vw]">
+                      <DialogHeader>
+                        <DialogTitle>Add Category</DialogTitle>
+                      </DialogHeader>
+                      <CategoryForm
+                        onSubmit={async (data) => {
+                          await createCategoryMutation.mutateAsync(data);
+                        }}
+                        onCancel={() => setIsAddDialogOpen(false)}
+                        isSubmitting={createCategoryMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {categoriesQuery.isLoading ? (
+                    <LoadingIndicator />
+                  ) : categoriesQuery.data?.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      No categories found. Add your first category to get
+                      started.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {categoriesQuery.data?.map((category) => (
+                        <Card key={category.id}>
+                          <CardHeader>
+                            <div className="flex justify-between items-center">
+                              <CardTitle>{category.name}</CardTitle>
+                              <div className="flex gap-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <Pencil1Icon className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-[800px] w-[90vw]">
+                                    <DialogHeader>
+                                      <DialogTitle>Edit Category</DialogTitle>
+                                    </DialogHeader>
+                                    <CategoryForm
+                                      category={category}
+                                      onSubmit={async (data) => {
+                                        await updateCategoryMutation.mutateAsync(
+                                          {
+                                            id: category.id,
+                                            data,
+                                          }
+                                        );
+                                        setIsEditDialogOpen(false);
+                                      }}
+                                      onCancel={() =>
+                                        setIsEditDialogOpen(false)
+                                      }
+                                      isSubmitting={
+                                        updateCategoryMutation.isPending
+                                      }
+                                    />
+                                  </DialogContent>
+                                </Dialog>
+
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <TrashIcon className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete Category
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this
+                                        category? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={async () => {
+                                          try {
+                                            await deleteCategoryMutation.mutateAsync(
+                                              category.id
+                                            );
+                                            toast.success(
+                                              "Category deleted successfully"
+                                            );
+                                          } catch (error) {
+                                            // Error will be handled by onError callback
+                                          }
+                                        }}
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="prose max-w-none">
+                              <div
+                                className="whitespace-pre-wrap text-muted-foreground"
+                                dangerouslySetInnerHTML={{
+                                  __html: category.guidelines,
+                                }}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

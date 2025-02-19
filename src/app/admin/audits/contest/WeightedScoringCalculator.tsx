@@ -1,11 +1,14 @@
 // src/app/admin/audits/contest/WeightedScoringCalculator.tsx
 import * as React from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export interface SalesData {
   id: number;
   Lanid: string;
-  subcategory_label: string;
+
+  SoldDate: string;
   dros_cancel: string | null;
+  Desc: string;
   [key: string]: any;
 }
 
@@ -38,6 +41,7 @@ export class WeightedScoringCalculator {
   private pointsCalculation: PointsCalculation[];
   private isOperations: boolean;
   private minimumDros: number;
+  private supabase = createClientComponentClient();
 
   constructor({
     salesData,
@@ -46,11 +50,54 @@ export class WeightedScoringCalculator {
     isOperations = false,
     minimumDros = 20,
   }: CalculatorProps) {
-    this.salesData = salesData;
+    // console.log("Raw sales data length:", salesData.length);
+    // console.log("Sample raw sale:", JSON.stringify(salesData[0], null, 2));
+
+    // Filter sales data to specifically count DROS transactions
+    this.salesData = salesData.filter((sale) => {
+      // Debug logging for first few records
+      if (salesData.indexOf(sale) < 3) {
+        // console.log("Detailed sale:", {
+        //   id: sale.id,
+        //   Lanid: sale.Lanid,
+        //   Desc: sale.Desc,
+        //   SoldDate: sale.SoldDate,
+        // });
+      }
+
+      // Check if sale has required properties and is a DROS Fee
+      return sale.Lanid && sale.SoldDate && sale.Desc === "Dros Fee";
+    });
+
+    // console.log("Filtered sales data length:", this.salesData.length);
+    if (this.salesData.length > 0) {
+      // console.log("Sample filtered sale:", {
+      //   id: this.salesData[0].id,
+      //   Lanid: this.salesData[0].Lanid,
+      //   Desc: this.salesData[0].Desc,
+      // });
+    }
+
     this.auditData = auditData;
     this.pointsCalculation = pointsCalculation;
     this.isOperations = isOperations;
     this.minimumDros = minimumDros;
+  }
+
+  private async filterSalesDataByDepartment(salesData: SalesData[]) {
+    // Get eligible employees (Operations or Sales departments)
+    const { data: eligibleEmployees } = await this.supabase
+      .from("employees")
+      .select("lanid")
+      .in("department", ["Operations", "Sales"])
+      .eq("status", "active");
+
+    if (!eligibleEmployees) return [];
+
+    const eligibleLanids = eligibleEmployees.map((emp) => emp.lanid);
+
+    // Filter sales to only include those from eligible employees
+    return salesData.filter((sale) => eligibleLanids.includes(sale.Lanid));
   }
 
   private calculateWeightedScore() {
@@ -58,6 +105,8 @@ export class WeightedScoringCalculator {
     let minorMistakes = 0; // weight: 1
     let majorMistakes = 0; // weight: 2
     let cancelledDros = 0; // weight: 3
+
+    // Count total DROS from valid sales data
     let totalDros = this.salesData.length;
 
     // Count cancelled DROS from sales data
@@ -132,8 +181,8 @@ export class WeightedScoringCalculator {
         ? this.isOperations
           ? "Not Qualified (Ops Department)"
           : scores.totalDros < this.minimumDros
-          ? `Not Qualified (< ${this.minimumDros} DROS)` // Keep this line as is
-          : "Not Qualified"
+            ? `Not Qualified (< ${this.minimumDros} DROS)`
+            : "Not Qualified"
         : "Qualified",
     };
   }
