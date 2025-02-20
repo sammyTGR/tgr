@@ -59,7 +59,7 @@ import {
   subMonths,
   addDays,
 } from "date-fns";
-import { format as formatTZ, toZonedTime } from "date-fns-tz";
+import { formatInTimeZone, format as formatTZ, toZonedTime } from "date-fns-tz";
 import { useFlags } from "flagsmith/react";
 import DOMPurify from "isomorphic-dompurify";
 import dynamic from "next/dynamic";
@@ -522,18 +522,18 @@ function AdminDashboardContent() {
   //Mutations
 
   const updateRangeMutation = useMutation({
-    mutationFn: (date: Date) => {
-      const newStart = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      );
-      const newEnd = new Date(newStart);
-      newEnd.setHours(23, 59, 59, 999);
-      return Promise.resolve({ start: newStart, end: newEnd });
+    mutationFn: ({ start, end }: { start: Date; end: Date }) => {
+      return Promise.resolve({ start, end });
     },
     onSuccess: (newRange) => {
-      queryClient.setQueryData(["selectedRange"], newRange);
+      queryClient.setQueryData(["selectedRange"], {
+        start: newRange.start,
+        end: newRange.end,
+      });
+      // Invalidate queries that depend on the date range
+      queryClient.invalidateQueries({
+        queryKey: ["detailed-sales-range-data"],
+      });
     },
   });
 
@@ -571,19 +571,14 @@ function AdminDashboardContent() {
   const { data: salesData } = useQuery({
     queryKey: [
       "salesData",
-      selectedRange?.start?.toISOString(),
-      selectedRange?.end?.toISOString(),
+      dateRange?.from?.toISOString(),
+      dateRange?.to?.toISOString(),
     ],
     queryFn: () =>
-      selectedRange
-        ? fetchLatestSalesData(selectedRange.start, selectedRange.end)
+      dateRange?.from && dateRange?.to
+        ? fetchLatestSalesData(dateRange.from, dateRange.to)
         : null,
-    enabled: !!selectedRange,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount
-    refetchOnReconnect: false, // Don't refetch on reconnection
+    enabled: !!dateRange?.from && !!dateRange?.to,
   });
 
   // Keep your existing fileData query
@@ -610,7 +605,23 @@ function AdminDashboardContent() {
   // Update the handlers to use these new mutations
   const handleRangeChange = (date: Date | undefined) => {
     if (date) {
-      updateRangeMutation.mutate(date);
+      // The date is already in Pacific time from the calendar component
+      const start = startOfDay(date);
+      const end = endOfDay(date);
+
+      setDateRange({
+        from: start,
+        to: end,
+      });
+
+      // Format dates for API
+      const apiStart = format(start, "yyyy-MM-dd");
+      const apiEnd = format(start, "yyyy-MM-dd"); // Use same date for end
+
+      updateRangeMutation.mutate({
+        start: new Date(`${apiStart}T00:00:00.000Z`),
+        end: new Date(`${apiEnd}T23:59:59.999Z`),
+      });
     }
   };
 
@@ -2375,7 +2386,15 @@ function AdminDashboardContent() {
                                 className="w-full pl-3 text-left font-normal mb-2"
                               >
                                 {selectedRange?.start
-                                  ? format(selectedRange.start, "PPP")
+                                  ? format(
+                                      // Add UTC offset to preserve the date
+                                      new Date(
+                                        selectedRange.start.getTime() +
+                                          selectedRange.start.getTimezoneOffset() *
+                                            60000
+                                      ),
+                                      "PPP"
+                                    )
                                   : "Select Date"}
                               </Button>
                             </PopoverTrigger>
@@ -2385,7 +2404,11 @@ function AdminDashboardContent() {
                             >
                               <CustomCalendar
                                 selectedDate={selectedRange?.start || undefined}
-                                onDateChange={handleRangeChange}
+                                onDateChange={(date) => {
+                                  if (date) {
+                                    handleRangeChange(date);
+                                  }
+                                }}
                                 disabledDays={() => false}
                               />
                             </PopoverContent>

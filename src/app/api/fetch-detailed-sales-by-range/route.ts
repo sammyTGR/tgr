@@ -1,7 +1,7 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 
 const TIMEZONE = "America/Los_Angeles";
 
@@ -12,56 +12,83 @@ export async function GET(request: Request) {
     const start = searchParams.get("start");
     const end = searchParams.get("end");
 
-    console.log("Raw date range:", { start, end });
-
     if (!start || !end) {
       return NextResponse.json(
-        { error: "Start and end dates are required" },
+        { error: "Date range is required" },
         { status: 400 }
       );
     }
 
-    // Convert dates to UTC with timezone consideration
-    const startDateTemp = new Date(start);
-    startDateTemp.setHours(0, 0, 0, 0);
-    const startDate = toZonedTime(startDateTemp, TIMEZONE);
+    // Convert the input dates to Pacific time
+    const startDatePacific = toZonedTime(new Date(start), TIMEZONE);
+    const endDatePacific = toZonedTime(new Date(end), TIMEZONE);
 
-    const endDateTemp = new Date(end);
-    endDateTemp.setHours(23, 59, 59, 999);
-    const endDate = toZonedTime(endDateTemp, TIMEZONE);
+    // Set the time components
+    startDatePacific.setHours(0, 0, 0, 0);
+    endDatePacific.setHours(23, 59, 59, 999);
 
-    console.log("Converted date range:", {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
+    // Format the dates in Pacific time for the database query
+    const startDate = formatInTimeZone(
+      startDatePacific,
+      TIMEZONE,
+      "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
+    );
+    const endDate = formatInTimeZone(
+      endDatePacific,
+      TIMEZONE,
+      "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
+    );
 
-    // Fetch detailed sales data with the correct column names
+    // console.log("Date processing:", {
+    //   rawStart: start,
+    //   rawEnd: end,
+    //   startDatePacific: formatInTimeZone(
+    //     startDatePacific,
+    //     TIMEZONE,
+    //     "yyyy-MM-dd HH:mm:ssXXX"
+    //   ),
+    //   endDatePacific: formatInTimeZone(
+    //     endDatePacific,
+    //     TIMEZONE,
+    //     "yyyy-MM-dd HH:mm:ssXXX"
+    //   ),
+    //   startDate,
+    //   endDate,
+    // });
+
+    // Set timezone for the database session
+    await supabase.rpc("set_timezone", { timezone: TIMEZONE });
+
     const { data, error } = await supabase
       .from("detailed_sales_data")
       .select(
         `
-          "Lanid",
-          "Last",
-          "SoldPrice",
-          "Cost",
-          "Margin",
-          "Cat",
-          "Sub",
-          "CatDesc",
-          "SubDesc",
-          total_gross,
-          "SoldDate"
-        `
+        "Lanid",
+        "Last",
+        "SoldPrice",
+        "Margin",
+        "CatDesc",
+        total_gross,
+        "SoldDate"
+      `
       )
-      .gte("SoldDate", startDate.toISOString())
-      .lte("SoldDate", endDate.toISOString())
+      .gte("SoldDate", startDate)
+      .lte("SoldDate", endDate)
       .order("SoldDate", { ascending: true });
 
-    console.log("Query result:", {
-      recordCount: data?.length,
-      error,
-      sampleDates: data?.slice(0, 3).map((d) => d.SoldDate),
-    });
+    // console.log("Query result:", {
+    //   recordCount: data?.length,
+    //   error,
+    //   dateRange: {
+    //     start: startDate,
+    //     end: endDate,
+    //   },
+    //   sampleDates: data?.slice(0, 3).map((d) => ({
+    //     soldDate: d.SoldDate,
+    //     lanid: d.Lanid,
+    //     margin: d.Margin,
+    //   })),
+    // });
 
     if (error) {
       console.error("Database error:", error);
@@ -76,8 +103,13 @@ export async function GET(request: Request) {
 
     // Filter out duplicate entries based on a unique identifier
     const uniqueData = data.filter((sale) => {
-      const transactionKey = `${sale.Lanid}-${sale.SoldDate}-${sale.CatDesc}-${sale.SoldPrice}`;
+      const transactionKey = `${sale.Lanid}-${sale.SoldDate}-${sale.CatDesc}-${sale.SoldPrice}-${sale.Margin}`;
       if (uniqueTransactions.has(transactionKey)) {
+        // console.log("Duplicate found:", {
+        //   key: transactionKey,
+        //   date: sale.SoldDate,
+        //   margin: sale.Margin,
+        // });
         return false;
       }
       uniqueTransactions.set(transactionKey, true);
@@ -122,16 +154,27 @@ export async function GET(request: Request) {
       return acc;
     }, {});
 
-    // Add debug logging
-    console.log("Data processing stats:", {
-      originalCount: data.length,
-      uniqueCount: uniqueData.length,
-      processedCount: Object.keys(processedData).length,
-      dateRange: {
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-      },
-    });
+    // Add detailed debug logging
+    // console.log("Data processing summary:", {
+    //   originalCount: data.length,
+    //   uniqueCount: uniqueData.length,
+    //   processedCount: Object.keys(processedData).length,
+    //   dateRange: {
+    //     start: startDate,
+    //     end: endDate,
+    //   },
+    //   totalMargin: uniqueData.reduce(
+    //     (sum, sale) => sum + (Number(sale.Margin) || 0),
+    //     0
+    //   ),
+    //   sampleTransactions: uniqueData.slice(0, 3).map((sale) => ({
+    //     date: sale.SoldDate,
+    //     lanid: sale.Lanid,
+    //     category: sale.CatDesc,
+    //     margin: sale.Margin,
+    //     key: `${sale.Lanid}-${sale.SoldDate}-${sale.CatDesc}-${sale.SoldPrice}-${sale.Margin}`,
+    //   })),
+    // });
 
     const result = Object.values(processedData);
     return NextResponse.json(result);

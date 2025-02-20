@@ -119,8 +119,8 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
   const { data: salesData, isLoading } = useQuery({
     queryKey: [
       "detailed-sales-range-data",
-      selectedRange.start,
-      selectedRange.end,
+      selectedRange.start?.toISOString().split("T")[0],
+      selectedRange.end?.toISOString().split("T")[0],
       activeView,
     ],
     queryFn: async () => {
@@ -129,9 +129,7 @@ const StackedBarChartRange: React.FC<StackedBarChartRangeProps> = ({
       }
 
       const response = await fetch(
-        `/api/fetch-detailed-sales-by-range?start=${
-          selectedRange.start.toISOString().split("T")[0]
-        }&end=${selectedRange.end.toISOString().split("T")[0]}`
+        `/api/fetch-detailed-sales-by-range?start=${selectedRange.start.toISOString().split("T")[0]}&end=${selectedRange.end.toISOString().split("T")[0]}`
       );
 
       if (!response.ok) {

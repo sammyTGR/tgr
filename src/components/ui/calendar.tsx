@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./button";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { startOfDay } from "date-fns";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -82,6 +84,24 @@ function CustomCalendar({
   disabledDays,
   ...props
 }: CustomCalendarProps) {
+  const TIMEZONE = "America/Los_Angeles";
+
+  // Convert the selected date to Pacific time for display
+  const displayDate = selectedDate
+    ? new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000) // Add 24 hours
+    : undefined;
+
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      // Convert the selected date to Pacific time and set to start of day
+      const pacificDate = toZonedTime(date, TIMEZONE);
+      const startOfDayPacific = startOfDay(pacificDate);
+      onDateChange(startOfDayPacific);
+    } else {
+      onDateChange(undefined);
+    }
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -120,10 +140,11 @@ function CustomCalendar({
         day_hidden: "invisible",
         ...classNames,
       }}
-      selected={selectedDate}
-      onDayClick={onDateChange}
-      onSelect={onDateChange}
+      selected={displayDate} // Use the adjusted date for display
+      onSelect={handleDateChange}
       mode="single"
+      fromDate={new Date(2000, 0)} // Add this to ensure consistent date handling
+      toDate={new Date(2100, 11)} // Add this to ensure consistent date handling
       modifiers={{
         disabled: disabledDays,
       }}
@@ -147,7 +168,6 @@ function CustomCalendar({
   );
 }
 export { CustomCalendar };
-
 
 export type CustomCalendarMultiProps = {
   selectedDates: Date[];
