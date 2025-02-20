@@ -2017,12 +2017,6 @@ function AdminDashboardContent() {
                 <TabsTrigger value="sales-glance">
                   Sales At A Glance
                 </TabsTrigger>
-
-                {/* {flags.is_timesheet_dashboard_enabled.enabled && (
-                    <TabsTrigger value="time-tracking">
-                      Time Tracking
-                    </TabsTrigger>
-                  )} */}
               </>
 
               <TabsTrigger value="sales-employee">
@@ -2417,66 +2411,6 @@ function AdminDashboardContent() {
                       </CardContent>
                     </ExpandableCard>
                   )}
-
-                  {/* {flags.is_historical_barchart_enabled.enabled &&
-                    (role === "super admin" || role === "dev") && (
-                      <Card className="flex flex-col h-full">
-                        <CardHeader className="flex-shrink-0">
-                          <CardTitle className="flex items-center gap-2">
-                            <FilePlusIcon className="h-6 w-6" />
-                            Upload Historical Sales Data
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                          <div className="mt-4 rounded-md border">
-                            <div className="flex flex-col items-start gap-2 p-2">
-                              <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
-                                <Input
-                                  type="file"
-                                  accept=".csv,.xlsx"
-                                  onChange={handleHistoricalFileChange}
-                                  className="hidden"
-                                />
-                                <span>
-                                  {historicalFileData?.fileName ||
-                                    "Select Historical File"}
-                                </span>
-                              </label>
-                              <Button
-                                variant="outline"
-                                onClick={() =>
-                                  historicalFileData?.file &&
-                                  uploadHistoricalSalesMutation.mutate(
-                                    historicalFileData.file
-                                  )
-                                }
-                                className="w-full"
-                                disabled={
-                                  uploadHistoricalSalesMutation.isPending ||
-                                  !historicalFileData?.file
-                                }
-                              >
-                                {uploadHistoricalSalesMutation.isPending
-                                  ? "Uploading Historical Data..."
-                                  : "Upload & Process Historical Data"}
-                              </Button>
-                            </div>
-                          </div>
-
-                          {uploadHistoricalSalesMutation.isPending && (
-                            <Progress
-                              value={
-                                typeof historicalSalesUploadProgress ===
-                                "number"
-                                  ? historicalSalesUploadProgress
-                                  : 0
-                              }
-                              className="mt-4"
-                            />
-                          )}
-                        </CardContent>
-                      </Card>
-                    )} */}
 
                   {flags.is_barchart_enabled.enabled &&
                     (role === "super admin" ||
