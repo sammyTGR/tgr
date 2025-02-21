@@ -2084,15 +2084,15 @@ function AdminDashboardContent() {
             <TabsContent value="reporting">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
                 {/*todo card*/}
-                {flags.is_todo_enabled.enabled && (
-                  <div className="w-full overflow-hidden">
-                    <div className="col-span-full overflow-hidden mt-2">
-                      <div className="h-full w-full overflow-hidden">
-                        <TodoWrapper />
-                      </div>
+                {/* {flags.is_todo_enabled.enabled && ( */}
+                <div className="w-full overflow-hidden">
+                  <div className="col-span-full overflow-hidden mt-2">
+                    <div className="h-full w-full overflow-hidden">
+                      <TodoWrapper />
                     </div>
                   </div>
-                )}
+                </div>
+                {/* )} */}
 
                 {/*All Report cards*/}
                 <div className="w-full ">
@@ -2359,161 +2359,154 @@ function AdminDashboardContent() {
                         </CardContent>
                       </Card>
                     )} */}
-
-                  {flags.is_barchart_enabled.enabled && (
-                    <ExpandableCard
-                      id="select-date-for-chart-and-table-below"
-                      title="Select Date For Chart & Table Below"
-                    >
-                      {/* <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  {/* {flags.is_barchart_enabled.enabled && ( */}
+                  <ExpandableCard
+                    id="select-date-for-chart-and-table-below"
+                    title="Select Date For Chart & Table Below"
+                  >
+                    {/* <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="flex items-center gap-2">
                           <CalendarIcon className="h-6 w-6" />
                           Select Date For Chart & Table Below
                         </CardTitle>
                       </CardHeader> */}
-                      <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
-                        <div className="mt-8">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="w-full pl-3 text-left font-normal mb-2"
-                              >
-                                {selectedRange?.start
-                                  ? format(
-                                      // Add UTC offset to preserve the date
-                                      new Date(
-                                        selectedRange.start.getTime() +
-                                          selectedRange.start.getTimezoneOffset() *
-                                            60000
-                                      ),
-                                      "PPP"
-                                    )
-                                  : "Select Date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <CustomCalendar
-                                selectedDate={selectedRange?.start || undefined}
-                                onDateChange={(date) => {
-                                  if (date) {
-                                    handleRangeChange(date);
-                                  }
-                                }}
-                                disabledDays={() => false}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </CardContent>
-                    </ExpandableCard>
-                  )}
-
-                  {flags.is_barchart_enabled.enabled &&
-                    (role === "super admin" ||
-                      role === "dev" ||
-                      role === "ceo") && (
-                      <ExpandableCard
-                        id="upload-detailed-sales-data"
-                        title="Upload Detailed Sales Data"
-                      >
-                        {/* <CardHeader>
-                          <CardTitle>Upload Detailed Sales Data</CardTitle>
-                        </CardHeader> */}
-                        <CardContent>
-                          <div className="space-y-4">
-                            <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
-                              <Input
-                                type="file"
-                                accept=".csv,.xlsx"
-                                onChange={handleDetailedSalesFileChange}
-                                key={detailedSalesFileData?.fileInputKey}
-                                className="hidden"
-                              />
-                              <span>
-                                {detailedSalesFileData?.fileName ||
-                                  "Select Detailed Sales File"}
-                              </span>
-                            </label>
+                    <CardContent className="flex flex-col flex-shrink-0 overflow-hidden">
+                      <div className="mt-8">
+                        <Popover>
+                          <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              onClick={() =>
-                                detailedSalesFileData?.file &&
-                                uploadDetailedSalesMutation.mutate(
-                                  detailedSalesFileData.file
-                                )
-                              }
-                              className="w-full"
-                              disabled={
-                                uploadDetailedSalesMutation.isPending ||
-                                !detailedSalesFileData?.file
-                              }
+                              className="w-full pl-3 text-left font-normal mb-2"
                             >
-                              {uploadDetailedSalesMutation.isPending
-                                ? "Uploading Detailed Sales Data..."
-                                : "Upload & Process Detailed Sales Data"}
+                              {selectedRange?.start
+                                ? format(
+                                    // Add UTC offset to preserve the date
+                                    new Date(
+                                      selectedRange.start.getTime() +
+                                        selectedRange.start.getTimezoneOffset() *
+                                          60000
+                                    ),
+                                    "PPP"
+                                  )
+                                : "Select Date"}
                             </Button>
-
-                            {uploadDetailedSalesMutation.isPending && (
-                              <Progress
-                                value={
-                                  typeof detailedSalesUploadProgress ===
-                                  "number"
-                                    ? detailedSalesUploadProgress
-                                    : 0
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CustomCalendar
+                              selectedDate={selectedRange?.start || undefined}
+                              onDateChange={(date) => {
+                                if (date) {
+                                  handleRangeChange(date);
                                 }
-                                className="mt-4"
-                              />
-                            )}
-                          </div>
-                        </CardContent>
-                      </ExpandableCard>
-                    )}
+                              }}
+                              disabledDays={() => false}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </CardContent>
+                  </ExpandableCard>
+                  {/* )} */}
+                  {/* {flags.is_barchart_enabled.enabled && */}
+                  (role === "super admin" || role === "dev" || role === "ceo")
+                  && (
+                  <ExpandableCard
+                    id="upload-detailed-sales-data"
+                    title="Upload Detailed Sales Data"
+                  >
+                    {/* <CardHeader>
+                          <CardTitle>Upload Detailed Sales Data</CardTitle>
+                        </CardHeader> */}
+                    <CardContent>
+                      <div className="space-y-4">
+                        <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                          <Input
+                            type="file"
+                            accept=".csv,.xlsx"
+                            onChange={handleDetailedSalesFileChange}
+                            key={detailedSalesFileData?.fileInputKey}
+                            className="hidden"
+                          />
+                          <span>
+                            {detailedSalesFileData?.fileName ||
+                              "Select Detailed Sales File"}
+                          </span>
+                        </label>
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            detailedSalesFileData?.file &&
+                            uploadDetailedSalesMutation.mutate(
+                              detailedSalesFileData.file
+                            )
+                          }
+                          className="w-full"
+                          disabled={
+                            uploadDetailedSalesMutation.isPending ||
+                            !detailedSalesFileData?.file
+                          }
+                        >
+                          {uploadDetailedSalesMutation.isPending
+                            ? "Uploading Detailed Sales Data..."
+                            : "Upload & Process Detailed Sales Data"}
+                        </Button>
+
+                        {uploadDetailedSalesMutation.isPending && (
+                          <Progress
+                            value={
+                              typeof detailedSalesUploadProgress === "number"
+                                ? detailedSalesUploadProgress
+                                : 0
+                            }
+                            className="mt-4"
+                          />
+                        )}
+                      </div>
+                    </CardContent>
+                  </ExpandableCard>
+                  {/* )} */}
                 </div>
               </div>
               {/* </div> */}
 
               {/* Sales Chart*/}
-              {flags.is_barchart_enabled.enabled && (
-                <div className="col-span-full overflow-hidden">
-                  <Card className="flex flex-col col-span-full mt-2 mb-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChartIcon className="h-6 w-6" />
-                        Sales Report Chart
-                      </CardTitle>
-                    </CardHeader>
-                    <div className="overflow-hidden">
-                      <ScrollArea
-                        className={classNames(
-                          styles.noScroll,
-                          "w-[calc(100vw-100px)] overflow-auto relative"
-                        )}
-                      >
-                        <CardContent className="flex-grow overflow-auto">
-                          <div className="h-full">
-                            {selectedRange ? (
-                              <SalesRangeStackedBarChart
-                                selectedRange={{
-                                  start: selectedRange.start,
-                                  end: selectedRange.end,
-                                }}
-                              />
-                            ) : (
-                              <div>Please select a date range</div>
-                            )}
-                          </div>
-                        </CardContent>
-                        <ScrollBar orientation="horizontal" />
-                        <ScrollBar orientation="vertical" />
-                      </ScrollArea>
-                    </div>
-                  </Card>
-                </div>
-              )}
+              {/* {flags.is_barchart_enabled.enabled && ( */}
+              <div className="col-span-full overflow-hidden">
+                <Card className="flex flex-col col-span-full mt-2 mb-2">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChartIcon className="h-6 w-6" />
+                      Sales Report Chart
+                    </CardTitle>
+                  </CardHeader>
+                  <div className="overflow-hidden">
+                    <ScrollArea
+                      className={classNames(
+                        styles.noScroll,
+                        "w-[calc(100vw-100px)] overflow-auto relative"
+                      )}
+                    >
+                      <CardContent className="flex-grow overflow-auto">
+                        <div className="h-full">
+                          {selectedRange ? (
+                            <SalesRangeStackedBarChart
+                              selectedRange={{
+                                start: selectedRange.start,
+                                end: selectedRange.end,
+                              }}
+                            />
+                          ) : (
+                            <div>Please select a date range</div>
+                          )}
+                        </div>
+                      </CardContent>
+                      <ScrollBar orientation="horizontal" />
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
+                  </div>
+                </Card>
+              </div>
+              {/* )} */}
 
               {/* Sales Report Table*/}
               {/* {flags.is_barchart_enabled.enabled && (
