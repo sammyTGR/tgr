@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -25,6 +25,16 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 interface AddPatchNoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editNote?: {
+    id: string;
+    version: string;
+    title: string;
+    description: string;
+    changes: {
+      type: ChangeType;
+      items: string[];
+    }[];
+  } | null;
 }
 
 type ChangeType = "added" | "changed" | "fixed" | "removed";
@@ -37,22 +47,41 @@ interface ChangeSection {
 export function AddPatchNoteDialog({
   open,
   onOpenChange,
+  editNote,
 }: AddPatchNoteDialogProps) {
-  const [version, setVersion] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [changes, setChanges] = useState<ChangeSection[]>([
-    { type: "added", items: [""] },
-  ]);
+  const [version, setVersion] = useState(editNote?.version || "");
+  const [title, setTitle] = useState(editNote?.title || "");
+  const [description, setDescription] = useState(editNote?.description || "");
+  const [changes, setChanges] = useState<ChangeSection[]>(
+    editNote?.changes || [{ type: "added", items: [""] }]
+  );
+
+  useEffect(() => {
+    if (editNote) {
+      setVersion(editNote.version);
+      setTitle(editNote.title);
+      setDescription(editNote.description);
+      setChanges(editNote.changes);
+    } else {
+      resetForm();
+    }
+  }, [editNote]);
 
   const queryClient = useQueryClient();
   const supabase = createClientComponentClient();
 
-  const addPatchNoteMutation = useMutation({
+  const mutation = useMutation({
     mutationFn: async (patchNote: any) => {
-      const { error } = await supabase.from("patch_notes").insert(patchNote);
-
-      if (error) throw error;
+      if (editNote) {
+        const { error } = await supabase
+          .from("patch_notes")
+          .update(patchNote)
+          .eq("id", editNote.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("patch_notes").insert(patchNote);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patch-notes"] });
@@ -116,7 +145,7 @@ export function AddPatchNoteDialog({
       }))
       .filter((section) => section.items.length > 0);
 
-    addPatchNoteMutation.mutate({
+    mutation.mutate({
       version,
       title,
       description,
@@ -128,7 +157,9 @@ export function AddPatchNoteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Patch Note</DialogTitle>
+          <DialogTitle>
+            {editNote ? "Edit Patch Note" : "Add New Patch Note"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -139,7 +170,7 @@ export function AddPatchNoteDialog({
                 id="version"
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
-                placeholder="1.0.0"
+                placeholder="Major.Minor.Patch"
                 required
               />
             </div>
@@ -161,7 +192,9 @@ export function AddPatchNoteDialog({
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the update"
+              placeholder={`MAJOR: Breaking changes
+MINOR: New features (backwards compatible)
+PATCH: Bug fixes (1.0.1, 1.0.2, etc.)`}
               required
             />
           </div>
@@ -257,8 +290,8 @@ export function AddPatchNoteDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={addPatchNoteMutation.isPending}>
-              {addPatchNoteMutation.isPending ? "Saving..." : "Save Patch Note"}
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : editNote ? "Update" : "Save"}
             </Button>
           </div>
         </form>

@@ -39,11 +39,11 @@ function TodoContent() {
   // if (!flags.is_todo_enabled.enabled) return null;
 
   return (
-    <div className="flex flex-col max-w-2xl border rounded-lg shadow-lg p-4">
-      <div className="flex items-center gap-4 pb-4">
+    <div className="flex flex-col max-w-2xl border rounded-lg shadow-lg p-2">
+      {/* <div className="flex items-center gap-4 pb-4">
         <CheckCircledIcon className="h-8 w-8 text-gray-500 dark:text-gray-400" />
         <h1 className="font-semibold text-2xl">Todos</h1>
-      </div>
+      </div> */}
       <Todos />
       <ClearActions />
     </div>

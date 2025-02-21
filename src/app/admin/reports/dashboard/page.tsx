@@ -104,6 +104,8 @@ import { TimeTrackingDataTable } from "./TimeTrackingDataTable";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
 import DashboardKPI from "./dashboard-kpi";
+import PatchNotesPage from "@/app/patch-notes/page";
+import { PatchNotesSection } from "@/app/patch-notes/patch-notes-section";
 
 interface Certificate {
   id: number;
@@ -2027,76 +2029,41 @@ function AdminDashboardContent() {
             </TabsList>
           </div>
 
-          <div className="relative section w-full overflow-hidden">
+          <div className="relative section w-full overflow-y-auto">
             {isLoading && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50">
                 <LoadingIndicator />
               </div>
             )}
-            {/* <h1 className="text-3xl font-bold ml-8 mt-14 mb-10">Admin Dashboard</h1> */}
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mx-auto max-w-[calc(100vw-100px)] overflow-hidden"> */}
-
-            {/* <TabsContent value="test">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sales Range Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-4 mb-4">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline">
-                          {dateRange?.from ? (
-                            format(dateRange.from, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          initialFocus
-                          mode="single"
-                          selected={dateRange?.from}
-                          onSelect={(date) => {
-                            console.log("Selected date:", date); // Add logging
-                            if (date) {
-                              setDateRange({
-                                from: date,
-                                to: date,
-                              });
-                            }
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <StackedBarChartRange
-                    selectedRange={{
-                      start: dateRange?.from,
-                      end: dateRange?.to,
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent> */}
 
             <TabsContent value="reporting">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto overflow-y-auto"> */}
                 {/*todo card*/}
                 {/* {flags.is_todo_enabled.enabled && ( */}
+
                 <div className="w-full overflow-hidden">
+                  <h3 className="font-bold p-1 underline">Todos</h3>
                   <div className="col-span-full overflow-hidden mt-2">
                     <div className="h-full w-full overflow-hidden">
                       <TodoWrapper />
                     </div>
                   </div>
                 </div>
-                {/* )} */}
+
+                <div className="w-full overflow-hidden">
+                  <h3 className="font-bold p-1 underline">Patch Notes</h3>
+                  <div className="col-span-full overflow-hidden mt-2">
+                    <div className="h-full w-full overflow-hidden">
+                      <PatchNotesSection />
+                    </div>
+                  </div>
+                </div>
 
                 {/*All Report cards*/}
-                <div className="w-full ">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
+                <div className="w-full col-span-2">
+                  <h3 className="font-bold p-1 underline">Reports Overview</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mt-2">
                     <ReportCard
                       title="Gunsmithing Weekly Maintenance"
                       date={gunsmiths?.last_maintenance_date || null}
@@ -2159,11 +2126,11 @@ function AdminDashboardContent() {
                     />
                   </div>
                 </div>
-              </div>
+                {/* </div> */}
+                {/* )} */}
 
-              {/* Suggestions Card*/}
-              <div className="w-full overflow-hidden">
-                <div className="col-span-full overflow-hidden mt-2">
+                <div className="col-span-full overflow-y-auto mt-2">
+                  {/* <h3 className="font-bold p-2">Suggestions Section</h3> */}
                   <Card className="flex flex-col col-span-full h-full">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -2296,7 +2263,6 @@ function AdminDashboardContent() {
                   </Card>
                 </div>
               </div>
-              {/* </div> */}
             </TabsContent>
 
             <TabsContent value="sales">
