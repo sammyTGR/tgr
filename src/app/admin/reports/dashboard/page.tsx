@@ -2407,9 +2407,9 @@ function AdminDashboardContent() {
                     </CardContent>
                   </ExpandableCard>
                   {/* )} */}
-                  {/* {flags.is_barchart_enabled.enabled && */}
+                  {/* {flags.is_barchart_enabled.enabled && 
                   (role === "super admin" || role === "dev" || role === "ceo")
-                  && (
+                  && (*/}
                   <ExpandableCard
                     id="upload-detailed-sales-data"
                     title="Upload Detailed Sales Data"
