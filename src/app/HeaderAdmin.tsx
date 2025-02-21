@@ -80,11 +80,6 @@ const schedComponents = [
     href: "/TGR/crew/calendar",
     description: "Calendar & Time Off Requests",
   },
-  // {
-  //   title: "Time Off Requests",
-  //   href: "/TGR/crew/timeoffrequest",
-  //   description: "Submit Time Off",
-  // },
   {
     title: "Review Time Off Requests",
     href: "/admin/timeoffreview",
@@ -94,86 +89,6 @@ const schedComponents = [
     title: "Manage Schedules & Timesheets",
     href: "/admin/schedules",
     description: "Schedules & Timesheets",
-  },
-];
-
-const serviceComponents = [
-  {
-    title: "Submit Orders",
-    href: "/sales/orders",
-    description: "Submit Requests For Customers",
-  },
-  {
-    title: "View Orders",
-    href: "/sales/orderreview",
-    description: "View Submitted Orders",
-  },
-  {
-    title: "Safety Waiver",
-    href: "/public/waiver",
-    description: "Submit A Safety Waiver",
-  },
-  {
-    title: "Review Waivers",
-    href: "/sales/waiver/checkin",
-    description: "Review Waivers & Check Customers In",
-  },
-];
-
-const formComps = [
-  {
-    title: "Submit Range Walks",
-    href: "/TGR/rangewalk",
-    description: "Submit Daily Range Walks",
-  },
-  {
-    title: "Daily Deposits",
-    href: "/TGR/deposits",
-    description: "Submit Daily Deposits",
-  },
-  {
-    title: "Points Submissions",
-    href: "/TGR/crew/points",
-    description: "Report All Submitted Points",
-  },
-  {
-    title: "Rental Firearms Checklist",
-    href: "/TGR/rentals/checklist",
-    description: "Rental Inventory Check",
-  },
-];
-
-const reportsComps = [
-  {
-    title: "Daily Sales",
-    href: "/admin/reports/sales",
-    description: "Set Categories & View Sales",
-  },
-  {
-    title: "View Range Walks & Repairs",
-    href: "/TGR/rangewalk/report",
-    description: "View All Range Walks & Repairs",
-  },
-  {
-    title: "Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
-  },
-  {
-    title: "Review Orders",
-    href: "/sales/orderreview",
-    description: "View Submitted Orders",
-  },
-  {
-    title: "Gunsmithing",
-    href: "/TGR/gunsmithing",
-    description: "Weekly Gunsmithing Maintenance",
-  },
-
-  {
-    title: "Monthly Contest",
-    href: "/admin/audits/contest",
-    description: "Monthly Sales Contest",
   },
 ];
 
@@ -224,11 +139,6 @@ const manageComps = [
     href: "/admin/reports/download",
     description: "Download Payroll & Timesheets",
   },
-  // {
-  //   title: "Sales Report",
-  //   href: "/admin/reports/sales",
-  //   description: "View Daily Sales",
-  // },
 ];
 
 const comboComps = [
@@ -292,6 +202,11 @@ const comboComps = [
     title: "Bulletin Board",
     href: "/TGR/crew/bulletin",
     description: "Bulletin Board",
+  },
+  {
+    title: "Patch Notes",
+    href: "/patch-notes",
+    description: "Site Updates",
   },
 ];
 

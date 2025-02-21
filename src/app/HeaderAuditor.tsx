@@ -66,11 +66,6 @@ const schedComponents = [
     href: "/TGR/crew/calendar",
     description: "Calendar & Time Off Requests",
   },
-  // {
-  //   title: "Submit Time Off",
-  //   href: "/TGR/crew/timeoffrequest",
-  //   description: "Submit A Request",
-  // },
 ];
 
 const serviceComponents = [
@@ -122,39 +117,10 @@ const formComps = [
     href: "/TGR/crew/bulletin",
     description: "Bulletin Board",
   },
-];
-
-const reportsComps = [
   {
-    title: "Daily Sales",
-    href: "/admin/reports/sales",
-    description: "Set Categories & View Sales",
-  },
-  {
-    title: "View Range Walks & Repairs",
-    href: "/TGR/rangewalk/report",
-    description: "View All Range Walks & Repairs",
-  },
-  {
-    title: "Certifications",
-    href: "/TGR/certifications",
-    description: "View All Certifications",
-  },
-  {
-    title: "Review Orders",
-    href: "/sales/orderreview",
-    description: "View Submitted Orders",
-  },
-  {
-    title: "Gunsmithing",
-    href: "/TGR/gunsmithing",
-    description: "Weekly Gunsmithing Maintenance",
-  },
-
-  {
-    title: "Monthly Contest",
-    href: "/admin/audits/contest",
-    description: "Monthly Sales Contest",
+    title: "Patch Notes",
+    href: "/patch-notes",
+    description: "Site Updates",
   },
 ];
 
@@ -168,14 +134,6 @@ const sopComps = [
     title: "Admin SOPs",
     href: "/admin/sop",
     description: "SOPs For Back Of The House",
-  },
-];
-
-const profileComps = [
-  {
-    title: "Staff Profiles",
-    href: "/admin/dashboard",
-    description: "All Profiles",
   },
 ];
 
@@ -365,38 +323,6 @@ const HeaderAuditor = React.memo(() => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-            {/* <NavigationMenuItem>
-              <NavigationMenuTrigger>Reporting</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {reportsComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem> */}
-            {/* <NavigationMenuItem>
-              <NavigationMenuTrigger>Ops & Profiles</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                  {profileComps.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem> */}
             <NavigationMenuItem>
               <NavigationMenuTrigger>SOPs</NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -459,17 +385,6 @@ const HeaderAuditor = React.memo(() => {
                   <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
-                  {/* <DropdownMenuItem>
-                    <Link
-                      href="/TGR/employees/profiles"
-                      className="flex items-center w-full"
-                    >
-                      <PersonIcon className="mr-2 h-4 w-4" />
-
-                      <span>Manage Profile</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator /> */}
                   <DropdownMenuItem onClick={handleChatClick}>
                     <ChatBubbleIcon className="mr-2 h-4 w-4" />
                     <span>Messages</span>

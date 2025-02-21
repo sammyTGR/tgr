@@ -244,6 +244,11 @@ const manageComps = [
     href: "/TGR/dros/banned",
     description: "Banned Firearms",
   },
+  {
+    title: "Patch Notes",
+    href: "/patch-notes",
+    description: "Patch Notes",
+  },
 ];
 
 const fbComps = [

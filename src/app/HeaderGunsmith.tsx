@@ -83,6 +83,11 @@ const formComps = [
     href: "/TGR/crew/bulletin",
     description: "Bulletin Board",
   },
+  {
+    title: "Patch Notes",
+    href: "/patch-notes",
+    description: "Site Updates",
+  },
 ];
 
 const LazyNavigationMenu = dynamic(

@@ -46,11 +46,6 @@ const schedComponents = [
     href: "/TGR/crew/calendar",
     description: "Schedules & Time Off Requests",
   },
-  // {
-  //   title: "Time Off Request",
-  //   href: "/TGR/crew/timeoffrequest",
-  //   description: "Submit A Request",
-  // },
 ];
 
 const serviceComponents = [
@@ -77,11 +72,6 @@ const formComps = [
     href: "/TGR/crew/range",
     description: "Daily Range Walks & Repairs",
   },
-  // {
-  //   title: "View Range Walks & Repairs",
-  //   href: "/TGR/rangewalk/report",
-  //   description: "View All Range Walks & Repairs",
-  // },
   {
     title: "Points Submissions",
     href: "/TGR/crew/points",
@@ -106,6 +96,11 @@ const formComps = [
     title: "Bulletin Board",
     href: "/TGR/crew/bulletin",
     description: "Bulletin Board",
+  },
+  {
+    title: "Patch Notes",
+    href: "/patch-notes",
+    description: "Site Updates",
   },
 ];
 
