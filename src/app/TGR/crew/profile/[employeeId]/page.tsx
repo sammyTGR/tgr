@@ -182,7 +182,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const EmployeeProfilePage = () => {
-  const flags = useFlags(["is_timecard_enabled"]);
+  const flags = useFlags([""]);
   const params = useParams();
   const employeeIdParam = params?.employeeId ?? "";
   const employeeId = Array.isArray(employeeIdParam)
