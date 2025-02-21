@@ -142,8 +142,8 @@ const fetchInventory = async (searchParams: SearchParams) => {
   queryParams.set("skip", searchParams.skip.toString());
   queryParams.set("take", searchParams.take.toString());
 
-  console.log("Search terms:", searchTerms); // Debug log
-  console.log("Query params:", queryParams.toString()); // Debug log
+  // console.log("Search terms:", searchTerms); // Debug log
+  // console.log("Query params:", queryParams.toString()); // Debug log
 
   // Make GET request
   const response = await fetch(
@@ -206,8 +206,8 @@ function InventoryPage() {
     inventoryQuery.refetch();
   };
 
-  console.log("Current search params:", searchParamsQuery.data);
-  console.log("Current inventory data:", inventoryQuery.data);
+  // console.log("Current search params:", searchParamsQuery.data);
+  // console.log("Current inventory data:", inventoryQuery.data);
 
   const { data: manufacturers } = useQuery({
     queryKey: ["manufacturers"],
@@ -236,7 +236,7 @@ function InventoryPage() {
         searchTriggered:
           typeof updates.searchTriggered === "boolean"
             ? updates.searchTriggered
-            : old?.searchTriggered ?? false,
+            : (old?.searchTriggered ?? false),
       })
     );
   };
@@ -269,14 +269,14 @@ function InventoryPage() {
       { ...initialSearchParams, searchTriggered: false }
     );
     queryClient.removeQueries({ queryKey: ["inventory"] });
-    console.log(
-      "Reset search params:",
-      queryClient.getQueryData(["searchParams"])
-    );
-    console.log(
-      "Reset inventory data:",
-      queryClient.getQueryData(["inventory"])
-    );
+    // console.log(
+    //   "Reset search params:",
+    //   queryClient.getQueryData(["searchParams"])
+    // );
+    // console.log(
+    //   "Reset inventory data:",
+    //   queryClient.getQueryData(["inventory"])
+    // );
   };
 
   const currentPage =

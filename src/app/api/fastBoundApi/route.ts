@@ -33,7 +33,7 @@ export async function GET() {
     );
 
     const responseText = await response.text();
-    console.log("FastBound API response:", responseText);
+    // console.log("FastBound API response:", responseText);
 
     if (!response.ok) {
       console.error("FastBound API error:", {

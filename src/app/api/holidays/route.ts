@@ -105,7 +105,7 @@ export async function POST(request: Request) {
         .filter((id): id is number => id != null);
 
       if (validEmployeeIds.length === 0) {
-        console.log("No valid employee IDs found in reference schedules");
+        // console.log("No valid employee IDs found in reference schedules");
         return NextResponse.json({
           message: "Holiday saved successfully",
           data: holiday,

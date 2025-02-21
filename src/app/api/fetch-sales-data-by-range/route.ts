@@ -126,7 +126,7 @@ export async function GET(request: Request) {
       total_net: Math.round(row.total_net * 100) / 100,
     }));
 
-    console.log("Query successful, returned rows:", formattedData.length);
+    // console.log("Query successful, returned rows:", formattedData.length);
     return NextResponse.json(formattedData);
   } catch (error) {
     console.error("Detailed error in fetchSalesDataByRange API:", error);

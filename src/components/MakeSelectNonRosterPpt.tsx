@@ -37,7 +37,7 @@ const MakeSelectNonRosterPpt = ({
   // });
 
   if (isLoadingHandguns) {
-    console.log("Loading state triggered");
+    // console.log("Loading state triggered");
     return (
       <Select disabled>
         <SelectTrigger className="w-full">

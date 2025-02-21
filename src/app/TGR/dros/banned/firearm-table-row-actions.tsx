@@ -85,7 +85,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
 
   const handleUpdate = async () => {
     try {
-      console.log("Current editing firearm:", editingFirearm); // Debug log
+      // console.log("Current editing firearm:", editingFirearm); // Debug log
       const updateData = {
         type: editingFirearm.type,
         manufacturer: DOMPurify.sanitize(editingFirearm.manufacturer.trim()),
@@ -93,7 +93,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
         variations:
           currentVariation.trim() || editingFirearm.variations.trim() || null,
       };
-      console.log("Update data being sent:", updateData); // Debug log
+      // console.log("Update data being sent:", updateData); // Debug log
 
       const { error, data } = await supabase
         .from("banned_firearms")
@@ -101,7 +101,7 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
         .eq("firearm_id", row.original.firearm_id)
         .select();
 
-      console.log("Supabase response:", data);
+      // console.log("Supabase response:", data);
 
       if (error) throw error;
 
@@ -115,10 +115,10 @@ export function FirearmTableRowActions({ row }: FirearmTableRowActionsProps) {
   };
 
   const handleAddVariation = () => {
-    console.log("Adding variation:", currentVariation);
+    // console.log("Adding variation:", currentVariation);
     if (currentVariation.trim()) {
       const sanitizedVariation = DOMPurify.sanitize(currentVariation.trim());
-      console.log("Sanitized variation:", sanitizedVariation);
+      // console.log("Sanitized variation:", sanitizedVariation);
       setEditingFirearm((prev) => ({
         ...prev,
         variations: sanitizedVariation,

@@ -86,7 +86,7 @@ export function HolidayManager() {
         repeat_yearly: values.repeat_yearly,
       };
 
-      console.log('Sending data:', formattedData);
+      // console.log('Sending data:', formattedData);
 
       const response = await fetch("/api/holidays", {
         method: "POST",

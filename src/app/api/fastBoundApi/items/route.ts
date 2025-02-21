@@ -43,11 +43,11 @@ const rateLimiter = new RateLimiter();
 async function fetchItems(url: string, options: RequestInit): Promise<any> {
   await rateLimiter.limit();
   try {
-    console.log("Requesting FastBound API:", url);
+    // console.log("Requesting FastBound API:", url);
     const response = await fetch(url, options);
 
     const responseText = await response.text();
-    console.log("FastBound API response:", responseText);
+    // console.log("FastBound API response:", responseText);
 
     if (!response.ok) {
       console.error("FastBound API error response:", {
@@ -71,7 +71,7 @@ async function fetchItems(url: string, options: RequestInit): Promise<any> {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    console.log("Received search params:", Object.fromEntries(searchParams));
+    // console.log("Received search params:", Object.fromEntries(searchParams));
 
     const skip = parseInt(searchParams.get("skip") || "0", 10);
     const take = parseInt(searchParams.get("take") || "10", 10);
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
     };
 
     const data = await fetchItems(apiUrl.toString(), fetchOptions);
-    console.log("FastBound API response data:", data);
+    // console.log("FastBound API response data:", data);
 
     return NextResponse.json({
       items: data.items || [],

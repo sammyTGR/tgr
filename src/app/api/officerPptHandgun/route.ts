@@ -137,7 +137,7 @@ export async function POST(request: Request) {
       ...frameOnlyData,
     };
 
-    console.log("Submitting data:", dbData); // Add this for debugging
+    // console.log("Submitting data:", dbData); // Add this for debugging
 
     const { data, error } = await supabase
       .from("officer_ppt_handgun_transfers")

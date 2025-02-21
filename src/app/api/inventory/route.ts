@@ -6,10 +6,10 @@ export const maxDuration = 60; // Set max duration to 60 seconds
 export async function POST(request: Request) {
   try {
     const searchParams = await request.json();
-    console.log("Received search params:", searchParams);
+    // console.log("Received search params:", searchParams);
 
     const result = await searchInventory(searchParams);
-    console.log("Search result:", result);
+    // console.log("Search result:", result);
 
     // Ensure we're only returning serializable data
     const serializableResult = JSON.parse(JSON.stringify(result));

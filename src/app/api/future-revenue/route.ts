@@ -31,11 +31,11 @@ export async function GET() {
         throw error;
       }
 
-      console.log("RPC Response:", {
-        rowCount: data?.length,
-        firstRow: data?.[0],
-        lastRow: data?.[data?.length - 1],
-      });
+      // console.log("RPC Response:", {
+      //   rowCount: data?.length,
+      //   firstRow: data?.[0],
+      //   lastRow: data?.[data?.length - 1],
+      // });
 
       // Initialize all months with 0
       const months = [

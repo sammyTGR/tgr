@@ -91,10 +91,10 @@ export default function AddFirearmDialog({
 
     // Add each firearm and log the response
     for (const firearm of firearmsToAdd) {
-      console.log("Attempting to add firearm:", firearm); // Debug log
+      // console.log("Attempting to add firearm:", firearm); // Debug log
       try {
         const result = await onAdd(firearm);
-        console.log("Add firearm response:", result); // Debug log
+        // console.log("Add firearm response:", result); // Debug log
       } catch (error) {
         console.error("Error adding firearm:", error);
       }

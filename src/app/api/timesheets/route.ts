@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const supabase = createRouteHandlerClient({ cookies });
     const body = await request.json();
 
-    console.log("Received timesheet data:", body);
+    // console.log("Received timesheet data:", body);
 
     // First, fetch the schedule for this employee and date
     const { data: scheduleData, error: scheduleError } = await supabase
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       employee_name: body.employee_name,
     };
 
-    console.log("Inserting timesheet data:", insertData);
+    // console.log("Inserting timesheet data:", insertData);
 
     const { data, error } = await supabase
       .from("employee_clock_events")

@@ -30,10 +30,10 @@ export async function POST(request: Request) {
     const formattedEndDate = end.toISOString();
 
     // Add debug logging
-    console.log("API Date Range:", {
-      start: formattedStartDate,
-      end: formattedEndDate,
-    });
+    // console.log("API Date Range:", {
+    //   start: formattedStartDate,
+    //   end: formattedEndDate,
+    // });
 
     const { data, error, count } = await supabase
       .from("detailed_sales_data")

@@ -339,15 +339,15 @@ export default function ApproveRequestsPage() {
       return;
     }
 
-    console.log("Handling time usage change:", {
-      requestId,
-      type,
-      checked,
-      currentState: {
-        useSickTime: request.use_sick_time,
-        useVacationTime: request.use_vacation_time,
-      },
-    });
+    // console.log("Handling time usage change:", {
+    //   requestId,
+    //   type,
+    //   checked,
+    //   currentState: {
+    //     useSickTime: request.use_sick_time,
+    //     useVacationTime: request.use_vacation_time,
+    //   },
+    // });
 
     timeUsageMutation.mutate({
       requestId,
