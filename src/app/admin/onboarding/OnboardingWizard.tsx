@@ -487,7 +487,7 @@ const OnboardingWizard = () => {
       const { data, error } = await supabase
         .from("employees")
         .insert(sanitizedData)
-        .select("id, user_uuid");
+        .select("employee_id, user_uuid");
 
       if (error) {
         throw error;
@@ -557,10 +557,10 @@ const OnboardingWizard = () => {
     try {
       const employee = await employeeMutation.mutateAsync(formData);
 
-      if (employee && employee.id && employee.user_uuid) {
+      if (employee && employee.employee_id && employee.user_uuid) {
         const employeeName = `${formData.name} ${formData.last_name}`;
         await scheduleMutation.mutateAsync({
-          employeeId: employee.id,
+          employeeId: employee.employee_id,
           userUuid: employee.user_uuid,
           scheduleData: formData.schedule,
           employeeName,
@@ -569,7 +569,9 @@ const OnboardingWizard = () => {
         toast.success("Employee onboarded successfully!");
         queryClient.setQueryData(["completionDialog"], true);
       } else {
-        throw new Error("Employee creation failed: missing id or user_uuid");
+        throw new Error(
+          "Employee creation failed: missing employee_id or user_uuid"
+        );
       }
     } catch (error) {
       console.error("Submission error:", error);
