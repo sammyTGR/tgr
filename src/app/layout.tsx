@@ -20,6 +20,7 @@ import { ReactElement } from "react";
 import SupabaseProvider from "@/providers/supabase-provider";
 import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrapper";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { createClient } from "@/utils/supabase/server";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -58,28 +59,32 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <SupabaseProvider>
+        <SupabaseProvider initialSession={session}>
           <QueryProvider>
             <TooltipProvider>
-              <RoleProvider>
-                <GoogleOAuthProvider clientId={clientId}>
-                  <FlagsmithWrapper flagsmithState={flagsmithState}>
-                    <NextSSRPlugin
-                      routerConfig={extractRouterConfig(ourFileRouter)}
-                    />
-                    <ThemeProvider
-                      attribute="class"
-                      defaultTheme="system"
-                      enableSystem
-                      disableTransitionOnChange
-                    >
-                      <NotificationsProvider>
+              <GoogleOAuthProvider clientId={clientId}>
+                <FlagsmithWrapper flagsmithState={flagsmithState}>
+                  <NextSSRPlugin
+                    routerConfig={extractRouterConfig(ourFileRouter)}
+                  />
+                  <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                  >
+                    <NotificationsProvider>
+                      <RoleProvider>
                         <RealTimeNotificationsWrapper />
                         <Header />
                         <main>
@@ -88,11 +93,11 @@ export default async function RootLayout({
                           <Analytics />
                         </main>
                         <Toaster />
-                      </NotificationsProvider>
-                    </ThemeProvider>
-                  </FlagsmithWrapper>
-                </GoogleOAuthProvider>
-              </RoleProvider>
+                      </RoleProvider>
+                    </NotificationsProvider>
+                  </ThemeProvider>
+                </FlagsmithWrapper>
+              </GoogleOAuthProvider>
             </TooltipProvider>
           </QueryProvider>
         </SupabaseProvider>

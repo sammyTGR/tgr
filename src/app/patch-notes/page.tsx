@@ -33,6 +33,7 @@ interface ExpandableCardProps {
 
 export default function PatchNotesPage() {
   const { data: patchNotes, isLoading } = usePatchNotes();
+  const { role } = useRole();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<PatchNote | null>(null);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
@@ -40,7 +41,6 @@ export default function PatchNotesPage() {
   );
 
   if (isLoading) return <div>Loading...</div>;
-  const { role } = useRole();
 
   const handleEdit = (note: PatchNote) => {
     setSelectedNote(note);
@@ -104,7 +104,6 @@ export default function PatchNotesPage() {
   };
 
   const AdminSection = () => {
-    const { role } = useRole();
     if (role !== "dev") return null;
 
     return (
