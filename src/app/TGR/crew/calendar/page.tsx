@@ -1628,7 +1628,7 @@ export default function Component() {
                         {DAYS_OF_WEEK.map((day) => (
                           <TableHead
                             key={day}
-                            className={`text-left w-22 max-w-sm ${
+                            className={`text-left w-28 max-w-sm ${
                               selectedDayQuery.data === day ? "bg-muted" : ""
                             } ${
                               role &&
