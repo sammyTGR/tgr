@@ -487,39 +487,31 @@ const OnboardingWizard = () => {
       const { data, error } = await supabase
         .from("employees")
         .insert(sanitizedData)
-        .select("employee_id, user_uuid");
+        .select("employee_id")
+        .single();
 
       if (error) {
         throw error;
       }
-      return data[0];
-    },
-    onError: (error) => {
-      console.error("Error inserting employee:", error);
-      toast.error(
-        "Failed to add employee. Please ensure all required fields are filled correctly."
-      );
+
+      return data;
     },
   });
 
   const scheduleMutation = useMutation({
     mutationFn: async ({
       employeeId,
-      userUuid,
       scheduleData,
       employeeName,
     }: {
       employeeId: number;
-      userUuid: string;
       scheduleData: OnboardingData["schedule"];
       employeeName: string;
     }) => {
-      // Filter out empty schedules
       const scheduleEntries = Object.entries(scheduleData)
         .filter(([_, times]) => times.start_time || times.end_time)
         .map(([day, times]) => ({
           employee_id: employeeId,
-          user_uuid: userUuid,
           day_of_week: day.charAt(0).toUpperCase() + day.slice(1),
           start_time: times.start_time ? `${times.start_time}:00` : null,
           end_time: times.end_time ? `${times.end_time}:00` : null,
@@ -530,13 +522,9 @@ const OnboardingWizard = () => {
         return; // No schedules to insert
       }
 
-      // Use upsert to handle the unique constraint
       const { data, error } = await supabase
         .from("reference_schedules")
-        .upsert(scheduleEntries, {
-          onConflict: "employee_id,day_of_week",
-          ignoreDuplicates: false,
-        })
+        .insert(scheduleEntries)
         .select();
 
       if (error) {
@@ -546,10 +534,6 @@ const OnboardingWizard = () => {
 
       return data;
     },
-    onError: (error) => {
-      console.error("Error inserting schedule:", error);
-      toast.error("Failed to add employee schedule");
-    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -557,25 +541,26 @@ const OnboardingWizard = () => {
     try {
       const employee = await employeeMutation.mutateAsync(formData);
 
-      if (employee && employee.employee_id && employee.user_uuid) {
-        const employeeName = `${formData.name} ${formData.last_name}`;
-        await scheduleMutation.mutateAsync({
-          employeeId: employee.employee_id,
-          userUuid: employee.user_uuid,
-          scheduleData: formData.schedule,
-          employeeName,
-        });
-
-        toast.success("Employee onboarded successfully!");
-        queryClient.setQueryData(["completionDialog"], true);
-      } else {
-        throw new Error(
-          "Employee creation failed: missing employee_id or user_uuid"
-        );
+      if (!employee || !employee.employee_id) {
+        throw new Error("Employee creation failed: missing employee_id");
       }
+
+      const employeeName = `${formData.name} ${formData.last_name}`;
+      await scheduleMutation.mutateAsync({
+        employeeId: employee.employee_id,
+        scheduleData: formData.schedule,
+        employeeName,
+      });
+
+      toast.success("Employee onboarded successfully!");
+      queryClient.setQueryData(["completionDialog"], true);
     } catch (error) {
       console.error("Submission error:", error);
-      toast.error("Failed to complete onboarding process");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to complete onboarding process"
+      );
     }
   };
 
