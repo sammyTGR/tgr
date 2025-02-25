@@ -328,7 +328,21 @@ const OnboardingWizard = () => {
               <Label htmlFor="department">Department</Label>
               <Select
                 value={formData.department}
-                onValueChange={(value) => updateData({ department: value })}
+                onValueChange={(value) => {
+                  // console.log("Department selected:", value);
+                  // Update the form data with the new department value
+                  queryClient.setQueryData(
+                    ["onboardingForm"],
+                    (old: OnboardingData) => {
+                      const updated = {
+                        ...old,
+                        department: value,
+                      };
+                      // console.log("Updated form data:", updated);
+                      return updated;
+                    }
+                  );
+                }}
               >
                 <SelectTrigger id="department">
                   <SelectValue placeholder="Select a department" />
@@ -466,6 +480,9 @@ const OnboardingWizard = () => {
 
   const employeeMutation = useMutation({
     mutationFn: async (employeeData: Partial<OnboardingData>) => {
+      // console.log("Raw employee data:", employeeData);
+      // console.log("Department value:", employeeData.department);
+
       const sanitizedData = {
         name: employeeData.name,
         last_name: employeeData.last_name,
@@ -482,18 +499,31 @@ const OnboardingWizard = () => {
         city: employeeData.city,
         state: employeeData.state,
         zip: employeeData.zip,
+        status: "active",
       };
+
+      // console.log("Sanitized data for insert:", sanitizedData);
+
+      const { data: debugData } = await supabase
+        .from("employees")
+        .select("department")
+        .order("employee_id", { ascending: false })
+        .limit(1);
+
+      // console.log("Most recent employee department:", debugData);
 
       const { data, error } = await supabase
         .from("employees")
         .insert(sanitizedData)
-        .select("employee_id")
+        .select("*")
         .single();
 
       if (error) {
+        console.error("Employee insertion error:", error);
         throw error;
       }
 
+      // console.log("Employee created with department:", data.department);
       return data;
     },
   });
@@ -508,51 +538,103 @@ const OnboardingWizard = () => {
       scheduleData: OnboardingData["schedule"];
       employeeName: string;
     }) => {
-      const scheduleEntries = Object.entries(scheduleData)
-        .filter(([_, times]) => times.start_time || times.end_time)
-        .map(([day, times]) => ({
+      // Define all days of the week in the desired order
+      const daysOfWeek = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+
+      // Create schedule entries for all days
+      const scheduleEntries = daysOfWeek.map((day) => {
+        const lowercaseDay = day.toLowerCase();
+        const times = scheduleData[lowercaseDay] || {
+          start_time: "",
+          end_time: "",
+        };
+
+        const startTime = times.start_time ? `${times.start_time}:00` : null;
+        const endTime = times.end_time ? `${times.end_time}:00` : null;
+
+        // console.log(`Processing schedule for ${day}:`, { startTime, endTime });
+
+        return {
           employee_id: employeeId,
-          day_of_week: day.charAt(0).toUpperCase() + day.slice(1),
-          start_time: times.start_time ? `${times.start_time}:00` : null,
-          end_time: times.end_time ? `${times.end_time}:00` : null,
+          day_of_week: day,
+          start_time: startTime,
+          end_time: endTime,
           name: employeeName,
-        }));
+        };
+      });
 
-      if (scheduleEntries.length === 0) {
-        return; // No schedules to insert
+      // console.log("Attempting to insert schedules:", scheduleEntries);
+
+      // Insert schedules one by one
+      const results = [];
+      for (const entry of scheduleEntries) {
+        try {
+          const { data, error } = await supabase
+            .from("reference_schedules")
+            .insert(entry)
+            .select()
+            .single();
+
+          if (error) {
+            console.error(
+              `Error inserting schedule for ${entry.day_of_week}:`,
+              error
+            );
+            throw error;
+          }
+
+          // console.log(
+          //   `Successfully inserted schedule for ${entry.day_of_week}:`,
+          //   data
+          // );
+          results.push(data);
+        } catch (error) {
+          console.error(
+            `Failed to insert schedule for ${entry.day_of_week}:`,
+            error
+          );
+          throw error;
+        }
       }
 
-      const { data, error } = await supabase
-        .from("reference_schedules")
-        .insert(scheduleEntries)
-        .select();
-
-      if (error) {
-        console.error("Schedule insertion error:", error);
-        throw error;
-      }
-
-      return data;
+      return results;
     },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const employee = await employeeMutation.mutateAsync(formData);
+      // console.log("Submitting form data:", formData);
+      // console.log("Schedule data:", formData.schedule);
 
-      if (!employee || !employee.employee_id) {
+      const employee = await employeeMutation.mutateAsync(formData);
+      // console.log("Employee created successfully:", employee);
+
+      if (!employee?.employee_id) {
         throw new Error("Employee creation failed: missing employee_id");
       }
 
-      const employeeName = `${formData.name} ${formData.last_name}`;
-      await scheduleMutation.mutateAsync({
+      const firstName = formData.name;
+      // console.log("Creating schedules for:", firstName);
+
+      const schedules = await scheduleMutation.mutateAsync({
         employeeId: employee.employee_id,
         scheduleData: formData.schedule,
-        employeeName,
+        employeeName: firstName,
       });
 
+      // console.log("Schedules created successfully:", schedules);
+
       toast.success("Employee onboarded successfully!");
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.setQueryData(["completionDialog"], true);
     } catch (error) {
       console.error("Submission error:", error);
