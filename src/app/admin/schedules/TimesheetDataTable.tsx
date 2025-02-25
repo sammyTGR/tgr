@@ -59,6 +59,8 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import AddTimesheetForm from "./AddTimesheetForm";
 import { useState, useEffect, useCallback } from "react";
 import { TimesheetData } from "./data-schema";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Employee {
   employee_id: number;
@@ -118,6 +120,7 @@ export function TimesheetDataTable({
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {}
   );
+  const [showDecimalHours, setShowDecimalHours] = React.useState(false);
 
   const { data: expandedState = {} } = useQuery({
     queryKey: ["timesheetExpandedState"],
@@ -363,6 +366,17 @@ export function TimesheetDataTable({
     }
   };
 
+  const convertToDecimalHours = (timeStr: string): string => {
+    try {
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      const decimalHours = hours + minutes / 60;
+      return decimalHours.toFixed(2);
+    } catch (error) {
+      console.error("Error converting to decimal hours:", error);
+      return timeStr;
+    }
+  };
+
   const formattedColumns = React.useMemo(() => {
     return providedColumns.map((column) => {
       if (column.id === "lunch_start") {
@@ -513,10 +527,13 @@ export function TimesheetDataTable({
               return null;
             }
 
-            // For all other cases, show the total hours as normal
+            // For all other cases, show the total hours based on format preference
             if (!row.total_hours) return "";
             try {
               const [hours, minutes] = row.total_hours.split(":");
+              if (showDecimalHours) {
+                return `${convertToDecimalHours(row.total_hours)} hrs`;
+              }
               return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
             } catch (error) {
               console.error("Error formatting total hours:", error);
@@ -546,7 +563,7 @@ export function TimesheetDataTable({
 
       return column;
     });
-  }, [providedColumns]);
+  }, [providedColumns, showDecimalHours]);
 
   const { data: sortingState = [{ id: "event_date", desc: true }] } = useQuery({
     queryKey: ["timesheetSortingState"],
@@ -974,7 +991,7 @@ export function TimesheetDataTable({
     <div className="flex flex-col h-full w-full max-h-[80vh] px-1 sm:px-4">
       <div className="flex flex-row items-center justify-between mx-2 my-2">
         <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
-          <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-4">
+          <div className="grid gap-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-6 space-x-4">
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={open}>
@@ -1087,6 +1104,16 @@ export function TimesheetDataTable({
             <Button variant="outline" onClick={handleExpandCollapseAll}>
               {Object.keys(expanded).length > 0 ? "Collapse All" : "Expand All"}
             </Button>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={showDecimalHours}
+                onCheckedChange={setShowDecimalHours}
+                id="hours-format"
+              />
+              <Label htmlFor="hours-format">
+                {showDecimalHours ? "Decimal" : "Hours"}
+              </Label>
+            </div>
           </div>
         </div>
       </div>
@@ -1185,18 +1212,22 @@ export function TimesheetDataTable({
                                   : ""
                               }
                             >
-                              {formatHoursAndMinutes(
-                                String(summary.regularHours)
-                              )}
+                              {showDecimalHours
+                                ? `${summary.regularHours.toFixed(2)} hrs`
+                                : formatHoursAndMinutes(
+                                    String(summary.regularHours)
+                                  )}
                             </span>
                           )}
                         </td>
                         <td className="py-2">
                           {summary && summary.overtimeHours > 0 && (
                             <span className="text-red-600">
-                              {formatHoursAndMinutes(
-                                String(summary.overtimeHours)
-                              )}
+                              {showDecimalHours
+                                ? `${summary.overtimeHours.toFixed(2)} hrs`
+                                : formatHoursAndMinutes(
+                                    String(summary.overtimeHours)
+                                  )}
                             </span>
                           )}
                         </td>
