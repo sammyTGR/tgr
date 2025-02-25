@@ -2000,6 +2000,46 @@ function AdminDashboardContent() {
     enabled: uploadHistoricalSalesMutation.isPending,
   });
 
+  // Add this near your other queries
+  const drosCancellationsQuery = useQuery({
+    queryKey: [
+      "drosCancellations",
+      dateRange?.from?.toISOString(),
+      dateRange?.to?.toISOString(),
+    ],
+    queryFn: async () => {
+      if (!dateRange?.from || !dateRange?.to) return null;
+
+      const { data, error } = await supabase
+        .from("Auditsinput")
+        .select("*")
+        .eq("dros_cancel", "Yes")
+        .gte("trans_date", dateRange.from.toISOString())
+        .lte("trans_date", dateRange.to.toISOString());
+
+      if (error) throw error;
+
+      // Process the data and calculate totals
+      const variants = data.reduce(
+        (acc: Record<string, { qty: number }>, item) => {
+          const key = `${item.salesreps} - ${format(new Date(item.trans_date), "MM/dd/yyyy")}`;
+          if (!acc[key]) {
+            acc[key] = { qty: 0 };
+          }
+          acc[key].qty += 1;
+          return acc;
+        },
+        {}
+      );
+
+      return {
+        qty: data.length, // Change total to qty to match the expected structure
+        variants: variants,
+      };
+    },
+    enabled: !!dateRange?.from && !!dateRange?.to,
+  });
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div className="max-w-[calc(100vw-40px)] py-4">
@@ -2716,6 +2756,7 @@ function AdminDashboardContent() {
             <TabsContent value="sales-kpis">
               <DashboardKPI
                 kpiQuery={kpiQuery}
+                drosCancellationsQuery={drosCancellationsQuery} // Add this line
                 dateRange={dateRange}
                 setDateRange={setDateRange}
                 getDefaultDateRange={getDefaultDateRange}

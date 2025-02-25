@@ -719,3 +719,47 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
     throw error;
   }
 };
+
+// Add new function to fetch DROS cancellations
+export const fetchDROSCancellations = async (
+  startDate: Date,
+  endDate: Date
+) => {
+  const start = new Date(startDate);
+  start.setUTCHours(0, 0, 0, 0);
+  const formattedStartDate = start.toISOString();
+
+  const end = new Date(endDate);
+  end.setUTCHours(23, 59, 59, 999);
+  const formattedEndDate = end.toISOString();
+
+  const { data, error } = await supabase
+    .from("Auditsinput")
+    .select("*")
+    .eq("dros_cancel", "Yes")
+    .gte("trans_date", formattedStartDate)
+    .lt("trans_date", formattedEndDate)
+    .order("trans_date", { ascending: true });
+
+  if (error) throw error;
+
+  // Process the data into the required format
+  const result = {
+    qty: data?.length || 0,
+    revenue: 0, // No revenue for cancellations
+    variants: data?.reduce(
+      (acc: Record<string, { qty: number; revenue: number }>, item) => {
+        const key = `${item.salesreps} - ${new Date(item.trans_date).toLocaleDateString()}`;
+        if (!acc[key]) {
+          acc[key] = { qty: 0, revenue: 0 };
+        }
+        acc[key].qty += 1;
+        return acc;
+      },
+      {}
+    ),
+    group: "DROS",
+  };
+
+  return result;
+};

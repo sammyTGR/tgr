@@ -16,6 +16,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 function DashboardKPI({
   kpiQuery,
+  drosCancellationsQuery,
   dateRange,
   setDateRange,
   getDefaultDateRange,
@@ -531,7 +532,7 @@ function DashboardKPI({
                   {`(${ammoCategories.filter((cat) => kpiQuery.data?.[cat]).length} categories)`}
                 </span>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {["Reloads", "Factory Ammo"].map(
                   (category) =>
                     kpiQuery.data?.[category] && (
@@ -589,6 +590,49 @@ function DashboardKPI({
                       </ExpandableCard>
                     )
                 )}
+              </div>
+            </div>
+
+            {/* Add after Ammo Sold section and before Classes section */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">
+                Cancelled DROS
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {`(${drosCancellationsQuery.data?.qty || 0} total)`}
+                </span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <ExpandableCard id="cancelled-dros" title="DROS Cancellations">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Total Cancellations
+                      </span>
+                      <span className="text-2xl font-bold">
+                        {drosCancellationsQuery.data?.qty || 0}
+                      </span>
+                    </div>
+                    {/* Variants showing salesrep and date */}
+                    {drosCancellationsQuery.data?.variants && (
+                      <div className="mt-4 space-y-2">
+                        {Object.entries(drosCancellationsQuery.data.variants)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([variant, stats]) => (
+                            <div key={variant} className="text-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">{variant}</span>
+                              </div>
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>
+                                  Qty: {(stats as { qty: number }).qty}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </ExpandableCard>
               </div>
             </div>
 
