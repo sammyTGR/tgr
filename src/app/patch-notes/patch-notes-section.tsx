@@ -35,12 +35,12 @@ export function PatchNotesSection({
   className = "",
 }: PatchNotesSectionProps) {
   const { data: patchNotes, isLoading } = usePatchNotes();
+  const { role } = useRole();
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {}
   );
 
   if (isLoading) return <div>Loading...</div>;
-  const { role } = useRole();
 
   const toggleCardExpansion = (cardId: string) => {
     setExpandedCards((prev) => ({
