@@ -36,6 +36,7 @@ function DashboardKPI({
     revolver: false,
     rifle: false,
     shotgun: false,
+    "tgr-reloads": false,
     "factory-ammo": false,
     "class-ccw": false,
     "class-basic-handgun": false,
@@ -297,7 +298,10 @@ function DashboardKPI({
                 {/* Reloaded Ammunition Card */}
                 <div>
                   {kpiQuery.data?.["Reloads"] && (
-                    <ExpandableCard id="reloads" title="Reloaded Ammunition">
+                    <ExpandableCard
+                      id="tgr-reloads"
+                      title="Reloaded Ammunition"
+                    >
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">
