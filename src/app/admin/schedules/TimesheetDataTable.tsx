@@ -520,12 +520,27 @@ export function TimesheetDataTable({
           ...column,
           cell: (info: any) => {
             const row = info.row.original;
-            const scheduleData = row.scheduleData;
 
-            // If it's a called out day or no call no show, don't show in total_hours
+            // Check if there's a VTO entry for this row
+            const { data: vtoData } = useQuery({
+              queryKey: ["vto", row.employee_id, row.event_date],
+              queryFn: async () => {
+                const supabase = createClientComponentClient();
+                const { data } = await supabase
+                  .from("employee_vto_events")
+                  .select("vto_type")
+                  .eq("employee_id", row.employee_id)
+                  .eq("event_date", row.event_date)
+                  .maybeSingle();
+                return data;
+              },
+              enabled: Boolean(row.employee_id && row.event_date),
+            });
+
+            // If there's a VTO entry, don't show total_hours
             if (
-              scheduleData?.status === "called_out" ||
-              scheduleData?.status === "no_call_no_show"
+              vtoData?.vto_type &&
+              ["called_out", "no_call_no_show"].includes(vtoData.vto_type)
             ) {
               return null;
             }
@@ -534,18 +549,15 @@ export function TimesheetDataTable({
             if (!row.total_hours) return "";
 
             try {
-              // First, ensure we have a consistent format by splitting on ":"
               const [hours, minutes] = row.total_hours.split(":");
               const totalHours = parseInt(hours);
               const totalMinutes = parseInt(minutes);
 
               if (showDecimalHours) {
-                // Calculate decimal hours
                 const decimalHours = totalHours + totalMinutes / 60;
                 return `${decimalHours.toFixed(2)} hrs`;
               }
 
-              // Return HH:MM format
               return `${totalHours}:${totalMinutes.toString().padStart(2, "0")}`;
             } catch (error) {
               console.error("Error formatting total hours:", error);
@@ -612,6 +624,8 @@ export function TimesheetDataTable({
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    enableExpanding: true,
+    enableGrouping: true,
     initialState: {
       grouping: ["employee_name"],
       sorting: [{ id: "event_date", desc: true }],
@@ -946,72 +960,93 @@ export function TimesheetDataTable({
   const VTOCell = ({ row }: { row: Row<TimesheetDataWithSchedule> }) => {
     if (row.getIsGrouped()) return null;
 
-    const { data: scheduleData } = useQuery<ScheduleData | null>({
-      queryKey: [
-        "schedule",
-        row.original?.employee_id,
-        row.original?.event_date,
-      ],
+    const { data: vtoData } = useQuery({
+      queryKey: ["vto", row.original?.employee_id, row.original?.event_date],
       queryFn: async () => {
         const supabase = createClientComponentClient();
-        const { data: scheduleData } = await supabase
-          .from("schedules")
-          .select("status, start_time, end_time")
-          .eq("employee_id", row.original.employee_id)
-          .eq("schedule_date", row.original.event_date)
+        const { data } = await supabase
+          .from("employee_vto_events")
+          .select("total_hours, vto_type")
+          .eq("employee_id", row.original?.employee_id)
+          .eq("event_date", row.original?.event_date)
           .maybeSingle();
-
-        if (
-          scheduleData?.status === "called_out" ||
-          scheduleData?.status === "no_call_no_show"
-        ) {
-          // If called out or no call no show, get the scheduled hours
-          if (scheduleData.start_time && scheduleData.end_time) {
-            return scheduleData;
-          }
-          // If no scheduled times, return with default status
-          return {
-            ...scheduleData,
-            start_time: "08:00:00",
-            end_time: "16:30:00",
-          };
-        }
-
-        return scheduleData;
+        return data;
       },
       enabled: Boolean(row.original?.employee_id && row.original?.event_date),
     });
 
-    // Store schedule data for use in total_hours column
-    if (row.original && scheduleData) {
-      row.original.scheduleData = scheduleData;
-    }
-
     if (
-      scheduleData?.status === "called_out" ||
-      scheduleData?.status === "no_call_no_show"
+      !vtoData?.vto_type ||
+      !["called_out", "no_call_no_show"].includes(vtoData.vto_type)
     ) {
-      // Calculate from schedule times
-      const startTime = new Date(`1970-01-01T${scheduleData.start_time}`);
-      const endTime = new Date(`1970-01-01T${scheduleData.end_time}`);
-      const diffInMinutes =
-        (endTime.getTime() - startTime.getTime()) / 1000 / 60;
-
-      // Subtract 30 minutes for lunch if shift is 6 hours or longer
-      const totalMinutes =
-        diffInMinutes >= 360 ? diffInMinutes - 30 : diffInMinutes;
-      const finalHours = Math.floor(totalMinutes / 60);
-      const finalMinutes = Math.round(totalMinutes % 60);
-
-      const timeStr = `${finalHours}:${finalMinutes.toString().padStart(2, "0")}`;
-
-      return (
-        <span className="text-yellow-600">
-          {showDecimalHours ? `${convertToDecimalHours(timeStr)} hrs` : timeStr}
-        </span>
-      );
+      return null;
     }
-    return null;
+
+    let formattedHours;
+    try {
+      if (vtoData.total_hours) {
+        // Handle PostgreSQL interval format "HH:MM:SS"
+        const intervalMatch = String(vtoData.total_hours).match(
+          /(\d+):(\d+):(\d+)/
+        );
+        if (intervalMatch) {
+          const [_, hours, minutes] = intervalMatch;
+          if (showDecimalHours) {
+            const decimalHours = parseInt(hours) + parseInt(minutes) / 60;
+            formattedHours = `${decimalHours.toFixed(2)} hrs`;
+          } else {
+            formattedHours = `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
+          }
+        } else if (
+          typeof vtoData.total_hours === "string" &&
+          vtoData.total_hours.includes(":")
+        ) {
+          // Handle "HH:MM" format
+          const [hours, minutes] = vtoData.total_hours.split(":").map(Number);
+          if (showDecimalHours) {
+            const decimalHours = hours + minutes / 60;
+            formattedHours = `${decimalHours.toFixed(2)} hrs`;
+          } else {
+            formattedHours = `${hours}:${minutes.toString().padStart(2, "0")}`;
+          }
+        } else {
+          // Try to parse as a number
+          const numericHours = parseFloat(String(vtoData.total_hours));
+          if (!isNaN(numericHours)) {
+            if (showDecimalHours) {
+              formattedHours = `${numericHours.toFixed(2)} hrs`;
+            } else {
+              const hours = Math.floor(numericHours);
+              const minutes = Math.round((numericHours - hours) * 60);
+              formattedHours = `${hours}:${minutes.toString().padStart(2, "0")}`;
+            }
+          }
+        }
+      }
+
+      if (!formattedHours) {
+        formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
+      }
+    } catch (error) {
+      console.error(
+        "Error formatting VTO hours:",
+        error,
+        "Raw value:",
+        vtoData.total_hours
+      );
+      formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
+    }
+
+    const colorClass =
+      vtoData.vto_type === "called_out" ? "text-yellow-600" : "text-red-500";
+    const typeLabel =
+      vtoData.vto_type === "called_out" ? "Called Out" : "No Call No Show";
+
+    return (
+      <span className={`font-medium ${colorClass}`} title={typeLabel}>
+        {formattedHours}
+      </span>
+    );
   };
 
   const parseInterval = (intervalStr: string): number => {
@@ -1276,6 +1311,12 @@ export function TimesheetDataTable({
                         <td></td>
                       </tr>
                     );
+                  }
+
+                  // Only show detail rows if parent is expanded
+                  const parentRow = row.getParentRow();
+                  if (parentRow && !parentRow.getIsExpanded()) {
+                    return null;
                   }
 
                   return (

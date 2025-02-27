@@ -22,6 +22,8 @@ export const timesheetData = z.object({
   event_date: z.string().nullable(),
   sick_time: z.string().nullable(),
   vto: z.string().nullable(),
+  vto_hours: z.string().nullable(),
+  vto_type: z.string().nullable(),
 });
 
 export type ScheduleData = z.infer<typeof scheduleData>;

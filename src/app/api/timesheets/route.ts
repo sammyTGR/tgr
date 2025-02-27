@@ -9,16 +9,23 @@ import {
 } from "date-fns";
 
 export async function POST(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies });
+  const body = await request.json();
+
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const body = await request.json();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // console.log("Received timesheet data:", body);
 
     // First, fetch the schedule for this employee and date
     const { data: scheduleData, error: scheduleError } = await supabase
       .from("schedules")
-      .select("start_time, end_time")
+      .select("start_time, end_time, status")
       .eq("employee_id", body.employee_id)
       .eq("schedule_date", body.event_date)
       .single();
@@ -71,22 +78,23 @@ export async function POST(request: Request) {
       });
     }
 
-    // Use the schedule times for the timesheet entry
+    // Use the schedule times for the VTO entry
     const insertData = {
       employee_id: body.employee_id,
       event_date: body.event_date,
-      total_hours: "0", // Set to 0 for called out/no show
+      total_hours: "0", // This will be calculated by the trigger
       start_time: scheduleData.start_time,
       end_time: scheduleData.end_time,
       lunch_start: lunchStart,
       lunch_end: lunchEnd,
       employee_name: body.employee_name,
+      vto_type: scheduleData.status, // Add the VTO type from the schedule status
     };
 
     // console.log("Inserting timesheet data:", insertData);
 
     const { data, error } = await supabase
-      .from("employee_clock_events")
+      .from("employee_vto_events") // Use the new table
       .insert(insertData)
       .select()
       .single();
@@ -98,9 +106,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error creating timesheet entry:", error);
+    console.error("Error creating VTO entry:", error);
     return NextResponse.json(
-      { error: "Failed to create timesheet entry", details: error },
+      { error: "Failed to create VTO entry", details: error },
       { status: 500 }
     );
   }

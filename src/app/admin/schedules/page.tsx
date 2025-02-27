@@ -499,13 +499,61 @@ const ManageSchedules = () => {
   const { data: timesheets = [] } = useQuery({
     queryKey: ["timesheets"],
     queryFn: async () => {
-      const response = await fetch(
-        "/api/fetchTimesheets?payTypes=hourly,salary"
-      );
-      if (!response.ok) {
+      // Fetch both regular clock events and VTO events
+      const [clockEventsResponse, vtoEventsResponse] = await Promise.all([
+        fetch("/api/fetchTimesheets?payTypes=hourly,salary"),
+        fetch("/api/fetchVTOEvents"), // You'll need to create this endpoint
+      ]);
+
+      if (!clockEventsResponse.ok) {
         throw new Error("Failed to fetch timesheets");
       }
-      return response.json();
+      if (!vtoEventsResponse.ok) {
+        throw new Error("Failed to fetch VTO events");
+      }
+
+      const clockEvents = await clockEventsResponse.json();
+      const vtoEvents = await vtoEventsResponse.json();
+
+      // Combine the events, with VTO events taking precedence
+      const combinedEvents = clockEvents.map((clockEvent: any) => {
+        const vtoEvent = vtoEvents.find(
+          (vto: any) =>
+            vto.employee_id === clockEvent.employee_id &&
+            vto.event_date === clockEvent.event_date
+        );
+
+        if (vtoEvent) {
+          return {
+            ...clockEvent,
+            vto_hours: vtoEvent.total_hours,
+            vto_type: vtoEvent.vto_type,
+          };
+        }
+
+        return clockEvent;
+      });
+
+      // Also add any VTO events that don't have corresponding clock events
+      vtoEvents.forEach((vtoEvent: any) => {
+        const exists = combinedEvents.some(
+          (event: any) =>
+            event.employee_id === vtoEvent.employee_id &&
+            event.event_date === vtoEvent.event_date
+        );
+
+        if (!exists) {
+          combinedEvents.push({
+            employee_id: vtoEvent.employee_id,
+            employee_name: vtoEvent.employee_name,
+            event_date: vtoEvent.event_date,
+            vto_hours: vtoEvent.total_hours,
+            vto_type: vtoEvent.vto_type,
+          });
+        }
+      });
+
+      return combinedEvents;
     },
   });
 
