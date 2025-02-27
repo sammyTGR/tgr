@@ -91,12 +91,16 @@ interface TimesheetDataTableProps {
   columns: ColumnDef<TimesheetData>[];
   data: TimesheetData[];
   fetchTimesheets: () => void;
+  showDecimalHours: boolean;
+  onShowDecimalHoursChange: (value: boolean) => void;
 }
 
 export function TimesheetDataTable({
   columns: providedColumns,
   data: initialData,
   fetchTimesheets,
+  showDecimalHours,
+  onShowDecimalHoursChange,
 }: TimesheetDataTableProps) {
   const [data, setData] = React.useState(initialData);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -120,7 +124,6 @@ export function TimesheetDataTable({
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {}
   );
-  const [showDecimalHours, setShowDecimalHours] = React.useState(false);
 
   const { data: expandedState = {} } = useQuery({
     queryKey: ["timesheetExpandedState"],
@@ -529,12 +532,21 @@ export function TimesheetDataTable({
 
             // For all other cases, show the total hours based on format preference
             if (!row.total_hours) return "";
+
             try {
+              // First, ensure we have a consistent format by splitting on ":"
               const [hours, minutes] = row.total_hours.split(":");
+              const totalHours = parseInt(hours);
+              const totalMinutes = parseInt(minutes);
+
               if (showDecimalHours) {
-                return `${convertToDecimalHours(row.total_hours)} hrs`;
+                // Calculate decimal hours
+                const decimalHours = totalHours + totalMinutes / 60;
+                return `${decimalHours.toFixed(2)} hrs`;
               }
-              return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
+
+              // Return HH:MM format
+              return `${totalHours}:${totalMinutes.toString().padStart(2, "0")}`;
             } catch (error) {
               console.error("Error formatting total hours:", error);
               return row.total_hours;
@@ -674,21 +686,26 @@ export function TimesheetDataTable({
       [
         "Employee Name",
         "Pay Period",
-        "Regular Hours",
-        "Overtime Hours",
-        "Total Hours",
+        showDecimalHours ? "Regular Hours (Decimal)" : "Regular Hours",
+        showDecimalHours ? "Overtime Hours (Decimal)" : "Overtime Hours",
+        showDecimalHours ? "Total Hours (Decimal)" : "Total Hours",
       ],
     ];
 
     payPeriodSummaries.forEach((summary, employeeName) => {
+      const formatHours = (hours: number) => {
+        if (showDecimalHours) {
+          return parseInterval(String(hours)).toFixed(2);
+        }
+        return formatHoursAndMinutes(String(hours));
+      };
+
       summaryRows.push([
         employeeName,
         `${format(summary.startDate, "MM/dd/yyyy")} - ${format(summary.endDate, "MM/dd/yyyy")}`,
-        formatHoursAndMinutes(String(summary.regularHours)),
-        formatHoursAndMinutes(String(summary.overtimeHours)),
-        formatHoursAndMinutes(
-          String(summary.regularHours + summary.overtimeHours)
-        ),
+        formatHours(summary.regularHours),
+        formatHours(summary.overtimeHours),
+        formatHours(summary.regularHours + summary.overtimeHours),
       ]);
     });
 
@@ -720,7 +737,7 @@ export function TimesheetDataTable({
         "Lunch Start",
         "Lunch End",
         "End Time",
-        "Total Hours",
+        showDecimalHours ? "Total Hours (Decimal)" : "Total Hours",
         "Lunch Duration (min)",
       ],
     ];
@@ -767,6 +784,14 @@ export function TimesheetDataTable({
         const lunchStart = safeFormatTime(item.lunch_start);
         const lunchEnd = safeFormatTime(item.lunch_end);
 
+        const formatTotalHours = (totalHours: string | null) => {
+          if (!totalHours) return "";
+          if (showDecimalHours) {
+            return parseInterval(totalHours).toFixed(2);
+          }
+          return formatIntervalForExcel(totalHours);
+        };
+
         return [
           item.employee_name || "",
           item.event_date
@@ -776,7 +801,7 @@ export function TimesheetDataTable({
           lunchStart,
           lunchEnd,
           safeFormatTime(item.end_time),
-          formatIntervalForExcel(item.total_hours),
+          formatTotalHours(item.total_hours),
           getLunchDuration(lunchStart, lunchEnd),
         ];
       })
@@ -978,13 +1003,30 @@ export function TimesheetDataTable({
       const finalHours = Math.floor(totalMinutes / 60);
       const finalMinutes = Math.round(totalMinutes % 60);
 
+      const timeStr = `${finalHours}:${finalMinutes.toString().padStart(2, "0")}`;
+
       return (
         <span className="text-yellow-600">
-          {`${finalHours}:${finalMinutes.toString().padStart(2, "0")}`}
+          {showDecimalHours ? `${convertToDecimalHours(timeStr)} hrs` : timeStr}
         </span>
       );
     }
     return null;
+  };
+
+  const parseInterval = (intervalStr: string): number => {
+    try {
+      // Handle PostgreSQL interval format "HH:MM:SS"
+      if (intervalStr.includes(":")) {
+        const [hours, minutes] = intervalStr.split(":");
+        return parseInt(hours) + parseInt(minutes) / 60;
+      }
+      // Handle other possible interval formats
+      return parseFloat(intervalStr);
+    } catch (error) {
+      console.error("Error parsing interval:", error);
+      return 0;
+    }
   };
 
   return (
@@ -1107,7 +1149,7 @@ export function TimesheetDataTable({
             <div className="flex items-center space-x-2">
               <Switch
                 checked={showDecimalHours}
-                onCheckedChange={setShowDecimalHours}
+                onCheckedChange={onShowDecimalHoursChange}
                 id="hours-format"
               />
               <Label htmlFor="hours-format">
@@ -1213,7 +1255,7 @@ export function TimesheetDataTable({
                               }
                             >
                               {showDecimalHours
-                                ? `${summary.regularHours.toFixed(2)} hrs`
+                                ? `${parseInterval(String(summary.regularHours)).toFixed(2)} hrs`
                                 : formatHoursAndMinutes(
                                     String(summary.regularHours)
                                   )}
@@ -1224,7 +1266,7 @@ export function TimesheetDataTable({
                           {summary && summary.overtimeHours > 0 && (
                             <span className="text-red-600">
                               {showDecimalHours
-                                ? `${summary.overtimeHours.toFixed(2)} hrs`
+                                ? `${parseInterval(String(summary.overtimeHours)).toFixed(2)} hrs`
                                 : formatHoursAndMinutes(
                                     String(summary.overtimeHours)
                                   )}

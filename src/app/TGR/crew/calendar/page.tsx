@@ -352,7 +352,7 @@ const getBreakRoomDutyEmployee = async (
 
     // Get last assignment from previous year if needed
     const lastAssignmentResponse = await fetch(
-      `/api/break_room_duty?getLastAssignment=true&includeYear=2024`
+      `/api/break_room_duty?getLastAssignment=true&includeYear=2025`
     );
 
     if (!lastAssignmentResponse.ok) {

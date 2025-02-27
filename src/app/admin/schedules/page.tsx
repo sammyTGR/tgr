@@ -89,7 +89,10 @@ const scheduleColumns: ColumnDef<ScheduleData>[] = [
   },
 ];
 
-const timesheetColumns: ColumnDef<TimesheetData>[] = [
+// Create a function that returns the columns with access to showDecimalHours
+const createTimesheetColumns = (
+  showDecimalHours: boolean
+): ColumnDef<TimesheetData>[] => [
   {
     accessorKey: "employee_name",
     header: "Employee Name",
@@ -258,14 +261,36 @@ const timesheetColumns: ColumnDef<TimesheetData>[] = [
     cell: (info) => {
       const totalHours = info.getValue();
       if (!totalHours) return "";
+
       try {
-        const hours = parseFloat(totalHours.toString());
+        // Handle PostgreSQL interval format "HH:MM:SS"
+        const intervalStr = totalHours.toString();
+        let hours = 0;
+        let minutes = 0;
+
+        if (intervalStr.includes(":")) {
+          const [h, m] = intervalStr.split(":");
+          hours = parseInt(h);
+          minutes = parseInt(m);
+        } else {
+          // Handle other formats if necessary
+          const numericValue = parseFloat(intervalStr);
+          if (!isNaN(numericValue)) {
+            hours = Math.floor(numericValue);
+            minutes = Math.round((numericValue - hours) * 60);
+          }
+        }
+
+        const decimalHours = hours + minutes / 60;
+
         return (
           <span
-            className={hours > 8 ? "text-red-500 font-medium" : ""}
-            title={`Total Hours: ${hours}`}
+            className={decimalHours > 8 ? "text-red-500 font-medium" : ""}
+            title={`Total Hours: ${decimalHours}`}
           >
-            {formatHoursAndMinutes(String(totalHours))} hours
+            {showDecimalHours
+              ? `${decimalHours.toFixed(2)} hrs`
+              : `${hours}:${minutes.toString().padStart(2, "0")}`}
           </span>
         );
       } catch (error) {
@@ -294,6 +319,7 @@ const ManageSchedules = () => {
   ]);
   const [updateSchedulePopoverOpen, setUpdateSchedulePopoverOpen] =
     useState(false);
+  const [showDecimalHours, setShowDecimalHours] = useState(false);
 
   useEffect(() => {
     fetchActualSchedules();
@@ -963,6 +989,9 @@ const ManageSchedules = () => {
     );
   };
 
+  // Use the function to create columns with access to showDecimalHours
+  const timesheetColumns = createTimesheetColumns(showDecimalHours);
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Card className="flex flex-col h-full max-w-full sm:max-w-[calc(100vw-32px)] lg:max-w-[calc(100vw-40px)] mx-2 sm:mx-auto my-12">
@@ -1109,6 +1138,8 @@ const ManageSchedules = () => {
                     columns={timesheetColumns}
                     data={timesheets}
                     fetchTimesheets={fetchTimesheets}
+                    showDecimalHours={showDecimalHours}
+                    onShowDecimalHoursChange={setShowDecimalHours}
                   />
                 </div>
               </CardContent>
