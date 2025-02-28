@@ -15,6 +15,7 @@ import {
   ShadowIcon,
   Pencil2Icon,
   DashboardIcon,
+  QuestionMarkIcon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenuContent,
@@ -517,6 +518,10 @@ const HeaderDev = React.memo(() => {
     router.push("/messages");
   };
 
+  const handleSupportClick = () => {
+    router.push("/support");
+  };
+
   const aimComps = [
     {
       title: "AIM",
@@ -732,9 +737,9 @@ const HeaderDev = React.memo(() => {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 
-                      <DropdownMenuItem onClick={handleChatClick}>
-                        <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                        <span>Messages</span>
+                      <DropdownMenuItem onClick={handleSupportClick}>
+                        <QuestionMarkIcon className="mr-2 h-4 w-4" />
+                        <span>Support</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 
