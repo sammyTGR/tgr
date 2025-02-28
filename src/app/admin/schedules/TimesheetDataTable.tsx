@@ -84,10 +84,6 @@ interface ScheduleData {
   clockEventHours?: string;
 }
 
-interface TimesheetDataWithSchedule extends TimesheetData {
-  scheduleData?: ScheduleData;
-}
-
 interface TimesheetDataTableProps {
   columns: ColumnDef<TimesheetData>[];
   data: TimesheetData[];
@@ -580,9 +576,7 @@ export function TimesheetDataTable({
       if (column.id === "vto") {
         return {
           ...column,
-          cell: ({ row }: { row: Row<TimesheetDataWithSchedule> }) => (
-            <VTOCell row={row} />
-          ),
+          cell: ({ row }: { row: Row<TimesheetData> }) => <VTOCell row={row} />,
         };
       }
 
@@ -611,7 +605,7 @@ export function TimesheetDataTable({
 
   const table = useReactTable({
     data,
-    columns: formattedColumns,
+    columns: formattedColumns as ColumnDef<TimesheetData, any>[],
     state: {
       columnFilters,
       expanded,
@@ -958,38 +952,21 @@ export function TimesheetDataTable({
     ) : null;
   };
 
-  const VTOCell = ({ row }: { row: Row<TimesheetDataWithSchedule> }) => {
+  const VTOCell = ({ row }: { row: Row<TimesheetData> }) => {
     if (row.getIsGrouped()) return null;
 
-    const { data: vtoData } = useQuery({
-      queryKey: ["vto", row.original?.employee_id, row.original?.event_date],
-      queryFn: async () => {
-        const supabase = createClientComponentClient();
-        const { data } = await supabase
-          .from("employee_vto_events")
-          .select("total_hours, vto_type")
-          .eq("employee_id", row.original?.employee_id)
-          .eq("event_date", row.original?.event_date)
-          .maybeSingle();
-        return data;
-      },
-      enabled: Boolean(row.original?.employee_id && row.original?.event_date),
-    });
+    const vtoType = row.original.vto_type;
+    const vtoHours = row.original.vto_hours;
 
-    if (
-      !vtoData?.vto_type ||
-      !["called_out", "no_call_no_show"].includes(vtoData.vto_type)
-    ) {
+    if (!vtoType || !["called_out", "no_call_no_show"].includes(vtoType)) {
       return null;
     }
 
     let formattedHours;
     try {
-      if (vtoData.total_hours) {
+      if (vtoHours) {
         // Handle PostgreSQL interval format "HH:MM:SS"
-        const intervalMatch = String(vtoData.total_hours).match(
-          /(\d+):(\d+):(\d+)/
-        );
+        const intervalMatch = String(vtoHours).match(/(\d+):(\d+):(\d+)/);
         if (intervalMatch) {
           const [_, hours, minutes] = intervalMatch;
           if (showDecimalHours) {
@@ -998,12 +975,9 @@ export function TimesheetDataTable({
           } else {
             formattedHours = `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
           }
-        } else if (
-          typeof vtoData.total_hours === "string" &&
-          vtoData.total_hours.includes(":")
-        ) {
+        } else if (typeof vtoHours === "string" && vtoHours.includes(":")) {
           // Handle "HH:MM" format
-          const [hours, minutes] = vtoData.total_hours.split(":").map(Number);
+          const [hours, minutes] = vtoHours.split(":").map(Number);
           if (showDecimalHours) {
             const decimalHours = hours + minutes / 60;
             formattedHours = `${decimalHours.toFixed(2)} hrs`;
@@ -1012,7 +986,7 @@ export function TimesheetDataTable({
           }
         } else {
           // Try to parse as a number
-          const numericHours = parseFloat(String(vtoData.total_hours));
+          const numericHours = parseFloat(String(vtoHours));
           if (!isNaN(numericHours)) {
             if (showDecimalHours) {
               formattedHours = `${numericHours.toFixed(2)} hrs`;
@@ -1033,15 +1007,15 @@ export function TimesheetDataTable({
         "Error formatting VTO hours:",
         error,
         "Raw value:",
-        vtoData.total_hours
+        vtoHours
       );
       formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
     }
 
     const colorClass =
-      vtoData.vto_type === "called_out" ? "text-yellow-600" : "text-red-500";
+      vtoType === "called_out" ? "text-yellow-600" : "text-red-500";
     const typeLabel =
-      vtoData.vto_type === "called_out" ? "Called Out" : "No Call No Show";
+      vtoType === "called_out" ? "Called Out" : "No Call No Show";
 
     return (
       <span className={`font-medium ${colorClass}`} title={typeLabel}>

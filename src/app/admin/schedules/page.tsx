@@ -253,7 +253,75 @@ const createTimesheetColumns = (
   {
     accessorKey: "vto",
     header: "VTO",
-    cell: (info) => info.getValue(),
+    cell: ({ row }) => {
+      const vtoType = row.original.vto_type;
+      const vtoHours = row.original.vto_hours;
+
+      if (!vtoType || !["called_out", "no_call_no_show"].includes(vtoType)) {
+        return null;
+      }
+
+      let formattedHours;
+      try {
+        if (vtoHours) {
+          // Handle PostgreSQL interval format "HH:MM:SS"
+          const intervalMatch = String(vtoHours).match(/(\d+):(\d+):(\d+)/);
+          if (intervalMatch) {
+            const [_, hours, minutes] = intervalMatch;
+            if (showDecimalHours) {
+              const decimalHours = parseInt(hours) + parseInt(minutes) / 60;
+              formattedHours = `${decimalHours.toFixed(2)} hrs`;
+            } else {
+              formattedHours = `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
+            }
+          } else if (typeof vtoHours === "string" && vtoHours.includes(":")) {
+            // Handle "HH:MM" format
+            const [hours, minutes] = vtoHours.split(":").map(Number);
+            if (showDecimalHours) {
+              const decimalHours = hours + minutes / 60;
+              formattedHours = `${decimalHours.toFixed(2)} hrs`;
+            } else {
+              formattedHours = `${hours}:${minutes.toString().padStart(2, "0")}`;
+            }
+          } else {
+            // Try to parse as a number
+            const numericHours = parseFloat(String(vtoHours));
+            if (!isNaN(numericHours)) {
+              if (showDecimalHours) {
+                formattedHours = `${numericHours.toFixed(2)} hrs`;
+              } else {
+                const hours = Math.floor(numericHours);
+                const minutes = Math.round((numericHours - hours) * 60);
+                formattedHours = `${hours}:${minutes.toString().padStart(2, "0")}`;
+              }
+            }
+          }
+        }
+
+        if (!formattedHours) {
+          formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
+        }
+      } catch (error) {
+        console.error(
+          "Error formatting VTO hours:",
+          error,
+          "Raw value:",
+          vtoHours
+        );
+        formattedHours = showDecimalHours ? "8.00 hrs" : "8:00";
+      }
+
+      const colorClass =
+        vtoType === "called_out" ? "text-yellow-600" : "text-red-500";
+      const typeLabel =
+        vtoType === "called_out" ? "Called Out" : "No Call No Show";
+
+      return (
+        <span className={`font-medium ${colorClass}`} title={typeLabel}>
+          {formattedHours}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "total_hours",
@@ -499,10 +567,9 @@ const ManageSchedules = () => {
   const { data: timesheets = [] } = useQuery({
     queryKey: ["timesheets"],
     queryFn: async () => {
-      // Fetch both regular clock events and VTO events
       const [clockEventsResponse, vtoEventsResponse] = await Promise.all([
         fetch("/api/fetchTimesheets?payTypes=hourly,salary"),
-        fetch("/api/fetchVTOEvents"), // You'll need to create this endpoint
+        fetch("/api/fetchVTOEvents"),
       ]);
 
       if (!clockEventsResponse.ok) {
@@ -528,6 +595,11 @@ const ManageSchedules = () => {
             ...clockEvent,
             vto_hours: vtoEvent.total_hours,
             vto_type: vtoEvent.vto_type,
+            total_hours:
+              vtoEvent.vto_type === "called_out" ||
+              vtoEvent.vto_type === "no_call_no_show"
+                ? null
+                : clockEvent.total_hours,
           };
         }
 
@@ -549,6 +621,7 @@ const ManageSchedules = () => {
             event_date: vtoEvent.event_date,
             vto_hours: vtoEvent.total_hours,
             vto_type: vtoEvent.vto_type,
+            total_hours: null,
           });
         }
       });

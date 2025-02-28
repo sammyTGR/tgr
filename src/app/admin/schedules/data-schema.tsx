@@ -7,6 +7,8 @@ export const scheduleData = z.object({
   start_time: z.string().nullable(),
   end_time: z.string().nullable(),
   user_uuid: z.string().uuid(),
+  status: z.string().optional(),
+  clockEventHours: z.string().optional(),
 });
 
 export const timesheetData = z.object({
@@ -24,6 +26,14 @@ export const timesheetData = z.object({
   vto: z.string().nullable(),
   vto_hours: z.string().nullable(),
   vto_type: z.string().nullable(),
+  scheduleData: z
+    .object({
+      status: z.string(),
+      start_time: z.string(),
+      end_time: z.string(),
+      clockEventHours: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type ScheduleData = z.infer<typeof scheduleData>;
