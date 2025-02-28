@@ -8,11 +8,25 @@ export default function GettingStartedPage() {
     {
       id: "dashboard-overview",
       title: "Dashboard Overview",
-      content: `The dashboard provides a comprehensive view of your audit activities. You'll find:
-        • Recent audits section showing your latest work
-        • Quick action buttons for common tasks
-        • Summary statistics and key metrics
-        • Navigation menu for accessing different features`,
+      content: `The dashboard provides a comprehensive view of each user role's activities. You'll find:
+        • All admin roles or higher will see the admin dashboard
+        • All user roles or higher will see their user profiles
+        • All landing pages will have tabs for common actions and insights
+        • Admin roles or higher will see summary statistics and key metrics
+        • Navigation menu for accessing different pages and features`,
+    },
+    {
+      id: "navbar-overview",
+      title: "Navigation Bar Overview",
+      content: `The navigation bar provides access to all pages and features allowed for each role:
+        • All admin roles or higher will see Auditing, Scheduling, Forms, and Reporting
+        • All user roles or higher will see DROS Support, Forms and Schedules
+        • Admins can manage user profiles to show notes, attendance, and performance reviews
+        • Admins can manage all employees' schedules, time off requests, and timesheets
+        • Admins can view and manage all submitted daily reports such as range walks, checklists, daily deposits, and more
+        • All users can view bulletin board posts and admins can submit their own posts
+        • Admins can view and create audits, view sales performance, and access auditing guidelines
+        `,
     },
     {
       id: "first-audit",
