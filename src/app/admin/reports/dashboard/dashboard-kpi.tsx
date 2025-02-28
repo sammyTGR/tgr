@@ -351,10 +351,57 @@ function DashboardKPI({
                 {/* Laser Engraving/Stippling Card - Always reserve the space */}
                 <div>
                   {kpiQuery.data?.["Laser Engraving/Stippling"] && (
-                    <KPICard
-                      category="Laser Engraving/Stippling"
-                      data={kpiQuery.data["Laser Engraving/Stippling"]}
-                    />
+                    <ExpandableCard
+                      id="laser-engraving-stippling"
+                      title="Laser Engraving/Stippling"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Total Net
+                          </span>
+                          <span className="text-2xl font-bold">
+                            {formatter.format(
+                              kpiQuery.data["Laser Engraving/Stippling"].revenue
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Quantity
+                          </span>
+                          <span className="text-2xl font-bold">
+                            {kpiQuery.data["Laser Engraving/Stippling"].qty}
+                          </span>
+                        </div>
+                        {/* Variants */}
+                        {kpiQuery.data["Laser Engraving/Stippling"]
+                          .variants && (
+                          <div className="mt-4 space-y-2">
+                            {Object.entries(
+                              kpiQuery.data["Laser Engraving/Stippling"]
+                                .variants
+                            ).map(([variant, stats]) => (
+                              <div key={variant} className="text-sm">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">{variant}</span>
+                                </div>
+                                <div className="flex justify-between text-muted-foreground">
+                                  <span>
+                                    Qty: {(stats as { qty: number }).qty}
+                                  </span>
+                                  <span>
+                                    {formatter.format(
+                                      (stats as { revenue: number }).revenue
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </ExpandableCard>
                   )}
                 </div>
               </div>
