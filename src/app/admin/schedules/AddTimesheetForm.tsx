@@ -71,6 +71,14 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
     if (employeeId && date && startTime) {
       setIsSubmitting(true);
       try {
+        // Get the employee name first
+        const selectedEmployee = employees?.find(
+          (emp) => emp.employee_id === employeeId
+        );
+        if (!selectedEmployee) {
+          throw new Error("Selected employee not found");
+        }
+
         // Format time to match PostgreSQL time without time zone format
         const formatTimeForDB = (time: string) => {
           if (!time) return null;
@@ -81,22 +89,21 @@ const AddTimesheetForm: React.FC<AddTimesheetFormProps> = ({
           .from("employee_clock_events")
           .insert({
             employee_id: employeeId,
+            employee_name: selectedEmployee.name, // Add the employee name here
             event_date: date,
             start_time: formatTimeForDB(startTime),
             lunch_start: formatTimeForDB(lunchStart),
             lunch_end: formatTimeForDB(lunchEnd),
             end_time: formatTimeForDB(endTime),
-            // total_hours will be calculated by trigger
-            // lunch_lock and created_at will be handled by database
           })
-          .select("*, employees(name)")
+          .select()
           .single();
 
         if (error) throw error;
 
         const newTimesheet = {
           ...data,
-          employee_name: data.employees?.name,
+          employee_name: selectedEmployee.name, // Use the name from the selected employee
         } as TimesheetData;
 
         onTimesheetAdded(newTimesheet);
