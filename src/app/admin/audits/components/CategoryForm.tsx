@@ -74,9 +74,9 @@ export function CategoryForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Category Name</FormLabel>
+              <FormLabel>Guideline Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter category name" {...field} />
+                <Input placeholder="Enter guideline name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

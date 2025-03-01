@@ -14,6 +14,7 @@ import {
   MoonIcon,
   PersonIcon,
   DashboardIcon,
+  QuestionMarkIcon,
 } from "@radix-ui/react-icons";
 import {
   NavigationMenuContent,
@@ -63,9 +64,9 @@ interface UserData {
 
 const auditComponents = [
   {
-    title: "Submit & Review Audits",
+    title: "Audits & Sales Performance",
     href: "/admin/audits",
-    description: "Enter Audits & Review Existing Ones",
+    description: "Enter & Review Audits & Sales Performance",
   },
   {
     title: "DROS Guidance",
@@ -128,16 +129,6 @@ const manageComps = [
     title: "Weekly Updates",
     href: "/admin/meetings",
     description: "Update These Notes Weekly",
-  },
-  {
-    title: "Monthly Contest",
-    href: "/admin/audits/contest",
-    description: "Monthly Sales Contest",
-  },
-  {
-    title: "Payroll & Timesheets",
-    href: "/admin/reports/download",
-    description: "Download Payroll & Timesheets",
   },
 ];
 
@@ -377,6 +368,10 @@ const HeaderAdmin = React.memo(() => {
     router.push("/messages");
   };
 
+  const handleSupportClick = () => {
+    router.push("/support");
+  };
+
   const handleProfileClick = () => {
     if (employeeData?.employee_id) {
       router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
@@ -542,9 +537,9 @@ const HeaderAdmin = React.memo(() => {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 
-                      <DropdownMenuItem onClick={handleChatClick}>
-                        <ChatBubbleIcon className="mr-2 h-4 w-4" />
-                        <span>Messages</span>
+                      <DropdownMenuItem onClick={handleSupportClick}>
+                        <QuestionMarkIcon className="mr-2 h-4 w-4" />
+                        <span>Support</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 

@@ -7,12 +7,12 @@ export default function GettingStartedPage() {
   const sections = [
     {
       id: "dashboard-overview",
-      title: "Dashboard Overview",
+      title: "Dashboards Overview",
       content: `The dashboard provides a comprehensive view of each user role's activities. You'll find:
         • All admin roles or higher will see the admin dashboard
         • All user roles or higher will see their user profiles
         • All landing pages will have tabs for common actions and insights
-        • Admin roles or higher will see summary statistics and key metrics
+        • Admin roles or higher will see reporting & certification status, summary statistics and key metrics
         • Navigation menu for accessing different pages and features`,
     },
     {
@@ -28,22 +28,21 @@ export default function GettingStartedPage() {
         • Admins can view and create audits, view sales performance, and access auditing guidelines
         `,
     },
-    {
-      id: "first-audit",
-      title: "Creating Your First Audit",
-      content: `To create your first audit:
-        1. Click the "New Audit" button in the top navigation
-        2. Select the audit type from the available templates
-        3. Fill in the required information
-        4. Save or submit the audit for review`,
-    },
+    // {
+    //   id: "first-audit",
+    //   title: "Creating Your First Audit",
+    //   content: `To create your first audit:
+    //     1. Click the "New Audit" button in the top navigation
+    //     2. Select the audit type from the available templates
+    //     3. Fill in the required information
+    //     4. Save or submit the audit for review`,
+    // },
     {
       id: "navigation",
-      title: "Navigating the Platform",
-      content: `Our platform features an intuitive navigation system:
-        • Use the sidebar menu to access different sections
-        • The top bar contains quick actions and user settings
-        • Breadcrumbs help you track your location
+      title: "Navigating the TGR Application",
+      content: `The TGR Application features an intuitive navigation system:
+        • Use the navigation bar to access different sections
+        • The user profile dropdown menu contains quick actions and user settings
         • Search functionality is available throughout the platform`,
     },
   ];
@@ -82,8 +81,9 @@ export default function GettingStartedPage() {
           <div className="space-y-8">
             <h1 className="text-4xl font-bold mb-4">Getting Started Guide</h1>
             <p className="text-muted-foreground">
-              Welcome to our platform! This guide will help you understand the
-              basics and get you started with your audit management journey.
+              Welcome to the TGR staff management application! This guide will
+              help you understand the basics and get you started with the TGR
+              application.
             </p>
 
             {sections.map((section) => (

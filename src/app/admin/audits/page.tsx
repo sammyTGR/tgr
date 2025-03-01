@@ -2464,12 +2464,12 @@ function AuditsPage() {
                     <DialogTrigger asChild>
                       <Button onClick={() => setIsAddDialogOpen(true)}>
                         <PlusIcon className="h-4 w-4 mr-2" />
-                        Add Category
+                        Add Guideline
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[800px] w-[90vw]">
                       <DialogHeader>
-                        <DialogTitle>Add Category</DialogTitle>
+                        <DialogTitle>Add Guideline</DialogTitle>
                       </DialogHeader>
                       <CategoryForm
                         onSubmit={async (data) => {

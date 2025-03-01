@@ -21,19 +21,24 @@ export default function SupportPage() {
       href: "/support/audit-management",
     },
     {
-      title: "User Guide",
-      description: "Detailed instructions for all user-related features",
-      href: "/support/user-guide",
+      title: "DROS Guidance",
+      description: "Detailed instructions for all DROS-related features",
+      href: "/support/dros-guide",
     },
     {
-      title: "Reports & Analytics",
-      description: "Understanding and utilizing reporting features",
-      href: "/support/reports",
+      title: "Scheduling",
+      description: "Detailed instructions for all scheduling-related features",
+      href: "/support/scheduling",
     },
     {
-      title: "FAQ",
-      description: "Frequently asked questions and troubleshooting",
-      href: "/support/faq",
+      title: "Forms & Reports",
+      description: "Understanding and utilizing forms and reports",
+      href: "/support/forms-and-reports",
+    },
+    {
+      title: "Management",
+      description: "Detailed instructions for all management-related features",
+      href: "/support/management",
     },
   ];
 
@@ -42,8 +47,8 @@ export default function SupportPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Support Center</h1>
         <p className="text-muted-foreground">
-          Welcome to our support center. Find detailed guides and documentation
-          to help you make the most of our platform.
+          Welcome to the TGR support center. Find detailed guides and
+          documentation to help you make the most of the TGR application.
         </p>
       </div>
 
