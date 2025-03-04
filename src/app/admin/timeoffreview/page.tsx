@@ -6,7 +6,7 @@ import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast, Toaster } from "sonner";
 
 const title = "Review Time Off Requests";
 const timeZone = "America/Los_Angeles"; // Set your desired timezone
@@ -282,9 +283,13 @@ export default function ApproveRequestsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+      toast.success("Time usage updated successfully");
     },
     onError: (error) => {
       console.error("Time usage mutation failed:", error);
+      toast.error(
+        `Failed to update time usage: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     },
   });
 
@@ -637,24 +642,101 @@ export default function ApproveRequestsPage() {
       );
   };
 
-  const handleApprove = (request_id: number) => {
+  const createVTOEntryMutation = useMutation({
+    mutationFn: async ({
+      request,
+      action = "approved",
+    }: {
+      request: TimeOffRequest;
+      action?: string;
+    }) => {
+      // Get all dates between start_date and end_date
+      const start = parseISO(request.start_date);
+      const end = parseISO(request.end_date);
+      const dates: string[] = [];
+      let currentDate = start;
+
+      while (currentDate <= end) {
+        dates.push(format(currentDate, "yyyy-MM-dd"));
+        currentDate = addDays(currentDate, 1);
+      }
+
+      // Determine the VTO type based on the action
+      let vto_type = "approved";
+      if (action === "called_out") {
+        vto_type = "called_out";
+      } else if (action === "no_call_no_show") {
+        vto_type = "no_call_no_show";
+      } else if (action?.startsWith("Custom:")) {
+        vto_type = "custom";
+      }
+
+      const timesheetData = {
+        employee_id: request.employee_id,
+        event_date: dates,
+        employee_name: request.name,
+        vto_type,
+      };
+
+      const response = await fetch("/api/timesheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(timesheetData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create VTO entry");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("VTO entries created successfully");
+      queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+    },
+    onError: (error: Error) => {
+      console.error("Error creating VTO entries:", error);
+      toast.error(`Failed to create VTO entries: ${error.message}`);
+    },
+  });
+
+  const createVTOEntry = async (request: TimeOffRequest, action?: string) => {
+    return createVTOEntryMutation.mutateAsync({ request, action });
+  };
+
+  const handleApprove = async (request_id: number) => {
     const request = requests.find(
       (req: TimeOffRequest) => req.request_id === request_id
     );
     if (request) {
       if (request.use_sick_time && request.use_vacation_time) {
-        alert(
+        toast.error(
           "Cannot use both sick time and vacation time for the same request"
         );
         return;
       }
-      handleRequest(
-        request_id,
-        "time_off",
-        `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
-        request.use_sick_time,
-        request.use_vacation_time
-      );
+
+      try {
+        // Create VTO entry if not using sick time
+        if (!request.use_sick_time && !request.use_vacation_time) {
+          await createVTOEntry(request, "approved");
+        }
+
+        await handleRequest(
+          request_id,
+          "time_off",
+          `Your Time Off Request For ${request.start_date} - ${request.end_date} Has Been Approved!`,
+          request.use_sick_time,
+          request.use_vacation_time
+        );
+
+        toast.success("Request approved successfully");
+      } catch (error) {
+        toast.error(
+          `Failed to approve request: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
     }
   };
 
@@ -666,18 +748,31 @@ export default function ApproveRequestsPage() {
     );
   };
 
-  const handleCalledOut = (request_id: number) => {
+  const handleCalledOut = async (request_id: number) => {
     const request = requests.find(
       (req: TimeOffRequest) => req.request_id === request_id
     );
     if (request) {
-      handleRequest(
-        request_id,
-        "called_out",
-        "Your Schedule Has Been Updated To Reflect That You Called Out.",
-        request.use_sick_time,
-        request.use_vacation_time
-      );
+      try {
+        // Create VTO entry if not using sick time
+        if (!request.use_sick_time && !request.use_vacation_time) {
+          await createVTOEntry(request, "called_out");
+        }
+
+        await handleRequest(
+          request_id,
+          "called_out",
+          "Your Schedule Has Been Updated To Reflect That You Called Out.",
+          request.use_sick_time,
+          request.use_vacation_time
+        );
+
+        toast.success("Called out status updated successfully");
+      } catch (error) {
+        toast.error(
+          `Failed to update called out status: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
     }
   };
 
@@ -694,18 +789,34 @@ export default function ApproveRequestsPage() {
     }
   };
 
-  const handleCustomApproval = (request_id: number, customText: string) => {
+  const handleCustomApproval = async (
+    request_id: number,
+    customText: string
+  ) => {
     const request = requests.find(
       (req: TimeOffRequest) => req.request_id === request_id
     );
     if (request) {
-      handleRequest(
-        request_id,
-        `Custom: ${DOMPurify.sanitize(customText)}` as RequestAction,
-        `Your Time Off Request Has Been Approved!`,
-        request.use_sick_time,
-        request.use_vacation_time
-      );
+      try {
+        // Create VTO entry if not using sick time
+        if (!request.use_sick_time && !request.use_vacation_time) {
+          await createVTOEntry(request, "Custom: " + customText);
+        }
+
+        await handleRequest(
+          request_id,
+          `Custom: ${DOMPurify.sanitize(customText)}` as RequestAction,
+          `Your Time Off Request Has Been Approved!`,
+          request.use_sick_time,
+          request.use_vacation_time
+        );
+
+        toast.success("Custom approval submitted successfully");
+      } catch (error) {
+        toast.error(
+          `Failed to submit custom approval: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
     }
   };
 
@@ -735,6 +846,7 @@ export default function ApproveRequestsPage() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
+      <Toaster richColors position="top-center" />
       <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-6">
           <TextGenerateEffect words={title} />
