@@ -38,7 +38,7 @@ import {
 import { CalendarIcon, CheckIcon } from "@radix-ui/react-icons";
 import { DataTableFacetedFilter } from "@/components/ui/faceted-filter";
 import { cn } from "@/lib/cn";
-import { CustomCalendar } from "@/components/ui/calendar";
+import { CustomCalendarAudit } from "@/components/ui/calendar";
 import {
   SelectContent,
   SelectItem,
@@ -60,6 +60,7 @@ import {
 import { toast } from "sonner"; // Import toast from Sonner
 import { useRouter } from "next/navigation"; // Use the router for redirects
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { Calendar } from "@/components/ui/calendar";
 type OptionType = {
   label: string;
   value: string;
@@ -215,7 +216,7 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
   }
 
   const submitFormData = async (formData: FormData) => {
-    let isFirstAudit = true; // Use this flag to check if we're processing the first record
+    let isFirstAudit = true;
 
     const records = formData.audits.flatMap((audit, index) => {
       const auditType = Array.isArray(audit.auditType)
@@ -228,46 +229,51 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
         ? audit.errorDetails
         : [audit.errorDetails];
 
+      // Create dates in local time
+      const now = new Date();
+      const auditDate = now;
+
+      // Format dates in ISO format for PostgreSQL
+      const transDateStr = format(formData.transDate, "yyyy-MM-dd");
+      const auditDateStr = format(now, "yyyy-MM-dd");
+
       return (audit.errorNotes || "").split("\n").map((note) => {
         const record: AuditRecord = {
           dros_number: formData.drosNumber,
           salesreps: formData.salesRep,
           audit_type: auditType.join(", "),
-          trans_date: format(formData.transDate, "yyyy-MM-dd"),
-          audit_date: formData.auditDate
-            ? format(formData.auditDate, "yyyy-MM-dd")
-            : null,
+          trans_date: transDateStr,
+          audit_date: auditDateStr,
           error_location: errorLocation.join(", "),
           error_details: errorDetails.join(", "),
           error_notes: note.trim(),
           dros_cancel: isFirstAudit && formData.drosCancel ? "Yes" : "",
         };
 
-        isFirstAudit = false; // After processing the first audit, set this to false
+        isFirstAudit = false;
         return record;
       });
     });
+
     try {
       const { data, error } = await supabase
         .from("Auditsinput")
         .insert(records);
 
       if (error) {
-        //console.("Detailed API error:", error);
         throw new Error(
           `Failed to append data: ${error.message || JSON.stringify(error)}`
         );
       }
 
       toast.success("Audit Submitted Successfully!");
-      reset(); // Reset form fields after successful submission
+      reset();
       setResetKey((prevKey) => prevKey + 1);
       if (onAuditSubmitted) {
         onAuditSubmitted();
       }
     } catch (error: any) {
-      //console.("Error during form submission:", error);
-      toast.success(
+      toast.error(
         `An error occurred during form submission: ${
           error.message || "Check server logs for more details."
         }`
@@ -487,7 +493,57 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <CustomCalendar
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) =>
+                                date > new Date() ||
+                                date < new Date("1900-01-01")
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          The Transaction (Purchase) Date
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* <Card>
+                <CardHeader>
+                  <CardTitle>Audit Date</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={control}
+                    name="auditDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Audit Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Select A Date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CustomCalendarAudit
                               selectedDate={field.value}
                               onDateChange={(date) => {
                                 field.onChange(date);
@@ -500,13 +556,13 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
                           </PopoverContent>
                         </Popover>
                         <FormDescription>
-                          The Transaction (Purchase) Date
+                          Date The Audit Was Performed
                         </FormDescription>
                       </FormItem>
                     )}
                   />
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
 
             {fields.map((field, index) => (

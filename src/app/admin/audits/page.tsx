@@ -844,13 +844,21 @@ const getAuditColumns = (
     id: "trans_date",
     header: "Transaction Date",
     accessorKey: "trans_date",
-    cell: ({ row }) => format(new Date(row.original.trans_date), "MM/dd/yyyy"),
+    cell: ({ row }) => {
+      // Create date in UTC to avoid timezone shifts
+      const date = new Date(row.original.trans_date + "T12:00:00Z");
+      return format(date, "MM/dd/yyyy");
+    },
   },
   {
     id: "audit_date",
     header: "Audit Date",
     accessorKey: "audit_date",
-    cell: ({ row }) => format(new Date(row.original.audit_date), "MM/dd/yyyy"),
+    cell: ({ row }) => {
+      // Create date in UTC to avoid timezone shifts
+      const date = new Date(row.original.audit_date + "T12:00:00Z");
+      return format(date, "MM/dd/yyyy");
+    },
   },
   {
     id: "error_location",

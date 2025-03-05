@@ -5,6 +5,8 @@ import { labels } from "./data";
 import { Badge } from "@/components/ui/badge";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { UUID } from "crypto";
+import { format, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 // Extend the ColumnDef type to include a meta property with a style field
 export type ColumnDef<TData, TValue = unknown> = BaseColumnDef<
@@ -28,10 +30,11 @@ export type AuditData = {
   error_notes?: string | null;
   dros_cancel: string | null;
   label?: string;
-
 };
 
-export const createColumns = (refreshData: () => void): ColumnDef<AuditData>[] => [
+export const createColumns = (
+  refreshData: () => void
+): ColumnDef<AuditData>[] => [
   {
     accessorKey: "dros_number",
     header: ({ column }) => (
@@ -74,12 +77,17 @@ export const createColumns = (refreshData: () => void): ColumnDef<AuditData>[] =
     ),
     cell: ({ row }) => {
       const label = labels.find((label) => label.value === row.original.label);
+      const dateStr = row.getValue("trans_date") as string;
+
+      // Create date in UTC to avoid timezone shifts
+      const date = new Date(dateStr + "T12:00:00Z");
+      const formattedDate = format(date, "MM/dd/yyyy");
 
       return (
         <div className="flex space-x-2">
           {label && <Badge variant="outline">{label.label}</Badge>}
           <span className="max-w-[500px] truncate font-medium">
-            {row.getValue("trans_date")}
+            {formattedDate}
           </span>
         </div>
       );
@@ -88,27 +96,18 @@ export const createColumns = (refreshData: () => void): ColumnDef<AuditData>[] =
       style: { width: "60px" },
     },
   },
-  // {
-  //   accessorKey: "audit_date",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Audit Date" />
-  //   ),
-  //   cell: ({ row }) => {
-  //     const label = labels.find((label) => label.value === row.original.label);
-
-  //     return (
-  //       <div className="flex space-x-2">
-  //         {label && <Badge variant="outline">{label.label}</Badge>}
-  //         <span className="max-w-[500px] truncate font-medium">
-  //           {row.getValue("audit_date")}
-  //         </span>
-  //       </div>
-  //     );
-  //   },
-  //   meta: {
-  //     style: { width: "60px" },
-  //   },
-  // },
+  {
+    id: "audit_date",
+    header: "Audit Date",
+    accessorKey: "audit_date",
+    cell: ({ row }) => {
+      const dateStr = row.getValue("audit_date") as string;
+      // Create date in UTC to avoid timezone shifts
+      const date = new Date(dateStr + "T12:00:00Z");
+      const formattedDate = format(date, "MM/dd/yyyy");
+      return formattedDate;
+    },
+  },
   {
     accessorKey: "error_location",
     header: "Error Location",

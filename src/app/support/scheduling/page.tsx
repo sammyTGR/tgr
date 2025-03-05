@@ -56,23 +56,24 @@ export default function SchedulingPage() {
         • Clicking on the Actions button to the far right will allow you to edit times for the day, or delete the timesheet entry for the day
         `,
     },
-    // {
-    //   id: "sales-performance",
-    //   title: "Sales Performance",
-    //   content: `To view sales performance:
-    //     • First navigate to the audit management page by hovering over the "Auditing" tab in the navigation bar then clicking on "Submit & Review Audits"
-    //     • Click the "Sales Performance" tab in the page tabs list
-    //     • If you want to review sales performance for a specific employee, click on the employee's name from the dropdown menu under "Sales Rep"
-    //     • If you want to review sales performance for all employees, click on the "Show All Employees" toggle button under "Sales Rep"
-    //     • Select the date within the month that you want to review sales performance for
-    //     • If you want to review for the entire month, click on the last day of the month
-    //     • Viewing all employees will show you a table with results of the monthly sales contest, listing the lead employee at the top, and the lowest performing employee at the bottom
-    //     • The table will show the employee's name, their total sales for the month, and their weighted score for the month
-    //     • At the bottom of the table, you will see employee's greyed out with a reasoning under the Status column for why they did not qualify for the monthly sales contest
-    //     • There are clear definitions of what defines a Minor and Major mistake
-    //     • If you want to change between viewing all employees or a specific employee, click on the "Clear All Selections" button to reset the view
-    //     `,
-    // },
+    {
+      id: "timeoff-review",
+      title: "Time Off Review",
+      content: `To review time off requests:
+        • First navigate to the time off review page by hovering over the "Scheduling" tab in the navigation bar then clicking on "Review Time Off Requests"
+        • All requests will be listed starting with the earliest request at the top and the latest request at the bottom
+        • The "Details" tab will show you the start and end date range for the request, the reason for the request and details that should list who they have covering for their shift
+        • The "Use Sick Or Vacation" tab will show you the available sick time for hourly employees and the available vacation time for salaried employees
+        • The "Actions" tab will show you the action buttons to approve, deny or mark the request as a duplicate to remove it
+        • In the "Actions" tab, it is very important to select the correct action for the request as this action will be automatically applied to the employee's time off request and will trigger automated emails to send to the employee and update their schedule, calendar and timesheet with the action selected
+        • Clicking on "Approve" without selecting to use vacation or sick time, will trigger an email to the employee with the approval, as well as updating the employee's schedule and the team calendar to reflect the approval, and it will insert a fake schedule into the employee_vto_events database table to show for the appropriate hours of VTO that need to show in the Timesheets table
+        • Clicking on "Custom Approval" without selecting to use vacation or sick time, will trigger the same events, but you get to set what text is shown in the team calendar
+        • Clicking on "Deny" will trigger an email to the employee with the denial, and it will update the request so that it is removed from the list, nothing will change in the team calendar
+        • Clicking on "Called Out" will trigger an email to the employee with the called out status, as well as updating the employee's schedule and the team calendar to reflect the approval, and it will insert a fake schedule into the employee_vto_events database table to show for the appropriate hours of VTO that need to show in the Timesheets table
+        • Clicking on "Early Leave" will trigger an email to the employee with the early leave approval, and you will be prompted to enter the time they are approved to leave for the day, which will update the employee's schedule and the team calendar to reflect the approved time 
+        • Clicking on "Duplicate" will remove the request from the list, nothing will change in the team calendar
+        `,
+    },
     // {
     //   id: "audit-guidelines",
     //   title: "Audit Guidelines",
