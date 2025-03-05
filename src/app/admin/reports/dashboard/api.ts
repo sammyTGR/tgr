@@ -356,20 +356,20 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
   try {
     // Set precise time boundaries for the day
     const start = new Date(startDate);
-    start.setUTCHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
     const formattedStartDate = start.toISOString();
 
     const end = new Date(endDate);
-    end.setUTCHours(23, 59, 59, 999);
-    const formattedEndDate = end.toISOString();
+    end.setHours(23, 59, 59, 999);
+    // Add one day to the end date in UTC to ensure we capture all records for the last day
+    const utcEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    const formattedEndDate = utcEnd.toISOString();
 
-    // Add debug logging
-    // console.log("Date boundaries:", {
-    //   start: formattedStartDate,
-    //   end: formattedEndDate,
-    //   rawStart: start,
-    //   rawEnd: end,
-    // });
+    // Simplified date boundary logging
+    console.log("Date Range:", {
+      start: formattedStartDate.split("T")[0] + " 00:00:00",
+      end: end.toLocaleDateString() + " 23:59:59",
+    });
 
     let allData: any[] = [];
     let page = 0;
@@ -378,6 +378,7 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
 
     // Create a Set to track processed items
     const processedItems = new Set();
+    let duplicateCount = 0;
 
     while (hasMore) {
       let query = supabase
@@ -422,34 +423,9 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         .gte("SoldDate", formattedStartDate)
         .lt("SoldDate", formattedEndDate);
 
-      // Add debug logging
-      // console.log("Query:", {
-      //   start: formattedStartDate,
-      //   end: formattedEndDate,
-      //   query: query.toString(),
-      // });
-
       const { data, error } = await query
         .range(page * pageSize, (page + 1) * pageSize - 1)
         .order("SoldDate", { ascending: true });
-
-      // Add debug logging for Station Rental records
-      if (data) {
-        const stationRentals = data.filter(
-          (item) => item.CatDesc === "Station Rental"
-        );
-        // console.log(
-        //   "Station Rental Records:",
-        //   stationRentals.map((item) => ({
-        //     id: item.id,
-        //     date: item.SoldDate,
-        //     subDesc: item.SubDesc,
-        //     qty: item.Qty,
-        //     margin: item.Margin,
-        //     total: Number(item.Margin),
-        //   }))
-        // );
-      }
 
       if (error) {
         console.error("KPI Data fetch error:", error);
@@ -462,16 +438,63 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         const processedData = data.filter((item) => {
           const itemId = `${item.SoldDate}-${item.Desc}-${item.id}`;
           if (processedItems.has(itemId)) {
+            duplicateCount++;
             return false;
           }
           processedItems.add(itemId);
           return true;
         });
 
+        // Track firearms data per page
+        const pageFirearms = processedData.filter((item) =>
+          ["Pistol", "Rifle"].includes(item.CatDesc)
+        );
+
+        if (pageFirearms.length > 0) {
+          console.log(`Page ${page + 1} Firearms:`, {
+            pistols: pageFirearms.filter((item) => item.CatDesc === "Pistol")
+              .length,
+            rifles: pageFirearms.filter((item) => item.CatDesc === "Rifle")
+              .length,
+          });
+        }
+
         allData = [...allData, ...processedData];
         page++;
         hasMore = data.length === pageSize;
       }
+    }
+
+    // Log final counts and any duplicates found
+    const pistolData = allData.filter((item) => item.CatDesc === "Pistol");
+    const rifleData = allData.filter((item) => item.CatDesc === "Rifle");
+
+    console.log("=== Final Counts ===");
+    console.log("Pistols:", {
+      totalItems: pistolData.length,
+      totalQuantity: pistolData.reduce(
+        (sum, item) => sum + Number(item.Qty),
+        0
+      ),
+      itemBreakdown: pistolData.map((item) => ({
+        date: item.SoldDate.split("T")[0],
+        qty: Number(item.Qty),
+        id: item.id,
+      })),
+    });
+
+    console.log("Rifles:", {
+      totalItems: rifleData.length,
+      totalQuantity: rifleData.reduce((sum, item) => sum + Number(item.Qty), 0),
+      itemBreakdown: rifleData.map((item) => ({
+        date: item.SoldDate.split("T")[0],
+        qty: Number(item.Qty),
+        id: item.id,
+      })),
+    });
+
+    if (duplicateCount > 0) {
+      console.log(`Duplicates filtered out: ${duplicateCount}`);
     }
 
     // Group and aggregate the data
@@ -611,14 +634,27 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         }
       }
 
-      // Add firearms categorization
+      // Add firearms categorization with extra date check
       else if (
         ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].includes(
           item.CatDesc
         )
       ) {
-        category = item.CatDesc;
-        variant = item.Mfg?.trim() || "Unknown";
+        const soldDate = new Date(item.SoldDate);
+        // Double check date is within range
+        if (soldDate >= start && soldDate <= end) {
+          category = item.CatDesc;
+          variant = item.Mfg?.trim() || "Unknown";
+
+          // Debug logging for firearms
+          console.log(`Firearm Item (${category}):`, {
+            id: item.id,
+            soldDate: item.SoldDate,
+            qty: item.Qty,
+            manufacturer: item.Mfg,
+            desc: item.Desc,
+          });
+        }
       }
 
       // Add class categorization
@@ -732,6 +768,11 @@ export const fetchDROSCancellations = async (
   const end = new Date(endDate);
   end.setUTCHours(23, 59, 59, 999);
   const formattedEndDate = end.toISOString();
+
+  console.log("DROS Date Range:", {
+    start: formattedStartDate.split("T")[0] + " 00:00:00",
+    end: formattedEndDate.split("T")[0] + " 23:59:59",
+  });
 
   const { data, error } = await supabase
     .from("Auditsinput")

@@ -464,17 +464,20 @@ const HeaderDev = React.memo(() => {
   });
 
   // Employee query
-  const { data: employeeData } = useQuery({
-    queryKey: ["employee", authData?.user?.id],
+  const { data: employeeData, isLoading: isEmployeeLoading } = useQuery({
+    queryKey: ["employee", currentUser?.id],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/fetchEmployees?select=employee_id&equals=user_uuid:${authData.user.id}&single=true`
-      );
-      if (!response.ok) throw new Error("Failed to fetch employee data");
-      return response.json();
+      if (!currentUser?.id) return null;
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("user_uuid", currentUser.id)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
-    enabled: !!authData?.user?.id,
-    staleTime: Infinity,
+    enabled: !!currentUser?.id,
   });
 
   // Unread counts queries with proper refetchInterval
@@ -535,8 +538,11 @@ const HeaderDev = React.memo(() => {
   };
 
   const handleProfileClick = () => {
-    if (currentUser?.id) {
+    if (currentUser?.id && employeeData?.employee_id) {
       router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
+    } else {
+      // Handle the case where employee data is not available
+      console.error("Employee data not found");
     }
   };
 
@@ -715,9 +721,15 @@ const HeaderDev = React.memo(() => {
                     <DropdownMenuContent className="w-56 mr-2">
                       <DropdownMenuLabel>Profile & Settings</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={handleProfileClick}>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onSelect={handleProfileClick}
+                        disabled={
+                          isEmployeeLoading || !employeeData?.employee_id
+                        }
+                      >
                         <PersonIcon className="mr-2 h-4 w-4" />
-                        <span>Your Profile Page</span>
+                        {isEmployeeLoading ? "Loading..." : "Profile"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
 

@@ -656,11 +656,12 @@ const EmployeeProfilePage = () => {
           `1970-01-01T${currentShift.lunch_start}`
         );
         const currentTime = new Date(`1970-01-01T${lunchEnd}`);
-        const timeDiff =
-          (currentTime.getTime() - lunchStartTime.getTime()) / 1000 / 60;
+        const timeDiffMinutes =
+          (currentTime.getTime() - lunchStartTime.getTime()) / (1000 * 60);
 
-        if (timeDiff < 29) {
-          const remainingMinutes = Math.ceil(29 - timeDiff);
+        // Allow clocking in at exactly 30 minutes
+        if (Math.floor(timeDiffMinutes) < 30) {
+          const remainingMinutes = Math.ceil(30 - timeDiffMinutes);
 
           // Store the lock timestamp
           await supabase
@@ -2458,15 +2459,39 @@ const useClockEvents = (employeeId: number) => {
             `1970-01-01T${currentShift.lunch_start}`
           );
           const currentTime = new Date(`1970-01-01T${lunchEnd}`);
-          const timeDiff =
-            (currentTime.getTime() - lunchStartTime.getTime()) / 1000 / 60;
+          const timeDiffMinutes =
+            (currentTime.getTime() - lunchStartTime.getTime()) / (1000 * 60);
 
-          if (timeDiff < 30) {
+          // Allow clocking in at exactly 30 minutes
+          if (Math.floor(timeDiffMinutes) < 30) {
+            const remainingMinutes = Math.ceil(30 - timeDiffMinutes);
+
+            // Store the lock timestamp
+            await supabase
+              .from("employee_clock_events")
+              .update({
+                lunch_lock: new Date(
+                  Date.now() + remainingMinutes * 60 * 1000
+                ).toISOString(),
+              })
+              .eq("id", currentShift.id);
+
             throw new Error(
-              `Please wait ${Math.ceil(
-                30 - timeDiff
-              )} more minutes before clocking back in from lunch.`
+              `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
             );
+          }
+
+          // Check if there's an active lunch lock
+          if (currentShift.lunch_lock) {
+            const lockTime = new Date(currentShift.lunch_lock);
+            if (lockTime > new Date()) {
+              const remainingMinutes = Math.ceil(
+                (lockTime.getTime() - Date.now()) / (60 * 1000)
+              );
+              throw new Error(
+                `Please wait ${remainingMinutes} more minutes before clocking back in from lunch.`
+              );
+            }
           }
         }
 
@@ -2626,7 +2651,9 @@ const scheduleOvertimeAlert = (
             formatTZ(clockInTime, "h:mm a", {
               timeZone: "America/Los_Angeles",
             }),
-            formatTZ(new Date(), "h:mm a", { timeZone: "America/Los_Angeles" })
+            formatTZ(new Date(), "h:mm a", {
+              timeZone: "America/Los_Angeles",
+            })
           ),
         ]).catch((error) => {
           console.error("Failed to send overtime alerts:", error);
