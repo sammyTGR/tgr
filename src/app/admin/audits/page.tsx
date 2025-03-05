@@ -1540,10 +1540,12 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         return;
       }
 
-      // Add one day to compensate for timezone offset
-      const adjustedDate = new Date(date);
-      adjustedDate.setDate(adjustedDate.getDate() + 1);
-      const formattedDate = format(adjustedDate, "yyyy-MM-dd");
+      // Create a new date at noon in local time to avoid any timezone issues
+      const localDate = new Date(date);
+      localDate.setHours(12, 0, 0, 0);
+
+      // Format the date without adding an extra day
+      const formattedDate = format(localDate, "yyyy-MM-dd");
 
       pageParams.setParams({ date: formattedDate });
 
@@ -2330,7 +2332,9 @@ function AuditsPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CustomCalendar
-                        selectedDate={selectedDate || new Date()}
+                        selectedDate={
+                          selectedDate ? new Date(selectedDate) : new Date()
+                        }
                         onDateChange={handleDateChange}
                         disabledDays={() => false}
                       />
