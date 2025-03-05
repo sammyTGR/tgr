@@ -19,7 +19,7 @@ export default function SchedulingPage() {
     },
     {
       id: "manage-schedules",
-      title: "Manage Schedules & Timesheets",
+      title: "Manage Schedules",
       content: `After opening the manage schedules & timesheets page:
         • The Scheduling tab will show you all of the employee's schedules as well as the action cards to create and delete schedules from the Team Calendar for individual and all employees
         • To genereate a schedule in the Team Calendar for an individual employee, select the employee's name from the dropdown menu in the Generate A Single Schedule card
