@@ -507,7 +507,7 @@ export default function ApproveRequestsPage() {
         variant="outline"
         onClick={() => handleLeftEarlyWithTime(request.request_id)}
       >
-        Leaving Early
+        Early Leave
       </Button>
       <Button
         className="w-full"
@@ -586,12 +586,12 @@ export default function ApproveRequestsPage() {
         };
         break;
       default:
-        if (action.startsWith("Custom: Left Early @")) {
+        if (action.startsWith("Custom: Early Leave @")) {
           templateName = "LeftEarly";
           templateData = {
             name: DOMPurify.sanitize(request.name),
             date: formatDateWithDay(request.start_date),
-            time: action.split("Left Early @ ")[1],
+            time: action.split("Early Leave @ ")[1],
             message: emailMessage,
           };
         } else if (action.startsWith("Custom: ")) {
@@ -608,7 +608,7 @@ export default function ApproveRequestsPage() {
         }
     }
 
-    const subject = action.startsWith("Custom: Left Early @")
+    const subject = action.startsWith("Custom: Early Leave @")
       ? "Left Early Notification"
       : action === "deny"
         ? "Time Off Request Denied"
@@ -833,7 +833,7 @@ export default function ApproveRequestsPage() {
     if (dialogState?.currentRequestId && dialogState?.time) {
       handleRequest(
         dialogState.currentRequestId,
-        `Custom: Left Early @ ${dialogState.time}` as RequestAction,
+        `Custom: Early Leave @ ${dialogState.time}` as RequestAction,
         `Your schedule has been updated to reflect that you left early at ${dialogState.time}.`
       );
       leftEarlyDialogMutation.mutate({
@@ -942,7 +942,7 @@ export default function ApproveRequestsPage() {
                           handleLeftEarlyWithTime(request.request_id)
                         }
                       >
-                        Leaving Early
+                        Early Leave
                       </Button>
                       <Button
                         className="w-full"
@@ -999,7 +999,7 @@ export default function ApproveRequestsPage() {
           >
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Left Early Time</DialogTitle>
+                <DialogTitle>Early Leave Time</DialogTitle>
               </DialogHeader>
               <div className="flex space-x-2">
                 <div className="flex-1">
@@ -1084,7 +1084,7 @@ export default function ApproveRequestsPage() {
                       const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
                       handleRequest(
                         leftEarlyDialogQuery.data?.currentRequestId!,
-                        `Custom: Left Early @ ${formattedTime}` as RequestAction,
+                        `Custom: Early Leave @ ${formattedTime}` as RequestAction,
                         `Your schedule has been updated to reflect that you left early at ${formattedTime}.`
                       );
                       leftEarlyDialogMutation.mutate({
