@@ -650,6 +650,14 @@ export default function ApproveRequestsPage() {
       request: TimeOffRequest;
       action?: string;
     }) => {
+      // Skip VTO entry creation for salary employees
+      if (request.pay_type?.toLowerCase() === "salary") {
+        return {
+          skipped: true,
+          message: "Skipped VTO entry for salary employee",
+        };
+      }
+
       // Get all dates between start_date and end_date
       const start = parseISO(request.start_date);
       const end = parseISO(request.end_date);
@@ -691,9 +699,12 @@ export default function ApproveRequestsPage() {
 
       return response.json();
     },
-    onSuccess: () => {
-      toast.success("VTO entries created successfully");
-      queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+    onSuccess: (data) => {
+      // Only show success message if VTO entry was actually created
+      if (!data.skipped) {
+        toast.success("VTO entries created successfully");
+        queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+      }
     },
     onError: (error: Error) => {
       console.error("Error creating VTO entries:", error);
@@ -718,7 +729,7 @@ export default function ApproveRequestsPage() {
       }
 
       try {
-        // Create VTO entry if not using sick time
+        // Create VTO entry if not using sick time and employee is hourly
         if (!request.use_sick_time && !request.use_vacation_time) {
           await createVTOEntry(request, "approved");
         }
@@ -754,7 +765,7 @@ export default function ApproveRequestsPage() {
     );
     if (request) {
       try {
-        // Create VTO entry if not using sick time
+        // Create VTO entry if not using sick time and employee is hourly
         if (!request.use_sick_time && !request.use_vacation_time) {
           await createVTOEntry(request, "called_out");
         }
@@ -798,7 +809,7 @@ export default function ApproveRequestsPage() {
     );
     if (request) {
       try {
-        // Create VTO entry if not using sick time
+        // Create VTO entry if not using sick time and employee is hourly
         if (!request.use_sick_time && !request.use_vacation_time) {
           await createVTOEntry(request, "Custom: " + customText);
         }
