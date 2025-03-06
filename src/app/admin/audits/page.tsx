@@ -49,7 +49,7 @@ import {
   TrashIcon,
   PlusIcon,
 } from "@radix-ui/react-icons";
-import { CustomCalendar } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
@@ -81,6 +81,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CategoryForm } from "./components/CategoryForm";
 import { ChevronUp } from "lucide-react";
 import { ChevronDown } from "lucide-react";
+import { CustomCalendarDashboard } from "@/components/ui/calendar";
 
 // Type definitions
 interface OptionType {
@@ -340,8 +341,8 @@ const api = {
     let query = supabase
       .from("detailed_sales_data")
       .select("*")
-      .gte("SoldDate", `${startDate}T00:00:00.000Z`) // Start of day
-      .lte("SoldDate", `${endDate}T23:59:59.999Z`) // End of day
+      .gte("SoldDate", `${startDate}T00:00:00Z`) // Use UTC time
+      .lte("SoldDate", `${endDate}T23:59:59Z`) // Use UTC time
       .eq("Desc", "Dros Fee");
 
     if (!showAllEmployees && lanid) {
@@ -1271,18 +1272,15 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
   const dateRange = useMemo(() => {
     if (!selectedDate) return null;
 
-    // Get first day of the selected month
+    // Get first day of the selected month in UTC
     const startDate = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      1
+      Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
     );
 
-    // Use the actual selected date for end date
-    const endDate = new Date(selectedDate);
-
-    // Ensure we're capturing the full day
-    endDate.setHours(23, 59, 59, 999);
+    // Use the actual selected date for end date in UTC
+    const endDate = new Date(
+      Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0)
+    );
 
     return {
       startDate: format(startDate, "yyyy-MM-dd"),
@@ -1540,12 +1538,13 @@ const useAuditsPageQueries = (pageParams: ReturnType<typeof usePageParams>) => {
         return;
       }
 
-      // Create a new date at noon in local time to avoid any timezone issues
-      const localDate = new Date(date);
-      localDate.setHours(12, 0, 0, 0);
+      // Create a new date at the start of the day in UTC
+      const utcDate = new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+      );
 
-      // Format the date without adding an extra day
-      const formattedDate = format(localDate, "yyyy-MM-dd");
+      // Format the date in UTC
+      const formattedDate = format(utcDate, "yyyy-MM-dd");
 
       pageParams.setParams({ date: formattedDate });
 
@@ -2320,10 +2319,10 @@ function AuditsPage() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full pl-3 text-left font-normal"
+                        className="w-full pl-3 text-left font-normal mb-2"
                       >
                         {selectedDate ? (
-                          format(selectedDate, "MMMM yyyy")
+                          format(selectedDate, "PPP")
                         ) : (
                           <span>Pick a date</span>
                         )}
@@ -2331,10 +2330,8 @@ function AuditsPage() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <CustomCalendar
-                        selectedDate={
-                          selectedDate ? new Date(selectedDate) : new Date()
-                        }
+                      <CustomCalendarDashboard
+                        selectedDate={selectedDate}
                         onDateChange={handleDateChange}
                         disabledDays={() => false}
                       />

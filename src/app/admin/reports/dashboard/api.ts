@@ -361,15 +361,14 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
 
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
-    // Add one day to the end date in UTC to ensure we capture all records for the last day
-    const utcEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-    const formattedEndDate = utcEnd.toISOString();
+    // Remove the extra day addition since we're already setting to end of day
+    const formattedEndDate = end.toISOString();
 
-    // Simplified date boundary logging
-    // console.log("Date Range:", {
-    //   start: formattedStartDate.split("T")[0] + " 00:00:00",
-    //   end: end.toLocaleDateString() + " 23:59:59",
-    // });
+    // Add debug logging for date boundaries
+    console.log("Date Range:", {
+      start: formattedStartDate.split("T")[0] + " 00:00:00",
+      end: formattedEndDate.split("T")[0] + " 23:59:59",
+    });
 
     let allData: any[] = [];
     let page = 0;
@@ -445,57 +444,11 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
           return true;
         });
 
-        // Track firearms data per page
-        const pageFirearms = processedData.filter((item) =>
-          ["Pistol", "Rifle"].includes(item.CatDesc)
-        );
-
-        if (pageFirearms.length > 0) {
-          // console.log(`Page ${page + 1} Firearms:`, {
-          //   pistols: pageFirearms.filter((item) => item.CatDesc === "Pistol")
-          //     .length,
-          //   rifles: pageFirearms.filter((item) => item.CatDesc === "Rifle")
-          //     .length,
-          // });
-        }
-
         allData = [...allData, ...processedData];
         page++;
         hasMore = data.length === pageSize;
       }
     }
-
-    // Log final counts and any duplicates found
-    const pistolData = allData.filter((item) => item.CatDesc === "Pistol");
-    const rifleData = allData.filter((item) => item.CatDesc === "Rifle");
-
-    // console.log("=== Final Counts ===");
-    // console.log("Pistols:", {
-    //   totalItems: pistolData.length,
-    //   totalQuantity: pistolData.reduce(
-    //     (sum, item) => sum + Number(item.Qty),
-    //     0
-    //   ),
-    //   itemBreakdown: pistolData.map((item) => ({
-    //     date: item.SoldDate.split("T")[0],
-    //     qty: Number(item.Qty),
-    //     id: item.id,
-    //   })),
-    // });
-
-    // console.log("Rifles:", {
-    //   totalItems: rifleData.length,
-    //   totalQuantity: rifleData.reduce((sum, item) => sum + Number(item.Qty), 0),
-    //   itemBreakdown: rifleData.map((item) => ({
-    //     date: item.SoldDate.split("T")[0],
-    //     qty: Number(item.Qty),
-    //     id: item.id,
-    //   })),
-    // });
-
-    // if (duplicateCount > 0) {
-    //   console.log(`Duplicates filtered out: ${duplicateCount}`);
-    // }
 
     // Group and aggregate the data
     const kpiGroups = allData.reduce<Record<string, KPIResult>>((acc, item) => {
@@ -512,7 +465,7 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
               : item.SubDesc.trim();
           const qty = Number(item.Qty) || 0;
           const margin = Number(item.Margin) || 0;
-          const revenue = qty * margin;
+          const revenue = margin; // Use margin directly for revenue
 
           // Initialize category if needed
           if (!acc[category]) {
@@ -587,34 +540,6 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
         ) {
           category = "Range Protection Equipment";
           variant = item.Desc?.trim() || "Unknown PPE";
-
-          const qty = Number(item.Qty) || 0;
-          const margin = Number(item.Margin) || 0;
-          const revenue = qty * margin;
-
-          if (!acc[category]) {
-            acc[category] = {
-              qty: 0,
-              revenue: 0,
-              variants: {},
-              group: "Range Rentals",
-            };
-          }
-
-          // Update category totals
-          acc[category].qty += qty;
-          acc[category].revenue += revenue;
-
-          // Initialize variant if it doesn't exist
-          if (!acc[category].variants[variant]) {
-            acc[category].variants[variant] = { qty: 0, revenue: 0 };
-          }
-
-          // Update variant totals
-          acc[category].variants[variant].qty += qty;
-          acc[category].variants[variant].revenue += revenue;
-
-          return acc;
         }
 
         // Simplify Gun Range Rental categorization
@@ -645,32 +570,6 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
           category = "Classes";
           // Combine SubDesc with Full_Name for the variant
           variant = `${item.SubDesc?.trim() || "Unknown Class"} - ${item.Full_Name?.trim() || "Unknown Student"}`;
-
-          const qty = Number(item.Qty) || 0;
-          const margin = Number(item.Margin) || 0;
-          const revenue = qty * margin;
-
-          if (!acc[category]) {
-            acc[category] = {
-              qty: 0,
-              revenue: 0,
-              variants: {},
-              group: "Classes",
-            };
-          }
-
-          // Update category totals
-          acc[category].qty += qty;
-          acc[category].revenue += revenue;
-
-          // Initialize and update variant
-          if (!acc[category].variants[variant]) {
-            acc[category].variants[variant] = { qty: 0, revenue: 0 };
-          }
-          acc[category].variants[variant].qty += qty;
-          acc[category].variants[variant].revenue += revenue;
-
-          return acc;
         }
 
         if (category) {
@@ -704,7 +603,18 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
 
           const qty = Number(item.Qty) || 0;
           const margin = Number(item.Margin) || 0;
-          const revenue = qty * margin;
+          const revenue = margin; // Use margin directly for revenue
+
+          // Debug logging for all categories
+          console.log(`Sale:`, {
+            category,
+            variant,
+            qty,
+            margin,
+            revenue,
+            date: item.SoldDate,
+            id: item.id,
+          });
 
           // Update category totals
           acc[category].qty += qty;
@@ -721,6 +631,26 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
 
       return acc;
     }, {});
+
+    // Add summary logging at the end of the reduce function
+    console.log("=== Firearms Revenue Summary ===");
+    ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].forEach(
+      (category) => {
+        if (kpiGroups[category]) {
+          console.log(`${category}:`, {
+            totalQty: kpiGroups[category].qty,
+            totalRevenue: kpiGroups[category].revenue,
+            variants: Object.entries(kpiGroups[category].variants).map(
+              ([variant, stats]) => ({
+                variant,
+                qty: stats.qty,
+                revenue: stats.revenue,
+              })
+            ),
+          });
+        }
+      }
+    );
 
     return kpiGroups;
   } catch (error) {
