@@ -49,10 +49,21 @@ export async function POST(request: Request) {
       // Transaction Information
       hsc_fsc_number: formData.hscFscNumber,
       exemption_code: formData.exemptionCode,
-      eligibility_q1: formData.eligibilityQ1?.toLowerCase(),
-      eligibility_q2: formData.eligibilityQ2?.toLowerCase(),
-      eligibility_q3: formData.eligibilityQ3?.toLowerCase(),
-      eligibility_q4: formData.eligibilityQ4?.toLowerCase(),
+      eligibility_q1: formData.eligibilityQ1
+        ? formData.eligibilityQ1.toLowerCase() === "yes"
+        : null,
+      eligibility_q2: formData.eligibilityQ2
+        ? formData.eligibilityQ2.toLowerCase() === "yes"
+        : null,
+      eligibility_q3: formData.eligibilityQ3
+        ? formData.eligibilityQ3.toLowerCase() === "yes"
+        : null,
+      eligibility_q4: formData.eligibilityQ4
+        ? formData.eligibilityQ4.toLowerCase() === "yes"
+        : null,
+      firearms_q1: formData.firearmsQ1
+        ? formData.firearmsQ1.toLowerCase()
+        : null,
       is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase(),
       waiting_period_exemption: formData.waitingPeriodExemption,
       restriction_exemption: "Peace Officer - Active - Letter Required",

@@ -68,6 +68,7 @@ type DealerHandgunSale = {
   eligibility_q2: boolean;
   eligibility_q3: boolean;
   eligibility_q4: boolean;
+  firearms_q1: string;
   is_gun_show_transaction: boolean;
   waiting_period_exemption?: string;
   restriction_exemption?: string;
@@ -648,6 +649,10 @@ const ReviewPage = () => {
                 <p>
                   <strong>Question 4:</strong>{" "}
                   {submission.eligibility_q4 ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Firearms Possession Question:</strong>{" "}
+                  {submission.firearms_q1 || ""}
                 </p>
               </CardContent>
             </Card>

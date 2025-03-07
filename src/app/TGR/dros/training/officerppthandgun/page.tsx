@@ -74,6 +74,7 @@ export type FormData = {
   eligibilityQ2: string;
   eligibilityQ3: string;
   eligibilityQ4: string;
+  firearmsQ1: string;
   isGunShowTransaction: string;
   waitingPeriodExemption?: string;
   restrictionExemption?: string;
@@ -164,6 +165,7 @@ const initialFormState: Partial<FormData> = {
   eligibilityQ2: "",
   eligibilityQ3: "",
   eligibilityQ4: "",
+  firearmsQ1: "",
   isGunShowTransaction: "",
   waitingPeriodExemption: "",
   restrictionExemption:
@@ -554,6 +556,27 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
 
               <span className="font-medium">Comments:</span>
               <span>{formValues.comments || "N/A"}</span>
+            </div>
+          </div>
+
+          {/* Eligibility Questions */}
+          <div className="col-span-2 space-y-4 mt-4">
+            <h3 className="font-bold">Eligibility Questions</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="font-medium">Eligibility Question 1:</span>
+              <span>{formValues.eligibilityQ1}</span>
+
+              <span className="font-medium">Eligibility Question 2:</span>
+              <span>{formValues.eligibilityQ2}</span>
+
+              <span className="font-medium">Eligibility Question 3:</span>
+              <span>{formValues.eligibilityQ3}</span>
+
+              <span className="font-medium">Eligibility Question 4:</span>
+              <span>{formValues.eligibilityQ4}</span>
+
+              <span className="font-medium">Firearms Possession Question:</span>
+              <span>{formValues.firearmsQ1}</span>
             </div>
           </div>
         </div>
@@ -2049,6 +2072,30 @@ const OfficerPptHandgunPage = () => {
                 >
                   <SelectItem value="yes">Yes</SelectItem>
                   <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="n/a">N/A</SelectItem>
+                </SelectComponent>
+              </div>
+
+              {/* Question 5 - Firearms Possession */}
+              <div className="space-y-2">
+                <Label className="required block text-sm font-medium">
+                  <span className="font-bold">
+                    Firearms Possession Question:
+                  </span>{" "}
+                  If you currently own or possess firearms, have you checked and
+                  confirmed possession of those firearms within the past 30
+                  days? If you do not currently own or possess firearms, you
+                  must select not applicable (N/A).
+                </Label>
+                <SelectComponent
+                  name="firearmsQ1"
+                  value={watch("firearmsQ1") || ""}
+                  onValueChange={(value) => setValue("firearmsQ1", value)}
+                  placeholder="Select"
+                >
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="n/a">N/A</SelectItem>
                 </SelectComponent>
               </div>
             </CardContent>

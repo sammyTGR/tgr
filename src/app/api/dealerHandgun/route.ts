@@ -46,10 +46,21 @@ export async function POST(request: Request) {
       alias_suffix: formData.aliasSuffix,
       hsc_fsc_number: formData.hscFscNumber,
       exemption_code: formData.exemptionCode,
-      eligibility_q1: formData.eligibilityQ1.toLowerCase() === "yes",
-      eligibility_q2: formData.eligibilityQ2.toLowerCase() === "yes",
-      eligibility_q3: formData.eligibilityQ3.toLowerCase() === "yes",
-      eligibility_q4: formData.eligibilityQ4.toLowerCase() === "yes",
+      eligibility_q1: formData.eligibilityQ1
+        ? formData.eligibilityQ1.toLowerCase() === "yes"
+        : null,
+      eligibility_q2: formData.eligibilityQ2
+        ? formData.eligibilityQ2.toLowerCase() === "yes"
+        : null,
+      eligibility_q3: formData.eligibilityQ3
+        ? formData.eligibilityQ3.toLowerCase() === "yes"
+        : null,
+      eligibility_q4: formData.eligibilityQ4
+        ? formData.eligibilityQ4.toLowerCase() === "yes"
+        : null,
+      firearms_q1: formData.firearmsQ1
+        ? formData.firearmsQ1.toLowerCase()
+        : null,
       is_gun_show_transaction:
         formData.isGunShowTransaction.toLowerCase() === "yes",
       waiting_period_exemption: formData.waitingPeriodExemption,
