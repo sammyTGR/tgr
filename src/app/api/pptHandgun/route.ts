@@ -16,6 +16,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Validate required fields
+    const requiredFields = [
+      "make",
+      "model",
+      "serial_number",
+      "color",
+      "is_new_gun",
+      "firearm_safety_device",
+      "eligibility_q1",
+      "eligibility_q2",
+      "eligibility_q3",
+      "eligibility_q4",
+      "is_gun_show_transaction",
+    ];
+
+    const missingFields = requiredFields.filter((field) => !formData[field]);
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Missing Required Fields",
+          details: `Missing required fields: ${missingFields.join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Transform form data to match database schema
     const dbData = {
       user_id: user.id,
@@ -78,22 +104,13 @@ export async function POST(request: Request) {
       // Transaction Information
       hsc_fsc_number: formData.hscFscNumber,
       exemption_code: formData.exemptionCode,
-      eligibility_q1: formData.eligibilityQ1
-        ? formData.eligibilityQ1.toLowerCase() === "yes"
-        : null,
-      eligibility_q2: formData.eligibilityQ2
-        ? formData.eligibilityQ2.toLowerCase() === "yes"
-        : null,
-      eligibility_q3: formData.eligibilityQ3
-        ? formData.eligibilityQ3.toLowerCase() === "yes"
-        : null,
-      eligibility_q4: formData.eligibilityQ4
-        ? formData.eligibilityQ4.toLowerCase() === "yes"
-        : null,
-      firearms_q1: formData.firearmsQ1
-        ? formData.firearmsQ1.toLowerCase()
-        : null,
-      is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase(),
+      eligibility_q1: formData.eligibilityQ1?.toLowerCase() || "no",
+      eligibility_q2: formData.eligibilityQ2?.toLowerCase() || "no",
+      eligibility_q3: formData.eligibilityQ3?.toLowerCase() || "no",
+      eligibility_q4: formData.eligibilityQ4?.toLowerCase() || "no",
+      firearms_q1: formData.firearmsQ1?.toLowerCase() || null,
+      is_gun_show_transaction:
+        formData.isGunShowTransaction?.toLowerCase() || "no",
       waiting_period_exemption: formData.waitingPeriodExemption,
       restriction_exemption: formData.restrictionExemption,
 
@@ -130,7 +147,10 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Supabase error:", error);
-      throw error;
+      return NextResponse.json(
+        { error: "Database Error", details: error.message },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(data);

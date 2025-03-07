@@ -51,11 +51,12 @@ const MakeSelect = ({
 
   return (
     <Select
-      value={value || ""}
+      value={value}
       onValueChange={(newValue) => {
-        setValue("make", newValue);
-        setValue("model", "");
+        setValue("make", newValue, { shouldValidate: true });
+        setValue("model", "", { shouldValidate: true }); // Reset model when make changes
       }}
+      disabled={isLoadingHandguns}
     >
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select Make" />

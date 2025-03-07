@@ -2027,7 +2027,7 @@ const PptHandgunPage = () => {
                   <div className="space-y-2">
                     <Label>Zip Code</Label>
                     <Input
-                      {...register("zipCode", {
+                      {...register("sellerZipCode", {
                         onChange: (e) => {
                           const value = e.target.value
                             .slice(0, 5)
@@ -2037,7 +2037,7 @@ const PptHandgunPage = () => {
                         onBlur: (e) => {
                           if (e.target.value.length === 5) {
                             queryClient.invalidateQueries({
-                              queryKey: ["zipCode", e.target.value],
+                              queryKey: ["sellerZipCode", e.target.value],
                             });
                           }
                         },
@@ -2047,29 +2047,35 @@ const PptHandgunPage = () => {
                     />
                   </div>
 
-                  {zipData && (
+                  {sellerZipData && (
                     <>
                       <div className="space-y-2">
                         <Label>City</Label>
                         <SelectComponent
-                          name="city"
-                          value={getValues("city") || ""}
-                          onValueChange={(value) => setValue("city", value)}
+                          name="sellerCity"
+                          value={getValues("sellerCity") || ""}
+                          onValueChange={(value) =>
+                            setValue("sellerCity", value)
+                          }
                           placeholder={
-                            isZipLoading ? "Loading cities..." : "Select city"
+                            isSellerZipLoading
+                              ? "Loading cities..."
+                              : "Select city"
                           }
                         >
-                          {zipData?.primary_city && (
-                            <SelectItem value={zipData.primary_city}>
-                              {zipData.primary_city}
+                          {sellerZipData?.primary_city && (
+                            <SelectItem value={sellerZipData.primary_city}>
+                              {sellerZipData.primary_city}
                             </SelectItem>
                           )}
-                          {zipData?.acceptable_cities?.map((city) => (
+                          {sellerZipData?.acceptable_cities?.map((city) => (
                             <SelectItem
                               key={city}
                               value={city}
                               className={
-                                city === zipData?.primary_city ? "hidden" : ""
+                                city === sellerZipData?.primary_city
+                                  ? "hidden"
+                                  : ""
                               }
                             >
                               {city}
@@ -2081,7 +2087,7 @@ const PptHandgunPage = () => {
                       <div className="space-y-2">
                         <Label>State</Label>
                         <Input
-                          value={zipData?.state || ""}
+                          value={sellerZipData?.state || ""}
                           disabled
                           className="w-16 bg-muted"
                         />

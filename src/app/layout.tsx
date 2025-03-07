@@ -34,25 +34,25 @@ if (!clientId) {
   throw new Error("Missing Google Client ID");
 }
 
-// async function initializeFlagsmith(): Promise<IState<string> | undefined> {
-//   const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
-//   if (!environmentID) {
-//     console.warn("Flagsmith environment ID is not set");
-//     return undefined;
-//   }
+async function initializeFlagsmith(): Promise<IState<string> | undefined> {
+  const environmentID = process.env.NEXT_PUBLIC_FLAGSMITH_ENVIRONMENT_ID!;
+  if (!environmentID) {
+    console.warn("Flagsmith environment ID is not set");
+    return undefined;
+  }
 
-//   try {
-//     await flagsmith.init({
-//       environmentID,
-//       // Use a default identity or consider using a dynamic one based on the user
-//       identity: "my_user_id",
-//     });
-//     return flagsmith.getState();
-//   } catch (error) {
-//     console.error("Failed to initialize Flagsmith:", error);
-//     return undefined;
-//   }
-// }
+  try {
+    await flagsmith.init({
+      environmentID,
+      // Use a default identity or consider using a dynamic one based on the user
+      identity: "my_user_id",
+    });
+    return flagsmith.getState();
+  } catch (error) {
+    console.error("Failed to initialize Flagsmith:", error);
+    return undefined;
+  }
+}
 
 export default async function RootLayout({
   children,
@@ -63,7 +63,7 @@ export default async function RootLayout({
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  // const flagsmithState = await initializeFlagsmith();
+  const flagsmithState = await initializeFlagsmith();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
@@ -73,30 +73,30 @@ export default async function RootLayout({
           <QueryProvider>
             <TooltipProvider>
               <GoogleOAuthProvider clientId={clientId}>
-                {/* <FlagsmithWrapper flagsmithState={flagsmithState}> */}
-                <NextSSRPlugin
-                  routerConfig={extractRouterConfig(ourFileRouter)}
-                />
-                <ThemeProvider
-                  attribute="class"
-                  defaultTheme="system"
-                  enableSystem
-                  disableTransitionOnChange
-                >
-                  <NotificationsProvider>
-                    <RoleProvider>
-                      <RealTimeNotificationsWrapper />
-                      <Header />
-                      <main>
-                        {children as ReactElement}
-                        {shouldInjectToolbar && <VercelToolbar />}
-                        <Analytics />
-                      </main>
-                      <Toaster />
-                    </RoleProvider>
-                  </NotificationsProvider>
-                </ThemeProvider>
-                {/* </FlagsmithWrapper> */}
+                <FlagsmithWrapper flagsmithState={flagsmithState}>
+                  <NextSSRPlugin
+                    routerConfig={extractRouterConfig(ourFileRouter)}
+                  />
+                  <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                  >
+                    <NotificationsProvider>
+                      <RoleProvider>
+                        <RealTimeNotificationsWrapper />
+                        <Header />
+                        <main>
+                          {children as ReactElement}
+                          {shouldInjectToolbar && <VercelToolbar />}
+                          <Analytics />
+                        </main>
+                        <Toaster />
+                      </RoleProvider>
+                    </NotificationsProvider>
+                  </ThemeProvider>
+                </FlagsmithWrapper>
               </GoogleOAuthProvider>
             </TooltipProvider>
           </QueryProvider>
