@@ -8,21 +8,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 import DOMPurify from "isomorphic-dompurify";
 import { UseFormSetValue } from "react-hook-form";
 import type { FormData } from "../app/TGR/dros/training/ppthandgun/page";
 
+interface Manufacturer {
+  value: string;
+  label: string;
+}
+
 interface MakeSelectProps {
   setValue: UseFormSetValue<FormData>;
   value: string;
-  makes: string[];
+  makes: Manufacturer[];
   isLoadingHandguns: boolean;
 }
 
 const MakeSelect = ({
   setValue,
   value,
-  makes,
+  makes = [],
   isLoadingHandguns,
 }: MakeSelectProps) => {
   // Query for all makes and filter out empty values
@@ -30,11 +42,7 @@ const MakeSelect = ({
     queryKey: ["makes", makes],
     queryFn: () => {
       if (!makes) return [];
-
-      // Filter and sort makes
-      return makes
-        .filter((make) => make && make.trim() !== "") // Remove empty or whitespace-only values
-        .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
+      return makes.sort((a, b) => a.label.localeCompare(b.label));
     },
     enabled: !!makes && !isLoadingHandguns,
   });
@@ -62,13 +70,25 @@ const MakeSelect = ({
         <SelectValue placeholder="Select Make" />
       </SelectTrigger>
       <SelectContent>
-        <ScrollArea className="h-[200px]">
-          {filteredMakes.map((make) => (
-            <SelectItem key={make} value={make}>
-              {DOMPurify.sanitize(make)}
-            </SelectItem>
-          ))}
-        </ScrollArea>
+        <Command>
+          <CommandInput placeholder="Search makes..." className="h-9" />
+          <CommandEmpty>No makes found.</CommandEmpty>
+          <CommandGroup>
+            <ScrollArea className="h-[300px]">
+              {filteredMakes.map((make) => (
+                <CommandItem
+                  key={make.value}
+                  onSelect={() => {
+                    setValue("make", make.value, { shouldValidate: true });
+                    setValue("model", "", { shouldValidate: true });
+                  }}
+                >
+                  {DOMPurify.sanitize(make.label)}
+                </CommandItem>
+              ))}
+            </ScrollArea>
+          </CommandGroup>
+        </Command>
       </SelectContent>
     </Select>
   );

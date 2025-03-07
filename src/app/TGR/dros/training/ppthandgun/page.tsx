@@ -1,5 +1,5 @@
 "use client";
-import MakeSelect from "@/components/MakeSelect";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,7 @@ import {
 import { Textarea } from "../../../../../components/ui/textarea";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
+import MakeSelect from "@/components/MakeSelect";
 
 export type FormData = {
   firstName: string;
@@ -636,7 +637,7 @@ const PptHandgunPage = () => {
     watch,
     setValue,
     getValues,
-    control, // Add this
+    control,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: initialFormState,
@@ -2378,14 +2379,25 @@ const PptHandgunPage = () => {
                   <MakeSelect
                     setValue={setValue}
                     value={watch("make") || ""}
-                    makes={makesData?.makes || []}
+                    makes={makesData?.manufacturers || []}
                     isLoadingHandguns={isLoadingMakes}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="required">Model</Label>
-                  <Input {...register("model")} placeholder="Enter model" />
+                  <Input
+                    {...register("model", {
+                      required: "Model is required",
+                    })}
+                    placeholder="Enter model"
+                    className={errors.model ? "border-red-500" : ""}
+                  />
+                  {errors.model && (
+                    <span className="text-sm text-red-500">
+                      {errors.model.message}
+                    </span>
+                  )}
                 </div>
               </div>
 

@@ -27,7 +27,8 @@ export async function GET(req: Request) {
       .from("manufacturers")
       .select("id, make")
       .order("make")
-      .not("make", "eq", "");
+      .not("make", "eq", "")
+      .limit(10000);
 
     if (fetchError) throw fetchError;
 
