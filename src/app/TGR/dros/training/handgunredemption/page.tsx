@@ -464,8 +464,8 @@ const SelectComponent = React.memo(
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
-          <ScrollArea className="max-h-[200px]">{children}</ScrollArea>
+        <SelectContent className="max-h-[200px]">
+          <ScrollArea className="h-full">{children}</ScrollArea>
         </SelectContent>
       </Select>
     );
