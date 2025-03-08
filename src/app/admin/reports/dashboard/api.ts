@@ -365,10 +365,10 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
     const formattedEndDate = end.toISOString();
 
     // Add debug logging for date boundaries
-    console.log("Date Range:", {
-      start: formattedStartDate.split("T")[0] + " 00:00:00",
-      end: formattedEndDate.split("T")[0] + " 23:59:59",
-    });
+    // console.log("Date Range:", {
+    //   start: formattedStartDate.split("T")[0] + " 00:00:00",
+    //   end: formattedEndDate.split("T")[0] + " 23:59:59",
+    // });
 
     let allData: any[] = [];
     let page = 0;
@@ -606,15 +606,15 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
           const revenue = margin; // Use margin directly for revenue
 
           // Debug logging for all categories
-          console.log(`Sale:`, {
-            category,
-            variant,
-            qty,
-            margin,
-            revenue,
-            date: item.SoldDate,
-            id: item.id,
-          });
+          // console.log(`Sale:`, {
+          //   category,
+          //   variant,
+          //   qty,
+          //   margin,
+          //   revenue,
+          //   date: item.SoldDate,
+          //   id: item.id,
+          // });
 
           // Update category totals
           acc[category].qty += qty;
@@ -633,21 +633,21 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
     }, {});
 
     // Add summary logging at the end of the reduce function
-    console.log("=== Firearms Revenue Summary ===");
+    // console.log("=== Firearms Revenue Summary ===");
     ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].forEach(
       (category) => {
         if (kpiGroups[category]) {
-          console.log(`${category}:`, {
-            totalQty: kpiGroups[category].qty,
-            totalRevenue: kpiGroups[category].revenue,
-            variants: Object.entries(kpiGroups[category].variants).map(
-              ([variant, stats]) => ({
-                variant,
-                qty: stats.qty,
-                revenue: stats.revenue,
-              })
-            ),
-          });
+          // console.log(`${category}:`, {
+          //   totalQty: kpiGroups[category].qty,
+          //   totalRevenue: kpiGroups[category].revenue,
+          //   variants: Object.entries(kpiGroups[category].variants).map(
+          //     ([variant, stats]) => ({
+          //       variant,
+          //       qty: stats.qty,
+          //       revenue: stats.revenue,
+          //     })
+          //   ),
+          // });
         }
       }
     );

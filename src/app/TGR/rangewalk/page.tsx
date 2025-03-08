@@ -67,6 +67,7 @@ export default function Component() {
       const user = userData.user;
       setUserId(user.id);
 
+      // Get session only for access token
       const { data: sessionData, error: sessionError } =
         await supabase.auth.getSession();
       if (sessionError) {

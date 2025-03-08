@@ -28,6 +28,23 @@ export async function GET(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
+    // Get current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        {
+          error: "Not authenticated",
+          details: userError?.message,
+        },
+        { status: 401 }
+      );
+    }
+
+    // Get session to access JWT token
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -43,21 +60,6 @@ export async function GET(request: Request) {
     // Get role from JWT
     const jwt = jwtDecode<JWTPayload>(session.access_token);
     const jwtRole = jwt.app_metadata?.role || "authenticated";
-
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return NextResponse.json(
-        {
-          error: "Not authenticated",
-          details: userError?.message,
-        },
-        { status: 401 }
-      );
-    }
 
     // Verify JWT role matches database role
     const { data: employeeData, error: employeeError } = await supabase

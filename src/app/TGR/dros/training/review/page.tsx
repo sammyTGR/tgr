@@ -64,10 +64,10 @@ type DealerHandgunSale = {
   alias_suffix?: string;
   hsc_fsc_number?: string;
   exemption_code: string;
-  eligibility_q1: boolean;
-  eligibility_q2: boolean;
-  eligibility_q3: boolean;
-  eligibility_q4: boolean;
+  eligibility_q1: boolean | string;
+  eligibility_q2: boolean | string;
+  eligibility_q3: boolean | string;
+  eligibility_q4: boolean | string;
   firearms_q1: string;
   is_gun_show_transaction: boolean;
   waiting_period_exemption?: string;
@@ -636,19 +636,43 @@ const ReviewPage = () => {
               <CardContent className="space-y-2">
                 <p>
                   <strong>Question 1:</strong>{" "}
-                  {submission.eligibility_q1 ? "Yes" : "No"}
+                  {typeof submission.eligibility_q1 === "string"
+                    ? submission.eligibility_q1.toLowerCase() === "yes"
+                      ? "Yes"
+                      : "No"
+                    : submission.eligibility_q1
+                      ? "Yes"
+                      : "No"}
                 </p>
                 <p>
                   <strong>Question 2:</strong>{" "}
-                  {submission.eligibility_q2 ? "Yes" : "No"}
+                  {typeof submission.eligibility_q2 === "string"
+                    ? submission.eligibility_q2.toLowerCase() === "yes"
+                      ? "Yes"
+                      : "No"
+                    : submission.eligibility_q2
+                      ? "Yes"
+                      : "No"}
                 </p>
                 <p>
                   <strong>Question 3:</strong>{" "}
-                  {submission.eligibility_q3 ? "Yes" : "No"}
+                  {typeof submission.eligibility_q3 === "string"
+                    ? submission.eligibility_q3.toLowerCase() === "yes"
+                      ? "Yes"
+                      : "No"
+                    : submission.eligibility_q3
+                      ? "Yes"
+                      : "No"}
                 </p>
                 <p>
                   <strong>Question 4:</strong>{" "}
-                  {submission.eligibility_q4 ? "Yes" : "No"}
+                  {typeof submission.eligibility_q4 === "string"
+                    ? submission.eligibility_q4.toLowerCase() === "yes"
+                      ? "Yes"
+                      : "No"
+                    : submission.eligibility_q4
+                      ? "Yes"
+                      : "No"}
                 </p>
                 <p>
                   <strong>Firearms Possession Question:</strong>{" "}

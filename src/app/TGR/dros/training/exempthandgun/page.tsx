@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "../../../../../components/ui/dialog";
 import { Input } from "../../../../../components/ui/input";
 import { Label } from "../../../../../components/ui/label";
@@ -35,6 +36,7 @@ import {
 import { Textarea } from "../../../../../components/ui/textarea";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
+import { Loader2 } from "lucide-react";
 
 type AgencyDepartment = {
   value: string;
@@ -214,20 +216,6 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
     mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
   });
 
-  const { data: agencyName } = useQuery({
-    queryKey: ["agencyName", formValues.agencyDepartment],
-    queryFn: async () => {
-      if (!formValues.agencyDepartment) return null;
-      const response = await fetch(
-        `/api/fetchAgencyPd?id=${formValues.agencyDepartment}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch agency name");
-      const data = await response.json();
-      return data.label;
-    },
-    enabled: !!formValues.agencyDepartment,
-  });
-
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
@@ -239,17 +227,24 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
           transaction_type: "exempt-handgun",
         }),
       });
-      if (!response.ok) throw new Error("Failed to submit form");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit form");
+      }
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Form submitted successfully" });
+      toast({
+        title: "Success",
+        description: "Form submitted successfully",
+        variant: "default",
+      });
       router.push("/TGR/dros/training");
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to submit form",
         variant: "destructive",
       });
     },
@@ -258,69 +253,217 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Preview</Button>
+        <Button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          disabled={isPending}
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            "Preview & Submit"
+          )}
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[900px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[800px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Preview Submission</DialogTitle>
+          <DialogDescription>
+            Please review your information before submitting
+          </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
-          {/* Buyer Information */}
-          <div className="space-y-4">
-            <h3 className="font-bold">Buyer Information</h3>
+
+        {/* Preview Content */}
+        <div className="space-y-6">
+          {/* Personal Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="font-medium">Name:</span>
-              <span>{`${formValues.firstName} ${formValues.middleName || ""} ${
-                formValues.lastName
-              } ${formValues.suffix || ""}`}</span>
+              <span className="font-medium">First Name:</span>
+              <span>{formValues.firstName}</span>
 
-              <span className="font-medium">Address:</span>
-              <span>{`${formValues.streetAddress}, ${formValues.city}, ${formValues.state} ${formValues.zipCode}`}</span>
+              {formValues.middleName && (
+                <>
+                  <span className="font-medium">Middle Name:</span>
+                  <span>{formValues.middleName}</span>
+                </>
+              )}
 
-              <span className="font-medium">Physical Description:</span>
-              <span>{`${formValues.gender}, ${formValues.hairColor} hair, ${formValues.eyeColor} eyes`}</span>
+              <span className="font-medium">Last Name:</span>
+              <span>{formValues.lastName}</span>
+
+              {formValues.suffix && (
+                <>
+                  <span className="font-medium">Suffix:</span>
+                  <span>{formValues.suffix}</span>
+                </>
+              )}
+
+              <span className="font-medium">Street Address:</span>
+              <span>{formValues.streetAddress}</span>
+
+              <span className="font-medium">City:</span>
+              <span>{formValues.city}</span>
+
+              <span className="font-medium">State:</span>
+              <span>{formValues.state}</span>
+
+              <span className="font-medium">ZIP Code:</span>
+              <span>{formValues.zipCode}</span>
+
+              <span className="font-medium">Gender:</span>
+              <span>{formValues.gender}</span>
+
+              <span className="font-medium">Hair Color:</span>
+              <span>{formValues.hairColor}</span>
+
+              <span className="font-medium">Eye Color:</span>
+              <span>{formValues.eyeColor}</span>
 
               <span className="font-medium">Height:</span>
               <span>{`${formValues.heightFeet}'${formValues.heightInches}"`}</span>
 
-              <span className="font-medium">Weight:</span>
-              <span>{formValues.weight || "N/A"}</span>
+              {formValues.weight && (
+                <>
+                  <span className="font-medium">Weight:</span>
+                  <span>{formValues.weight} lbs</span>
+                </>
+              )}
 
               <span className="font-medium">Date of Birth:</span>
               <span>{formValues.dateOfBirth}</span>
 
-              <span className="font-medium">ID Information:</span>
-              <span>{`${formValues.idType} - ${formValues.idNumber}`}</span>
+              <span className="font-medium">ID Type:</span>
+              <span>{formValues.idType}</span>
+
+              <span className="font-medium">ID Number:</span>
+              <span>{formValues.idNumber}</span>
 
               <span className="font-medium">Race:</span>
               <span>{formValues.race}</span>
 
-              <span className="font-medium">U.S. Citizen:</span>
+              <span className="font-medium">US Citizen:</span>
               <span>{formValues.isUsCitizen}</span>
 
               <span className="font-medium">Place of Birth:</span>
               <span>{formValues.placeOfBirth}</span>
 
-              <span className="font-medium">Phone Number:</span>
-              <span>{formValues.phoneNumber || "N/A"}</span>
-
-              {/* Alias Information if provided */}
-              {(formValues.aliasFirstName || formValues.aliasLastName) && (
+              {formValues.phoneNumber && (
                 <>
-                  <span className="font-medium">Alias:</span>
-                  <span>{`${formValues.aliasFirstName || ""} ${
-                    formValues.aliasMiddleName || ""
-                  } ${formValues.aliasLastName || ""} ${
-                    formValues.aliasSuffix || ""
-                  }`}</span>
+                  <span className="font-medium">Phone Number:</span>
+                  <span>{formValues.phoneNumber}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Alias Information if any exists */}
+          {(formValues.aliasFirstName ||
+            formValues.aliasMiddleName ||
+            formValues.aliasLastName ||
+            formValues.aliasSuffix) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Alias Information</h3>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {formValues.aliasFirstName && (
+                  <>
+                    <span className="font-medium">Alias First Name:</span>
+                    <span>{formValues.aliasFirstName}</span>
+                  </>
+                )}
+
+                {formValues.aliasMiddleName && (
+                  <>
+                    <span className="font-medium">Alias Middle Name:</span>
+                    <span>{formValues.aliasMiddleName}</span>
+                  </>
+                )}
+
+                {formValues.aliasLastName && (
+                  <>
+                    <span className="font-medium">Alias Last Name:</span>
+                    <span>{formValues.aliasLastName}</span>
+                  </>
+                )}
+
+                {formValues.aliasSuffix && (
+                  <>
+                    <span className="font-medium">Alias Suffix:</span>
+                    <span>{formValues.aliasSuffix}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Transaction Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              Transaction Information
+            </h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {formValues.hscFscNumber && (
+                <>
+                  <span className="font-medium">HSC/FSC Number:</span>
+                  <span>{formValues.hscFscNumber}</span>
+                </>
+              )}
+
+              <span className="font-medium">Exemption Code:</span>
+              <span>{formValues.exemptionCode}</span>
+
+              <span className="font-medium">Gun Show Transaction:</span>
+              <span>{formValues.isGunShowTransaction}</span>
+
+              {formValues.waitingPeriodExemption && (
+                <>
+                  <span className="font-medium">Waiting Period Exemption:</span>
+                  <span>{formValues.waitingPeriodExemption}</span>
+                </>
+              )}
+
+              {formValues.restrictionExemption && (
+                <>
+                  <span className="font-medium">Restriction Exemption:</span>
+                  <span>{formValues.restrictionExemption}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Eligibility Questions */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              Eligibility Questions
+            </h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="font-medium">Question 1:</span>
+              <span>{formValues.eligibilityQ1}</span>
+
+              <span className="font-medium">Question 2:</span>
+              <span>{formValues.eligibilityQ2}</span>
+
+              <span className="font-medium">Question 3:</span>
+              <span>{formValues.eligibilityQ3}</span>
+
+              <span className="font-medium">Question 4:</span>
+              <span>{formValues.eligibilityQ4}</span>
+
+              {formValues.firearmsQ1 && (
+                <>
+                  <span className="font-medium">Firearms Question:</span>
+                  <span>{formValues.firearmsQ1}</span>
                 </>
               )}
             </div>
           </div>
 
           {/* Firearm Information */}
-          <div className="col-span-2 space-y-4 mt-4">
-            <h3 className="font-bold">Firearm Information</h3>
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Firearm Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="font-medium">Frame Only:</span>
               <span>{formValues.frameOnly}</span>
@@ -368,9 +511,9 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               <span className="font-medium">Category:</span>
               <span>{formValues.category}</span>
 
-              {formValues.frameOnly === "yes" && (
+              {formValues.frameOnly === "yes" && formValues.regulated && (
                 <>
-                  <span className="font-medium">Federally Regulated:</span>
+                  <span className="font-medium">Regulated:</span>
                   <span>{formValues.regulated}</span>
                 </>
               )}
@@ -391,116 +534,59 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               <span className="font-medium">New/Used:</span>
               <span>{formValues.isNewGun}</span>
 
-              <span className="font-medium">FSD:</span>
+              <span className="font-medium">Firearm Safety Device:</span>
               <span>{formValues.firearmSafetyDevice}</span>
 
-              <span className="font-medium">Non-Roster Exemption:</span>
-              <span>{formValues.nonRosterExemption}</span>
+              {formValues.nonRosterExemption && (
+                <>
+                  <span className="font-medium">Non-Roster Exemption:</span>
+                  <span>{formValues.nonRosterExemption}</span>
+                </>
+              )}
 
-              <span className="font-medium">Agency Department:</span>
-              <span>{agencyName || formValues.agencyDepartment}</span>
-            </div>
-          </div>
+              {formValues.agencyDepartment && (
+                <>
+                  <span className="font-medium">Agency/Department:</span>
+                  <span>{formValues.agencyDepartment}</span>
+                </>
+              )}
 
-          {/* Transaction Information */}
-          <div className="col-span-2 space-y-4 mt-4">
-            <h3 className="font-bold">Transaction Information</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="font-medium">Gun Show Transaction:</span>
-              <span>{formValues.isGunShowTransaction}</span>
-
-              <span className="font-medium">Waiting Period Exemption:</span>
-              <span>{formValues.waitingPeriodExemption || "N/A"}</span>
-
-              <span className="font-medium">HSC/FSC Number:</span>
-              <span>{formValues.hscFscNumber || "N/A"}</span>
-
-              <span className="font-medium">Exemption Code:</span>
-              <span>{formValues.exemptionCode || "N/A"}</span>
-
-              <span className="font-medium">Comments:</span>
-              <span>{formValues.comments || "N/A"}</span>
-            </div>
-          </div>
-
-          {/* Eligibility Questions */}
-          <div className="col-span-2 space-y-4 mt-4">
-            <h3 className="font-bold">Eligibility Questions</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="font-medium">Eligibility Question 1:</span>
-              <span>{formValues.eligibilityQ1}</span>
-
-              <span className="font-medium">Eligibility Question 2:</span>
-              <span>{formValues.eligibilityQ2}</span>
-
-              <span className="font-medium">Eligibility Question 3:</span>
-              <span>{formValues.eligibilityQ3}</span>
-
-              <span className="font-medium">Eligibility Question 4:</span>
-              <span>{formValues.eligibilityQ4}</span>
-
-              <span className="font-medium">Firearms Possession Question:</span>
-              <span>{formValues.firearmsQ1}</span>
+              {formValues.comments && (
+                <>
+                  <span className="font-medium">Comments:</span>
+                  <span>{formValues.comments}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
-        <DialogFooter className="mt-4">
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setDialogOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={() => submitForm(formValues as FormData)}
             disabled={isPending}
           >
-            {isPending ? "Submitting..." : "Submit"}
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
-
-// const MakeSelect = ({
-//   setValue,
-//   value,
-//   handgunData,
-//   isLoadingHandguns,
-// }: {
-//   setValue: UseFormSetValue<FormData>;
-//   value: string;
-//   handgunData: Record<string, any>;
-//   isLoadingHandguns: boolean;
-// }) => {
-//   // Query for all makes
-//   const { data: makes = [] } = useQuery({
-//     queryKey: ["makes"],
-//     queryFn: () => (handgunData ? Object.keys(handgunData) : []),
-//     enabled: !!handgunData,
-//   });
-
-//   return (
-//     <Select
-//       value={value}
-//       onValueChange={(newValue) => {
-//         setValue("make", newValue);
-//         setValue("model", "");
-//       }}
-//     >
-//       <SelectTrigger className="w-full">
-//         <SelectValue placeholder="Select Make" />
-//       </SelectTrigger>
-//       <SelectContent>
-//         <ScrollArea className="h-[200px]">
-//           {makes.map((make) => (
-//             <SelectItem key={make} value={make}>
-//               {DOMPurify.sanitize(make)}
-//             </SelectItem>
-//           ))}
-//         </ScrollArea>
-//       </SelectContent>
-//     </Select>
-//   );
-// };
 
 const SelectComponent = React.forwardRef<
   HTMLButtonElement, // Changed from HTMLSelectElement
@@ -1590,22 +1676,24 @@ const ExemptHandgun = () => {
                         isZipLoading ? "Loading cities..." : "Select city"
                       }
                     >
-                      {zipData?.primary_city && (
-                        <SelectItem value={zipData.primary_city}>
-                          {zipData.primary_city}
-                        </SelectItem>
-                      )}
-                      {zipData?.acceptable_cities?.map((city) => (
-                        <SelectItem
-                          key={city}
-                          value={city}
-                          className={
-                            city === zipData?.primary_city ? "hidden" : ""
-                          }
-                        >
-                          {city}
-                        </SelectItem>
-                      ))}
+                      {zipData?.primary_city &&
+                        zipData.primary_city.trim() !== "" && (
+                          <SelectItem value={zipData.primary_city}>
+                            {zipData.primary_city}
+                          </SelectItem>
+                        )}
+                      {zipData?.acceptable_cities
+                        ?.filter(
+                          (city) =>
+                            city &&
+                            city.trim() !== "" &&
+                            city !== zipData?.primary_city
+                        )
+                        .map((city) => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
                     </SelectComponent>
                   </div>
 
@@ -1994,18 +2082,19 @@ const ExemptHandgun = () => {
                     }
                     placeholder="Select Waiting Period Exemption"
                   >
-                    {formData?.waitingPeriodExemption?.map((waitingPeriod) => (
-                      <SelectItem
-                        key={waitingPeriod}
-                        value={waitingPeriod.toLowerCase()}
-                      >
-                        {waitingPeriod}
-                      </SelectItem>
-                    )) || (
-                      <SelectItem value="" disabled>
-                        No options available
-                      </SelectItem>
-                    )}
+                    {(formData?.waitingPeriodExemption || [])
+                      .filter(
+                        (waitingPeriod) =>
+                          waitingPeriod && waitingPeriod.trim() !== ""
+                      )
+                      .map((waitingPeriod) => (
+                        <SelectItem
+                          key={waitingPeriod}
+                          value={waitingPeriod.toLowerCase()}
+                        >
+                          {waitingPeriod}
+                        </SelectItem>
+                      ))}
                   </SelectComponent>
                 </div>
                 <div className="space-y-2">
@@ -2153,11 +2242,13 @@ const ExemptHandgun = () => {
                         onValueChange={(value) => setValue("unit", value)}
                         placeholder="Select Unit"
                       >
-                        {formData?.unit.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {DOMPurify.sanitize(unit)}
-                          </SelectItem>
-                        ))}
+                        {(formData?.unit || [])
+                          .filter((unit) => unit && unit.trim() !== "")
+                          .map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {DOMPurify.sanitize(unit)}
+                            </SelectItem>
+                          ))}
                       </SelectComponent>
                     </div>
                     <div className="space-y-2">
@@ -2172,11 +2263,15 @@ const ExemptHandgun = () => {
                         onValueChange={(value) => setValue("category", value)}
                         placeholder="Select Category"
                       >
-                        {formData?.category.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {DOMPurify.sanitize(category)}
-                          </SelectItem>
-                        ))}
+                        {(formData?.category || [])
+                          .filter(
+                            (category) => category && category.trim() !== ""
+                          )
+                          .map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {DOMPurify.sanitize(category)}
+                            </SelectItem>
+                          ))}
                       </SelectComponent>
                     </div>
                   </div>
@@ -2196,11 +2291,15 @@ const ExemptHandgun = () => {
                       onValueChange={(value) => setValue("category", value)}
                       placeholder="Select Category"
                     >
-                      {formData?.category.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {DOMPurify.sanitize(category)}
-                        </SelectItem>
-                      ))}
+                      {(formData?.category || [])
+                        .filter(
+                          (category) => category && category.trim() !== ""
+                        )
+                        .map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {DOMPurify.sanitize(category)}
+                          </SelectItem>
+                        ))}
                     </SelectComponent>
                   </div>
                   <div className="space-y-2">
@@ -2211,11 +2310,15 @@ const ExemptHandgun = () => {
                       onValueChange={(value) => setValue("regulated", value)}
                       placeholder="Select"
                     >
-                      {formData?.regulated.map((regulated) => (
-                        <SelectItem key={regulated} value={regulated}>
-                          {DOMPurify.sanitize(regulated)}
-                        </SelectItem>
-                      ))}
+                      {(formData?.regulated || [])
+                        .filter(
+                          (regulated) => regulated && regulated.trim() !== ""
+                        )
+                        .map((regulated) => (
+                          <SelectItem key={regulated} value={regulated}>
+                            {DOMPurify.sanitize(regulated)}
+                          </SelectItem>
+                        ))}
                     </SelectComponent>
                   </div>
                 </div>
@@ -2252,11 +2355,13 @@ const ExemptHandgun = () => {
                     onValueChange={(value) => setValue("color", value)}
                     placeholder="Select Color"
                   >
-                    {formData?.colors.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
+                    {(formData?.colors || [])
+                      .filter((color) => color && color.trim() !== "")
+                      .map((color) => (
+                        <SelectItem key={color} value={color.toLowerCase()}>
+                          {color}
+                        </SelectItem>
+                      ))}
                   </SelectComponent>
                 </div>
               </div>
@@ -2286,11 +2391,13 @@ const ExemptHandgun = () => {
                     }
                     placeholder="Select Firearm Safety Device (FSD)"
                   >
-                    {formData?.fsd.map((code) => (
-                      <SelectItem key={code} value={code.toLowerCase()}>
-                        {code}
-                      </SelectItem>
-                    ))}
+                    {(formData?.fsd || [])
+                      .filter((code) => code && code.trim() !== "")
+                      .map((code) => (
+                        <SelectItem key={code} value={code.toLowerCase()}>
+                          {code}
+                        </SelectItem>
+                      ))}
                   </SelectComponent>
                 </div>
               </div>
@@ -2304,7 +2411,7 @@ const ExemptHandgun = () => {
                   {isLoadingFormData ? (
                     <SelectComponent
                       name="nonRosterExemption"
-                      value=""
+                      value="loading"
                       onValueChange={() => {}}
                       placeholder="Loading..."
                     >
@@ -2322,12 +2429,9 @@ const ExemptHandgun = () => {
                       {(formData?.nonRosterExemption || [])
                         .filter(
                           (exemption) => exemption && exemption.trim() !== ""
-                        ) // Filter out empty values
+                        )
                         .map((exemption) => (
-                          <SelectItem
-                            key={exemption}
-                            value={exemption || `exemption-${Date.now()}`} // Ensure unique non-empty value
-                          >
+                          <SelectItem key={exemption} value={exemption}>
                             {exemption}
                           </SelectItem>
                         ))}

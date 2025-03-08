@@ -53,14 +53,18 @@ const TransactionTypePage = () => {
     queryKey: ["user"],
     queryFn: async () => {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
 
       let userRole = "authenticated";
-      if (session?.access_token) {
-        const jwt = jwtDecode<JWTPayload>(session.access_token);
-        // console.log("Decoded JWT:", jwt);
-        userRole = jwt.app_metadata?.role || "authenticated";
+      if (user) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const jwt = jwtDecode<JWTPayload>(session.access_token);
+          userRole = jwt.app_metadata?.role || "authenticated";
+        }
       }
 
       // Set up auth state listener
@@ -69,14 +73,13 @@ const TransactionTypePage = () => {
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.access_token) {
           const jwt = jwtDecode<JWTPayload>(session.access_token);
-          // console.log("Auth State Change - JWT:", jwt);
           userRole = jwt.app_metadata?.role || "authenticated";
         }
       });
 
       // Return user data with role
       const userData = {
-        ...(session?.user || {}),
+        ...(user || {}),
         decodedRole: userRole,
       };
 
@@ -89,7 +92,8 @@ const TransactionTypePage = () => {
 
   // Check the decoded role from JWT
   const userRole = userData?.decodedRole;
-  const canReviewSubmissions = userRole === "admin" || userRole === "dev";
+  const canReviewSubmissions =
+    userRole === "admin" || userRole === "dev" || userRole === "ceo";
 
   // console.log("Final User Role:", userRole);
   // console.log("Can Review:", canReviewSubmissions);

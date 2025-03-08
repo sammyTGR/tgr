@@ -23,30 +23,54 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error: fetchError } = await supabase
-      .from("manufacturers")
-      .select("id, make")
-      .order("make")
-      .not("make", "eq", "")
-      .limit(10000);
+    let allData: Manufacturer[] = [];
+    let lastId = 0;
+    let hasMore = true;
 
-    if (fetchError) throw fetchError;
+    // Keep fetching until we have all records
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("manufacturers")
+        .select("id, make")
+        .gt("id", lastId)
+        .order("id")
+        .not("make", "eq", "")
+        .limit(1000);
 
-    // console.log("Database response:", data);
+      if (error) throw error;
 
-    const manufacturers =
-      data?.map((item) => ({
-        value: item.id.toString(),
-        label: item.make.trim(),
-      })) || [];
+      if (!data || data.length === 0) {
+        hasMore = false;
+        continue;
+      }
 
-    manufacturers.sort((a, b) => a.label.localeCompare(b.label));
+      allData = [...allData, ...data];
+      lastId = data[data.length - 1].id;
 
-    // console.log("Transformed manufacturers:", manufacturers);
-    // console.log(`Total manufacturers: ${manufacturers.length}`);
+      // If we got less than 1000 records, we've reached the end
+      if (data.length < 1000) {
+        hasMore = false;
+      }
+    }
+
+    // Transform all the data
+    const manufacturers = allData.map((item) => ({
+      value: item.make.trim(),
+      label: item.make.trim(),
+    }));
+
+    // Remove duplicates (if any)
+    const uniqueManufacturers = Array.from(
+      new Map(manufacturers.map((item) => [item.value, item])).values()
+    );
+
+    // Sort alphabetically
+    uniqueManufacturers.sort((a, b) => a.label.localeCompare(b.label));
+
+    console.log(`Total manufacturers fetched: ${uniqueManufacturers.length}`);
 
     return NextResponse.json(
-      { manufacturers },
+      { manufacturers: uniqueManufacturers },
       {
         headers: {
           "Content-Type": "application/json",
