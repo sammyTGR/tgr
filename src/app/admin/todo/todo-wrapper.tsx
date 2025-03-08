@@ -20,23 +20,21 @@ interface Flags {
 }
 
 function TodoContent() {
-  const flags = useFlags(["is_todo_enabled"]);
+  // const flags = useFlags(["is_todo_enabled"]);
 
-  const {
-    data: refreshedFlags,
-    isLoading,
-    error,
-  } = useQuery<Flags>({
-    queryKey: ["flags"],
-    queryFn: () => Promise.resolve(flags as Flags),
-    refetchInterval: 30000, // Refetch every 30 seconds
-    initialData: flags as Flags,
-  });
+  // const {
+  //   data: refreshedFlags,
+  //   isLoading,
+  //   error,
+  // } = useQuery<Flags>({
+  //   queryKey: ["flags"],
+  //   queryFn: () => Promise.resolve(flags as Flags),
+  //   refetchInterval: 30000, // Refetch every 30 seconds
+  //   initialData: flags as Flags,
+  // });
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error refreshing flags</div>;
-
-  // if (!flags.is_todo_enabled.enabled) return null;
+  // if (isLoading) return <div>Loading...</div>;
+  // if (error) return <div>Error refreshing flags</div>;
 
   return (
     <div className="flex flex-col max-w-2xl border rounded-lg shadow-lg p-2">

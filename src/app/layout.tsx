@@ -13,12 +13,12 @@ import { ourFileRouter } from "@/app/api/uploadthing/core";
 import QueryProvider from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import { VercelToolbar } from "@vercel/toolbar/next";
-import FlagsmithWrapper from "@/FlagsmithWrapper";
 import { ReactElement } from "react";
 import SupabaseProvider from "@/providers/supabase-provider";
 import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrapper";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { createClient } from "@/utils/supabase/server";
+import { FeatureFlagsProvider } from "@/context/FeatureFlagsContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -50,7 +50,7 @@ export default async function RootLayout({
           <QueryProvider>
             <TooltipProvider>
               <GoogleOAuthProvider clientId={clientId}>
-                <FlagsmithWrapper>
+                <FeatureFlagsProvider>
                   <NextSSRPlugin
                     routerConfig={extractRouterConfig(ourFileRouter)}
                   />
@@ -73,7 +73,7 @@ export default async function RootLayout({
                       </RoleProvider>
                     </NotificationsProvider>
                   </ThemeProvider>
-                </FlagsmithWrapper>
+                </FeatureFlagsProvider>
               </GoogleOAuthProvider>
             </TooltipProvider>
           </QueryProvider>

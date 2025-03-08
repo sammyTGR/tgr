@@ -215,12 +215,7 @@ function AdminDashboardContent() {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {}
   );
-  const flags = useFlags([
-    "is_todo_enabled",
-    "is_barchart_enabled",
-    "is_historical_barchart_enabled",
-    "is_timesheet_dashboard_enabled",
-  ]);
+
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -2080,7 +2075,6 @@ function AdminDashboardContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
                 {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto overflow-y-auto"> */}
                 {/*todo card*/}
-                {/* {flags.is_todo_enabled.enabled && ( */}
 
                 <div className="w-full overflow-hidden">
                   <h3 className="font-bold p-1 underline">Todos</h3>
@@ -2309,7 +2303,7 @@ function AdminDashboardContent() {
               <div className="w-full overflow-hidden">
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 my-2 gap-6 overflow-hidden">
                   {/* File Upload Section */}
-                  {/* {flags.is_barchart_enabled.enabled &&
+                  {/* 
                     (role === "super admin" || role === "dev") && (
                       <Card className="flex flex-col h-full">
                         <CardHeader className="flex-shrink-0">
@@ -2364,7 +2358,7 @@ function AdminDashboardContent() {
                         </CardContent>
                       </Card>
                     )} */}
-                  {/* {flags.is_barchart_enabled.enabled && ( */}
+
                   <ExpandableCard
                     id="select-date-for-chart-and-table-below"
                     title="Select Date For Chart & Table Below"
@@ -2412,7 +2406,7 @@ function AdminDashboardContent() {
                     </CardContent>
                   </ExpandableCard>
                   {/* )} */}
-                  {/* {flags.is_barchart_enabled.enabled && 
+                  {/* { 
                   (role === "super admin" || role === "dev" || role === "ceo")
                   && (*/}
                   <ExpandableCard
@@ -2475,7 +2469,7 @@ function AdminDashboardContent() {
               {/* </div> */}
 
               {/* Sales Chart*/}
-              {/* {flags.is_barchart_enabled.enabled && ( */}
+
               <div className="col-span-full overflow-hidden">
                 <Card className="flex flex-col col-span-full mt-2 mb-2">
                   <CardHeader>
@@ -2514,7 +2508,7 @@ function AdminDashboardContent() {
               {/* )} */}
 
               {/* Sales Report Table*/}
-              {/* {flags.is_barchart_enabled.enabled && (
+              {/* { (
                 <div className="col-span-full overflow-hidden mt-2">
                   <Card className="flex flex-col col-span-full h-full">
                     <CardHeader className="flex-shrink-0">
