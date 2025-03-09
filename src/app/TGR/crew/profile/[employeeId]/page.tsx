@@ -87,7 +87,6 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
-import { useFlags } from "flagsmith/react";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -182,7 +181,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const EmployeeProfilePage = () => {
-  const flags = useFlags([""]);
   const params = useParams();
   const employeeIdParam = params?.employeeId ?? "";
   const employeeId = Array.isArray(employeeIdParam)
