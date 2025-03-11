@@ -8,20 +8,21 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import DOMPurify from "isomorphic-dompurify";
-import { UseFormSetValue, FieldValues, Path, PathValue } from "react-hook-form";
+import { UseFormSetValue, Path, PathValue, FieldValues } from "react-hook-form";
 
 interface Manufacturer {
   value: string;
   label: string;
 }
 
+// T extends FieldValues ensures compatibility with both FormData and FieldValues
 interface MakeSelectProps<T extends FieldValues> {
   setValue: UseFormSetValue<T>;
   value: string;
   handgunData: Manufacturer[];
   isLoadingHandguns: boolean;
-  makeField: Path<T>;
-  modelField: Path<T>;
+  makeField?: Path<T>;
+  modelField?: Path<T>;
 }
 
 const MakeSelect = <T extends FieldValues>({
@@ -29,8 +30,8 @@ const MakeSelect = <T extends FieldValues>({
   value,
   handgunData,
   isLoadingHandguns,
-  makeField,
-  modelField,
+  makeField = "make" as Path<T>,
+  modelField = "model" as Path<T>,
 }: MakeSelectProps<T>) => {
   if (isLoadingHandguns) {
     return (

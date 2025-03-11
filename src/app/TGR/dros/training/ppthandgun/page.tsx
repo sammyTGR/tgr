@@ -637,7 +637,7 @@ const PptHandgunPage = () => {
     watch,
     setValue,
     getValues,
-    control,
+    control, // Add this
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: initialFormState,
@@ -658,38 +658,6 @@ const PptHandgunPage = () => {
 
   const { data: sellerZipData, isLoading: isSellerZipLoading } =
     useSellerZipCodeLookup(sellerZipCode || "", setValue);
-
-  // Replace form state management with react-hook-form
-  // const onSubmit = (data: FormData) => {
-  //   submitForm(data);
-  // };
-
-  // Form submission mutation
-  // const { mutate: submitForm, isPending: isSubmitting } = useMutation({
-  //   mutationFn: async (data: FormData) => {
-  //     const response = await fetch("/api/dealerHandgun", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         ...data,
-  //         transaction_type: "dealer-handgun",
-  //       }),
-  //     });
-  //     if (!response.ok) throw new Error("Failed to submit form");
-  //     return response.json();
-  //   },
-  //   onSuccess: () => {
-  //     toast({ title: "Success", description: "Form submitted successfully" });
-  //     router.push("/TGR/dros/training");
-  //   },
-  //   onError: (error: Error) => {
-  //     toast({
-  //       title: "Error",
-  //       description: error.message,
-  //       variant: "destructive",
-  //     });
-  //   },
-  // });
 
   // Dialog state mutation
   const { data: isDialogOpen, mutate: setDialogOpen } = useMutation({
@@ -2376,10 +2344,10 @@ const PptHandgunPage = () => {
                 {/* Make and Model*/}
                 <div className="space-y-2">
                   <Label className="required">Make</Label>
-                  <MakeSelect
+                  <MakeSelect<FormData>
                     setValue={setValue}
                     value={watch("make") || ""}
-                    makes={makesData?.manufacturers || []}
+                    handgunData={makesData?.manufacturers || []}
                     isLoadingHandguns={isLoadingMakes}
                   />
                 </div>
