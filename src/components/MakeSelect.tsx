@@ -1,5 +1,4 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -8,54 +7,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import DOMPurify from "isomorphic-dompurify";
-import { UseFormSetValue } from "react-hook-form";
-import type { FormData } from "../app/TGR/dros/training/ppthandgun/page";
+import { UseFormSetValue, FieldValues, Path, PathValue } from "react-hook-form";
 
 interface Manufacturer {
   value: string;
   label: string;
 }
 
-interface MakeSelectProps {
-  setValue: UseFormSetValue<FormData>;
+interface MakeSelectProps<T extends FieldValues> {
+  setValue: UseFormSetValue<T>;
   value: string;
-  makes: Manufacturer[];
+  handgunData: Manufacturer[];
   isLoadingHandguns: boolean;
+  makeField: Path<T>;
+  modelField: Path<T>;
 }
 
-const MakeSelect = ({
+const MakeSelect = <T extends FieldValues>({
   setValue,
   value,
-  makes = [],
+  handgunData,
   isLoadingHandguns,
-}: MakeSelectProps) => {
-  const [search, setSearch] = React.useState("");
-  const parentRef = React.useRef<HTMLDivElement>(null);
-
-  // Filter and sort makes based on search
-  const filteredMakes = React.useMemo(() => {
-    if (!makes) return [];
-    return makes
-      .filter((make) => make.label.toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [makes, search]);
-
-  const rowVirtualizer = useVirtualizer({
-    count: filteredMakes.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 35, // Approximate height of each item
-    overscan: 5,
-  });
-
+  makeField,
+  modelField,
+}: MakeSelectProps<T>) => {
   if (isLoadingHandguns) {
     return (
       <Select disabled>
@@ -66,62 +42,39 @@ const MakeSelect = ({
     );
   }
 
+  if (!handgunData || handgunData.length === 0) {
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="No manufacturers available" />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
   return (
     <Select
       value={value}
       onValueChange={(newValue) => {
-        setValue("make", newValue, { shouldValidate: true });
-        setValue("model", "", { shouldValidate: true });
+        setValue(makeField, newValue as PathValue<T, Path<T>>);
+        setValue(modelField, "" as PathValue<T, Path<T>>);
       }}
-      disabled={isLoadingHandguns}
     >
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select Make" />
       </SelectTrigger>
       <SelectContent>
-        <Command>
-          <CommandInput
-            placeholder="Search makes..."
-            className="h-9"
-            value={search}
-            onValueChange={setSearch}
-          />
-          <CommandEmpty>No makes found.</CommandEmpty>
-          <CommandGroup>
-            <div ref={parentRef} className="h-[300px] overflow-auto">
-              <div
-                style={{
-                  height: `${rowVirtualizer.getTotalSize()}px`,
-                  width: "100%",
-                  position: "relative",
-                }}
-              >
-                {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const make = filteredMakes[virtualItem.index];
-                  return (
-                    <CommandItem
-                      key={virtualItem.key}
-                      onSelect={() => {
-                        setValue("make", make.value, { shouldValidate: true });
-                        setValue("model", "", { shouldValidate: true });
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: `${virtualItem.size}px`,
-                        transform: `translateY(${virtualItem.start}px)`,
-                      }}
-                    >
-                      {DOMPurify.sanitize(make.label)}
-                    </CommandItem>
-                  );
-                })}
-              </div>
-            </div>
-          </CommandGroup>
-        </Command>
+        <ScrollArea className="h-[200px]">
+          {handgunData.map((manufacturer) => (
+            <SelectItem
+              key={manufacturer.value}
+              value={manufacturer.value}
+              className="px-2 py-1 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+            >
+              {DOMPurify.sanitize(manufacturer.label)}
+            </SelectItem>
+          ))}
+        </ScrollArea>
       </SelectContent>
     </Select>
   );

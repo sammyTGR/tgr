@@ -168,6 +168,28 @@ interface HandgunRoster {
   [make: string]: string[];
 }
 
+interface FormOptionsData {
+  genders: string[];
+  eyeColors: string[];
+  hairColors: string[];
+  heightFeet: string[];
+  heightInches: string[];
+  idTypes: string[];
+  placesOfBirth: string[];
+  exemptionCodes: string[];
+  colors: string[];
+  fsd: string[];
+  race: string[];
+  citizenship: string[];
+  restrictionsExemptions: string[];
+  makes: string[];
+  calibers: string[];
+  unit: string[];
+  category: string[];
+  regulated: string[];
+  nonRosterExemption: string[];
+}
+
 const useHandgunDetails = (make: string, model: string) => {
   return useQuery({
     queryKey: ["handgunDetails", make, model],
@@ -743,6 +765,12 @@ const DealerHandgunSalePage = () => {
           "ZAIRE",
           "ZAMBIA",
           "ZIMBABWE",
+        ],
+        waitingPeriodExemption: [
+          "CFD NUMBER",
+          "COLLECTOR",
+          "PEACE OFFICER (LETTER REQUIRED)",
+          "SPECIAL WEAPONS PERMIT",
         ],
         restrictionsExemptions: [
           "COLLECTOR - 03 FFL - VALID COE",
