@@ -50,7 +50,6 @@ import {
 import classNames from "classnames";
 import { endOfDay, format, subDays, parseISO, startOfDay } from "date-fns";
 import { format as formatTZ, toZonedTime } from "date-fns-tz";
-import { useFlags } from "flagsmith/react";
 import DOMPurify from "isomorphic-dompurify";
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
