@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -24,6 +24,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../../../../components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "../../../../../utils/supabase/client";
 import type { FormData as OfficerPptHandgunFormData } from "../officerppthandgun/page";
 import type { FormData as OfficerHandgunFormData } from "../officerhandgun/page";
@@ -214,6 +225,8 @@ const useAgencyDepartment = (agencyId: string | undefined) => {
 };
 
 const ReviewPage = () => {
+  const queryClient = useQueryClient();
+
   // Fetch all employees with their user_uuid
   const { data: employees } = useQuery({
     queryKey: ["employees"],
@@ -303,6 +316,18 @@ const ReviewPage = () => {
     const employee = employees.find((emp: any) => emp.user_uuid === userId);
     return employee?.name || "Unknown";
   };
+
+  // Add delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, table }: { id: string; table: string }) => {
+      const { error } = await supabase.from(table).delete().eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["drosSubmissions"] });
+    },
+  });
 
   // Detailed view dialog component
   const DetailedView = ({ submission }: { submission: DealerHandgunSale }) => {
@@ -777,8 +802,42 @@ const ReviewPage = () => {
                       {submission.status}
                     </span>
                   </TableCell> */}
-                    <TableCell>
+                    <TableCell className="space-x-2">
                       <DetailedView submission={submission} />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will
+                              permanently delete the submission.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => {
+                                const table =
+                                  TRANSACTION_TYPES[submission.transaction_type]
+                                    ?.table;
+                                if (table) {
+                                  deleteMutation.mutate({
+                                    id: submission.id,
+                                    table,
+                                  });
+                                }
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
