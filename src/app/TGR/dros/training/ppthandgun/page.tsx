@@ -5,7 +5,13 @@ import DOMPurify from "isomorphic-dompurify";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useMemo } from "react";
-import { Control, useForm, UseFormSetValue, useWatch } from "react-hook-form";
+import {
+  Control,
+  useForm,
+  useFormContext,
+  UseFormSetValue,
+  useWatch,
+} from "react-hook-form";
 import { Alert, AlertDescription } from "../../../../../components/ui/alert";
 import { Button } from "../../../../../components/ui/button";
 import {
@@ -36,6 +42,10 @@ import { Textarea } from "../../../../../components/ui/textarea";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
 import MakeSelect from "@/components/MakeSelect";
+import { FORM_OPTIONS } from "../components/formOptions";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { FormProvider } from "react-hook-form";
 
 export type FormData = {
   firstName: string;
@@ -273,8 +283,9 @@ const useHandgunDetails = (make: string, model: string) => {
   });
 };
 
-const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
-  const formValues = useWatch({ control });
+const PreviewDialog = () => {
+  const form = useFormContext<FormData>();
+  const formValues = useWatch({ control: form.control });
   const router = useRouter();
 
   // Dialog state mutation
@@ -286,22 +297,84 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
+      // Transform the data before submission
+      const frameOnlyData = {
+        frame_only: data.frameOnly === "yes",
+        calibers: data.frameOnly === "yes" ? null : data.calibers,
+        additional_caliber:
+          data.frameOnly === "yes" ? null : data.additionalCaliber,
+        additional_caliber2:
+          data.frameOnly === "yes" ? null : data.additionalCaliber2,
+        additional_caliber3:
+          data.frameOnly === "yes" ? null : data.additionalCaliber3,
+        barrel_length:
+          data.frameOnly === "yes" ? null : parseFloat(data.barrelLength) || 0,
+        unit: data.frameOnly === "yes" ? null : "INCH",
+        gun_type: "HANDGUN",
+        category: data.category,
+        regulated:
+          data.frameOnly === "yes" ? data.regulated?.toUpperCase() : null,
+        status: "submitted", // Add default status
+      };
+
+      const transformedData = {
+        ...data,
+        ...frameOnlyData,
+        transaction_type: "ppt-handgun",
+        // Ensure proper case for fields
+        gender: data.gender?.toLowerCase(),
+        hairColor: data.hairColor?.toLowerCase(),
+        eyeColor: data.eyeColor?.toLowerCase(),
+        sellerGender: data.sellerGender?.toLowerCase(),
+        sellerHairColor: data.sellerHairColor?.toLowerCase(),
+        sellerEyeColor: data.sellerEyeColor?.toLowerCase(),
+        // Set default exemption code if empty
+        exemptionCode: data.exemptionCode || "NO EXEMPTION",
+        // Convert numeric fields
+        height_feet: parseInt(data.heightFeet) || 0,
+        height_inches: parseInt(data.heightInches) || 0,
+        seller_height_feet: parseInt(data.sellerHeightFeet) || 0,
+        seller_height_inches: parseInt(data.sellerHeightInches) || 0,
+        // Ensure yes/no fields are lowercase
+        is_us_citizen: data.isUsCitizen?.toLowerCase(),
+        seller_is_us_citizen: data.sellerIsUsCitizen?.toLowerCase(),
+        is_gun_show_transaction: data.isGunShowTransaction?.toLowerCase(),
+        eligibility_q1: data.eligibilityQ1?.toLowerCase(),
+        eligibility_q2: data.eligibilityQ2?.toLowerCase(),
+        eligibility_q3: data.eligibilityQ3?.toLowerCase(),
+        eligibility_q4: data.eligibilityQ4?.toLowerCase(),
+        firearms_q1: data.firearmsQ1?.toLowerCase(),
+        is_new_gun: data.isNewGun?.toLowerCase(),
+      };
+
+      console.log("Transformed data being sent:", transformedData);
+
       const response = await fetch("/api/pptHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          transaction_type: "ppt-handgun",
-        }),
+        body: JSON.stringify(transformedData),
       });
-      if (!response.ok) throw new Error("Failed to submit form");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error Response:", errorData);
+        throw new Error(
+          errorData.details || errorData.error || "Failed to submit form"
+        );
+      }
+
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Form submitted successfully" });
+      toast({
+        title: "Success",
+        description: "Form submitted successfully",
+        variant: "default",
+      });
       router.push("/TGR/dros/training");
     },
     onError: (error: Error) => {
+      console.error("Form submission error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -309,6 +382,22 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
       });
     },
   });
+
+  const handleSubmit = async () => {
+    const result = await form.trigger();
+    if (!result) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = form.getValues();
+    console.log("Submitting form data:", formData);
+    submitForm(formData);
+  };
 
   return (
     <Dialog>
@@ -553,10 +642,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <Button
-            onClick={() => submitForm(formValues as FormData)}
-            disabled={isPending}
-          >
+          <Button onClick={handleSubmit} disabled={isPending}>
             {isPending ? "Submitting..." : "Submit"}
           </Button>
         </DialogFooter>
@@ -564,48 +650,6 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
     </Dialog>
   );
 };
-
-// const MakeSelect = ({
-//   setValue,
-//   value,
-//   handgunData,
-//   isLoadingHandguns,
-// }: {
-//   setValue: UseFormSetValue<FormData>;
-//   value: string;
-//   handgunData: Record<string, any>;
-//   isLoadingHandguns: boolean;
-// }) => {
-//   // Query for all makes
-//   const { data: makes = [] } = useQuery({
-//     queryKey: ["makes"],
-//     queryFn: () => (handgunData ? Object.keys(handgunData) : []),
-//     enabled: !!handgunData,
-//   });
-
-//   return (
-//     <Select
-//       value={value}
-//       onValueChange={(newValue) => {
-//         setValue("make", newValue);
-//         setValue("model", "");
-//       }}
-//     >
-//       <SelectTrigger className="w-full">
-//         <SelectValue placeholder="Select Make" />
-//       </SelectTrigger>
-//       <SelectContent>
-//         <ScrollArea className="h-[200px]">
-//           {makes.map((make) => (
-//             <SelectItem key={make} value={make}>
-//               {DOMPurify.sanitize(make)}
-//             </SelectItem>
-//           ))}
-//         </ScrollArea>
-//       </SelectContent>
-//     </Select>
-//   );
-// };
 
 const SelectComponent = React.forwardRef<
   HTMLButtonElement, // Changed from HTMLSelectElement
@@ -631,33 +675,92 @@ const PptHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    getValues,
-    control, // Add this
-    formState: { errors },
-  } = useForm<FormData>({
+  const methods = useForm<FormData>({
     defaultValues: initialFormState,
     mode: "onBlur",
     reValidateMode: "onBlur",
+    resolver: zodResolver(
+      z.object({
+        // Buyer fields
+        firstName: z.string().min(1, "First name is required"),
+        lastName: z.string().min(1, "Last name is required"),
+        streetAddress: z.string().min(1, "Street address is required"),
+        zipCode: z.string().min(5, "Valid zip code is required"),
+        city: z.string().min(1, "City is required"),
+        state: z.string().min(1, "State is required"),
+        gender: z.string().min(1, "Gender is required"),
+        hairColor: z.string().min(1, "Hair color is required"),
+        eyeColor: z.string().min(1, "Eye color is required"),
+        heightFeet: z.string().min(1, "Height (feet) is required"),
+        heightInches: z.string().min(1, "Height (inches) is required"),
+        dateOfBirth: z.string().min(1, "Date of birth is required"),
+        idType: z.string().min(1, "ID type is required"),
+        idNumber: z.string().min(1, "ID number is required"),
+        race: z.string().min(1, "Race is required"),
+        isUsCitizen: z.string().min(1, "Citizenship status is required"),
+        placeOfBirth: z.string().min(1, "Place of birth is required"),
+        // Seller fields
+        sellerFirstName: z.string().min(1, "Seller first name is required"),
+        sellerLastName: z.string().min(1, "Seller last name is required"),
+        sellerStreetAddress: z
+          .string()
+          .min(1, "Seller street address is required"),
+        sellerZipCode: z.string().min(5, "Valid seller zip code is required"),
+        sellerCity: z.string().min(1, "Seller city is required"),
+        sellerState: z.string().min(1, "Seller state is required"),
+        sellerGender: z.string().min(1, "Seller gender is required"),
+        sellerHairColor: z.string().min(1, "Seller hair color is required"),
+        sellerEyeColor: z.string().min(1, "Seller eye color is required"),
+        sellerHeightFeet: z.string().min(1, "Seller height (feet) is required"),
+        sellerHeightInches: z
+          .string()
+          .min(1, "Seller height (inches) is required"),
+        sellerDateOfBirth: z
+          .string()
+          .min(1, "Seller date of birth is required"),
+        sellerIdType: z.string().min(1, "Seller ID type is required"),
+        sellerIdNumber: z.string().min(1, "Seller ID number is required"),
+        sellerRace: z.string().min(1, "Seller race is required"),
+        sellerIsUsCitizen: z
+          .string()
+          .min(1, "Seller citizenship status is required"),
+        sellerPlaceOfBirth: z
+          .string()
+          .min(1, "Seller place of birth is required"),
+        // Firearm fields
+        make: z.string().min(1, "Make is required"),
+        model: z.string().min(1, "Model is required"),
+        serialNumber: z.string().min(1, "Serial number is required"),
+        color: z.string().min(1, "Color is required"),
+        isNewGun: z.string().min(1, "New/Used status is required"),
+        firearmSafetyDevice: z
+          .string()
+          .min(1, "Firearm safety device is required"),
+        eligibilityQ1: z.string().min(1, "Eligibility question 1 is required"),
+        eligibilityQ2: z.string().min(1, "Eligibility question 2 is required"),
+        eligibilityQ3: z.string().min(1, "Eligibility question 3 is required"),
+        eligibilityQ4: z.string().min(1, "Eligibility question 4 is required"),
+        isGunShowTransaction: z
+          .string()
+          .min(1, "Gun show transaction status is required"),
+        frameOnly: z.string().min(1, "Frame only status is required"),
+      })
+    ),
   });
 
   // Watch both zip code fields
-  const zipCode = watch("zipCode");
-  const sellerZipCode = watch("sellerZipCode");
-  const frameOnlySelection = watch("frameOnly");
+  const zipCode = methods.watch("zipCode");
+  const sellerZipCode = methods.watch("sellerZipCode");
+  const frameOnlySelection = methods.watch("frameOnly");
 
   // Use both zip code lookup hooks
   const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
     zipCode || "",
-    setValue
+    methods.setValue
   );
 
   const { data: sellerZipData, isLoading: isSellerZipLoading } =
-    useSellerZipCodeLookup(sellerZipCode || "", setValue);
+    useSellerZipCodeLookup(sellerZipCode || "", methods.setValue);
 
   // Dialog state mutation
   const { data: isDialogOpen, mutate: setDialogOpen } = useMutation({
@@ -672,7 +775,8 @@ const PptHandgunPage = () => {
       queryClient.invalidateQueries({ queryKey: ["handgunRoster"] });
       queryClient.invalidateQueries({ queryKey: ["formOptions"] });
       // Reset the selected make
-      setSelectedMake("");
+      methods.setValue("make", "");
+      methods.setValue("model", "");
     },
   });
 
@@ -690,742 +794,26 @@ const PptHandgunPage = () => {
     queryFn: async () => {
       // Replace with your actual API call
       return {
-        genders: ["Male", "Female", "Nonbinary / Unspecified"],
-        eyeColors: [
-          "BLACK",
-          "BLUE",
-          "BROWN",
-          "GRAY",
-          "GREEN",
-          "HAZEL",
-          "MAROON",
-          "MULTICOLOR",
-          "PINK",
-          "UNKNOWN",
-        ],
-        exemptionCodes: [
-          "X01 SPECIAL WEAPONS PERMIT",
-          "X02 OPERATION OF LAW REPRESENTATIVE",
-          "X03 FIREARM BEING RETURNED TO OWNER",
-          "X13 FFL COLLECTOR W/COE CURIO/RELIC TRANSACTION",
-          "X21 MILITARY - ACTIVE DUTY",
-          "X22 MILITARY - ACTIVE RESERVE",
-          "X25 MILITARY - HONORABLY RETIRED",
-          "X31 PEACE OFFICER - CALIFORNIA - ACTIVE",
-          "X32 PEACE OFFICER - FEDERAL - ACTIVE",
-          "X33 PEACE OFFICER - HONORABLY RETIRED",
-          "X34 PEACE OFFICER - RESERVE",
-          "X35 PEACE OFFICER - FEDERAL - HONORABLY RETIRED",
-          "X41 CARRY CONCEALED WEAPON (CCW) PERMIT HOLDER",
-          "X81 PEACE OFFICER STANDARDS AND TRAINING (832PC) FIREARMS TRAINING",
-          "X91 PARTICULAR AND LIMITED AUTHORITY PEACE OFFICERS",
-          "X95 LAW ENFORECEMENT SERVICE GUN TO FAMILY MEMBER",
-          "X96 TRANSACTION IS TO REPLACE A BROKEN OR DEFECTIVE HANDGUN FRAME",
-          "X99 DOJ CERTIFIED INSTRUCTOR",
-        ],
-        calibers: [
-          ".14 Walker Hornet, .14/221, .14-222, 14-gauge shotgun",
-          ".17 (various)",
-          ".204 Ruger, Remington, Savage",
-          ".218 Bee",
-          ".22 Short/Long/Rifle rim. cart.; .22 Hornet, .22-250, 22-gauge",
-          ".220 Swift",
-          ".221 Remington Fireball",
-          ".222 Remington, .222 Remington Magnum",
-          ".223 Remington",
-          ".224 Weatherby Mag, .224 Valkyrie",
-          ".225 Winchester",
-          ".226 JDJ",
-          ".240 Weatherby Mag",
-          ".243 Winchester",
-          ".25 ACP, .25-06, .25-20, .25-35",
-          ".250-3000 Savage",
-          ".256 Newton, .256 Win Mag",
-          ".257 Roberts, .257 Weatherby Mag, .257 Mini Dreadnaught",
-          ".26 Nosler",
-          ".260 Mag. Res Lone Eagle, .260 Rem, .260 Savage, .260 Thompson/Cen",
-          ".264 Winchester Magnum",
-          ".270 Winchester, .270 Weatherby Magnum",
-          ".276 Enfield, .276 Pederson",
-          ".28 Nosler, 28-gauge shotgun",
-          ".280 Remington, .280 JDJ, .80 British",
-          ".284 Winchester",
-          ".30 M1 Carbine, .30-40 Krag, 30-30 Winchester, .30 Mauser",
-          ".30-06 U.S. (.30 Springfield)",
-          ".300 Win. Mag/.300 Wtherby Mag/.300 Sav/.300 H&H Mag/.300 AAC Blkout",
-          ".303 British, .303 Savage",
-          ".307 Winchester",
-          ".308 Winchester",
-          ".309 JDJ",
-          ".31 Baby Dragoon 1848, 1849 Pocket",
-          ".32 ACP,.32 Short Colt, .32 Long Colt, .32 H&R Mag, 32-gauge shotgun",
-          ".32-20 Winchester",
-          ".32-40 Winchester",
-          ".320 Revolver",
-          ".325 Winchester",
-          ".327 Federal Magnum Cartridge",
-          ".33 Winchester",
-          ".330 Dakota",
-          ".338 Winchester Mag, .338 Federal, .338 Lapua Mag",
-          ".340 Weatherby Magnum",
-          ".348 Winchester",
-          ".35 Whelen, .35 Remington, .350 Remington Mag, .35 S&W",
-          ".35-06 JDJ",
-          ".350 Legend",
-          ".351 Winchester",
-          ".356 Win, SW940",
-          ".357 Remington Magnum, .357 Maximum, .357 AutoMag, .357 Sig",
-          ".358 Win, Remington, RPM, ROP, STA",
-          ".36 caliber markings normally found only on black-powder firearms",
-          ".375 H&H Magnum, .375 Winchester, 375-06 JDJ",
-          ".376 Steyr",
-          ".378 Weatherby Mag",
-          ".38 S&W, .38 (S&W) Special, .38 ACP, .38 Super, etc.",
-          ".38-40 Winchester",
-          ".38-55 Win, .38-55 Ballard",
-          ".380 ACP in U.S.; also known as 9mm Kurz/Corto/Short",
-          ".40 S&W",
-          ".40-44 Woodswalker",
-          ".40-65 Winchester",
-          ".400 Cor-bon",
-          ".401 Winchester, .401 Power Mag",
-          ".404 Jeffery",
-          ".405 Winchester",
-          ".408 Cheytac",
-          ".41 Short Rimfire, .41 Remington Mag, .41 Action Express, .41 AutoMa",
-          ".411 JDJ",
-          ".416 Barrett, .416 Rigby, .416 Rem Mag",
-          ".425 Express",
-          ".44 Russian, .44 Special, .44 Rem. Mag, .44 AutoMag",
-          ".44-40 Winchester",
-          ".440 Cor-bon",
-          ".444 Marlin",
-          ".445",
-          ".45 ACP, .45 AutoRim, .45 Short/Long Colt, .45 Winchester Mag",
-          ".45-70 U.S. Government",
-          ".450 Marlin, .450 Dakota, .450 Revolver, .450 Bushmaster",
-          ".454 Casull-ragin Bull Model with Colt 45",
-          ".455 Webley, or .455 Manstopper, .455 Enfield",
-          ".458 Winchester Mag, .458 Whisper",
-          ".460 Weatherby Mag, .460 A-Square, .460 S&W, .460 Steyr",
-          ".470 Nitro Express, .470 Rigby",
-          ".475 Linebaugh, .475 JDJ",
-          ".476 Enfield",
-          ".480 Ruger",
-          ".485 British",
-          ".495 A-Square",
-          ".50 BMG, .50 Action Exp, .50 Beowolf; black-powder firearm",
-          ".50-70 Gov't",
-          ".500 Linebaugh, .500 S&W Mag, .500 WE",
-          ".510 DTC",
-          ".54 Used in black-powder firearms",
-          ".577 Tyrannosaur, .577/450 Martini Henry, .577 Snyder",
-          ".58 Used in black-powder firearms; .577 Nitro Express Elephant Gun",
-          ".60 Used in black-powder firearms; .600 Nitro Express Elephant Gun",
-          ".653 Scramjet",
-          ".671 Phantom, .671 Blackbrid",
-          ".75 caliber, 7.5mm Nagant (Swedish), 7.5mm Swiss, 7.5mm French MAS",
-          ".909 Eagle",
-          ".953 Hellcat, .953 Saturn",
-          "10.15mm Jermann, 10.15mm Serbian Mauser",
-          "10.4mm Italian, 10.4mm Swiss",
-          "10.57 Maverick, 10.57 Meteor",
-          "10.75mm Russian Berdan",
-          "10mm, 10-gauge shotgun",
-          "11.15mm Spanish Rem., 11.15mm Mauser, 11.15mm Werndl M/77",
-          "11.43mm Egyptian, 11.43mm Turkish",
-          "11.4mm Brazilian, 11.4mm Werndel M/73",
-          "11.75mm Montenegrin",
-          "11.7mm Danish Rem.",
-          "11mm Mauser, 11mm French, 11 Belgian",
-          "12-gauge shotgun",
-          "12.5mm",
-          "13mm Gyrojet rocket pistol/carbine",
-          "16-gauge shotgun",
-          "2.7mm Kolibri",
-          "20-gauge shotgun",
-          "24-gauge shotgun",
-          "3mm Kolibri",
-          "4-gauge shotgun or blank",
-          "410-gauge shotgun",
-          "5.45x39mm, 5.45x18mm Soviet",
-          "5.56x45mm NATO",
-          "5.5mm Velo Dog",
-          "5.6x50mm Mag, 5.6x57mm RWS, 5.6x61mm, 5.6x52 Rmm",
-          "5.7 X 28mm Fabrique Nationale",
-          "5mm Bergmann, 5mm Clement Auto",
-          "6.17 Spitfire, 6.17 Flash",
-          "6.35mm",
-          "6.5mm (various); .65 caliber black-powder firearms",
-          "6.8mm Remington, 6.8x57mm Chinese",
-          "6mm Remington, 6mm SAW",
-          "7-30 Waters",
-          "7.21 Tomahawk, 7.21 Firehawk, 7.21 Firebird",
-          "7.35mm Carcano",
-          "7.62x39 Soviet, 7.62x51 NATO, 7.62x54R Rus. Moisin-Nagant, 7.62x35",
-          "7.63mm Mannlicher, 7.62x25mm Tokarev",
-          "7.65mm Luger, 7.65mm Roth-Sauer, 7.65 MAS (French), .30 Luger",
-          "7.7mm Arisaka",
-          "7.82 Patriot, 7.82 Warbird",
-          "7.92mm Kurz (Short)",
-          "7mm, Rem Weatherby Mag, 7mm Bench Rest, 7x57 Mauser, 7mm-08 Rem",
-          "8.59 Galaxy, 8.59 Titan",
-          "8x57 Mauser, 8mm Lebel, 8mm Remington Mag, 8x56mmR, 8-gauge shotgun",
-          "9.3mm JDJ, 9.3x57mm Mauser",
-          "9.5mm Turkish Mauser",
-          "9.8mm Auto Colt",
-          "9mm L/Para/9x18,9x21,9x23/Largo 9x19, 9mm rimfire shotgun",
-          "Firearm with interchangable barrels",
-        ],
-        category: [
-          "4 OR MORE BARRELS",
-          "BOLT ACTION",
-          "DERRINGER",
-          "DOUBLE BARREL",
-          "LEVER ACTION",
-          "OVER AND UNDER",
-          "REVOLVER",
-          "SEMI-AUTOMATIC",
-          "SINGLE SHOT",
-          "THREE BARRELS",
-        ],
-        regulated: ["YES", "NO"],
-        unit: ["INCH", "CENTIMETER"],
-        colors: [
-          "ALUMINUM/SILVER",
-          "BEIGE",
-          "BLACK",
-          "BLUE",
-          "BLUE, DARK",
-          "BLUE, LIGHT",
-          "BRONZE",
-          "BROWN",
-          "BURGUNDY/MAROON",
-          "CAMOUFLAGE",
-          "CHROME/STAINLESS",
-          "COPPER",
-          "CREAM/IVORY",
-          "GOLD",
-          "GRAY",
-          "GREEN",
-          "GREEN, DARK",
-          "GREEN, LIGHT",
-          "LAVENDER",
-          "ORANGE",
-          "OTHER, MULTICOLOR",
-          "PINK",
-          "PURPLE",
-          "RED",
-          "TAN",
-          "TURQUOISE",
-          "UNKNOWN",
-          "WHITE",
-          "YELLOW",
-        ],
-        fsd: [
-          "ANTIQUE",
-          "APPROVED LOCK BOX",
-          "FSD PURCHASED",
-          "OEM",
-          "SAFE AFFIDAVIT",
-        ],
-        hairColors: [
-          "BALD",
-          "BLACK",
-          "BLONDE",
-          "BLUE",
-          "BROWN",
-          "GRAY",
-          "GREEN",
-          "ORANGE",
-          "PINK",
-          "PURPLE",
-          "RED",
-          "SANDY",
-          "UNKNOWN",
-          "WHITE",
-        ],
-        heightFeet: ["3", "4", "5", "6", "7", "8"],
-        heightInches: [
-          "00",
-          "01",
-          "02",
-          "03",
-          "04",
-          "05",
-          "06",
-          "07",
-          "08",
-          "09",
-          "10",
-          "11",
-        ],
-        idTypes: ["California DL", "California ID", "DEPT OF DEFENSE ID"],
-        placesOfBirth: [
-          "AFGHANISTAN",
-          "AGUASCALIENTES",
-          "ALABAMA",
-          "ALASKA",
-          "ALBANIA",
-          "ALBERTA",
-          "ALGERIA",
-          "AMERICAN SAMOA ISLANDS",
-          "ANDORRA",
-          "ANGOLA",
-          "ANGUILLA",
-          "ANTIGUA",
-          "ARGENTINA",
-          "ARIZONA",
-          "ARKANSAS",
-          "ARMENIA",
-          "ARUBA",
-          "ASHMORE AND CARTIER ISLANDS",
-          "AUSTRALIA",
-          "AUSTRIA",
-          "AZERBAIJAN",
-          "AZORES ISLANDS",
-          "BAHAMAS",
-          "BAHRAIN",
-          "BAJA CALIFORNIA NORTE",
-          "BAJA CALIFORNIA SUR",
-          "BAKER ISLAND",
-          "BALEARIC ISLANDS",
-          "BANGLADESH",
-          "BARBADOS",
-          "BASSAS DA INDIA",
-          "BELGIUM",
-          "BELIZE",
-          "BENIN",
-          "BERMUDA",
-          "BHUTAN",
-          "BOLIVIA",
-          "BOSNIA HERCEGOVENA",
-          "BOTSWANA",
-          "BOUVET ISLAND",
-          "BRAZIL",
-          "BRITISH COLUMBIA",
-          "BRITISH INDIAN OCEAN TERR",
-          "BRITISH VIRGIN ISLANDS",
-          "BRUNEI",
-          "BULGARIA",
-          "BURKINA FASO",
-          "BURMA",
-          "BURUNDI",
-          "BYELARUS",
-          "CALIFORNIA",
-          "CAMBODIA (KHMER AND KAMPUCHEA)",
-          "CAMEROON",
-          "CAMPECHE",
-          "CANADA",
-          "CANAL ZONE",
-          "CANARY ISLANDS",
-          "CAPE VERDE ISLANDS",
-          "CAROLINE ISLANDS",
-          "CAYMAN ISLANDS",
-          "CENTRAL AFRICAN REPUBLIC",
-          "CHAD",
-          "CHIAPAS",
-          "CHIHUAHUA",
-          "CHILE",
-          "CHRISTMAS ISLAND",
-          "CLIPPERTON ISLAND",
-          "COAHUILA",
-          "COCOS (KEELING) ISLANDS",
-          "COLIMA",
-          "COLOMBIA",
-          "COLORADO",
-          "COMOROS ISLANDS",
-          "CONNECTICUT",
-          "COOK ISLANDS",
-          "CORAL SEA ISLANDS",
-          "COSTA RICA",
-          "CROATIA",
-          "CUBA",
-          "CYPRUS",
-          "CZECH REPUBLIC",
-          "DELAWARE",
-          "DENMARK",
-          "DISTRICT OF COLUMBIA",
-          "DISTRITO FEDERAL",
-          "DJIBOUTI",
-          "DOMINICA",
-          "DOMINICAN REPUBLIC",
-          "DURANGO",
-          "EAST GERMANY",
-          "ECUADOR",
-          "EGYPT",
-          "EL SALVADOR",
-          "ENGLAND",
-          "EQUATORIAL GUINEA",
-          "ERETRIA",
-          "ESTONIA",
-          "ETHIOPIA",
-          "EUROPA ISLAND",
-          "FALKLAND ISLANDS",
-          "FAROE ISLANDS",
-          "FEDERATED STATES OF MICRONESIA",
-          "FIJI",
-          "FINLAND",
-          "FLORIDA",
-          "FRANCE",
-          "FRENCH GUIANA",
-          "FRENCH POLYNESIA",
-          "FRENCH SOUTHERN AND ANTARTIC LANDS",
-          "GABON",
-          "GAMBIA",
-          "GAZA",
-          "GEORGIA (COUNTRY)",
-          "GEORGIA (STATE)",
-          "GERMANY",
-          "GHANA",
-          "GIBRALTAR",
-          "GREECE",
-          "GREENLAND",
-          "GRENADA",
-          "GUADELOUPE",
-          "GUAM",
-          "GUANAJUATO",
-          "GUATEMALA",
-          "GUERNSEY",
-          "GUERRERO",
-          "GUINEA",
-          "GUINEA/BISSAU",
-          "GUYANA",
-          "HAITI",
-          "HAWAII",
-          "HEARD ISLAND & MCDONALD ISLAND",
-          "HIDALGO",
-          "HONDURAS",
-          "HONG KONG",
-          "HOWLAND ISLAND",
-          "HUNGARY",
-          "ICELAND",
-          "IDAHO",
-          "ILLINOIS",
-          "INDIA",
-          "INDIANA",
-          "INDONESIA",
-          "IOWA",
-          "IRAN",
-          "IRAQ",
-          "IRELAND (NOT NORTHERN IRELAND)",
-          "ISLE OF MAN",
-          "ISRAEL",
-          "ITALY",
-          "IVORY COAST",
-          "JALISCO",
-          "JAMAICA",
-          "JAN MAYEN",
-          "JAPAN",
-          "JARVIS ISLAND",
-          "JERSEY",
-          "JOHNSTON ISLANDS",
-          "JORDAN",
-          "JUAN DE NOVA ISLAND",
-          "KANSAS",
-          "KAZAKHSTAN",
-          "KENTUCKY",
-          "KENYA",
-          "KINGMAN REEF",
-          "KIRIBATI",
-          "KOSOVO",
-          "KUWAIT",
-          "KYRGYZSTAN",
-          "LAOS",
-          "LATVIA",
-          "LEBANON",
-          "LESOTHO",
-          "LIBERIA",
-          "LIBYA",
-          "LIECHTENSTEIN",
-          "LITHUANIA",
-          "LOUISIANA",
-          "LUXEMBOURG",
-          "MACAU",
-          "MADEIRA ISLANDS",
-          "MAINE",
-          "MALAGASY REPUBLIC",
-          "MALAWI",
-          "MALAYSIA",
-          "MALDIVES",
-          "MALI",
-          "MALTA",
-          "MANAHIKI ISLAND",
-          "MANITOBA",
-          "MARIANA ISLANDS",
-          "MARSHALL ISLANDS",
-          "MARTINIQUE",
-          "MARYLAND",
-          "MASSACHUSETTS",
-          "MAURITANIA",
-          "MAURITIUS",
-          "MAYOTTE",
-          "MEXICO",
-          "MICHIGAN",
-          "MICHOACAN",
-          "MIDWAY ISLANDS",
-          "MINNESOTA",
-          "MISSISSIPPI",
-          "MISSOURI",
-          "MOLDOVA",
-          "MONACO",
-          "MONGOLIA",
-          "MONTANA",
-          "MONTSERRAT",
-          "MORELOS",
-          "MOROCCO",
-          "MOZAMBIQUE",
-          "NAMIBIA/SOUTHWEST AFRICA",
-          "NAURU",
-          "NAVASSA ISLAND",
-          "NAYARIT",
-          "NEBRASKA",
-          "NEPAL",
-          "NETHERLANDS",
-          "NETHERLANDS ANTILLES",
-          "NEVADA",
-          "NEVIS/SAINT CHRISTOPHER/SAINT KITTS",
-          "NEW BRUNSWICK",
-          "NEW CALEDONIA",
-          "NEW HAMPSHIRE",
-          "NEW JERSEY",
-          "NEW MEXICO",
-          "NEW YORK",
-          "NEW ZEALAND",
-          "NEWFOUNDLAND",
-          "NICARAGUA",
-          "NIGER",
-          "NIGERIA",
-          "NORFOLK ISLAND",
-          "NORTH CAROLINA",
-          "NORTH DAKOTA",
-          "NORTH KOREA",
-          "NORTH VIETNAM",
-          "NORTHERN IRELAND",
-          "NORTHWEST TERRITORIES",
-          "NORWAY",
-          "NOVA SCOTIA",
-          "NUEVO LEON",
-          "OAXACA",
-          "OHIO",
-          "OKINAWA",
-          "OKLAHOMA",
-          "OMAN",
-          "ONTARIO",
-          "OREGON",
-          "OTHER NOT LISTED",
-          "PAKISTAN",
-          "PALAU, REPUBLIC OF",
-          "PALMYRA ATOLL",
-          "PANAMA",
-          "PAPUA NEW GUINEA",
-          "PARAGUAY",
-          "PARCEL ISLANDS",
-          "PENNSYLVANIA",
-          "PEOPLES REPUBLIC OF CHINA",
-          "PERU",
-          "PHILIPPINES",
-          "PITCAIRN HENDERSON DUCIE OENO",
-          "POLAND",
-          "PORTUGAL",
-          "PRINCE EDWARD ISLAND",
-          "PUEBLA",
-          "PUERTO RICO",
-          "QATAR",
-          "QUEBEC",
-          "QUERETARO",
-          "QUINTANA ROO",
-          "REPUBLIC OF CONGO/BRAZZAVILLE",
-          "REPUBLIC OF MACEDONIA",
-          "REPUBLIC OF YEMEN",
-          "REUNION",
-          "RHODE ISLAND",
-          "ROMANIA/RUMANIA",
-          "RUSSIA (FORMERLY USSR)",
-          "RUSSIAN FEDERATION",
-          "RWANDA",
-          "SAINT HELENA",
-          "SAINT LUCIA",
-          "SAINT PIERRE/MIGUELON",
-          "SAINT VINCENT",
-          "SAN LUIS POTOSI",
-          "SAN MARINO",
-          "SAO TOMER/PRINCIPE",
-          "SASKATCHEWAN",
-          "SAUDI ARABIA",
-          "SCOTLAND",
-          "SENEGAL",
-          "SERBIA",
-          "SEYCHELLES",
-          "SIERRA LEONE",
-          "SINALOA",
-          "SINGAPORE",
-          "SLOVAKIA",
-          "SLOVENIA",
-          "SOCIALIST REPUBLIC OF VIETNAM",
-          "SOLOMON ISLANDS",
-          "SOMALIA",
-          "SONORA",
-          "SOUTH AFRICA",
-          "SOUTH CAROLINA",
-          "SOUTH DAKOTA",
-          "SOUTH GEORGIA & SOUTH SANDWICH ISLAN",
-          "SOUTH KOREA",
-          "SPAIN",
-          "SPRATLY ISLANDS",
-          "SRI LANKA (CEYLON)",
-          "SUDAN",
-          "SURINAM",
-          "SVALBARD",
-          "SWAZILAND",
-          "SWEDEN",
-          "SWITZERLAND",
-          "SYRIA",
-          "TABASCO",
-          "TAIWAN",
-          "TAJIKISTAN",
-          "TAMAULIPAS",
-          "TANZANIA",
-          "TENNESSEE",
-          "TEXAS",
-          "THAILAND",
-          "TLAXCALA",
-          "TOGO",
-          "TOKELAU",
-          "TONGA",
-          "TONGAREVA ISLAND",
-          "TRINIDAD/TOBAGO",
-          "TROMELIN ISLAND",
-          "TRUST TERRITORY OF PACIFIC ISLANDS",
-          "TUAMOTU ARCHIPELAGO",
-          "TUNISIA",
-          "TURKEY",
-          "TURKMENISTAN",
-          "TURKS/CALCOS ISLANDS",
-          "TUVALU",
-          "UGANDA",
-          "UKRAINE",
-          "UNITED ARAB EMIRATES",
-          "UNITED STATES OF AMERICA",
-          "URUGUAY",
-          "US VIRGIN ISLANDS",
-          "UTAH",
-          "UZBEKISTAN",
-          "VANTUATU",
-          "VATICAN CITY",
-          "VENEZUELA",
-          "VERACRUZ",
-          "VERMONT",
-          "VIRGINIA",
-          "WAKE ISLAND",
-          "WALES",
-          "WALLIS AND FUTUNA",
-          "WASHINGTON",
-          "WEST BANK",
-          "WEST GERMANY",
-          "WEST INDIES",
-          "WEST VIRGINIA",
-          "WESTERN SAHARA",
-          "WESTERN SAMOA",
-          "WISCONSIN",
-          "WYOMING",
-          "YUCATAN",
-          "YUGOSLAVIA",
-          "YUKON TERRITORY",
-          "ZACATECAS",
-          "ZAIRE",
-          "ZAMBIA",
-          "ZIMBABWE",
-        ],
-        restrictionsExemptions: [
-          "COLLECTOR - 03 FFL - VALID COE",
-          "COMMUNITY COLLEGE - POST CERTIFIED",
-          "DULY AUTHORIZED LAW ENFORCEMENT AGENCY",
-          "ENTERTAINMENT COMPANY - PERMIT - VALID COE",
-          "EXCHANGE - WITHIN PRECEDING 30 DAYS",
-          "LAW ENFORCEMENT AGENCY - CALIFORNIA",
-          "LICENSED CALIFORNIA FIREARMS DEALER",
-          "PEACE OFFICER - ACTIVE - LETTER REQUIRED",
-          "PEACE OFFICER - CALIFORNIA - ACTIVE",
-          "PRIVATE SECURITY COMPANY (PPO) - CALIFORNIA - LICENSED",
-          "REPLACEMENT - REPORTED LOST OR STOLEN FIREARM",
-          "SPECIAL WEAPONS PERMIT",
-          "STATE OR LOCAL CORRECTIONAL FACILITY",
-        ],
-        citizenship: ["YES", "NO"],
-        firearmTypes: ["Handgun", "Rifle", "Shotgun", "Other"],
-        makes: [
-          "ARMSCOR PRECISION",
-          "BERETTA",
-          "BERSA",
-          "BROWNING",
-          "CAMDON DEFENSE",
-          "CENTURY ARMS INC",
-          "CHARTER 2000",
-          "COLT",
-          "CTF MANUFACTURING",
-          "CZ USA",
-          "DAN WESSON",
-          "EUROPEAN AMERICAN ARMORY CORP",
-          "FMK FIREARMS",
-          "FN HERSTAL, S.A.",
-          "FRANKLIN ARMORY",
-          "GERMAN SPORTS GUN",
-          "GIRSAN (IMPORTED BY EAA CORP)",
-          "GLOCK",
-          "GUNCRAFTER INDUSTRIES, LLC",
-          "HECKLER & KOCH",
-          "HENRY REPEATING ARM",
-          "JUGGERNAUT TACTICAL",
-          "KAHR ARMS",
-          "KIMBER",
-          "LES BAE",
-          "MAGNUM RESEARCH",
-          "NIGHTHAWK CUSTOM",
-          "NORTH AMERICAN ARMS",
-          "PHOENIX ARMS",
-          "ROST MARTIN",
-          "SECOND AMENDMENT ZONE",
-          "SEECAMP",
-          "SIG SAUER",
-          "SMITH & WESSON",
-          "SPRINGFIELD ARMORY",
-          "STANDARD MANUFACTURING CO",
-          "STRAYER VOIGT",
-          "STURM, RUGER & CO",
-          "TAURUS",
-          "VALTRO",
-          "WALTHER",
-          "WILSON COMBAT",
-        ],
-        race: [
-          "AMERICAN INDIAN",
-          "ASIAN INDIAN",
-          "BLACK",
-          "CAMBODIAN",
-          "CHINESE",
-          "FILIPINO",
-          "GUAMANIAN",
-          "HAWAIIAN",
-          "HISPANIC",
-          "JAPANESE",
-          "KOREAN",
-          "LAOTIAN",
-          "OTHER",
-          "OTHER ASIAN",
-          "PACIFIC ISLANDER",
-          "SAMOAN",
-          "VIETNAMESE",
-          "UNKNOWN",
-          "WHITE",
-        ],
-        waitingPeriodExemption: [
-          "CFD NUMBER",
-          "COLLECTOR",
-          "PEACE OFFICER (LETTER REQUIRED)",
-          "SPECIAL WEAPON PERMIT",
-        ],
-        frameOnly: ["YES", "NO"],
+        genders: FORM_OPTIONS.genders,
+        eyeColors: FORM_OPTIONS.eyeColors,
+        hairColors: FORM_OPTIONS.hairColors,
+        heightFeet: FORM_OPTIONS.heightFeet,
+        heightInches: FORM_OPTIONS.heightInches,
+        idTypes: FORM_OPTIONS.idTypes,
+        placesOfBirth: FORM_OPTIONS.placesOfBirth,
+        exemptionCodes: FORM_OPTIONS.exemptionCodes,
+        colors: FORM_OPTIONS.colors,
+        fsd: FORM_OPTIONS.fsd,
+        race: FORM_OPTIONS.race,
+        citizenship: FORM_OPTIONS.citizenship,
+        restrictionsExemptions: FORM_OPTIONS.restrictionsExemptions,
+        makes: FORM_OPTIONS.makes,
+        calibers: FORM_OPTIONS.calibers,
+        unit: FORM_OPTIONS.unit,
+        category: FORM_OPTIONS.category,
+        regulated: FORM_OPTIONS.regulated,
+        nonRosterExemption: FORM_OPTIONS.nonRosterExemption,
+        waitingPeriodExemption: FORM_OPTIONS.waitingPeriodExemption,
       };
     },
   });
@@ -1446,8 +834,8 @@ const PptHandgunPage = () => {
   });
 
   // Watch the make and model fields
-  const selectedMake = watch("make");
-  const selectedModel = watch("model");
+  const selectedMake = methods.watch("make");
+  const selectedModel = methods.watch("model");
 
   // Update the handgun details query
   const { data: handgunDetails } = useQuery({
@@ -1480,8 +868,8 @@ const PptHandgunPage = () => {
         model: "",
       } as Partial<FormData>;
 
-      setValue("make", make);
-      setValue("model", "");
+      methods.setValue("make", make);
+      methods.setValue("model", "");
       return make;
     },
   });
@@ -1498,976 +886,1081 @@ const PptHandgunPage = () => {
   });
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <h1 className="text-2xl font-bold text-center mb-8">
-        Submit Private Party Handgun Transfer
-      </h1>
+    <FormProvider {...methods}>
+      <div className="container mx-auto py-8 max-w-6xl">
+        <h1 className="text-2xl font-bold text-center mb-8">
+          Submit Private Party Handgun Transfer
+        </h1>
 
-      <Alert variant="destructive" className="mb-6">
-        <AlertDescription>
-          ATTENTION: NAVIGATING AWAY FROM THIS PAGE BEFORE SUBMITTING THE
-          TRANSACTION MAY RESULT IN DATA LOSS.
-        </AlertDescription>
-      </Alert>
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>
+            ATTENTION: NAVIGATING AWAY FROM THIS PAGE BEFORE SUBMITTING THE
+            TRANSACTION MAY RESULT IN DATA LOSS.
+          </AlertDescription>
+        </Alert>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Purchaser Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* ID Card Swipe Section */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <div className="flex max-w-lg">
-                <Label>Swipe CA Driver License or ID Card</Label>
-              </div>
-              <Input
-                type="text"
-                placeholder="Swipe or enter ID"
-                {...register("idNumber")}
-              />
-            </div>
-          </div>
-
-          {/* Name Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName" className="required">
-                Purchaser First Name
-              </Label>
-              <Input {...register("firstName")} id="firstName" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="middleName">Purchaser Middle Name</Label>
-              <Input {...register("middleName")} id="middleName" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName" className="required">
-                Purchaser Last Name
-              </Label>
-              <Input {...register("lastName")} id="lastName" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="suffix">Suffix</Label>
-              <Input {...register("suffix")} id="suffix" />
-            </div>
-          </div>
-
-          {/* Address Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="address" className="required">
-                Purchaser Street Address
-              </Label>
-              <Input {...register("streetAddress")} id="address" required />
-            </div>
-            <div className="flex gap-4 items-start">
+        <Card>
+          <CardHeader>
+            <CardTitle>Purchaser Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* ID Card Swipe Section */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>Zip Code</Label>
+                <div className="flex max-w-lg">
+                  <Label>Swipe CA Driver License or ID Card</Label>
+                </div>
                 <Input
-                  {...register("zipCode", {
-                    onChange: (e) => {
-                      const value = e.target.value
-                        .slice(0, 5)
-                        .replace(/\D/g, "");
-                      e.target.value = value;
-                    },
-                    maxLength: 5,
-                  })}
-                  className="w-24"
+                  type="text"
+                  placeholder="Swipe or enter ID"
+                  {...methods.register("idNumber")}
+                />
+              </div>
+            </div>
+
+            {/* Name Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="required">
+                  Purchaser First Name
+                </Label>
+                <Input
+                  {...methods.register("firstName")}
+                  id="firstName"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="middleName">Purchaser Middle Name</Label>
+                <Input {...methods.register("middleName")} id="middleName" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="required">
+                  Purchaser Last Name
+                </Label>
+                <Input
+                  {...methods.register("lastName")}
+                  id="lastName"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="suffix">Suffix</Label>
+                <Input {...methods.register("suffix")} id="suffix" />
+              </div>
+            </div>
+
+            {/* Address Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="address" className="required">
+                  Purchaser Street Address
+                </Label>
+                <Input
+                  {...methods.register("streetAddress")}
+                  id="address"
+                  required
+                />
+              </div>
+              <div className="flex gap-4 items-start">
+                <div className="space-y-2">
+                  <Label>Zip Code</Label>
+                  <Input
+                    {...methods.register("zipCode", {
+                      onChange: (e) => {
+                        const value = e.target.value
+                          .slice(0, 5)
+                          .replace(/\D/g, "");
+                        e.target.value = value;
+                      },
+                      maxLength: 5,
+                    })}
+                    className="w-24"
+                  />
+                </div>
+
+                {zipCode?.length === 5 && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>City</Label>
+                      <SelectComponent
+                        value={methods.watch("city") || ""}
+                        onValueChange={(value) =>
+                          methods.setValue("city", value)
+                        }
+                        placeholder="Select city"
+                      >
+                        {zipData?.primary_city && (
+                          <SelectItem value={zipData.primary_city}>
+                            {zipData.primary_city}
+                          </SelectItem>
+                        )}
+                        {zipData?.acceptable_cities?.map((city) => (
+                          <SelectItem
+                            key={city}
+                            value={city}
+                            className={
+                              city === zipData?.primary_city ? "hidden" : ""
+                            }
+                          >
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>State</Label>
+                      <Input
+                        {...methods.register("state")}
+                        value={zipData?.state || ""}
+                        disabled
+                        className="w-16 bg-muted"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Physical Characteristics */}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              <div className="space-y-2">
+                <Label className="required">Gender</Label>
+                <SelectComponent
+                  name="gender"
+                  value={methods.watch("gender") || ""}
+                  onValueChange={(value) => methods.setValue("gender", value)}
+                  placeholder="Select Gender"
+                >
+                  {formData?.genders.map((gender) => (
+                    <SelectItem key={gender} value={gender.toLowerCase()}>
+                      {gender}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="required">Hair Color</Label>
+                <SelectComponent
+                  name="hairColor"
+                  value={methods.watch("hairColor") || ""}
+                  onValueChange={(value) =>
+                    methods.setValue("hairColor", value)
+                  }
+                  placeholder="Select Hair Color"
+                >
+                  {formData?.hairColors.map((color) => (
+                    <SelectItem key={color} value={color.toLowerCase()}>
+                      {color}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="required">Eye Color</Label>
+                <SelectComponent
+                  name="eyeColor"
+                  value={methods.watch("eyeColor") || ""}
+                  onValueChange={(value) => methods.setValue("eyeColor", value)}
+                  placeholder="Select Eye Color"
+                >
+                  {formData?.eyeColors.map((color) => (
+                    <SelectItem key={color} value={color.toLowerCase()}>
+                      {color}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="required">Height</Label>
+                <div className="flex gap-2">
+                  <SelectComponent
+                    name="heightFeet"
+                    value={methods.watch("heightFeet") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("heightFeet", value)
+                    }
+                    placeholder="Feet"
+                  >
+                    {formData?.heightFeet.map((feet) => (
+                      <SelectItem key={feet} value={feet}>
+                        {feet}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
+                  <SelectComponent
+                    name="heightInches"
+                    value={methods.watch("heightInches") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("heightInches", value)
+                    }
+                    placeholder="Inches"
+                  >
+                    {formData?.heightInches.map((inches) => (
+                      <SelectItem key={inches} value={inches}>
+                        {inches}
+                      </SelectItem>
+                    ))}
+                  </SelectComponent>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight</Label>
+                <Input {...methods.register("weight")} id="weight" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input
+                  {...methods.register("dateOfBirth")}
+                  id="dob"
+                  type="date"
+                />
+              </div>
+            </div>
+
+            {/* ID Information */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label className="required">Purchaser ID Type</Label>
+                <SelectComponent
+                  name="idType"
+                  value={methods.watch("idType") || ""}
+                  onValueChange={(value) => methods.setValue("idType", value)}
+                  placeholder="Select ID Type"
+                >
+                  {formData?.idTypes.map((type) => (
+                    <SelectItem key={type} value={type.toLowerCase()}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="purchaserId">Purchaser ID Number</Label>
+                <Input {...methods.register("idNumber")} id="purchaserId" />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="required">Race</Label>
+                <SelectComponent
+                  name="race"
+                  value={methods.watch("race") || ""}
+                  onValueChange={(value) => methods.setValue("race", value)}
+                  placeholder="Select Race"
+                >
+                  {formData?.race.map((race) => (
+                    <SelectItem key={race} value={race.toLowerCase()}>
+                      {race}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="required">U.S. Citizen</Label>
+                <SelectComponent
+                  name="isUsCitizen"
+                  value={methods.watch("isUsCitizen") || ""}
+                  onValueChange={(value) =>
+                    methods.setValue("isUsCitizen", value)
+                  }
+                  placeholder="Select"
+                >
+                  {formData?.citizenship.map((type) => (
+                    <SelectItem key={type} value={type.toLowerCase()}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="required">Place of Birth</Label>
+                <SelectComponent
+                  name="placeOfBirth"
+                  value={methods.watch("placeOfBirth") || ""}
+                  onValueChange={(value) =>
+                    methods.setValue("placeOfBirth", value)
+                  }
+                  placeholder="Select Place of Birth"
+                >
+                  {formData?.placesOfBirth.map((place) => (
+                    <SelectItem key={place} value={place.toLowerCase()}>
+                      {place}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Purchaser Phone Number</Label>
+                <Input {...methods.register("phoneNumber")} />
+              </div>
+            </div>
+
+            {/* Alias Information */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="aliasFirstName">
+                  Purchaser Alias First Name
+                </Label>
+                <Input
+                  {...methods.register("aliasFirstName")}
+                  id="aliasFirstName"
                 />
               </div>
 
-              {zipCode?.length === 5 && (
-                <>
+              <div className="space-y-2">
+                <Label htmlFor="aliasMiddleName">
+                  Purchaser Alias Middle Name
+                </Label>
+                <Input
+                  {...methods.register("aliasMiddleName")}
+                  id="aliasMiddleName"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="aliasLastName">Purchaser Alias Last Name</Label>
+                <Input
+                  {...methods.register("aliasLastName")}
+                  id="aliasLastName"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
+                <Input {...methods.register("aliasSuffix")} id="aliasSuffix" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
+                <Input
+                  {...methods.register("hscFscNumber")}
+                  id="hscFscNumber"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="required">HSC / FSX Exemption Code</Label>
+                <SelectComponent
+                  name="exemptionCode"
+                  value={methods.watch("exemptionCode") || ""}
+                  onValueChange={(value) =>
+                    methods.setValue("exemptionCode", value)
+                  }
+                  placeholder="Select Exemption Code"
+                >
+                  {formData?.exemptionCodes.map((code) => (
+                    <SelectItem key={code} value={code.toLowerCase()}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectComponent>
+              </div>
+            </div>
+
+            {/* Eligibility Questions */}
+            <div className="space-y-6">
+              <CardContent className="space-y-6">
+                {/* Question 1 */}
+                <div className="space-y-2">
+                  <Label className="required block text-sm font-medium">
+                    <span className="font-bold">
+                      Firearms Eligibility Question 1:
+                    </span>{" "}
+                    Has purchaser: (1) ever been convicted of a felony, any
+                    offense specified in Penal Code (PC) section 29905, an
+                    offense specified in PC 23515(a), (b), or (d), a misdemeanor
+                    PC 273.5 offense, (2) been convicted in the last 10 years of
+                    a misdemeanor offense specified in PC 29805, or (3) been
+                    adjudged a ward of the juvenile court for committing an
+                    offense specified in PC 29805 and is not 30 years of age or
+                    older?
+                  </Label>
+                  <SelectComponent
+                    name="eligibilityQ1"
+                    value={methods.watch("eligibilityQ1") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("eligibilityQ1", value)
+                    }
+                    placeholder="Select"
+                  >
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectComponent>
+                </div>
+
+                {/* Question 2 */}
+                <div className="space-y-2">
+                  <Label className="required block text-sm font-medium">
+                    <span className="font-bold">
+                      Firearms Eligibility Question 2:
+                    </span>{" "}
+                    Has a court ever found, as specified in Welfare and
+                    Institutions Code (WIC) section 8103, the purchaser to be a
+                    danger to others from mental illness, a mentally disordered
+                    sex offender, not guilty by reason of insanity, mentally
+                    incompetent to stand trial, or gravely disabled to be placed
+                    under a conservatorship?
+                  </Label>
+                  <SelectComponent
+                    name="eligibilityQ2"
+                    value={methods.watch("eligibilityQ2") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("eligibilityQ2", value)
+                    }
+                    placeholder="Select"
+                  >
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectComponent>
+                </div>
+                {/* Question 3 */}
+                <div className="space-y-2">
+                  <Label className="required block text-sm font-medium">
+                    <span className="font-bold">
+                      Firearms Eligibility Question 3:
+                    </span>{" "}
+                    Is purchaser a danger/threat to self or others under WIC
+                    section 8100, a person certified for intensive treatment as
+                    described in WIC section 5103(g), or a person described in
+                    WIC section 8103(f) who has ever been admitted to a mental
+                    health facility as a danger to self or others at least twice
+                    within 1 year or admitted once within the past 5 years?
+                  </Label>
+                  <SelectComponent
+                    name="eligibilityQ3"
+                    value={methods.watch("eligibilityQ3") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("eligibilityQ3", value)
+                    }
+                    placeholder="Select"
+                  >
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectComponent>
+                </div>
+                {/* Question 4 */}
+                <div className="space-y-2">
+                  <Label className="required block text-sm font-medium">
+                    <span className="font-bold">
+                      Firearms Eligibility Question 4:
+                    </span>{" "}
+                    Is purchaser currently the subject of any restraining order
+                    specified in PC section 29825, a Gun Violence Restraining
+                    Order, or a probation condition prohibiting firearm
+                    possession?
+                  </Label>
+                  <SelectComponent
+                    name="eligibilityQ4"
+                    value={methods.watch("eligibilityQ4") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("eligibilityQ4", value)
+                    }
+                    placeholder="Select"
+                  >
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectComponent>
+                </div>
+
+                {/* Firearms Possession Question */}
+                <div className="space-y-2">
+                  <Label className="required block text-sm font-medium">
+                    <span className="font-bold">
+                      Firearms Possession Question:
+                    </span>{" "}
+                    If you currently own or possess firearms, have you checked
+                    and confirmed possession of those firearms within the past
+                    30 days? If you do not currently own or possess firearms,
+                    you must select not applicable (N/A).
+                  </Label>
+                  <SelectComponent
+                    name="firearmsQ1"
+                    value={methods.watch("firearmsQ1") || ""}
+                    onValueChange={(value) =>
+                      methods.setValue("firearmsQ1", value)
+                    }
+                    placeholder="Select"
+                  >
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="n/a">N/A</SelectItem>
+                  </SelectComponent>
+                </div>
+              </CardContent>
+            </div>
+
+            {/* Seller Information Section */}
+            <div className="space-y-6">
+              <CardHeader>
+                <CardTitle>Seller Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Seller Name Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label>City</Label>
+                    <Label className="required">Seller First Name</Label>
+                    <Input {...methods.register("sellerFirstName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seller Middle Name</Label>
+                    <Input {...methods.register("sellerMiddleName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="required">Seller Last Name</Label>
+                    <Input {...methods.register("sellerLastName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seller Suffix</Label>
+                    <Input {...methods.register("sellerSuffix")} />
+                  </div>
+                </div>
+
+                {/* Seller Address Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="required">Seller Street Address</Label>
+                    <Input
+                      {...methods.register("sellerStreetAddress")}
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-4 items-start">
+                    <div className="space-y-2">
+                      <Label>Zip Code</Label>
+                      <Input
+                        {...methods.register("sellerZipCode", {
+                          onChange: (e) => {
+                            const value = e.target.value
+                              .slice(0, 5)
+                              .replace(/\D/g, "");
+                            e.target.value = value;
+                          },
+                          onBlur: (e) => {
+                            if (e.target.value.length === 5) {
+                              queryClient.invalidateQueries({
+                                queryKey: ["sellerZipCode", e.target.value],
+                              });
+                            }
+                          },
+                          maxLength: 5,
+                        })}
+                        className="w-24"
+                      />
+                    </div>
+
+                    {sellerZipData && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>City</Label>
+                          <SelectComponent
+                            name="sellerCity"
+                            value={methods.getValues("sellerCity") || ""}
+                            onValueChange={(value) =>
+                              methods.setValue("sellerCity", value)
+                            }
+                            placeholder={
+                              isSellerZipLoading
+                                ? "Loading cities..."
+                                : "Select city"
+                            }
+                          >
+                            {sellerZipData?.primary_city && (
+                              <SelectItem value={sellerZipData.primary_city}>
+                                {sellerZipData.primary_city}
+                              </SelectItem>
+                            )}
+                            {sellerZipData?.acceptable_cities?.map((city) => (
+                              <SelectItem
+                                key={city}
+                                value={city}
+                                className={
+                                  city === sellerZipData?.primary_city
+                                    ? "hidden"
+                                    : ""
+                                }
+                              >
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectComponent>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>State</Label>
+                          <Input
+                            value={sellerZipData?.state || ""}
+                            disabled
+                            className="w-16 bg-muted"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Seller Physical Characteristics */}
+                <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                  <div className="space-y-2">
+                    <Label className="required">Gender</Label>
                     <SelectComponent
-                      value={watch("city") || ""}
-                      onValueChange={(value) => setValue("city", value)}
-                      placeholder="Select city"
+                      name="sellerGender"
+                      value={methods.watch("sellerGender") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerGender", value)
+                      }
+                      placeholder="Select Gender"
                     >
-                      {zipData?.primary_city && (
-                        <SelectItem value={zipData.primary_city}>
-                          {zipData.primary_city}
-                        </SelectItem>
-                      )}
-                      {zipData?.acceptable_cities?.map((city) => (
-                        <SelectItem
-                          key={city}
-                          value={city}
-                          className={
-                            city === zipData?.primary_city ? "hidden" : ""
-                          }
-                        >
-                          {city}
+                      {formData?.genders.map((gender) => (
+                        <SelectItem key={gender} value={gender.toLowerCase()}>
+                          {gender}
                         </SelectItem>
                       ))}
                     </SelectComponent>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>State</Label>
-                    <Input
-                      {...register("state")}
-                      value={zipData?.state || ""}
-                      disabled
-                      className="w-16 bg-muted"
-                    />
+                    <Label className="required">Hair Color</Label>
+                    <SelectComponent
+                      name="sellerHairColor"
+                      value={methods.watch("sellerHairColor") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerHairColor", value)
+                      }
+                      placeholder="Select Hair Color"
+                    >
+                      {formData?.hairColors.map((color) => (
+                        <SelectItem key={color} value={color.toLowerCase()}>
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
                   </div>
-                </>
-              )}
-            </div>
-          </div>
 
-          {/* Physical Characteristics */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label className="required">Gender</Label>
-              <SelectComponent
-                name="gender"
-                value={watch("gender") || ""}
-                onValueChange={(value) => setValue("gender", value)}
-                placeholder="Select Gender"
-              >
-                {formData?.genders.map((gender) => (
-                  <SelectItem key={gender} value={gender.toLowerCase()}>
-                    {gender}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Hair Color</Label>
-              <SelectComponent
-                name="hairColor"
-                value={watch("hairColor") || ""}
-                onValueChange={(value) => setValue("hairColor", value)}
-                placeholder="Select Hair Color"
-              >
-                {formData?.hairColors.map((color) => (
-                  <SelectItem key={color} value={color.toLowerCase()}>
-                    {color}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Eye Color</Label>
-              <SelectComponent
-                name="eyeColor"
-                value={watch("eyeColor") || ""}
-                onValueChange={(value) => setValue("eyeColor", value)}
-                placeholder="Select Eye Color"
-              >
-                {formData?.eyeColors.map((color) => (
-                  <SelectItem key={color} value={color.toLowerCase()}>
-                    {color}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Height</Label>
-              <div className="flex gap-2">
-                <SelectComponent
-                  name="heightFeet"
-                  value={watch("heightFeet") || ""}
-                  onValueChange={(value) => setValue("heightFeet", value)}
-                  placeholder="Feet"
-                >
-                  {formData?.heightFeet.map((feet) => (
-                    <SelectItem key={feet} value={feet}>
-                      {feet}
-                    </SelectItem>
-                  ))}
-                </SelectComponent>
-                <SelectComponent
-                  name="heightInches"
-                  value={watch("heightInches") || ""}
-                  onValueChange={(value) => setValue("heightInches", value)}
-                  placeholder="Inches"
-                >
-                  {formData?.heightInches.map((inches) => (
-                    <SelectItem key={inches} value={inches}>
-                      {inches}
-                    </SelectItem>
-                  ))}
-                </SelectComponent>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="weight">Weight</Label>
-              <Input {...register("weight")} id="weight" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth</Label>
-              <Input {...register("dateOfBirth")} id="dob" type="date" />
-            </div>
-          </div>
-
-          {/* ID Information */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label className="required">Purchaser ID Type</Label>
-              <SelectComponent
-                name="idType"
-                value={watch("idType") || ""}
-                onValueChange={(value) => setValue("idType", value)}
-                placeholder="Select ID Type"
-              >
-                {formData?.idTypes.map((type) => (
-                  <SelectItem key={type} value={type.toLowerCase()}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="purchaserId">Purchaser ID Number</Label>
-              <Input {...register("idNumber")} id="purchaserId" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">Race</Label>
-              <SelectComponent
-                name="race"
-                value={watch("race") || ""}
-                onValueChange={(value) => setValue("race", value)}
-                placeholder="Select Race"
-              >
-                {formData?.race.map((race) => (
-                  <SelectItem key={race} value={race.toLowerCase()}>
-                    {race}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">U.S. Citizen</Label>
-              <SelectComponent
-                name="isUsCitizen"
-                value={watch("isUsCitizen") || ""}
-                onValueChange={(value) => setValue("isUsCitizen", value)}
-                placeholder="Select"
-              >
-                {formData?.citizenship.map((type) => (
-                  <SelectItem key={type} value={type.toLowerCase()}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="required">Place of Birth</Label>
-              <SelectComponent
-                name="placeOfBirth"
-                value={watch("placeOfBirth") || ""}
-                onValueChange={(value) => setValue("placeOfBirth", value)}
-                placeholder="Select Place of Birth"
-              >
-                {formData?.placesOfBirth.map((place) => (
-                  <SelectItem key={place} value={place.toLowerCase()}>
-                    {place}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Purchaser Phone Number</Label>
-              <Input {...register("phoneNumber")} />
-            </div>
-          </div>
-
-          {/* Alias Information */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="aliasFirstName">Purchaser Alias First Name</Label>
-              <Input {...register("aliasFirstName")} id="aliasFirstName" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aliasMiddleName">
-                Purchaser Alias Middle Name
-              </Label>
-              <Input {...register("aliasMiddleName")} id="aliasMiddleName" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aliasLastName">Purchaser Alias Last Name</Label>
-              <Input {...register("aliasLastName")} id="aliasLastName" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
-              <Input {...register("aliasSuffix")} id="aliasSuffix" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
-              <Input {...register("hscFscNumber")} id="hscFscNumber" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="required">HSC / FSX Exemption Code</Label>
-              <SelectComponent
-                name="exemptionCode"
-                value={watch("exemptionCode") || ""}
-                onValueChange={(value) => setValue("exemptionCode", value)}
-                placeholder="Select Exemption Code"
-              >
-                {formData?.exemptionCodes.map((code) => (
-                  <SelectItem key={code} value={code.toLowerCase()}>
-                    {code}
-                  </SelectItem>
-                ))}
-              </SelectComponent>
-            </div>
-          </div>
-
-          {/* Eligibility Questions */}
-          <div className="space-y-6">
-            <CardContent className="space-y-6">
-              {/* Question 1 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 1:
-                  </span>{" "}
-                  Has purchaser: (1) ever been convicted of a felony, any
-                  offense specified in Penal Code (PC) section 29905, an offense
-                  specified in PC 23515(a), (b), or (d), a misdemeanor PC 273.5
-                  offense, (2) been convicted in the last 10 years of a
-                  misdemeanor offense specified in PC 29805, or (3) been
-                  adjudged a ward of the juvenile court for committing an
-                  offense specified in PC 29805 and is not 30 years of age or
-                  older?
-                </Label>
-                <SelectComponent
-                  name="eligibilityQ1"
-                  value={watch("eligibilityQ1") || ""}
-                  onValueChange={(value) => setValue("eligibilityQ1", value)}
-                  placeholder="Select"
-                >
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectComponent>
-              </div>
-
-              {/* Question 2 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 2:
-                  </span>{" "}
-                  Has a court ever found, as specified in Welfare and
-                  Institutions Code (WIC) section 8103, the purchaser to be a
-                  danger to others from mental illness, a mentally disordered
-                  sex offender, not guilty by reason of insanity, mentally
-                  incompetent to stand trial, or gravely disabled to be placed
-                  under a conservatorship?
-                </Label>
-                <SelectComponent
-                  name="eligibilityQ2"
-                  value={watch("eligibilityQ2") || ""}
-                  onValueChange={(value) => setValue("eligibilityQ2", value)}
-                  placeholder="Select"
-                >
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectComponent>
-              </div>
-              {/* Question 3 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 3:
-                  </span>{" "}
-                  Is purchaser a danger/threat to self or others under WIC
-                  section 8100, a person certified for intensive treatment as
-                  described in WIC section 5103(g), or a person described in WIC
-                  section 8103(f) who has ever been admitted to a mental health
-                  facility as a danger to self or others at least twice within 1
-                  year or admitted once within the past 5 years?
-                </Label>
-                <SelectComponent
-                  name="eligibilityQ3"
-                  value={watch("eligibilityQ3") || ""}
-                  onValueChange={(value) => setValue("eligibilityQ3", value)}
-                  placeholder="Select"
-                >
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectComponent>
-              </div>
-              {/* Question 4 */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Eligibility Question 4:
-                  </span>{" "}
-                  Is purchaser currently the subject of any restraining order
-                  specified in PC section 29825, a Gun Violence Restraining
-                  Order, or a probation condition prohibiting firearm
-                  possession?
-                </Label>
-                <SelectComponent
-                  name="eligibilityQ4"
-                  value={watch("eligibilityQ4") || ""}
-                  onValueChange={(value) => setValue("eligibilityQ4", value)}
-                  placeholder="Select"
-                >
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectComponent>
-              </div>
-
-              {/* Firearms Possession Question */}
-              <div className="space-y-2">
-                <Label className="required block text-sm font-medium">
-                  <span className="font-bold">
-                    Firearms Possession Question:
-                  </span>{" "}
-                  If you currently own or possess firearms, have you checked and
-                  confirmed possession of those firearms within the past 30
-                  days? If you do not currently own or possess firearms, you
-                  must select not applicable (N/A).
-                </Label>
-                <SelectComponent
-                  name="firearmsQ1"
-                  value={watch("firearmsQ1") || ""}
-                  onValueChange={(value) => setValue("firearmsQ1", value)}
-                  placeholder="Select"
-                >
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="n/a">N/A</SelectItem>
-                </SelectComponent>
-              </div>
-            </CardContent>
-          </div>
-
-          {/* Seller Information Section */}
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle>Seller Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Seller Name Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller First Name</Label>
-                  <Input {...register("sellerFirstName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Middle Name</Label>
-                  <Input {...register("sellerMiddleName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">Seller Last Name</Label>
-                  <Input {...register("sellerLastName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Suffix</Label>
-                  <Input {...register("sellerSuffix")} />
-                </div>
-              </div>
-
-              {/* Seller Address Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller Street Address</Label>
-                  <Input {...register("sellerStreetAddress")} required />
-                </div>
-                <div className="flex gap-4 items-start">
                   <div className="space-y-2">
-                    <Label>Zip Code</Label>
+                    <Label className="required">Eye Color</Label>
+                    <SelectComponent
+                      name="sellerEyeColor"
+                      value={methods.watch("sellerEyeColor") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerEyeColor", value)
+                      }
+                      placeholder="Select Eye Color"
+                    >
+                      {formData?.eyeColors.map((color) => (
+                        <SelectItem key={color} value={color.toLowerCase()}>
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
+                  </div>
+
+                  {/* Seller Height/Weight/DOB */}
+
+                  <div className="space-y-2">
+                    <Label className="required">Height</Label>
+                    <div className="flex gap-2">
+                      <SelectComponent
+                        name="sellerHeightFeet"
+                        value={methods.watch("sellerHeightFeet") || ""}
+                        onValueChange={(value) =>
+                          methods.setValue("sellerHeightFeet", value)
+                        }
+                        placeholder="ft"
+                      >
+                        {formData?.heightFeet.map((feet) => (
+                          <SelectItem key={feet} value={feet}>
+                            {feet}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
+                      <SelectComponent
+                        name="sellerHeightInches"
+                        value={methods.watch("sellerHeightInches") || ""}
+                        onValueChange={(value) =>
+                          methods.setValue("sellerHeightInches", value)
+                        }
+                        placeholder="in"
+                      >
+                        {formData?.heightInches.map((inches) => (
+                          <SelectItem key={inches} value={inches}>
+                            {inches}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Weight</Label>
+                    <Input {...methods.register("sellerWeight")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="required">Date of Birth</Label>
                     <Input
-                      {...register("sellerZipCode", {
-                        onChange: (e) => {
-                          const value = e.target.value
-                            .slice(0, 5)
-                            .replace(/\D/g, "");
-                          e.target.value = value;
-                        },
-                        onBlur: (e) => {
-                          if (e.target.value.length === 5) {
-                            queryClient.invalidateQueries({
-                              queryKey: ["sellerZipCode", e.target.value],
-                            });
-                          }
-                        },
-                        maxLength: 5,
-                      })}
-                      className="w-24"
+                      {...methods.register("sellerDateOfBirth")}
+                      type="date"
+                    />
+                  </div>
+                </div>
+
+                {/* Seller ID Information */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="required">Seller ID Type</Label>
+                    <SelectComponent
+                      name="sellerIdType"
+                      value={methods.watch("sellerIdType") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerIdType", value)
+                      }
+                      placeholder="Select ID Type"
+                    >
+                      {formData?.idTypes.map((type) => (
+                        <SelectItem key={type} value={type.toLowerCase()}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="required">Seller ID Number</Label>
+                    <Input {...methods.register("sellerIdNumber")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="required">Race</Label>
+                    <SelectComponent
+                      name="sellerRace"
+                      value={methods.watch("sellerRace") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerRace", value)
+                      }
+                      placeholder="Select Race"
+                    >
+                      {formData?.race.map((race) => (
+                        <SelectItem key={race} value={race.toLowerCase()}>
+                          {race}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
+                  </div>
+
+                  {/* Seller Additional Information */}
+
+                  <div className="space-y-2">
+                    <Label className="required">U.S. Citizen</Label>
+                    <SelectComponent
+                      name="sellerIsUsCitizen"
+                      value={methods.watch("sellerIsUsCitizen") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerIsUsCitizen", value)
+                      }
+                      placeholder="Select"
+                    >
+                      {formData?.citizenship.map((option) => (
+                        <SelectItem key={option} value={option.toLowerCase()}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="required">Seller Place of Birth</Label>
+                    <SelectComponent
+                      name="sellerPlaceOfBirth"
+                      value={methods.watch("sellerPlaceOfBirth") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("sellerPlaceOfBirth", value)
+                      }
+                      placeholder="Select Place of Birth"
+                    >
+                      {formData?.placesOfBirth.map((place) => (
+                        <SelectItem key={place} value={place.toLowerCase()}>
+                          {place}
+                        </SelectItem>
+                      ))}
+                    </SelectComponent>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Phone Number</Label>
+                    <Input {...methods.register("sellerPhoneNumber")} />
+                  </div>
+                </div>
+
+                {/* Seller Alias Information */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label>Seller Alias First Name</Label>
+                    <Input {...methods.register("sellerAliasFirstName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seller Alias Middle Name</Label>
+                    <Input {...methods.register("sellerAliasMiddleName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seller Alias Last Name</Label>
+                    <Input {...methods.register("sellerAliasLastName")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seller Alias Suffix</Label>
+                    <Input {...methods.register("sellerAliasSuffix")} />
+                  </div>
+                </div>
+              </CardContent>
+            </div>
+
+            {/* Transaction and Firearm Information */}
+            <div className="space-y-6">
+              <CardHeader>
+                <CardTitle>Transaction and Firearm Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* First Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="required">Gun Show Transaction</Label>
+                    <SelectComponent
+                      name="isGunShowTransaction"
+                      value={methods.watch("isGunShowTransaction") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("isGunShowTransaction", value)
+                      }
+                      placeholder="Select"
+                    >
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectComponent>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Waiting Period Exemption</Label>
+                    <SelectComponent
+                      name="waitingPeriodExemption"
+                      value={methods.watch("waitingPeriodExemption") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("waitingPeriodExemption", value)
+                      }
+                      placeholder={
+                        formData
+                          ? "Select Waiting Period Exemption"
+                          : "Loading..."
+                      }
+                    >
+                      {formData?.waitingPeriodExemption?.map(
+                        (waitingPeriod) => (
+                          <SelectItem
+                            key={waitingPeriod}
+                            value={waitingPeriod.toLowerCase()}
+                          >
+                            {waitingPeriod}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectComponent>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>30-Day Restriction Exemption</Label>
+                    <Input
+                      value="Private Party Transfer Through Licensed Firearms Dealer"
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                {/* Frame Only Question */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="required">Frame Only</Label>
+                    <SelectComponent
+                      name="frameOnly"
+                      value={methods.watch("frameOnly") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("frameOnly", value)
+                      }
+                      placeholder="Select"
+                    >
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectComponent>
+                  </div>
+                  {/* Make and Model*/}
+                  <div className="space-y-2">
+                    <Label className="required">Make</Label>
+                    <MakeSelect<FormData>
+                      setValue={methods.setValue}
+                      value={methods.watch("make") || ""}
+                      handgunData={makesData?.manufacturers || []}
+                      isLoadingHandguns={isLoadingMakes}
                     />
                   </div>
 
-                  {sellerZipData && (
-                    <>
+                  <div className="space-y-2">
+                    <Label className="required">Model</Label>
+                    <Input
+                      {...methods.register("model", {
+                        required: "Model is required",
+                      })}
+                      placeholder="Enter model"
+                      className={
+                        methods.formState.errors.model ? "border-red-500" : ""
+                      }
+                    />
+                    {methods.formState.errors.model && (
+                      <span className="text-sm text-red-500">
+                        {methods.formState.errors.model.message}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Caliber and Additional Caliber Sections */}
+
+                {methods.watch("frameOnly") !== "yes" ? (
+                  <>
+                    {/* Show caliber sections when frame only is not yes */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>City</Label>
+                        <Label className="required">Caliber</Label>
                         <SelectComponent
-                          name="sellerCity"
-                          value={getValues("sellerCity") || ""}
+                          name="calibers"
+                          value={methods.watch("calibers") || ""}
                           onValueChange={(value) =>
-                            setValue("sellerCity", value)
+                            methods.setValue("calibers", value)
                           }
-                          placeholder={
-                            isSellerZipLoading
-                              ? "Loading cities..."
-                              : "Select city"
-                          }
+                          placeholder="Select Caliber"
                         >
-                          {sellerZipData?.primary_city && (
-                            <SelectItem value={sellerZipData.primary_city}>
-                              {sellerZipData.primary_city}
-                            </SelectItem>
-                          )}
-                          {sellerZipData?.acceptable_cities?.map((city) => (
-                            <SelectItem
-                              key={city}
-                              value={city}
-                              className={
-                                city === sellerZipData?.primary_city
-                                  ? "hidden"
-                                  : ""
-                              }
-                            >
-                              {city}
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
                             </SelectItem>
                           ))}
                         </SelectComponent>
                       </div>
-
                       <div className="space-y-2">
-                        <Label>State</Label>
-                        <Input
-                          value={sellerZipData?.state || ""}
-                          disabled
-                          className="w-16 bg-muted"
-                        />
+                        <Label>Additional Caliber</Label>
+                        <SelectComponent
+                          name="additionalCaliber"
+                          value={methods.watch("additionalCaliber") || ""}
+                          onValueChange={(value) =>
+                            methods.setValue("additionalCaliber", value)
+                          }
+                          placeholder="Select Additional Caliber (Optional)"
+                        >
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectComponent>
                       </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Seller Physical Characteristics */}
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Gender</Label>
-                  <SelectComponent
-                    name="sellerGender"
-                    value={watch("sellerGender") || ""}
-                    onValueChange={(value) => setValue("sellerGender", value)}
-                    placeholder="Select Gender"
-                  >
-                    {formData?.genders.map((gender) => (
-                      <SelectItem key={gender} value={gender.toLowerCase()}>
-                        {gender}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Hair Color</Label>
-                  <SelectComponent
-                    name="sellerHairColor"
-                    value={watch("sellerHairColor") || ""}
-                    onValueChange={(value) =>
-                      setValue("sellerHairColor", value)
-                    }
-                    placeholder="Select Hair Color"
-                  >
-                    {formData?.hairColors.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Eye Color</Label>
-                  <SelectComponent
-                    name="sellerEyeColor"
-                    value={watch("sellerEyeColor") || ""}
-                    onValueChange={(value) => setValue("sellerEyeColor", value)}
-                    placeholder="Select Eye Color"
-                  >
-                    {formData?.eyeColors.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                {/* Seller Height/Weight/DOB */}
-
-                <div className="space-y-2">
-                  <Label className="required">Height</Label>
-                  <div className="flex gap-2">
-                    <SelectComponent
-                      name="sellerHeightFeet"
-                      value={watch("sellerHeightFeet") || ""}
-                      onValueChange={(value) =>
-                        setValue("sellerHeightFeet", value)
-                      }
-                      placeholder="ft"
-                    >
-                      {formData?.heightFeet.map((feet) => (
-                        <SelectItem key={feet} value={feet}>
-                          {feet}
-                        </SelectItem>
-                      ))}
-                    </SelectComponent>
-                    <SelectComponent
-                      name="sellerHeightInches"
-                      value={watch("sellerHeightInches") || ""}
-                      onValueChange={(value) =>
-                        setValue("sellerHeightInches", value)
-                      }
-                      placeholder="in"
-                    >
-                      {formData?.heightInches.map((inches) => (
-                        <SelectItem key={inches} value={inches}>
-                          {inches}
-                        </SelectItem>
-                      ))}
-                    </SelectComponent>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Weight</Label>
-                  <Input {...register("sellerWeight")} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Date of Birth</Label>
-                  <Input {...register("sellerDateOfBirth")} type="date" />
-                </div>
-              </div>
-
-              {/* Seller ID Information */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller ID Type</Label>
-                  <SelectComponent
-                    name="sellerIdType"
-                    value={watch("sellerIdType") || ""}
-                    onValueChange={(value) => setValue("sellerIdType", value)}
-                    placeholder="Select ID Type"
-                  >
-                    {formData?.idTypes.map((type) => (
-                      <SelectItem key={type} value={type.toLowerCase()}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Seller ID Number</Label>
-                  <Input {...register("sellerIdNumber")} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Race</Label>
-                  <SelectComponent
-                    name="sellerRace"
-                    value={watch("sellerRace") || ""}
-                    onValueChange={(value) => setValue("sellerRace", value)}
-                    placeholder="Select Race"
-                  >
-                    {formData?.race.map((race) => (
-                      <SelectItem key={race} value={race.toLowerCase()}>
-                        {race}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                {/* Seller Additional Information */}
-
-                <div className="space-y-2">
-                  <Label className="required">U.S. Citizen</Label>
-                  <SelectComponent
-                    name="sellerIsUsCitizen"
-                    value={watch("sellerIsUsCitizen") || ""}
-                    onValueChange={(value) =>
-                      setValue("sellerIsUsCitizen", value)
-                    }
-                    placeholder="Select"
-                  >
-                    {formData?.citizenship.map((option) => (
-                      <SelectItem key={option} value={option.toLowerCase()}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Seller Place of Birth</Label>
-                  <SelectComponent
-                    name="sellerPlaceOfBirth"
-                    value={watch("sellerPlaceOfBirth") || ""}
-                    onValueChange={(value) =>
-                      setValue("sellerPlaceOfBirth", value)
-                    }
-                    placeholder="Select Place of Birth"
-                  >
-                    {formData?.placesOfBirth.map((place) => (
-                      <SelectItem key={place} value={place.toLowerCase()}>
-                        {place}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input {...register("sellerPhoneNumber")} />
-                </div>
-              </div>
-
-              {/* Seller Alias Information */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Seller Alias First Name</Label>
-                  <Input {...register("sellerAliasFirstName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Alias Middle Name</Label>
-                  <Input {...register("sellerAliasMiddleName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Alias Last Name</Label>
-                  <Input {...register("sellerAliasLastName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Seller Alias Suffix</Label>
-                  <Input {...register("sellerAliasSuffix")} />
-                </div>
-              </div>
-            </CardContent>
-          </div>
-
-          {/* Transaction and Firearm Information */}
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle>Transaction and Firearm Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* First Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Gun Show Transaction</Label>
-                  <SelectComponent
-                    name="isGunShowTransaction"
-                    value={watch("isGunShowTransaction") || ""}
-                    onValueChange={(value) =>
-                      setValue("isGunShowTransaction", value)
-                    }
-                    placeholder="Select"
-                  >
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectComponent>
-                </div>
-                <div className="space-y-2">
-                  <Label>Waiting Period Exemption</Label>
-                  <SelectComponent
-                    name="waitingPeriodExemption"
-                    value={watch("waitingPeriodExemption") || ""}
-                    onValueChange={(value) =>
-                      setValue("waitingPeriodExemption", value)
-                    }
-                    placeholder={
-                      formData
-                        ? "Select Waiting Period Exemption"
-                        : "Loading..."
-                    }
-                  >
-                    {formData?.waitingPeriodExemption?.map((waitingPeriod) => (
-                      <SelectItem
-                        key={waitingPeriod}
-                        value={waitingPeriod.toLowerCase()}
-                      >
-                        {waitingPeriod}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-                <div className="space-y-2">
-                  <Label>30-Day Restriction Exemption</Label>
-                  <Input
-                    value="Private Party Transfer Through Licensed Firearms Dealer"
-                    disabled
-                  />
-                </div>
-              </div>
-
-              {/* Frame Only Question */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">Frame Only</Label>
-                  <SelectComponent
-                    name="frameOnly"
-                    value={watch("frameOnly") || ""}
-                    onValueChange={(value) => setValue("frameOnly", value)}
-                    placeholder="Select"
-                  >
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectComponent>
-                </div>
-                {/* Make and Model*/}
-                <div className="space-y-2">
-                  <Label className="required">Make</Label>
-                  <MakeSelect<FormData>
-                    setValue={setValue}
-                    value={watch("make") || ""}
-                    handgunData={makesData?.manufacturers || []}
-                    isLoadingHandguns={isLoadingMakes}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="required">Model</Label>
-                  <Input
-                    {...register("model", {
-                      required: "Model is required",
-                    })}
-                    placeholder="Enter model"
-                    className={errors.model ? "border-red-500" : ""}
-                  />
-                  {errors.model && (
-                    <span className="text-sm text-red-500">
-                      {errors.model.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Caliber and Additional Caliber Sections */}
-
-              {frameOnlySelection !== "yes" ? (
-                <>
-                  {/* Show caliber sections when frame only is not yes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="required">Caliber</Label>
-                      <SelectComponent
-                        name="calibers"
-                        value={watch("calibers") || ""}
-                        onValueChange={(value) => setValue("calibers", value)}
-                        placeholder="Select Caliber"
-                      >
-                        {formData?.calibers.map((caliber) => (
-                          <SelectItem key={caliber} value={caliber}>
-                            {DOMPurify.sanitize(caliber)}
-                          </SelectItem>
-                        ))}
-                      </SelectComponent>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Additional Caliber</Label>
-                      <SelectComponent
-                        name="additionalCaliber"
-                        value={watch("additionalCaliber") || ""}
-                        onValueChange={(value) =>
-                          setValue("additionalCaliber", value)
-                        }
-                        placeholder="Select Additional Caliber (Optional)"
-                      >
-                        {formData?.calibers.map((caliber) => (
-                          <SelectItem key={caliber} value={caliber}>
-                            {DOMPurify.sanitize(caliber)}
-                          </SelectItem>
-                        ))}
-                      </SelectComponent>
-                    </div>
-                  </div>
 
-                  {/* Additional Caliber 2 and 3 Section */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Additional Caliber 2</Label>
-                      <SelectComponent
-                        name="additionalCaliber2"
-                        value={watch("additionalCaliber2") || ""}
-                        onValueChange={(value) =>
-                          setValue("additionalCaliber2", value)
-                        }
-                        placeholder="Select Caliber"
-                      >
-                        {formData?.calibers.map((caliber) => (
-                          <SelectItem key={caliber} value={caliber}>
-                            {DOMPurify.sanitize(caliber)}
-                          </SelectItem>
-                        ))}
-                      </SelectComponent>
+                    {/* Additional Caliber 2 and 3 Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Additional Caliber 2</Label>
+                        <SelectComponent
+                          name="additionalCaliber2"
+                          value={methods.watch("additionalCaliber2") || ""}
+                          onValueChange={(value) =>
+                            methods.setValue("additionalCaliber2", value)
+                          }
+                          placeholder="Select Caliber"
+                        >
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectComponent>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Additional Caliber 3</Label>
+                        <SelectComponent
+                          name="additionalCaliber3"
+                          value={methods.watch("additionalCaliber3") || ""}
+                          onValueChange={(value) =>
+                            methods.setValue("additionalCaliber3", value)
+                          }
+                          placeholder="Select Additional Caliber (Optional)"
+                        >
+                          {formData?.calibers.map((caliber) => (
+                            <SelectItem key={caliber} value={caliber}>
+                              {DOMPurify.sanitize(caliber)}
+                            </SelectItem>
+                          ))}
+                        </SelectComponent>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Additional Caliber 3</Label>
-                      <SelectComponent
-                        name="additionalCaliber3"
-                        value={watch("additionalCaliber3") || ""}
-                        onValueChange={(value) =>
-                          setValue("additionalCaliber3", value)
-                        }
-                        placeholder="Select Additional Caliber (Optional)"
-                      >
-                        {formData?.calibers.map((caliber) => (
-                          <SelectItem key={caliber} value={caliber}>
-                            {DOMPurify.sanitize(caliber)}
-                          </SelectItem>
-                        ))}
-                      </SelectComponent>
-                    </div>
-                  </div>
 
-                  {/* Combined row for barrel length, unit, gun type, category */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label className="required">Barrel Length</Label>
-                      <Input {...register("barrelLength")} />
+                    {/* Combined row for barrel length, unit, gun type, category */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label className="required">Barrel Length</Label>
+                        <Input {...methods.register("barrelLength")} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Unit</Label>
+                        <SelectComponent
+                          name="unit"
+                          value={methods.watch("unit") || ""}
+                          onValueChange={(value) =>
+                            methods.setValue("unit", value)
+                          }
+                          placeholder="Select Unit"
+                        >
+                          {formData?.unit.map((unit) => (
+                            <SelectItem key={unit} value={unit}>
+                              {DOMPurify.sanitize(unit)}
+                            </SelectItem>
+                          ))}
+                        </SelectComponent>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Gun Type</Label>
+                        <Input value="HANDGUN" disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <SelectComponent
+                          name="category"
+                          value={methods.watch("category") || ""}
+                          onValueChange={(value) =>
+                            methods.setValue("category", value)
+                          }
+                          placeholder="Select Category"
+                        >
+                          {formData?.category.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {DOMPurify.sanitize(category)}
+                            </SelectItem>
+                          ))}
+                        </SelectComponent>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Unit</Label>
-                      <SelectComponent
-                        name="unit"
-                        value={watch("unit") || ""}
-                        onValueChange={(value) => setValue("unit", value)}
-                        placeholder="Select Unit"
-                      >
-                        {formData?.unit.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {DOMPurify.sanitize(unit)}
-                          </SelectItem>
-                        ))}
-                      </SelectComponent>
-                    </div>
+                  </>
+                ) : (
+                  /* When frame only is yes, show gun type, category, and regulated in one row */
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Gun Type</Label>
                       <Input value="HANDGUN" disabled />
@@ -2476,8 +1969,10 @@ const PptHandgunPage = () => {
                       <Label>Category</Label>
                       <SelectComponent
                         name="category"
-                        value={watch("category") || ""}
-                        onValueChange={(value) => setValue("category", value)}
+                        value={methods.watch("category") || ""}
+                        onValueChange={(value) =>
+                          methods.setValue("category", value)
+                        }
                         placeholder="Select Category"
                       >
                         {formData?.category.map((category) => (
@@ -2487,154 +1982,139 @@ const PptHandgunPage = () => {
                         ))}
                       </SelectComponent>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Federally Regulated Firearm Precursor Part</Label>
+                      <SelectComponent
+                        name="regulated"
+                        value={methods.watch("regulated") || ""}
+                        onValueChange={(value) =>
+                          methods.setValue("regulated", value)
+                        }
+                        placeholder="Select"
+                      >
+                        {formData?.regulated.map((regulated) => (
+                          <SelectItem key={regulated} value={regulated}>
+                            {DOMPurify.sanitize(regulated)}
+                          </SelectItem>
+                        ))}
+                      </SelectComponent>
+                    </div>
                   </div>
-                </>
-              ) : (
-                /* When frame only is yes, show gun type, category, and regulated in one row */
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                )}
+
+                {/* Serial Numbers Row */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label>Gun Type</Label>
-                    <Input value="HANDGUN" disabled />
+                    <Label className="required">Serial Number</Label>
+                    <Input {...methods.register("serialNumber")} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Category</Label>
+                    <Label className="required">Re-enter Serial Number</Label>
+                    <Input
+                      onChange={(e) => {
+                        const reenteredSerial = e.target.value;
+                        if (
+                          reenteredSerial === initialFormState?.serialNumber
+                        ) {
+                          // Serial numbers match - you could add visual feedback here
+                        } else {
+                          // Serial numbers don't match - you could add visual feedback here
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Other Number</Label>
+                    <Input {...methods.register("otherNumber")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="required">Color</Label>
                     <SelectComponent
-                      name="category"
-                      value={watch("category") || ""}
-                      onValueChange={(value) => setValue("category", value)}
-                      placeholder="Select Category"
+                      name="color"
+                      value={methods.watch("color") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("color", value)
+                      }
+                      placeholder="Select Color"
                     >
-                      {formData?.category.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {DOMPurify.sanitize(category)}
+                      {formData?.colors.map((color) => (
+                        <SelectItem key={color} value={color.toLowerCase()}>
+                          {color}
                         </SelectItem>
                       ))}
                     </SelectComponent>
                   </div>
+                </div>
+                {/* Gun Details Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Federally Regulated Firearm Precursor Part</Label>
+                    <Label className="required">New/Used Gun</Label>
                     <SelectComponent
-                      name="regulated"
-                      value={watch("regulated") || ""}
-                      onValueChange={(value) => setValue("regulated", value)}
+                      name="isNewGun"
+                      value={methods.watch("isNewGun") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("isNewGun", value)
+                      }
                       placeholder="Select"
                     >
-                      {formData?.regulated.map((regulated) => (
-                        <SelectItem key={regulated} value={regulated}>
-                          {DOMPurify.sanitize(regulated)}
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="used">Used</SelectItem>
+                    </SelectComponent>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="required">
+                      Firearm Safety Device (FSD)
+                    </Label>
+                    <SelectComponent
+                      name="firearmSafetyDevice"
+                      value={methods.watch("firearmSafetyDevice") || ""}
+                      onValueChange={(value) =>
+                        methods.setValue("firearmSafetyDevice", value)
+                      }
+                      placeholder="Select Firearm Safety Device (FSD)"
+                    >
+                      {formData?.fsd.map((code) => (
+                        <SelectItem key={code} value={code.toLowerCase()}>
+                          {code}
                         </SelectItem>
                       ))}
                     </SelectComponent>
                   </div>
                 </div>
-              )}
 
-              {/* Serial Numbers Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Comments Section */}
                 <div className="space-y-2">
-                  <Label className="required">Serial Number</Label>
-                  <Input {...register("serialNumber")} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">Re-enter Serial Number</Label>
-                  <Input
-                    onChange={(e) => {
-                      const reenteredSerial = e.target.value;
-                      if (reenteredSerial === initialFormState?.serialNumber) {
-                        // Serial numbers match - you could add visual feedback here
-                      } else {
-                        // Serial numbers don't match - you could add visual feedback here
-                      }
-                    }}
+                  <Label>Comments</Label>
+                  <Textarea
+                    {...methods.register("comments")}
+                    className="w-full min-h-[100px] p-2 border rounded-md"
+                    maxLength={200}
                   />
+                  <div className="text-sm text-gray-500">
+                    200 character limit. Characters remaining:{" "}
+                    {200 - (initialFormState?.comments?.length || 0)}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Other Number</Label>
-                  <Input {...register("otherNumber")} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">Color</Label>
-                  <SelectComponent
-                    name="color"
-                    value={watch("color") || ""}
-                    onValueChange={(value) => setValue("color", value)}
-                    placeholder="Select Color"
-                  >
-                    {formData?.colors.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-              </div>
-              {/* Gun Details Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">New/Used Gun</Label>
-                  <SelectComponent
-                    name="isNewGun"
-                    value={watch("isNewGun") || ""}
-                    onValueChange={(value) => setValue("isNewGun", value)}
-                    placeholder="Select"
-                  >
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="used">Used</SelectItem>
-                  </SelectComponent>
-                </div>
-                <div className="space-y-2">
-                  <Label className="required">
-                    Firearm Safety Device (FSD)
-                  </Label>
-                  <SelectComponent
-                    name="firearmSafetyDevice"
-                    value={watch("firearmSafetyDevice") || ""}
-                    onValueChange={(value) =>
-                      setValue("firearmSafetyDevice", value)
-                    }
-                    placeholder="Select Firearm Safety Device (FSD)"
-                  >
-                    {formData?.fsd.map((code) => (
-                      <SelectItem key={code} value={code.toLowerCase()}>
-                        {code}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div>
-              </div>
+              </CardContent>
+            </div>
 
-              {/* Comments Section */}
-              <div className="space-y-2">
-                <Label>Comments</Label>
-                <Textarea
-                  {...register("comments")}
-                  className="w-full min-h-[100px] p-2 border rounded-md"
-                  maxLength={200}
-                />
-                <div className="text-sm text-gray-500">
-                  200 character limit. Characters remaining:{" "}
-                  {200 - (initialFormState?.comments?.length || 0)}
-                </div>
-              </div>
-            </CardContent>
-          </div>
-
-          {/* Additional fields can be added following the same pattern */}
-        </CardContent>
-      </Card>
-      <div className="flex justify-center gap-4 mt-6">
-        <Button
-          variant="outline"
-          onClick={() => router.push("/TGR/dros/training")}
-        >
-          Back
-        </Button>
-        <PreviewDialog control={control} />
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          Refresh
-        </Button>
+            {/* Additional fields can be added following the same pattern */}
+          </CardContent>
+        </Card>
+        <div className="flex justify-center gap-4 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/TGR/dros/training")}
+          >
+            Back
+          </Button>
+          <PreviewDialog />
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Refresh
+          </Button>
+        </div>
       </div>
-    </div>
+    </FormProvider>
   );
 };
 

@@ -4,7 +4,13 @@ import DOMPurify from "isomorphic-dompurify";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useMemo, useRef, useState, useEffect } from "react";
-import { Control, useForm, UseFormSetValue, useWatch } from "react-hook-form";
+import {
+  Control,
+  useForm,
+  UseFormSetValue,
+  useWatch,
+  UseFormReturn,
+} from "react-hook-form";
 import { Alert, AlertDescription } from "../../../../../components/ui/alert";
 import { Button } from "../../../../../components/ui/button";
 import {
@@ -35,6 +41,7 @@ import { Textarea } from "../../../../../components/ui/textarea";
 import { toast } from "../../../../../components/ui/use-toast";
 import { supabase } from "../../../../../utils/supabase/client";
 import MakeSelect from "@/components/MakeSelect";
+import { FORM_OPTIONS } from "../components/formOptions";
 
 interface FormOptionsData {
   genders: string[];
@@ -322,8 +329,8 @@ interface HandgunRoster {
   [make: string]: string[];
 }
 
-const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
-  const formValues = useWatch({ control });
+const PreviewDialog = ({ form }: { form: UseFormReturn<FormData> }) => {
+  const values = form.getValues(); // Only get values when dialog opens
   const router = useRouter();
 
   // Dialog state mutation
@@ -333,17 +340,17 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   });
 
   const { data: agencyName } = useQuery({
-    queryKey: ["agencyName", formValues.agencyDepartment],
+    queryKey: ["agencyName", values.agencyDepartment],
     queryFn: async () => {
-      if (!formValues.agencyDepartment) return null;
+      if (!values.agencyDepartment) return null;
       const response = await fetch(
-        `/api/fetchAgencyPd?id=${formValues.agencyDepartment}`
+        `/api/fetchAgencyPd?id=${values.agencyDepartment}`
       );
       if (!response.ok) throw new Error("Failed to fetch agency name");
       const data = await response.json();
       return data.label;
     },
-    enabled: !!formValues.agencyDepartment,
+    enabled: !!values.agencyDepartment,
   });
 
   // Form submission mutation
@@ -388,48 +395,48 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
             <h3 className="font-bold">Buyer Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="font-medium">Name:</span>
-              <span>{`${formValues.firstName} ${formValues.middleName || ""} ${
-                formValues.lastName
-              } ${formValues.suffix || ""}`}</span>
+              <span>{`${values.firstName} ${values.middleName || ""} ${
+                values.lastName
+              } ${values.suffix || ""}`}</span>
 
               <span className="font-medium">Address:</span>
-              <span>{`${formValues.streetAddress}, ${formValues.city}, ${formValues.state} ${formValues.zipCode}`}</span>
+              <span>{`${values.streetAddress}, ${values.city}, ${values.state} ${values.zipCode}`}</span>
 
               <span className="font-medium">Physical Description:</span>
-              <span>{`${formValues.gender}, ${formValues.hairColor} hair, ${formValues.eyeColor} eyes`}</span>
+              <span>{`${values.gender}, ${values.hairColor} hair, ${values.eyeColor} eyes`}</span>
 
               <span className="font-medium">Height:</span>
-              <span>{`${formValues.heightFeet}'${formValues.heightInches}"`}</span>
+              <span>{`${values.heightFeet}'${values.heightInches}"`}</span>
 
               <span className="font-medium">Weight:</span>
-              <span>{formValues.weight || "N/A"}</span>
+              <span>{values.weight || "N/A"}</span>
 
               <span className="font-medium">Date of Birth:</span>
-              <span>{formValues.dateOfBirth}</span>
+              <span>{values.dateOfBirth}</span>
 
               <span className="font-medium">ID Information:</span>
-              <span>{`${formValues.idType} - ${formValues.idNumber}`}</span>
+              <span>{`${values.idType} - ${values.idNumber}`}</span>
 
               <span className="font-medium">Race:</span>
-              <span>{formValues.race}</span>
+              <span>{values.race}</span>
 
               <span className="font-medium">U.S. Citizen:</span>
-              <span>{formValues.isUsCitizen}</span>
+              <span>{values.isUsCitizen}</span>
 
               <span className="font-medium">Place of Birth:</span>
-              <span>{formValues.placeOfBirth}</span>
+              <span>{values.placeOfBirth}</span>
 
               <span className="font-medium">Phone Number:</span>
-              <span>{formValues.phoneNumber || "N/A"}</span>
+              <span>{values.phoneNumber || "N/A"}</span>
 
               {/* Alias Information if provided */}
-              {(formValues.aliasFirstName || formValues.aliasLastName) && (
+              {(values.aliasFirstName || values.aliasLastName) && (
                 <>
                   <span className="font-medium">Alias:</span>
-                  <span>{`${formValues.aliasFirstName || ""} ${
-                    formValues.aliasMiddleName || ""
-                  } ${formValues.aliasLastName || ""} ${
-                    formValues.aliasSuffix || ""
+                  <span>{`${values.aliasFirstName || ""} ${
+                    values.aliasMiddleName || ""
+                  } ${values.aliasLastName || ""} ${
+                    values.aliasSuffix || ""
                   }`}</span>
                 </>
               )}
@@ -441,51 +448,48 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
             <h3 className="font-bold">Seller Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="font-medium">Name:</span>
-              <span>{`${formValues.sellerFirstName} ${
-                formValues.sellerMiddleName || ""
-              } ${formValues.sellerLastName} ${
-                formValues.sellerSuffix || ""
-              }`}</span>
+              <span>{`${values.sellerFirstName} ${
+                values.sellerMiddleName || ""
+              } ${values.sellerLastName} ${values.sellerSuffix || ""}`}</span>
 
               <span className="font-medium">Address:</span>
-              <span>{`${formValues.sellerStreetAddress}, ${formValues.sellerCity}, ${formValues.sellerState} ${formValues.sellerZipCode}`}</span>
+              <span>{`${values.sellerStreetAddress}, ${values.sellerCity}, ${values.sellerState} ${values.sellerZipCode}`}</span>
 
               <span className="font-medium">Physical Description:</span>
-              <span>{`${formValues.sellerGender}, ${formValues.sellerHairColor} hair, ${formValues.sellerEyeColor} eyes`}</span>
+              <span>{`${values.sellerGender}, ${values.sellerHairColor} hair, ${values.sellerEyeColor} eyes`}</span>
 
               <span className="font-medium">Height:</span>
-              <span>{`${formValues.sellerHeightFeet}'${formValues.sellerHeightInches}"`}</span>
+              <span>{`${values.sellerHeightFeet}'${values.sellerHeightInches}"`}</span>
 
               <span className="font-medium">Weight:</span>
-              <span>{formValues.sellerWeight || "N/A"}</span>
+              <span>{values.sellerWeight || "N/A"}</span>
 
               <span className="font-medium">Date of Birth:</span>
-              <span>{formValues.sellerDateOfBirth}</span>
+              <span>{values.sellerDateOfBirth}</span>
 
               <span className="font-medium">ID Information:</span>
-              <span>{`${formValues.sellerIdType} - ${formValues.sellerIdNumber}`}</span>
+              <span>{`${values.sellerIdType} - ${values.sellerIdNumber}`}</span>
 
               <span className="font-medium">Race:</span>
-              <span>{formValues.sellerRace}</span>
+              <span>{values.sellerRace}</span>
 
               <span className="font-medium">U.S. Citizen:</span>
-              <span>{formValues.sellerIsUsCitizen}</span>
+              <span>{values.sellerIsUsCitizen}</span>
 
               <span className="font-medium">Place of Birth:</span>
-              <span>{formValues.sellerPlaceOfBirth}</span>
+              <span>{values.sellerPlaceOfBirth}</span>
 
               <span className="font-medium">Phone Number:</span>
-              <span>{formValues.sellerPhoneNumber || "N/A"}</span>
+              <span>{values.sellerPhoneNumber || "N/A"}</span>
 
               {/* Seller Alias Information if provided */}
-              {(formValues.sellerAliasFirstName ||
-                formValues.sellerAliasLastName) && (
+              {(values.sellerAliasFirstName || values.sellerAliasLastName) && (
                 <>
                   <span className="font-medium">Alias:</span>
-                  <span>{`${formValues.sellerAliasFirstName || ""} ${
-                    formValues.sellerAliasMiddleName || ""
-                  } ${formValues.sellerAliasLastName || ""} ${
-                    formValues.sellerAliasSuffix || ""
+                  <span>{`${values.sellerAliasFirstName || ""} ${
+                    values.sellerAliasMiddleName || ""
+                  } ${values.sellerAliasLastName || ""} ${
+                    values.sellerAliasSuffix || ""
                   }`}</span>
                 </>
               )}
@@ -497,82 +501,82 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
             <h3 className="font-bold">Firearm Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="font-medium">Frame Only:</span>
-              <span>{formValues.frameOnly}</span>
+              <span>{values.frameOnly}</span>
 
               <span className="font-medium">Make:</span>
-              <span>{formValues.make}</span>
+              <span>{values.make}</span>
 
               <span className="font-medium">Model:</span>
-              <span>{formValues.model}</span>
+              <span>{values.model}</span>
 
-              {formValues.frameOnly !== "yes" && (
+              {values.frameOnly !== "yes" && (
                 <>
                   <span className="font-medium">Caliber:</span>
-                  <span>{formValues.calibers}</span>
+                  <span>{values.calibers}</span>
 
-                  {formValues.additionalCaliber && (
+                  {values.additionalCaliber && (
                     <>
                       <span className="font-medium">Additional Caliber:</span>
-                      <span>{formValues.additionalCaliber}</span>
+                      <span>{values.additionalCaliber}</span>
                     </>
                   )}
 
-                  {formValues.additionalCaliber2 && (
+                  {values.additionalCaliber2 && (
                     <>
                       <span className="font-medium">Additional Caliber 2:</span>
-                      <span>{formValues.additionalCaliber2}</span>
+                      <span>{values.additionalCaliber2}</span>
                     </>
                   )}
 
-                  {formValues.additionalCaliber3 && (
+                  {values.additionalCaliber3 && (
                     <>
                       <span className="font-medium">Additional Caliber 3:</span>
-                      <span>{formValues.additionalCaliber3}</span>
+                      <span>{values.additionalCaliber3}</span>
                     </>
                   )}
 
                   <span className="font-medium">Barrel Length:</span>
-                  <span>{`${formValues.barrelLength} ${formValues.unit}`}</span>
+                  <span>{`${values.barrelLength} ${values.unit}`}</span>
                 </>
               )}
 
               <span className="font-medium">Gun Type:</span>
-              <span>{formValues.gunType || "HANDGUN"}</span>
+              <span>{values.gunType || "HANDGUN"}</span>
 
               <span className="font-medium">Category:</span>
-              <span>{formValues.category}</span>
+              <span>{values.category}</span>
 
-              {formValues.frameOnly === "yes" && (
+              {values.frameOnly === "yes" && (
                 <>
                   <span className="font-medium">Federally Regulated:</span>
-                  <span>{formValues.regulated}</span>
+                  <span>{values.regulated}</span>
                 </>
               )}
 
               <span className="font-medium">Serial Number:</span>
-              <span>{formValues.serialNumber}</span>
+              <span>{values.serialNumber}</span>
 
-              {formValues.otherNumber && (
+              {values.otherNumber && (
                 <>
                   <span className="font-medium">Other Number:</span>
-                  <span>{formValues.otherNumber}</span>
+                  <span>{values.otherNumber}</span>
                 </>
               )}
 
               <span className="font-medium">Color:</span>
-              <span>{formValues.color}</span>
+              <span>{values.color}</span>
 
               <span className="font-medium">New/Used:</span>
-              <span>{formValues.isNewGun}</span>
+              <span>{values.isNewGun}</span>
 
               <span className="font-medium">FSD:</span>
-              <span>{formValues.firearmSafetyDevice}</span>
+              <span>{values.firearmSafetyDevice}</span>
 
               <span className="font-medium">Non-Roster Exemption:</span>
-              <span>{formValues.nonRosterExemption}</span>
+              <span>{values.nonRosterExemption}</span>
 
               <span className="font-medium">Agency Department:</span>
-              <span>{agencyName || formValues.agencyDepartment}</span>
+              <span>{agencyName || values.agencyDepartment}</span>
             </div>
           </div>
 
@@ -581,19 +585,19 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
             <h3 className="font-bold">Transaction Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="font-medium">Gun Show Transaction:</span>
-              <span>{formValues.isGunShowTransaction}</span>
+              <span>{values.isGunShowTransaction}</span>
 
               <span className="font-medium">Waiting Period Exemption:</span>
-              <span>{formValues.waitingPeriodExemption || "N/A"}</span>
+              <span>{values.waitingPeriodExemption || "N/A"}</span>
 
               <span className="font-medium">HSC/FSC Number:</span>
-              <span>{formValues.hscFscNumber || "N/A"}</span>
+              <span>{values.hscFscNumber || "N/A"}</span>
 
               <span className="font-medium">Exemption Code:</span>
-              <span>{formValues.exemptionCode || "N/A"}</span>
+              <span>{values.exemptionCode || "N/A"}</span>
 
               <span className="font-medium">Comments:</span>
-              <span>{formValues.comments || "N/A"}</span>
+              <span>{values.comments || "N/A"}</span>
             </div>
           </div>
 
@@ -602,19 +606,19 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
             <h3 className="font-bold">Eligibility Questions</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="font-medium">Eligibility Question 1:</span>
-              <span>{formValues.eligibilityQ1}</span>
+              <span>{values.eligibilityQ1}</span>
 
               <span className="font-medium">Eligibility Question 2:</span>
-              <span>{formValues.eligibilityQ2}</span>
+              <span>{values.eligibilityQ2}</span>
 
               <span className="font-medium">Eligibility Question 3:</span>
-              <span>{formValues.eligibilityQ3}</span>
+              <span>{values.eligibilityQ3}</span>
 
               <span className="font-medium">Eligibility Question 4:</span>
-              <span>{formValues.eligibilityQ4}</span>
+              <span>{values.eligibilityQ4}</span>
 
               <span className="font-medium">Firearms Possession Question:</span>
-              <span>{formValues.firearmsQ1}</span>
+              <span>{values.firearmsQ1}</span>
             </div>
           </div>
         </div>
@@ -623,7 +627,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
             <Button variant="outline">Cancel</Button>
           </DialogClose>
           <Button
-            onClick={() => submitForm(formValues as FormData)}
+            onClick={() => submitForm(values as FormData)}
             disabled={isPending}
           >
             {isPending ? "Submitting..." : "Submit"}
@@ -730,781 +734,32 @@ const AgencyDepartmentSelect = ({
 const useFormOptions = () => {
   return useQuery<FormOptionsData>({
     queryKey: ["formOptions"],
-    queryFn: async () => {
-      // Return mock data for now - replace with actual API call
+    queryFn: () => {
       return {
-        genders: ["Male", "Female", "Nonbinary / Unspecified"],
-        eyeColors: [
-          "BLACK",
-          "BLUE",
-          "BROWN",
-          "GRAY",
-          "GREEN",
-          "HAZEL",
-          "MAROON",
-          "MULTICOLOR",
-          "PINK",
-          "UNKNOWN",
-        ],
-        hairColors: [
-          "BALD",
-          "BLACK",
-          "BLONDE",
-          "BLUE",
-          "BROWN",
-          "GRAY",
-          "GREEN",
-          "ORANGE",
-          "PINK",
-          "PURPLE",
-          "RED",
-          "SANDY",
-          "UNKNOWN",
-          "WHITE",
-        ],
-        heightFeet: ["4", "5", "6", "7"],
-        heightInches: [
-          "00",
-          "01",
-          "02",
-          "03",
-          "04",
-          "05",
-          "06",
-          "07",
-          "08",
-          "09",
-          "10",
-          "11",
-        ],
-        idTypes: ["California DL", "California ID", "DEPT OF DEFENSE ID"],
-        placesOfBirth: [
-          "AFGHANISTAN",
-          "AGUASCALIENTES",
-          "ALABAMA",
-          "ALASKA",
-          "ALBANIA",
-          "ALBERTA",
-          "ALGERIA",
-          "AMERICAN SAMOA ISLANDS",
-          "ANDORRA",
-          "ANGOLA",
-          "ANGUILLA",
-          "ANTIGUA",
-          "ARGENTINA",
-          "ARIZONA",
-          "ARKANSAS",
-          "ARMENIA",
-          "ARUBA",
-          "ASHMORE AND CARTIER ISLANDS",
-          "AUSTRALIA",
-          "AUSTRIA",
-          "AZERBAIJAN",
-          "AZORES ISLANDS",
-          "BAHAMAS",
-          "BAHRAIN",
-          "BAJA CALIFORNIA NORTE",
-          "BAJA CALIFORNIA SUR",
-          "BAKER ISLAND",
-          "BALEARIC ISLANDS",
-          "BANGLADESH",
-          "BARBADOS",
-          "BASSAS DA INDIA",
-          "BELGIUM",
-          "BELIZE",
-          "BENIN",
-          "BERMUDA",
-          "BHUTAN",
-          "BOLIVIA",
-          "BOSNIA HERCEGOVENA",
-          "BOTSWANA",
-          "BOUVET ISLAND",
-          "BRAZIL",
-          "BRITISH COLUMBIA",
-          "BRITISH INDIAN OCEAN TERR",
-          "BRITISH VIRGIN ISLANDS",
-          "BRUNEI",
-          "BULGARIA",
-          "BURKINA FASO",
-          "BURMA",
-          "BURUNDI",
-          "BYELARUS",
-          "CALIFORNIA",
-          "CAMBODIA (KHMER AND KAMPUCHEA)",
-          "CAMEROON",
-          "CAMPECHE",
-          "CANADA",
-          "CANAL ZONE",
-          "CANARY ISLANDS",
-          "CAPE VERDE ISLANDS",
-          "CAROLINE ISLANDS",
-          "CAYMAN ISLANDS",
-          "CENTRAL AFRICAN REPUBLIC",
-          "CHAD",
-          "CHIAPAS",
-          "CHIHUAHUA",
-          "CHILE",
-          "CHRISTMAS ISLAND",
-          "CLIPPERTON ISLAND",
-          "COAHUILA",
-          "COCOS (KEELING) ISLANDS",
-          "COLIMA",
-          "COLOMBIA",
-          "COLORADO",
-          "COMOROS ISLANDS",
-          "CONNECTICUT",
-          "COOK ISLANDS",
-          "CORAL SEA ISLANDS",
-          "COSTA RICA",
-          "CROATIA",
-          "CUBA",
-          "CYPRUS",
-          "CZECH REPUBLIC",
-          "DELAWARE",
-          "DENMARK",
-          "DISTRICT OF COLUMBIA",
-          "DISTRITO FEDERAL",
-          "DJIBOUTI",
-          "DOMINICA",
-          "DOMINICAN REPUBLIC",
-          "DURANGO",
-          "EAST GERMANY",
-          "ECUADOR",
-          "EGYPT",
-          "EL SALVADOR",
-          "ENGLAND",
-          "EQUATORIAL GUINEA",
-          "ERETRIA",
-          "ESTONIA",
-          "ETHIOPIA",
-          "EUROPA ISLAND",
-          "FALKLAND ISLANDS",
-          "FAROE ISLANDS",
-          "FEDERATED STATES OF MICRONESIA",
-          "FIJI",
-          "FINLAND",
-          "FLORIDA",
-          "FRANCE",
-          "FRENCH GUIANA",
-          "FRENCH POLYNESIA",
-          "FRENCH SOUTHERN AND ANTARTIC LANDS",
-          "GABON",
-          "GAMBIA",
-          "GAZA",
-          "GEORGIA (COUNTRY)",
-          "GEORGIA (STATE)",
-          "GERMANY",
-          "GHANA",
-          "GIBRALTAR",
-          "GREECE",
-          "GREENLAND",
-          "GRENADA",
-          "GUADELOUPE",
-          "GUAM",
-          "GUANAJUATO",
-          "GUATEMALA",
-          "GUERNSEY",
-          "GUERRERO",
-          "GUINEA",
-          "GUINEA/BISSAU",
-          "GUYANA",
-          "HAITI",
-          "HAWAII",
-          "HEARD ISLAND & MCDONALD ISLAND",
-          "HIDALGO",
-          "HONDURAS",
-          "HONG KONG",
-          "HOWLAND ISLAND",
-          "HUNGARY",
-          "ICELAND",
-          "IDAHO",
-          "ILLINOIS",
-          "INDIA",
-          "INDIANA",
-          "INDONESIA",
-          "IOWA",
-          "IRAN",
-          "IRAQ",
-          "IRELAND (NOT NORTHERN IRELAND)",
-          "ISLE OF MAN",
-          "ISRAEL",
-          "ITALY",
-          "IVORY COAST",
-          "JALISCO",
-          "JAMAICA",
-          "JAN MAYEN",
-          "JAPAN",
-          "JARVIS ISLAND",
-          "JERSEY",
-          "JOHNSTON ISLANDS",
-          "JORDAN",
-          "JUAN DE NOVA ISLAND",
-          "KANSAS",
-          "KAZAKHSTAN",
-          "KENTUCKY",
-          "KENYA",
-          "KINGMAN REEF",
-          "KIRIBATI",
-          "KOSOVO",
-          "KUWAIT",
-          "KYRGYZSTAN",
-          "LAOS",
-          "LATVIA",
-          "LEBANON",
-          "LESOTHO",
-          "LIBERIA",
-          "LIBYA",
-          "LIECHTENSTEIN",
-          "LITHUANIA",
-          "LOUISIANA",
-          "LUXEMBOURG",
-          "MACAU",
-          "MADEIRA ISLANDS",
-          "MAINE",
-          "MALAGASY REPUBLIC",
-          "MALAWI",
-          "MALAYSIA",
-          "MALDIVES",
-          "MALI",
-          "MALTA",
-          "MANAHIKI ISLAND",
-          "MANITOBA",
-          "MARIANA ISLANDS",
-          "MARSHALL ISLANDS",
-          "MARTINIQUE",
-          "MARYLAND",
-          "MASSACHUSETTS",
-          "MAURITANIA",
-          "MAURITIUS",
-          "MAYOTTE",
-          "MEXICO",
-          "MICHIGAN",
-          "MICHOACAN",
-          "MIDWAY ISLANDS",
-          "MINNESOTA",
-          "MISSISSIPPI",
-          "MISSOURI",
-          "MOLDOVA",
-          "MONACO",
-          "MONGOLIA",
-          "MONTANA",
-          "MONTSERRAT",
-          "MORELOS",
-          "MOROCCO",
-          "MOZAMBIQUE",
-          "NAMIBIA/SOUTHWEST AFRICA",
-          "NAURU",
-          "NAVASSA ISLAND",
-          "NAYARIT",
-          "NEBRASKA",
-          "NEPAL",
-          "NETHERLANDS",
-          "NETHERLANDS ANTILLES",
-          "NEVADA",
-          "NEVIS/SAINT CHRISTOPHER/SAINT KITTS",
-          "NEW BRUNSWICK",
-          "NEW CALEDONIA",
-          "NEW HAMPSHIRE",
-          "NEW JERSEY",
-          "NEW MEXICO",
-          "NEW YORK",
-          "NEW ZEALAND",
-          "NEWFOUNDLAND",
-          "NICARAGUA",
-          "NIGER",
-          "NIGERIA",
-          "NORFOLK ISLAND",
-          "NORTH CAROLINA",
-          "NORTH DAKOTA",
-          "NORTH KOREA",
-          "NORTH VIETNAM",
-          "NORTHERN IRELAND",
-          "NORTHWEST TERRITORIES",
-          "NORWAY",
-          "NOVA SCOTIA",
-          "NUEVO LEON",
-          "OAXACA",
-          "OHIO",
-          "OKINAWA",
-          "OKLAHOMA",
-          "OMAN",
-          "ONTARIO",
-          "OREGON",
-          "OTHER NOT LISTED",
-          "PAKISTAN",
-          "PALAU, REPUBLIC OF",
-          "PALMYRA ATOLL",
-          "PANAMA",
-          "PAPUA NEW GUINEA",
-          "PARAGUAY",
-          "PARCEL ISLANDS",
-          "PENNSYLVANIA",
-          "PEOPLES REPUBLIC OF CHINA",
-          "PERU",
-          "PHILIPPINES",
-          "PITCAIRN HENDERSON DUCIE OENO",
-          "POLAND",
-          "PORTUGAL",
-          "PRINCE EDWARD ISLAND",
-          "PUEBLA",
-          "PUERTO RICO",
-          "QATAR",
-          "QUEBEC",
-          "QUERETARO",
-          "QUINTANA ROO",
-          "REPUBLIC OF CONGO/BRAZZAVILLE",
-          "REPUBLIC OF MACEDONIA",
-          "REPUBLIC OF YEMEN",
-          "REUNION",
-          "RHODE ISLAND",
-          "ROMANIA/RUMANIA",
-          "RUSSIA (FORMERLY USSR)",
-          "RUSSIAN FEDERATION",
-          "RWANDA",
-          "SAINT HELENA",
-          "SAINT LUCIA",
-          "SAINT PIERRE/MIGUELON",
-          "SAINT VINCENT",
-          "SAN LUIS POTOSI",
-          "SAN MARINO",
-          "SAO TOMER/PRINCIPE",
-          "SASKATCHEWAN",
-          "SAUDI ARABIA",
-          "SCOTLAND",
-          "SENEGAL",
-          "SERBIA",
-          "SEYCHELLES",
-          "SIERRA LEONE",
-          "SINALOA",
-          "SINGAPORE",
-          "SLOVAKIA",
-          "SLOVENIA",
-          "SOCIALIST REPUBLIC OF VIETNAM",
-          "SOLOMON ISLANDS",
-          "SOMALIA",
-          "SONORA",
-          "SOUTH AFRICA",
-          "SOUTH CAROLINA",
-          "SOUTH DAKOTA",
-          "SOUTH GEORGIA & SOUTH SANDWICH ISLAN",
-          "SOUTH KOREA",
-          "SPAIN",
-          "SPRATLY ISLANDS",
-          "SRI LANKA (CEYLON)",
-          "SUDAN",
-          "SURINAM",
-          "SVALBARD",
-          "SWAZILAND",
-          "SWEDEN",
-          "SWITZERLAND",
-          "SYRIA",
-          "TABASCO",
-          "TAIWAN",
-          "TAJIKISTAN",
-          "TAMAULIPAS",
-          "TANZANIA",
-          "TENNESSEE",
-          "TEXAS",
-          "THAILAND",
-          "TLAXCALA",
-          "TOGO",
-          "TOKELAU",
-          "TONGA",
-          "TONGAREVA ISLAND",
-          "TRINIDAD/TOBAGO",
-          "TROMELIN ISLAND",
-          "TRUST TERRITORY OF PACIFIC ISLANDS",
-          "TUAMOTU ARCHIPELAGO",
-          "TUNISIA",
-          "TURKEY",
-          "TURKMENISTAN",
-          "TURKS/CALCOS ISLANDS",
-          "TUVALU",
-          "UGANDA",
-          "UKRAINE",
-          "UNITED ARAB EMIRATES",
-          "UNITED STATES OF AMERICA",
-          "URUGUAY",
-          "US VIRGIN ISLANDS",
-          "UTAH",
-          "UZBEKISTAN",
-          "VANTUATU",
-          "VATICAN CITY",
-          "VENEZUELA",
-          "VERACRUZ",
-          "VERMONT",
-          "VIRGINIA",
-          "WAKE ISLAND",
-          "WALES",
-          "WALLIS AND FUTUNA",
-          "WASHINGTON",
-          "WEST BANK",
-          "WEST GERMANY",
-          "WEST INDIES",
-          "WEST VIRGINIA",
-          "WESTERN SAHARA",
-          "WESTERN SAMOA",
-          "WISCONSIN",
-          "WYOMING",
-          "YUCATAN",
-          "YUGOSLAVIA",
-          "YUKON TERRITORY",
-          "ZACATECAS",
-          "ZAIRE",
-          "ZAMBIA",
-          "ZIMBABWE",
-        ],
-        exemptionCodes: [
-          "X01 SPECIAL WEAPONS PERMIT",
-          "X02 OPERATION OF LAW REPRESENTATIVE",
-          "X03 FIREARM BEING RETURNED TO OWNER",
-          "X13 FFL COLLECTOR W/COE CURIO/RELIC TRANSACTION",
-          "X21 MILITARY - ACTIVE DUTY",
-          "X22 MILITARY - ACTIVE RESERVE",
-          "X25 MILITARY - HONORABLY RETIRED",
-          "X31 PEACE OFFICER - CALIFORNIA - ACTIVE",
-          "X32 PEACE OFFICER - FEDERAL - ACTIVE",
-          "X33 PEACE OFFICER - HONORABLY RETIRED",
-          "X34 PEACE OFFICER - RESERVE",
-          "X35 PEACE OFFICER - FEDERAL - HONORABLY RETIRED",
-          "X41 CARRY CONCEALED WEAPON (CCW) PERMIT HOLDER",
-          "X81 PEACE OFFICER STANDARDS AND TRAINING (832PC) FIREARMS TRAINING",
-          "X91 PARTICULAR AND LIMITED AUTHORITY PEACE OFFICERS",
-          "X95 LAW ENFORECEMENT SERVICE GUN TO FAMILY MEMBER",
-          "X96 TRANSACTION IS TO REPLACE A BROKEN OR DEFECTIVE HANDGUN FRAME",
-          "X99 DOJ CERTIFIED INSTRUCTOR",
-        ],
-        colors: [
-          "ALUMINUM/SILVER",
-          "BEIGE",
-          "BLACK",
-          "BLUE",
-          "BLUE, DARK",
-          "BLUE, LIGHT",
-          "BRONZE",
-          "BROWN",
-          "BURGUNDY/MAROON",
-          "CAMOUFLAGE",
-          "CHROME/STAINLESS",
-          "COPPER",
-          "CREAM/IVORY",
-          "GOLD",
-          "GRAY",
-          "GREEN",
-          "GREEN, DARK",
-          "GREEN, LIGHT",
-          "LAVENDER",
-          "ORANGE",
-          "OTHER, MULTICOLOR",
-          "PINK",
-          "PURPLE",
-          "RED",
-          "TAN",
-          "TURQUOISE",
-          "UNKNOWN",
-          "WHITE",
-          "YELLOW",
-        ],
-        fsd: [
-          "ANTIQUE",
-          "APPROVED LOCK BOX",
-          "FSD PURCHASED",
-          "OEM",
-          "SAFE AFFIDAVIT",
-        ],
-        race: [
-          "AMERICAN INDIAN",
-          "ASIAN INDIAN",
-          "BLACK",
-          "CAMBODIAN",
-          "CHINESE",
-          "FILIPINO",
-          "GUAMANIAN",
-          "HAWAIIAN",
-          "HISPANIC",
-          "JAPANESE",
-          "KOREAN",
-          "LAOTIAN",
-          "OTHER",
-          "OTHER ASIAN",
-          "PACIFIC ISLANDER",
-          "SAMOAN",
-          "VIETNAMESE",
-          "UNKNOWN",
-          "WHITE",
-        ],
-        citizenship: ["Yes", "No"],
-        restrictionsExemptions: [
-          "COLLECTOR - 03 FFL - VALID COE",
-          "COMMUNITY COLLEGE - POST CERTIFIED",
-          "DULY AUTHORIZED LAW ENFORCEMENT AGENCY",
-          "ENTERTAINMENT COMPANY - PERMIT - VALID COE",
-          "EXCHANGE - WITHIN PRECEDING 30 DAYS",
-          "LAW ENFORCEMENT AGENCY - CALIFORNIA",
-          "LICENSED CALIFORNIA FIREARMS DEALER",
-          "PEACE OFFICER - ACTIVE - LETTER REQUIRED",
-          "PEACE OFFICER - CALIFORNIA - ACTIVE",
-          "PRIVATE SECURITY COMPANY (PPO) - CALIFORNIA - LICENSED",
-          "REPLACEMENT - REPORTED LOST OR STOLEN FIREARM",
-          "SPECIAL WEAPONS PERMIT",
-          "STATE OR LOCAL CORRECTIONAL FACILITY",
-        ],
-        makes: [
-          "ARMSCOR PRECISION",
-          "BERETTA",
-          "BERSA",
-          "BROWNING",
-          "CAMDON DEFENSE",
-          "CENTURY ARMS INC",
-          "CHARTER 2000",
-          "COLT",
-          "CTF MANUFACTURING",
-          "CZ USA",
-          "DAN WESSON",
-          "EUROPEAN AMERICAN ARMORY CORP",
-          "FMK FIREARMS",
-          "FN HERSTAL, S.A.",
-          "FRANKLIN ARMORY",
-          "GERMAN SPORTS GUN",
-          "GIRSAN (IMPORTED BY EAA CORP)",
-          "GLOCK",
-          "GUNCRAFTER INDUSTRIES, LLC",
-          "HECKLER & KOCH",
-          "HENRY REPEATING ARM",
-          "JUGGERNAUT TACTICAL",
-          "KAHR ARMS",
-          "KIMBER",
-          "LES BAE",
-          "MAGNUM RESEARCH",
-          "NIGHTHAWK CUSTOM",
-          "NORTH AMERICAN ARMS",
-          "PHOENIX ARMS",
-          "ROST MARTIN",
-          "SECOND AMENDMENT ZONE",
-          "SEECAMP",
-          "SIG SAUER",
-          "SMITH & WESSON",
-          "SPRINGFIELD ARMORY",
-          "STANDARD MANUFACTURING CO",
-          "STRAYER VOIGT",
-          "STURM, RUGER & CO",
-          "TAURUS",
-          "VALTRO",
-          "WALTHER",
-          "WILSON COMBAT",
-        ],
-        calibers: [
-          ".14 Walker Hornet, .14/221, .14-222, 14-gauge shotgun",
-          ".17 (various)",
-          ".204 Ruger, Remington, Savage",
-          ".218 Bee",
-          ".22 Short/Long/Rifle rim. cart.; .22 Hornet, .22-250, 22-gauge",
-          ".220 Swift",
-          ".221 Remington Fireball",
-          ".222 Remington, .222 Remington Magnum",
-          ".223 Remington",
-          ".224 Weatherby Mag, .224 Valkyrie",
-          ".225 Winchester",
-          ".226 JDJ",
-          ".240 Weatherby Mag",
-          ".243 Winchester",
-          ".25 ACP, .25-06, .25-20, .25-35",
-          ".250-3000 Savage",
-          ".256 Newton, .256 Win Mag",
-          ".257 Roberts, .257 Weatherby Mag, .257 Mini Dreadnaught",
-          ".26 Nosler",
-          ".260 Mag. Res Lone Eagle, .260 Rem, .260 Savage, .260 Thompson/Cen",
-          ".264 Winchester Magnum",
-          ".270 Winchester, .270 Weatherby Magnum",
-          ".276 Enfield, .276 Pederson",
-          ".28 Nosler, 28-gauge shotgun",
-          ".280 Remington, .280 JDJ, .80 British",
-          ".284 Winchester",
-          ".30 M1 Carbine, .30-40 Krag, 30-30 Winchester, .30 Mauser",
-          ".30-06 U.S. (.30 Springfield)",
-          ".300 Win. Mag/.300 Wtherby Mag/.300 Sav/.300 H&H Mag/.300 AAC Blkout",
-          ".303 British, .303 Savage",
-          ".307 Winchester",
-          ".308 Winchester",
-          ".309 JDJ",
-          ".31 Baby Dragoon 1848, 1849 Pocket",
-          ".32 ACP,.32 Short Colt, .32 Long Colt, .32 H&R Mag, 32-gauge shotgun",
-          ".32-20 Winchester",
-          ".32-40 Winchester",
-          ".320 Revolver",
-          ".325 Winchester",
-          ".327 Federal Magnum Cartridge",
-          ".33 Winchester",
-          ".330 Dakota",
-          ".338 Winchester Mag, .338 Federal, .338 Lapua Mag",
-          ".340 Weatherby Magnum",
-          ".348 Winchester",
-          ".35 Whelen, .35 Remington, .350 Remington Mag, .35 S&W",
-          ".35-06 JDJ",
-          ".350 Legend",
-          ".351 Winchester",
-          ".356 Win, SW940",
-          ".357 Remington Magnum, .357 Maximum, .357 AutoMag, .357 Sig",
-          ".358 Win, Remington, RPM, ROP, STA",
-          ".36 caliber markings normally found only on black-powder firearms",
-          ".375 H&H Magnum, .375 Winchester, 375-06 JDJ",
-          ".376 Steyr",
-          ".378 Weatherby Mag",
-          ".38 S&W, .38 (S&W) Special, .38 ACP, .38 Super, etc.",
-          ".38-40 Winchester",
-          ".38-55 Win, .38-55 Ballard",
-          ".380 ACP in U.S.; also known as 9mm Kurz/Corto/Short",
-          ".40 S&W",
-          ".40-44 Woodswalker",
-          ".40-65 Winchester",
-          ".400 Cor-bon",
-          ".401 Winchester, .401 Power Mag",
-          ".404 Jeffery",
-          ".405 Winchester",
-          ".408 Cheytac",
-          ".41 Short Rimfire, .41 Remington Mag, .41 Action Express, .41 AutoMa",
-          ".411 JDJ",
-          ".416 Barrett, .416 Rigby, .416 Rem Mag",
-          ".425 Express",
-          ".44 Russian, .44 Special, .44 Rem. Mag, .44 AutoMag",
-          ".44-40 Winchester",
-          ".440 Cor-bon",
-          ".444 Marlin",
-          ".445",
-          ".45 ACP, .45 AutoRim, .45 Short/Long Colt, .45 Winchester Mag",
-          ".45-70 U.S. Government",
-          ".450 Marlin, .450 Dakota, .450 Revolver, .450 Bushmaster",
-          ".454 Casull-ragin Bull Model with Colt 45",
-          ".455 Webley, or .455 Manstopper, .455 Enfield",
-          ".458 Winchester Mag, .458 Whisper",
-          ".460 Weatherby Mag, .460 A-Square, .460 S&W, .460 Steyr",
-          ".470 Nitro Express, .470 Rigby",
-          ".475 Linebaugh, .475 JDJ",
-          ".476 Enfield",
-          ".480 Ruger",
-          ".485 British",
-          ".495 A-Square",
-          ".50 BMG, .50 Action Exp, .50 Beowolf; black-powder firearm",
-          ".50-70 Gov't",
-          ".500 Linebaugh, .500 S&W Mag, .500 WE",
-          ".510 DTC",
-          ".54 Used in black-powder firearms",
-          ".577 Tyrannosaur, .577/450 Martini Henry, .577 Snyder",
-          ".58 Used in black-powder firearms; .577 Nitro Express Elephant Gun",
-          ".60 Used in black-powder firearms; .600 Nitro Express Elephant Gun",
-          ".653 Scramjet",
-          ".671 Phantom, .671 Blackbrid",
-          ".75 caliber, 7.5mm Nagant (Swedish), 7.5mm Swiss, 7.5mm French MAS",
-          ".909 Eagle",
-          ".953 Hellcat, .953 Saturn",
-          "10.15mm Jermann, 10.15mm Serbian Mauser",
-          "10.4mm Italian, 10.4mm Swiss",
-          "10.57 Maverick, 10.57 Meteor",
-          "10.75mm Russian Berdan",
-          "10mm, 10-gauge shotgun",
-          "11.15mm Spanish Rem., 11.15mm Mauser, 11.15mm Werndl M/77",
-          "11.43mm Egyptian, 11.43mm Turkish",
-          "11.4mm Brazilian, 11.4mm Werndel M/73",
-          "11.75mm Montenegrin",
-          "11.7mm Danish Rem.",
-          "11mm Mauser, 11mm French, 11 Belgian",
-          "12-gauge shotgun",
-          "12.5mm",
-          "13mm Gyrojet rocket pistol/carbine",
-          "16-gauge shotgun",
-          "2.7mm Kolibri",
-          "20-gauge shotgun",
-          "24-gauge shotgun",
-          "3mm Kolibri",
-          "4-gauge shotgun or blank",
-          "410-gauge shotgun",
-          "5.45x39mm, 5.45x18mm Soviet",
-          "5.56x45mm NATO",
-          "5.5mm Velo Dog",
-          "5.6x50mm Mag, 5.6x57mm RWS, 5.6x61mm, 5.6x52 Rmm",
-          "5.7 X 28mm Fabrique Nationale",
-          "5mm Bergmann, 5mm Clement Auto",
-          "6.17 Spitfire, 6.17 Flash",
-          "6.35mm",
-          "6.5mm (various); .65 caliber black-powder firearms",
-          "6.8mm Remington, 6.8x57mm Chinese",
-          "6mm Remington, 6mm SAW",
-          "7-30 Waters",
-          "7.21 Tomahawk, 7.21 Firehawk, 7.21 Firebird",
-          "7.35mm Carcano",
-          "7.62x39 Soviet, 7.62x51 NATO, 7.62x54R Rus. Moisin-Nagant, 7.62x35",
-          "7.63mm Mannlicher, 7.62x25mm Tokarev",
-          "7.65mm Luger, 7.65mm Roth-Sauer, 7.65 MAS (French), .30 Luger",
-          "7.7mm Arisaka",
-          "7.82 Patriot, 7.82 Warbird",
-          "7.92mm Kurz (Short)",
-          "7mm, Rem Weatherby Mag, 7mm Bench Rest, 7x57 Mauser, 7mm-08 Rem",
-          "8.59 Galaxy, 8.59 Titan",
-          "8x57 Mauser, 8mm Lebel, 8mm Remington Mag, 8x56mmR, 8-gauge shotgun",
-          "9.3mm JDJ, 9.3x57mm Mauser",
-          "9.5mm Turkish Mauser",
-          "9.8mm Auto Colt",
-          "9mm L/Para/9x18,9x21,9x23/Largo 9x19, 9mm rimfire shotgun",
-          "Firearm with interchangable barrels",
-        ],
-        unit: ["Inches", "Millimeters"],
-        category: [
-          "4 OR MORE BARRELS",
-          "BOLT ACTION",
-          "DERRINGER",
-          "DOUBLE BARREL",
-          "LEVER ACTION",
-          "OVER AND UNDER",
-          "REVOLVER",
-          "SEMI-AUTOMATIC",
-          "SINGLE SHOT",
-          "THREE BARRELS",
-        ],
-        regulated: ["Yes", "No"],
-        nonRosterExemption: [
-          "Department of Justice",
-          "Police Department",
-          "Sheriff's Office",
-          "Marshal's Office",
-          "Department of Corrections and Rehabilitation",
-          "Department of the California Highway Patrol",
-          "Any District Attorney's Office",
-          "Any Federal Law Enforcement Agency",
-          "Military or Naval Forces of the State or the United States",
-          "The Department of Parks and Recreation",
-          "Department of Alcoholic Beverage Control",
-          "Division of Investigation of the Department of Consumer Affairs",
-          "Department of Motor Vehicles",
-          "Fraud Division of the Department of Insurance",
-          "State Department of State Hospitals",
-          "Department of Fish and Wildlife",
-          "State Department of Developmental Services",
-          "Department of Forestry and Fire Protection",
-          "A County Probation Department",
-          "The Los Angeles World Airports",
-          "K-12 Public School District use by a School Police Officer",
-          "A Municipal Water District for use by a Park Ranger",
-          "A County for use by a Welfare Fraud Investigator or Inspector",
-          "A County for use by the Coroner or the Deputy Coroner",
-          "The Supreme Court and the Courts of Appeal",
-          "A Fire Department or Fire Protection Agency",
-          "The University of California/California State University Police Department",
-          "A California Community College Police Department",
-          "A Harbor or Port District or other entity",
-          "None",
-          "Department of Cannabis Control",
-          "A local Agency employing Park Rangers",
-        ],
-        waitingPeriodExemption: [
-          "CFD NUMBER",
-          "COLLECTOR",
-          "PEACE OFFICER (LETTER REQUIRED)",
-          "SPECIAL WEAPONS PERMIT",
-        ],
+        genders: FORM_OPTIONS.genders,
+        eyeColors: FORM_OPTIONS.eyeColors,
+        hairColors: FORM_OPTIONS.hairColors,
+        heightFeet: FORM_OPTIONS.heightFeet,
+        heightInches: FORM_OPTIONS.heightInches,
+        idTypes: FORM_OPTIONS.idTypes,
+        placesOfBirth: FORM_OPTIONS.placesOfBirth,
+        exemptionCodes: FORM_OPTIONS.exemptionCodes,
+        colors: FORM_OPTIONS.colors,
+        fsd: FORM_OPTIONS.fsd,
+        race: FORM_OPTIONS.race,
+        citizenship: FORM_OPTIONS.citizenship,
+        restrictionsExemptions: FORM_OPTIONS.restrictionsExemptions,
+        makes: FORM_OPTIONS.makes,
+        calibers: FORM_OPTIONS.calibers,
+        unit: FORM_OPTIONS.unit,
+        category: FORM_OPTIONS.category,
+        regulated: FORM_OPTIONS.regulated,
+        nonRosterExemption: FORM_OPTIONS.nonRosterExemption,
+        waitingPeriodExemption: FORM_OPTIONS.waitingPeriodExemption,
       };
     },
-    staleTime: Infinity,
-    gcTime: 24 * 60 * 60 * 1000,
+    staleTime: Infinity, // Since this is static data, we can cache it indefinitely
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
   });
 };
@@ -1563,25 +818,23 @@ const OfficerPptHandgunPage = () => {
     reValidateMode: "onBlur",
   });
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    getValues,
-    control, // Add this
-    formState: { errors },
-  } = useForm<FormData>({
-    defaultValues: initialFormState,
-    mode: "onBlur",
-    reValidateMode: "onBlur",
+  const { register, handleSubmit, watch, setValue, getValues, control } = form;
+
+  // Better - Only watch fields that need reactive updates
+  const zipCode = useWatch({ control: form.control, name: "zipCode" });
+  const sellerZipCode = useWatch({
+    control: form.control,
+    name: "sellerZipCode",
   });
+  const nonRosterExemption = useWatch({
+    control: form.control,
+    name: "nonRosterExemption",
+  });
+  const frameOnly = watch("frameOnly");
 
   // Consolidate all useWatch calls at the top
   const formValues = useWatch({ control: form.control });
   const {
-    zipCode,
-    sellerZipCode,
     gender,
     hairColor,
     eyeColor,
@@ -1609,11 +862,9 @@ const OfficerPptHandgunPage = () => {
     color,
     isNewGun,
     firearmSafetyDevice,
-    nonRosterExemption,
     agencyDepartment,
     isGunShowTransaction,
     waitingPeriodExemption,
-    frameOnly,
     // Seller fields
     sellerGender,
     sellerHairColor,
@@ -1777,7 +1028,7 @@ const OfficerPptHandgunPage = () => {
               <Input
                 type="text"
                 placeholder="Swipe or enter ID"
-                {...form.register("idNumber")}
+                {...register("idNumber")}
               />
             </div>
           </div>
@@ -1788,21 +1039,21 @@ const OfficerPptHandgunPage = () => {
               <Label htmlFor="firstName" className="required">
                 Purchaser First Name
               </Label>
-              <Input {...form.register("firstName")} id="firstName" required />
+              <Input {...register("firstName")} id="firstName" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="middleName">Purchaser Middle Name</Label>
-              <Input {...form.register("middleName")} id="middleName" />
+              <Input {...register("middleName")} id="middleName" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName" className="required">
                 Purchaser Last Name
               </Label>
-              <Input {...form.register("lastName")} id="lastName" required />
+              <Input {...register("lastName")} id="lastName" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="suffix">Suffix</Label>
-              <Input {...form.register("suffix")} id="suffix" />
+              <Input {...register("suffix")} id="suffix" />
             </div>
           </div>
 
@@ -1812,23 +1063,19 @@ const OfficerPptHandgunPage = () => {
               <Label htmlFor="address" className="required">
                 Purchaser Street Address
               </Label>
-              <Input
-                {...form.register("streetAddress")}
-                id="address"
-                required
-              />
+              <Input {...register("streetAddress")} id="address" required />
             </div>
             <div className="flex gap-4 items-start">
               <div className="space-y-2">
                 <Label>Zip Code</Label>
                 <Input
-                  {...form.register("zipCode")}
+                  {...register("zipCode")}
                   maxLength={5}
                   className="w-24"
                   disabled={isZipLoading}
                   onChange={(e) => {
                     const value = e.target.value.slice(0, 5).replace(/\D/g, "");
-                    form.setValue("zipCode", value);
+                    setValue("zipCode", value);
                   }}
                 />
               </div>
@@ -1839,7 +1086,7 @@ const OfficerPptHandgunPage = () => {
                     <Label>City</Label>
                     <SelectComponent
                       value={city || ""}
-                      onValueChange={(value) => form.setValue("city", value)}
+                      onValueChange={(value) => setValue("city", value)}
                       placeholder={
                         isZipLoading ? "Loading cities..." : "Select city"
                       }
@@ -1883,7 +1130,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="gender"
                 value={gender || ""}
-                onValueChange={(value) => form.setValue("gender", value)}
+                onValueChange={(value) => setValue("gender", value)}
                 placeholder="Select Gender"
               >
                 {formData?.genders.map((gender: string) => (
@@ -1899,7 +1146,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="hairColor"
                 value={hairColor || ""}
-                onValueChange={(value) => form.setValue("hairColor", value)}
+                onValueChange={(value) => setValue("hairColor", value)}
                 placeholder="Select Hair Color"
               >
                 {formData?.hairColors.map((color: string) => (
@@ -1915,7 +1162,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="eyeColor"
                 value={eyeColor || ""}
-                onValueChange={(value) => form.setValue("eyeColor", value)}
+                onValueChange={(value) => setValue("eyeColor", value)}
                 placeholder="Select Eye Color"
               >
                 {formData?.eyeColors.map((color: string) => (
@@ -1932,7 +1179,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="heightFeet"
                   value={heightFeet || ""}
-                  onValueChange={(value) => form.setValue("heightFeet", value)}
+                  onValueChange={(value) => setValue("heightFeet", value)}
                   placeholder="Feet"
                 >
                   {formData?.heightFeet.map((feet: string) => (
@@ -1944,9 +1191,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="heightInches"
                   value={heightInches || ""}
-                  onValueChange={(value) =>
-                    form.setValue("heightInches", value)
-                  }
+                  onValueChange={(value) => setValue("heightInches", value)}
                   placeholder="Inches"
                 >
                   {formData?.heightInches.map((inches: string) => (
@@ -1960,12 +1205,12 @@ const OfficerPptHandgunPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="weight">Weight</Label>
-              <Input {...form.register("weight")} id="weight" />
+              <Input {...register("weight")} id="weight" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
-              <Input {...form.register("dateOfBirth")} id="dob" type="date" />
+              <Input {...register("dateOfBirth")} id="dob" type="date" />
             </div>
           </div>
 
@@ -1976,7 +1221,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="idType"
                 value={idType || ""}
-                onValueChange={(value) => form.setValue("idType", value)}
+                onValueChange={(value) => setValue("idType", value)}
                 placeholder="Select ID Type"
               >
                 {formData?.idTypes.map((type: string) => (
@@ -1989,7 +1234,7 @@ const OfficerPptHandgunPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="purchaserId">Purchaser ID Number</Label>
-              <Input {...form.register("idNumber")} id="purchaserId" />
+              <Input {...register("idNumber")} id="purchaserId" />
             </div>
 
             <div className="space-y-2">
@@ -1997,7 +1242,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="race"
                 value={race || ""}
-                onValueChange={(value) => form.setValue("race", value)}
+                onValueChange={(value) => setValue("race", value)}
                 placeholder="Select Race"
               >
                 {formData?.race.map((race: string) => (
@@ -2013,7 +1258,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="isUsCitizen"
                 value={isUsCitizen || ""}
-                onValueChange={(value) => form.setValue("isUsCitizen", value)}
+                onValueChange={(value) => setValue("isUsCitizen", value)}
                 placeholder="Select"
               >
                 {formData?.citizenship.map((type: string) => (
@@ -2031,7 +1276,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="placeOfBirth"
                 value={placeOfBirth || ""}
-                onValueChange={(value) => form.setValue("placeOfBirth", value)}
+                onValueChange={(value) => setValue("placeOfBirth", value)}
                 placeholder="Select Place of Birth"
               >
                 {formData?.placesOfBirth.map((place: string) => (
@@ -2044,7 +1289,7 @@ const OfficerPptHandgunPage = () => {
 
             <div className="space-y-2">
               <Label>Purchaser Phone Number</Label>
-              <Input {...form.register("phoneNumber")} />
+              <Input {...register("phoneNumber")} />
             </div>
           </div>
 
@@ -2052,34 +1297,31 @@ const OfficerPptHandgunPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="aliasFirstName">Purchaser Alias First Name</Label>
-              <Input {...form.register("aliasFirstName")} id="aliasFirstName" />
+              <Input {...register("aliasFirstName")} id="aliasFirstName" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="aliasMiddleName">
                 Purchaser Alias Middle Name
               </Label>
-              <Input
-                {...form.register("aliasMiddleName")}
-                id="aliasMiddleName"
-              />
+              <Input {...register("aliasMiddleName")} id="aliasMiddleName" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="aliasLastName">Purchaser Alias Last Name</Label>
-              <Input {...form.register("aliasLastName")} id="aliasLastName" />
+              <Input {...register("aliasLastName")} id="aliasLastName" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="aliasSuffix">Purchaser Alias Suffix</Label>
-              <Input {...form.register("aliasSuffix")} id="aliasSuffix" />
+              <Input {...register("aliasSuffix")} id="aliasSuffix" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="hscFscNumber">HSC / FSC Number</Label>
-              <Input {...form.register("hscFscNumber")} id="hscFscNumber" />
+              <Input {...register("hscFscNumber")} id="hscFscNumber" />
             </div>
 
             <div className="space-y-2">
@@ -2087,7 +1329,7 @@ const OfficerPptHandgunPage = () => {
               <SelectComponent
                 name="exemptionCode"
                 value={exemptionCode || ""}
-                onValueChange={(value) => form.setValue("exemptionCode", value)}
+                onValueChange={(value) => setValue("exemptionCode", value)}
                 placeholder="Select Exemption Code"
               >
                 {formData?.exemptionCodes.map((code: string) => (
@@ -2120,9 +1362,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="eligibilityQ1"
                   value={eligibilityQ1 || ""}
-                  onValueChange={(value) =>
-                    form.setValue("eligibilityQ1", value)
-                  }
+                  onValueChange={(value) => setValue("eligibilityQ1", value)}
                   placeholder="Select"
                 >
                   <SelectItem value="yes">Yes</SelectItem>
@@ -2146,9 +1386,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="eligibilityQ2"
                   value={eligibilityQ2 || ""}
-                  onValueChange={(value) =>
-                    form.setValue("eligibilityQ2", value)
-                  }
+                  onValueChange={(value) => setValue("eligibilityQ2", value)}
                   placeholder="Select"
                 >
                   <SelectItem value="yes">Yes</SelectItem>
@@ -2171,9 +1409,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="eligibilityQ3"
                   value={eligibilityQ3 || ""}
-                  onValueChange={(value) =>
-                    form.setValue("eligibilityQ3", value)
-                  }
+                  onValueChange={(value) => setValue("eligibilityQ3", value)}
                   placeholder="Select"
                 >
                   <SelectItem value="yes">Yes</SelectItem>
@@ -2194,9 +1430,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="eligibilityQ4"
                   value={eligibilityQ4 || ""}
-                  onValueChange={(value) =>
-                    form.setValue("eligibilityQ4", value)
-                  }
+                  onValueChange={(value) => setValue("eligibilityQ4", value)}
                   placeholder="Select"
                 >
                   <SelectItem value="yes">Yes</SelectItem>
@@ -2218,7 +1452,7 @@ const OfficerPptHandgunPage = () => {
                 <SelectComponent
                   name="firearmsQ1"
                   value={firearmsQ1 || ""}
-                  onValueChange={(value) => form.setValue("firearmsQ1", value)}
+                  onValueChange={(value) => setValue("firearmsQ1", value)}
                   placeholder="Select"
                 >
                   <SelectItem value="yes">Yes</SelectItem>
@@ -2239,19 +1473,19 @@ const OfficerPptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Seller First Name</Label>
-                  <Input {...form.register("sellerFirstName")} />
+                  <Input {...register("sellerFirstName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>Seller Middle Name</Label>
-                  <Input {...form.register("sellerMiddleName")} />
+                  <Input {...register("sellerMiddleName")} />
                 </div>
                 <div className="space-y-2">
                   <Label className="required">Seller Last Name</Label>
-                  <Input {...form.register("sellerLastName")} />
+                  <Input {...register("sellerLastName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>Seller Suffix</Label>
-                  <Input {...form.register("sellerSuffix")} />
+                  <Input {...register("sellerSuffix")} />
                 </div>
               </div>
 
@@ -2259,13 +1493,13 @@ const OfficerPptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Seller Street Address</Label>
-                  <Input {...form.register("sellerStreetAddress")} required />
+                  <Input {...register("sellerStreetAddress")} required />
                 </div>
                 <div className="flex gap-4 items-start">
                   <div className="space-y-2">
                     <Label>Zip Code</Label>
                     <Input
-                      {...form.register("sellerZipCode")}
+                      {...register("sellerZipCode")}
                       maxLength={5}
                       className="w-24"
                       disabled={isSellerZipLoading}
@@ -2273,7 +1507,7 @@ const OfficerPptHandgunPage = () => {
                         const value = e.target.value
                           .slice(0, 5)
                           .replace(/\D/g, "");
-                        form.setValue("sellerZipCode", value);
+                        setValue("sellerZipCode", value);
                       }}
                     />
                   </div>
@@ -2285,7 +1519,7 @@ const OfficerPptHandgunPage = () => {
                         <SelectComponent
                           value={sellerCity || ""}
                           onValueChange={(value) =>
-                            form.setValue("sellerCity", value)
+                            setValue("sellerCity", value)
                           }
                           placeholder={
                             isSellerZipLoading
@@ -2334,9 +1568,7 @@ const OfficerPptHandgunPage = () => {
                   <SelectComponent
                     name="sellerGender"
                     value={sellerGender || ""}
-                    onValueChange={(value) =>
-                      form.setValue("sellerGender", value)
-                    }
+                    onValueChange={(value) => setValue("sellerGender", value)}
                     placeholder="Select Gender"
                   >
                     {formData?.genders.map((gender: string) => (
@@ -2353,7 +1585,7 @@ const OfficerPptHandgunPage = () => {
                     name="sellerHairColor"
                     value={sellerHairColor || ""}
                     onValueChange={(value) =>
-                      form.setValue("sellerHairColor", value)
+                      setValue("sellerHairColor", value)
                     }
                     placeholder="Select Hair Color"
                   >
@@ -2370,9 +1602,7 @@ const OfficerPptHandgunPage = () => {
                   <SelectComponent
                     name="sellerEyeColor"
                     value={sellerEyeColor || ""}
-                    onValueChange={(value) =>
-                      form.setValue("sellerEyeColor", value)
-                    }
+                    onValueChange={(value) => setValue("sellerEyeColor", value)}
                     placeholder="Select Eye Color"
                   >
                     {formData?.eyeColors.map((color: string) => (
@@ -2392,7 +1622,7 @@ const OfficerPptHandgunPage = () => {
                       name="sellerHeightFeet"
                       value={sellerHeightFeet || ""}
                       onValueChange={(value) =>
-                        form.setValue("sellerHeightFeet", value)
+                        setValue("sellerHeightFeet", value)
                       }
                       placeholder="ft"
                     >
@@ -2406,7 +1636,7 @@ const OfficerPptHandgunPage = () => {
                       name="sellerHeightInches"
                       value={sellerHeightInches || ""}
                       onValueChange={(value) =>
-                        form.setValue("sellerHeightInches", value)
+                        setValue("sellerHeightInches", value)
                       }
                       placeholder="in"
                     >
@@ -2421,12 +1651,12 @@ const OfficerPptHandgunPage = () => {
 
                 <div className="space-y-2">
                   <Label>Weight</Label>
-                  <Input {...form.register("sellerWeight")} />
+                  <Input {...register("sellerWeight")} />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="required">Date of Birth</Label>
-                  <Input {...form.register("sellerDateOfBirth")} type="date" />
+                  <Input {...register("sellerDateOfBirth")} type="date" />
                 </div>
               </div>
 
@@ -2437,9 +1667,7 @@ const OfficerPptHandgunPage = () => {
                   <SelectComponent
                     name="sellerIdType"
                     value={sellerIdType || ""}
-                    onValueChange={(value) =>
-                      form.setValue("sellerIdType", value)
-                    }
+                    onValueChange={(value) => setValue("sellerIdType", value)}
                     placeholder="Select ID Type"
                   >
                     {formData?.idTypes.map((type: string) => (
@@ -2452,7 +1680,7 @@ const OfficerPptHandgunPage = () => {
 
                 <div className="space-y-2">
                   <Label className="required">Seller ID Number</Label>
-                  <Input {...form.register("sellerIdNumber")} />
+                  <Input {...register("sellerIdNumber")} />
                 </div>
 
                 <div className="space-y-2">
@@ -2460,9 +1688,7 @@ const OfficerPptHandgunPage = () => {
                   <SelectComponent
                     name="sellerRace"
                     value={sellerRace || ""}
-                    onValueChange={(value) =>
-                      form.setValue("sellerRace", value)
-                    }
+                    onValueChange={(value) => setValue("sellerRace", value)}
                     placeholder="Select Race"
                   >
                     {formData?.race.map((race: string) => (
@@ -2481,7 +1707,7 @@ const OfficerPptHandgunPage = () => {
                     name="sellerIsUsCitizen"
                     value={sellerIsUsCitizen || ""}
                     onValueChange={(value) =>
-                      form.setValue("sellerIsUsCitizen", value)
+                      setValue("sellerIsUsCitizen", value)
                     }
                     placeholder="Select"
                   >
@@ -2501,7 +1727,7 @@ const OfficerPptHandgunPage = () => {
                     name="sellerPlaceOfBirth"
                     value={sellerPlaceOfBirth || ""}
                     onValueChange={(value) =>
-                      form.setValue("sellerPlaceOfBirth", value)
+                      setValue("sellerPlaceOfBirth", value)
                     }
                     placeholder="Select Place of Birth"
                   >
@@ -2515,7 +1741,7 @@ const OfficerPptHandgunPage = () => {
 
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <Input {...form.register("sellerPhoneNumber")} />
+                  <Input {...register("sellerPhoneNumber")} />
                 </div>
               </div>
 
@@ -2523,19 +1749,19 @@ const OfficerPptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Seller Alias First Name</Label>
-                  <Input {...form.register("sellerAliasFirstName")} />
+                  <Input {...register("sellerAliasFirstName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>Seller Alias Middle Name</Label>
-                  <Input {...form.register("sellerAliasMiddleName")} />
+                  <Input {...register("sellerAliasMiddleName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>Seller Alias Last Name</Label>
-                  <Input {...form.register("sellerAliasLastName")} />
+                  <Input {...register("sellerAliasLastName")} />
                 </div>
                 <div className="space-y-2">
                   <Label>Seller Alias Suffix</Label>
-                  <Input {...form.register("sellerAliasSuffix")} />
+                  <Input {...register("sellerAliasSuffix")} />
                 </div>
               </div>
             </CardContent>
@@ -2555,7 +1781,7 @@ const OfficerPptHandgunPage = () => {
                     name="isGunShowTransaction"
                     value={isGunShowTransaction || ""}
                     onValueChange={(value) =>
-                      form.setValue("isGunShowTransaction", value)
+                      setValue("isGunShowTransaction", value)
                     }
                     placeholder="Select"
                   >
@@ -2569,7 +1795,7 @@ const OfficerPptHandgunPage = () => {
                     name="waitingPeriodExemption"
                     value={waitingPeriodExemption || ""}
                     onValueChange={(value) =>
-                      form.setValue("waitingPeriodExemption", value)
+                      setValue("waitingPeriodExemption", value)
                     }
                     placeholder="Select Waiting Period Exemption"
                   >
@@ -2601,7 +1827,7 @@ const OfficerPptHandgunPage = () => {
                   <SelectComponent
                     name="frameOnly"
                     value={frameOnly || ""}
-                    onValueChange={(value) => form.setValue("frameOnly", value)}
+                    onValueChange={(value) => setValue("frameOnly", value)}
                     placeholder="Select"
                   >
                     <SelectItem value="yes">Yes</SelectItem>
@@ -2623,10 +1849,7 @@ const OfficerPptHandgunPage = () => {
 
                 <div className="space-y-2">
                   <Label className="required">Model</Label>
-                  <Input
-                    {...form.register("model")}
-                    placeholder="Enter model"
-                  />
+                  <Input {...register("model")} placeholder="Enter model" />
                 </div>
               </div>
 
@@ -2641,9 +1864,7 @@ const OfficerPptHandgunPage = () => {
                       <SelectComponent
                         name="calibers"
                         value={calibers || ""}
-                        onValueChange={(value) =>
-                          form.setValue("calibers", value)
-                        }
+                        onValueChange={(value) => setValue("calibers", value)}
                         placeholder="Select Caliber"
                       >
                         {formData?.calibers.map((caliber: string) => (
@@ -2659,7 +1880,7 @@ const OfficerPptHandgunPage = () => {
                         name="additionalCaliber"
                         value={additionalCaliber || ""}
                         onValueChange={(value) =>
-                          form.setValue("additionalCaliber", value)
+                          setValue("additionalCaliber", value)
                         }
                         placeholder="Select Additional Caliber (Optional)"
                       >
@@ -2680,7 +1901,7 @@ const OfficerPptHandgunPage = () => {
                         name="additionalCaliber2"
                         value={additionalCaliber2 || ""}
                         onValueChange={(value) =>
-                          form.setValue("additionalCaliber2", value)
+                          setValue("additionalCaliber2", value)
                         }
                         placeholder="Select Caliber"
                       >
@@ -2697,7 +1918,7 @@ const OfficerPptHandgunPage = () => {
                         name="additionalCaliber3"
                         value={additionalCaliber3 || ""}
                         onValueChange={(value) =>
-                          form.setValue("additionalCaliber3", value)
+                          setValue("additionalCaliber3", value)
                         }
                         placeholder="Select Additional Caliber (Optional)"
                       >
@@ -2714,14 +1935,14 @@ const OfficerPptHandgunPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label className="required">Barrel Length</Label>
-                      <Input {...form.register("barrelLength")} />
+                      <Input {...register("barrelLength")} />
                     </div>
                     <div className="space-y-2">
                       <Label>Unit</Label>
                       <SelectComponent
                         name="unit"
                         value={unit || ""}
-                        onValueChange={(value) => form.setValue("unit", value)}
+                        onValueChange={(value) => setValue("unit", value)}
                         placeholder="Select Unit"
                       >
                         {formData?.unit.map((unit) => (
@@ -2740,9 +1961,7 @@ const OfficerPptHandgunPage = () => {
                       <SelectComponent
                         name="category"
                         value={category || ""}
-                        onValueChange={(value) =>
-                          form.setValue("category", value)
-                        }
+                        onValueChange={(value) => setValue("category", value)}
                         placeholder="Select Category"
                       >
                         {formData?.category.map((category: string) => (
@@ -2766,9 +1985,7 @@ const OfficerPptHandgunPage = () => {
                     <SelectComponent
                       name="category"
                       value={category || ""}
-                      onValueChange={(value) =>
-                        form.setValue("category", value)
-                      }
+                      onValueChange={(value) => setValue("category", value)}
                       placeholder="Select Category"
                     >
                       {formData?.category.map((category: string) => (
@@ -2783,9 +2000,7 @@ const OfficerPptHandgunPage = () => {
                     <SelectComponent
                       name="regulated"
                       value={regulated || ""}
-                      onValueChange={(value) =>
-                        form.setValue("regulated", value)
-                      }
+                      onValueChange={(value) => setValue("regulated", value)}
                       placeholder="Select"
                     >
                       {formData?.regulated.map((regulated: string) => (
@@ -2802,7 +2017,7 @@ const OfficerPptHandgunPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="required">Serial Number</Label>
-                  <Input {...form.register("serialNumber")} />
+                  <Input {...register("serialNumber")} />
                 </div>
                 <div className="space-y-2">
                   <Label className="required">Re-enter Serial Number</Label>
@@ -2819,14 +2034,14 @@ const OfficerPptHandgunPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Other Number</Label>
-                  <Input {...form.register("otherNumber")} />
+                  <Input {...register("otherNumber")} />
                 </div>
                 <div className="space-y-2">
                   <Label className="required">Color</Label>
                   <SelectComponent
                     name="color"
                     value={color || ""}
-                    onValueChange={(value) => form.setValue("color", value)}
+                    onValueChange={(value) => setValue("color", value)}
                     placeholder="Select Color"
                   >
                     {formData?.colors.map((color: string) => (
@@ -2844,7 +2059,7 @@ const OfficerPptHandgunPage = () => {
                   <SelectComponent
                     name="isNewGun"
                     value={isNewGun || ""}
-                    onValueChange={(value) => form.setValue("isNewGun", value)}
+                    onValueChange={(value) => setValue("isNewGun", value)}
                     placeholder="Select"
                   >
                     <SelectItem value="new">New</SelectItem>
@@ -2859,7 +2074,7 @@ const OfficerPptHandgunPage = () => {
                     name="firearmSafetyDevice"
                     value={firearmSafetyDevice || ""}
                     onValueChange={(value) =>
-                      form.setValue("firearmSafetyDevice", value)
+                      setValue("firearmSafetyDevice", value)
                     }
                     placeholder="Select Firearm Safety Device (FSD)"
                   >
@@ -2892,7 +2107,7 @@ const OfficerPptHandgunPage = () => {
                       name="nonRosterExemption"
                       value={nonRosterExemption || ""}
                       onValueChange={(value) =>
-                        form.setValue("nonRosterExemption", value)
+                        setValue("nonRosterExemption", value)
                       }
                       placeholder="Select Purchaser Non-Roster Exemption"
                     >
@@ -2936,7 +2151,7 @@ const OfficerPptHandgunPage = () => {
                       agencyType={agencyType}
                       value={agencyDepartment || ""}
                       onChange={(value) => {
-                        form.setValue("agencyDepartment", value, {
+                        setValue("agencyDepartment", value, {
                           shouldValidate: true,
                         });
                       }}
@@ -2949,7 +2164,7 @@ const OfficerPptHandgunPage = () => {
               <div className="space-y-2">
                 <Label>Comments</Label>
                 <Textarea
-                  {...form.register("comments")}
+                  {...register("comments")}
                   className="w-full min-h-[100px] p-2 border rounded-md"
                   maxLength={200}
                 />
@@ -2971,7 +2186,7 @@ const OfficerPptHandgunPage = () => {
         >
           Back
         </Button>
-        <PreviewDialog control={form.control} />
+        <PreviewDialog form={form} />
         <Button variant="outline" onClick={() => window.location.reload()}>
           Refresh
         </Button>
