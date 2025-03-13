@@ -182,22 +182,32 @@ const useZipCodeLookup = (
     queryFn: async (): Promise<ZipCodeData | null> => {
       if (zipCode.length !== 5) return null;
 
-      const { data, error } = await supabase
-        .from("zip_codes")
-        .select("primary_city, state, acceptable_cities")
-        .eq("zip", zipCode)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("zip_codes")
+          .select("primary_city, state, acceptable_cities")
+          .eq("zip", zipCode)
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        setValue("state", data.state, { shouldValidate: true });
+        if (data) {
+          // Set both city and state values with validation
+          setValue("city", data.primary_city, { shouldValidate: true });
+          setValue("state", data.state, { shouldValidate: true });
+        }
+
+        return data;
+      } catch (error) {
+        console.error("Error fetching zip code data:", error);
+        return null;
       }
-
-      return data;
     },
     enabled: zipCode?.length === 5,
-    staleTime: 30000,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -564,7 +574,7 @@ const OfficerHandgunPage = () => {
     watch,
     setValue,
     getValues,
-    control, // Add this
+    control,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: initialFormState,
@@ -572,19 +582,18 @@ const OfficerHandgunPage = () => {
     reValidateMode: "onBlur",
   });
 
-  // Watch both zip code fields
+  // Only watch fields that need real-time updates
   const zipCode = watch("zipCode");
-  //   const sellerZipCode = watch("sellerZipCode");
   const frameOnlySelection = watch("frameOnly");
+  const selectedMake = watch("make");
+  const selectedModel = watch("model");
+  const nonRosterExemption = watch("nonRosterExemption");
 
   // Use both zip code lookup hooks
   const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
     zipCode || "",
     setValue
   );
-
-  // const { data: sellerZipData, isLoading: isSellerZipLoading } =
-  //     useSellerZipCodeLookup(sellerZipCode || "", setValue);
 
   // Replace form state management with react-hook-form
   const onSubmit = (data: FormData) => {
@@ -686,24 +695,6 @@ const OfficerHandgunPage = () => {
       const data = await response.json();
       return data;
     },
-  });
-
-  // Watch the make and model fields
-  const selectedMake = watch("make");
-  const selectedModel = watch("model");
-
-  // Update the handgun details query
-  const { data: handgunDetails } = useQuery({
-    queryKey: ["handgunDetails", selectedMake, selectedModel],
-    queryFn: async () => {
-      if (!selectedMake || !selectedModel) return null;
-      const response = await fetch(
-        `/api/fetchRoster?make=${selectedMake}&model=${selectedModel}`
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
-      return response.json();
-    },
-    enabled: !!selectedMake && !!selectedModel,
   });
 
   // Get models for selected manufacturer
@@ -814,11 +805,9 @@ const OfficerHandgunPage = () => {
                         .slice(0, 5)
                         .replace(/\D/g, "");
                       e.target.value = value;
-                    },
-                    onBlur: (e) => {
-                      if (e.target.value.length === 5) {
+                      if (value.length === 5) {
                         queryClient.invalidateQueries({
-                          queryKey: ["zipCode", e.target.value],
+                          queryKey: ["zipCode", value],
                         });
                       }
                     },
@@ -835,7 +824,9 @@ const OfficerHandgunPage = () => {
                     <SelectComponent
                       name="city"
                       value={getValues("city") || ""}
-                      onValueChange={(value) => setValue("city", value)}
+                      onValueChange={(value) =>
+                        setValue("city", value, { shouldValidate: true })
+                      }
                       placeholder={
                         isZipLoading ? "Loading cities..." : "Select city"
                       }
@@ -862,7 +853,7 @@ const OfficerHandgunPage = () => {
                   <div className="space-y-2">
                     <Label>State</Label>
                     <Input
-                      value={zipData?.state || ""}
+                      value={getValues("state") || ""}
                       disabled
                       className="w-16 bg-muted"
                     />
@@ -1184,7 +1175,6 @@ const OfficerHandgunPage = () => {
                 >
                   <SelectItem value="yes">Yes</SelectItem>
                   <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="n/a">N/A</SelectItem>
                 </SelectComponent>
               </div>
 

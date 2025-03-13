@@ -84,9 +84,9 @@ export type FormData = {
   gender: string;
   hairColor: string;
   eyeColor: string;
-  heightFeet: string;
-  heightInches: string;
-  weight?: string;
+  heightFeet: number;
+  heightInches: number;
+  weight?: number;
   dateOfBirth: string;
   idType: string;
   idNumber: string;
@@ -98,41 +98,10 @@ export type FormData = {
   aliasMiddleName?: string;
   aliasLastName?: string;
   aliasSuffix?: string;
-  hscFscNumber?: string;
-  exemptionCode: string;
-  eligibilityQ1: string;
-  eligibilityQ2: string;
-  eligibilityQ3: string;
-  eligibilityQ4: string;
-  firearmsQ1: string;
-  isGunShowTransaction: string;
-  waitingPeriodExemption?: string;
-  restrictionExemption?: string;
-  frameOnly?: string;
-  make: string;
-  model: string;
-  calibers: string;
-  additionalCaliber: string;
-  additionalCaliber2: string;
-  additionalCaliber3: string;
-  barrelLength: string;
-  unit: string;
-  gunType: string;
-  category: string;
-  regulated: string;
-  serialNumber: string;
-  otherNumber?: string;
-  color: string;
-  isNewGun: string;
-  firearmSafetyDevice: string;
-  nonRosterExemption: string;
-  agencyGroup: string;
-  comments?: string;
-  transaction_type: string;
   sellerFirstName: string;
-  sellerMiddleName: string;
+  sellerMiddleName?: string;
   sellerLastName: string;
-  sellerSuffix: string;
+  sellerSuffix?: string;
   sellerStreetAddress: string;
   sellerZipCode: string;
   sellerCity: string;
@@ -140,21 +109,52 @@ export type FormData = {
   sellerGender: string;
   sellerHairColor: string;
   sellerEyeColor: string;
-  sellerHeightFeet: string;
-  sellerHeightInches: string;
-  sellerWeight: string;
+  sellerHeightFeet: number;
+  sellerHeightInches: number;
+  sellerWeight?: number;
   sellerDateOfBirth: string;
   sellerIdType: string;
   sellerIdNumber: string;
   sellerRace: string;
   sellerIsUsCitizen: string;
   sellerPlaceOfBirth: string;
-  sellerPhoneNumber: string;
-  sellerAliasFirstName: string;
-  sellerAliasMiddleName: string;
-  sellerAliasLastName: string;
-  sellerAliasSuffix: string;
-  agencyDepartment: string; // Add this field
+  sellerPhoneNumber?: string;
+  sellerAliasFirstName?: string;
+  sellerAliasMiddleName?: string;
+  sellerAliasLastName?: string;
+  sellerAliasSuffix?: string;
+  hscFscNumber?: string;
+  exemptionCode?: string;
+  eligibilityQ1: string;
+  eligibilityQ2: string;
+  eligibilityQ3: string;
+  eligibilityQ4: string;
+  isGunShowTransaction: string;
+  waitingPeriodExemption?: string;
+  restrictionExemption?: string;
+  make: string;
+  model: string;
+  serialNumber: string;
+  otherNumber?: string;
+  color: string;
+  isNewGun: string;
+  firearmSafetyDevice: string;
+  nonRosterExemption: string;
+  agencyDepartment?: string;
+  comments?: string;
+  status: string;
+  transaction_type: string;
+  frameOnly?: boolean;
+  calibers?: string;
+  additionalCaliber?: string;
+  additionalCaliber2?: string;
+  additionalCaliber3?: string;
+  barrelLength?: number;
+  unit?: string;
+  gunType?: string;
+  category?: string;
+  regulated?: string;
+  firearmsQ1?: string;
 };
 
 type ZipCodeData = {
@@ -175,9 +175,9 @@ const initialFormState: Partial<FormData> = {
   gender: "",
   hairColor: "",
   eyeColor: "",
-  heightFeet: "",
-  heightInches: "",
-  weight: "",
+  heightFeet: 0,
+  heightInches: 0,
+  weight: undefined,
   dateOfBirth: "",
   idType: "",
   idNumber: "",
@@ -189,13 +189,37 @@ const initialFormState: Partial<FormData> = {
   aliasMiddleName: "",
   aliasLastName: "",
   aliasSuffix: "",
+  sellerFirstName: "",
+  sellerMiddleName: "",
+  sellerLastName: "",
+  sellerSuffix: "",
+  sellerStreetAddress: "",
+  sellerZipCode: "",
+  sellerCity: "",
+  sellerState: "",
+  sellerGender: "",
+  sellerHairColor: "",
+  sellerEyeColor: "",
+  sellerHeightFeet: 0,
+  sellerHeightInches: 0,
+  sellerWeight: undefined,
+  sellerDateOfBirth: "",
+  sellerIdType: "",
+  sellerIdNumber: "",
+  sellerRace: "",
+  sellerIsUsCitizen: "",
+  sellerPlaceOfBirth: "",
+  sellerPhoneNumber: "",
+  sellerAliasFirstName: "",
+  sellerAliasMiddleName: "",
+  sellerAliasLastName: "",
+  sellerAliasSuffix: "",
   hscFscNumber: "",
   exemptionCode: "",
   eligibilityQ1: "",
   eligibilityQ2: "",
   eligibilityQ3: "",
   eligibilityQ4: "",
-  firearmsQ1: "",
   isGunShowTransaction: "",
   waitingPeriodExemption: "",
   restrictionExemption:
@@ -210,32 +234,19 @@ const initialFormState: Partial<FormData> = {
   nonRosterExemption: "",
   agencyDepartment: "",
   comments: "",
-  transaction_type: "dealer-handgun",
-  sellerFirstName: "",
-  sellerMiddleName: "",
-  sellerLastName: "",
-  sellerSuffix: "",
-  sellerStreetAddress: "",
-  sellerZipCode: "",
-  sellerCity: "",
-  sellerState: "",
-  sellerGender: "",
-  sellerHairColor: "",
-  sellerEyeColor: "",
-  sellerHeightFeet: "",
-  sellerHeightInches: "",
-  sellerWeight: "",
-  sellerDateOfBirth: "",
-  sellerIdType: "",
-  sellerIdNumber: "",
-  sellerRace: "",
-  sellerIsUsCitizen: "",
-  sellerPlaceOfBirth: "",
-  sellerPhoneNumber: "",
-  sellerAliasFirstName: "",
-  sellerAliasMiddleName: "",
-  sellerAliasLastName: "",
-  sellerAliasSuffix: "",
+  status: "pending",
+  transaction_type: "officer-ppt-handgun",
+  frameOnly: false,
+  calibers: "",
+  additionalCaliber: "",
+  additionalCaliber2: "",
+  additionalCaliber3: "",
+  barrelLength: undefined,
+  unit: "",
+  gunType: "HANDGUN",
+  category: "",
+  regulated: "",
+  firearmsQ1: "",
 };
 
 const useAgencyDepartments = (agencyType: string | null) => {
@@ -509,7 +520,7 @@ const PreviewDialog = ({ form }: { form: UseFormReturn<FormData> }) => {
               <span className="font-medium">Model:</span>
               <span>{values.model}</span>
 
-              {values.frameOnly !== "yes" && (
+              {values.frameOnly !== false && (
                 <>
                   <span className="font-medium">Caliber:</span>
                   <span>{values.calibers}</span>
@@ -546,7 +557,7 @@ const PreviewDialog = ({ form }: { form: UseFormReturn<FormData> }) => {
               <span className="font-medium">Category:</span>
               <span>{values.category}</span>
 
-              {values.frameOnly === "yes" && (
+              {values.frameOnly === true && (
                 <>
                   <span className="font-medium">Federally Regulated:</span>
                   <span>{values.regulated}</span>
@@ -812,10 +823,198 @@ const OfficerPptHandgunPage = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
 
+  // Form validation
   const form = useForm<FormData>({
     defaultValues: initialFormState,
     mode: "onBlur",
     reValidateMode: "onBlur",
+    resolver: async (values) => {
+      const errors: Record<string, { type: string; message: string }> = {};
+
+      // Validate frame only constraints
+      if (values.frameOnly === true) {
+        if (!values.regulated) {
+          errors.regulated = {
+            type: "required",
+            message: "Regulated status is required when frame only is true",
+          };
+        }
+        if (values.calibers) {
+          errors.calibers = {
+            type: "invalid",
+            message: "Calibers should not be set when frame only is true",
+          };
+        }
+        if (values.barrelLength) {
+          errors.barrelLength = {
+            type: "invalid",
+            message: "Barrel length should not be set when frame only is true",
+          };
+        }
+        if (values.unit) {
+          errors.unit = {
+            type: "invalid",
+            message: "Unit should not be set when frame only is true",
+          };
+        }
+      } else if (values.frameOnly === false) {
+        if (!values.calibers) {
+          errors.calibers = {
+            type: "required",
+            message: "Calibers are required when frame only is false",
+          };
+        }
+        if (!values.barrelLength) {
+          errors.barrelLength = {
+            type: "required",
+            message: "Barrel length is required when frame only is false",
+          };
+        }
+        if (!values.unit) {
+          errors.unit = {
+            type: "required",
+            message: "Unit is required when frame only is false",
+          };
+        }
+      }
+
+      // Validate unit values
+      if (
+        values.unit &&
+        !["INCHES", "inches", "Inches"].includes(values.unit)
+      ) {
+        errors.unit = {
+          type: "invalid",
+          message: "Unit must be one of: INCHES, inches, Inches",
+        };
+      }
+
+      // Validate regulated values
+      if (values.regulated && !["YES", "NO"].includes(values.regulated)) {
+        errors.regulated = {
+          type: "invalid",
+          message: "Regulated must be either YES or NO",
+        };
+      }
+
+      // Validate firearms_q1 values
+      if (
+        values.firearmsQ1 &&
+        !["yes", "no", "n/a"].includes(values.firearmsQ1.toLowerCase())
+      ) {
+        errors.firearmsQ1 = {
+          type: "invalid",
+          message: "Firearms Q1 must be one of: yes, no, n/a",
+        };
+      }
+
+      // Validate numeric fields
+      if (
+        values.heightFeet &&
+        (isNaN(Number(values.heightFeet)) || Number(values.heightFeet) < 0)
+      ) {
+        errors.heightFeet = {
+          type: "invalid",
+          message: "Height feet must be a valid positive number",
+        };
+      }
+
+      if (
+        values.heightInches &&
+        (isNaN(Number(values.heightInches)) ||
+          Number(values.heightInches) < 0 ||
+          Number(values.heightInches) > 11)
+      ) {
+        errors.heightInches = {
+          type: "invalid",
+          message: "Height inches must be between 0 and 11",
+        };
+      }
+
+      if (
+        values.weight &&
+        (isNaN(Number(values.weight)) || Number(values.weight) < 0)
+      ) {
+        errors.weight = {
+          type: "invalid",
+          message: "Weight must be a valid positive number",
+        };
+      }
+
+      if (
+        values.barrelLength &&
+        (isNaN(Number(values.barrelLength)) || Number(values.barrelLength) < 0)
+      ) {
+        errors.barrelLength = {
+          type: "invalid",
+          message: "Barrel length must be a valid positive number",
+        };
+      }
+
+      // Validate required fields
+      const requiredFields = [
+        "firstName",
+        "lastName",
+        "streetAddress",
+        "zipCode",
+        "city",
+        "state",
+        "gender",
+        "hairColor",
+        "eyeColor",
+        "heightFeet",
+        "heightInches",
+        "dateOfBirth",
+        "idType",
+        "idNumber",
+        "race",
+        "isUsCitizen",
+        "placeOfBirth",
+        "eligibilityQ1",
+        "eligibilityQ2",
+        "eligibilityQ3",
+        "eligibilityQ4",
+        "isGunShowTransaction",
+        "make",
+        "model",
+        "serialNumber",
+        "color",
+        "isNewGun",
+        "firearmSafetyDevice",
+        "nonRosterExemption",
+        "sellerFirstName",
+        "sellerLastName",
+        "sellerStreetAddress",
+        "sellerZipCode",
+        "sellerCity",
+        "sellerState",
+        "sellerGender",
+        "sellerHairColor",
+        "sellerEyeColor",
+        "sellerHeightFeet",
+        "sellerHeightInches",
+        "sellerDateOfBirth",
+        "sellerIdType",
+        "sellerIdNumber",
+        "sellerRace",
+        "sellerIsUsCitizen",
+        "sellerPlaceOfBirth",
+      ];
+
+      requiredFields.forEach((field) => {
+        if (!values[field as keyof FormData]) {
+          errors[field] = {
+            type: "required",
+            message: `${field.replace(/([A-Z])/g, " $1").toLowerCase()} is required`,
+          };
+        }
+      });
+
+      return {
+        values,
+        errors: Object.keys(errors).length > 0 ? errors : {},
+      };
+    },
   });
 
   const { register, handleSubmit, watch, setValue, getValues, control } = form;
@@ -831,18 +1030,6 @@ const OfficerPptHandgunPage = () => {
     name: "nonRosterExemption",
   });
   const frameOnly = watch("frameOnly");
-
-  // Watch fields needed for validation
-  const eligibilityQ4 = watch("eligibilityQ4");
-  const firearmsQ1 = watch("firearmsQ1");
-  const sellerCity = watch("sellerCity");
-  const sellerGender = watch("sellerGender");
-  const sellerHairColor = watch("sellerHairColor");
-  const sellerEyeColor = watch("sellerEyeColor");
-  const sellerHeightFeet = watch("sellerHeightFeet");
-  const sellerHeightInches = watch("sellerHeightInches");
-  const sellerIdType = watch("sellerIdType");
-  const sellerRace = watch("sellerRace");
 
   // Add state for debounced values
   const [debouncedZipCode, setDebouncedZipCode] = useState("");
@@ -871,33 +1058,6 @@ const OfficerPptHandgunPage = () => {
 
   const { data: sellerZipData, isLoading: isSellerZipLoading } =
     useSellerZipCodeLookup(debouncedSellerZipCode, form.setValue);
-
-  // Form submission mutation
-  const { mutate: submitForm, isPending: isSubmitting } = useMutation({
-    mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/officerPptHandgun", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          transaction_type: "officer-ppt-handgun",
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to submit form");
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Form submitted successfully" });
-      router.push("/TGR/dros/training");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   // Dialog state mutation
   const { data: isDialogOpen, mutate: setDialogOpen } = useMutation({
@@ -1144,8 +1304,10 @@ const OfficerPptHandgunPage = () => {
               <div className="flex gap-2">
                 <SelectComponent
                   name="heightFeet"
-                  value={watch("heightFeet") || ""}
-                  onValueChange={(value) => setValue("heightFeet", value)}
+                  value={String(watch("heightFeet")) || ""}
+                  onValueChange={(value) =>
+                    setValue("heightFeet", Number(value))
+                  }
                   placeholder="Feet"
                 >
                   {formData?.heightFeet.map((feet: string) => (
@@ -1156,8 +1318,10 @@ const OfficerPptHandgunPage = () => {
                 </SelectComponent>
                 <SelectComponent
                   name="heightInches"
-                  value={watch("heightInches") || ""}
-                  onValueChange={(value) => setValue("heightInches", value)}
+                  value={String(watch("heightInches")) || ""}
+                  onValueChange={(value) =>
+                    setValue("heightInches", Number(value))
+                  }
                   placeholder="Inches"
                 >
                   {formData?.heightInches.map((inches: string) => (
@@ -1586,9 +1750,9 @@ const OfficerPptHandgunPage = () => {
                   <div className="flex gap-2">
                     <SelectComponent
                       name="sellerHeightFeet"
-                      value={watch("sellerHeightFeet") || ""}
+                      value={String(watch("sellerHeightFeet")) || ""}
                       onValueChange={(value) =>
-                        setValue("sellerHeightFeet", value)
+                        setValue("sellerHeightFeet", Number(value))
                       }
                       placeholder="ft"
                     >
@@ -1600,9 +1764,9 @@ const OfficerPptHandgunPage = () => {
                     </SelectComponent>
                     <SelectComponent
                       name="sellerHeightInches"
-                      value={watch("sellerHeightInches") || ""}
+                      value={watch("sellerHeightInches")?.toString() || ""}
                       onValueChange={(value) =>
-                        setValue("sellerHeightInches", value)
+                        setValue("sellerHeightInches", Number(value))
                       }
                       placeholder="in"
                     >
@@ -1792,8 +1956,12 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Frame Only</Label>
                   <SelectComponent
                     name="frameOnly"
-                    value={frameOnly || ""}
-                    onValueChange={(value) => setValue("frameOnly", value)}
+                    value={frameOnly ? "yes" : "no"}
+                    onValueChange={(value: string) => {
+                      setValue("frameOnly", value === "yes", {
+                        shouldValidate: true,
+                      });
+                    }}
                     placeholder="Select"
                   >
                     <SelectItem value="yes">Yes</SelectItem>
@@ -1820,8 +1988,7 @@ const OfficerPptHandgunPage = () => {
               </div>
 
               {/* Caliber and Additional Caliber Sections */}
-
-              {frameOnly !== "yes" ? (
+              {frameOnly === false && (
                 <>
                   {/* Show caliber sections when frame only is not yes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1830,7 +1997,9 @@ const OfficerPptHandgunPage = () => {
                       <SelectComponent
                         name="calibers"
                         value={watch("calibers") || ""}
-                        onValueChange={(value) => setValue("calibers", value)}
+                        onValueChange={(value: string) =>
+                          setValue("calibers", value)
+                        }
                         placeholder="Select Caliber"
                       >
                         {formData?.calibers.map((caliber: string) => (
@@ -1908,13 +2077,11 @@ const OfficerPptHandgunPage = () => {
                       <SelectComponent
                         name="unit"
                         value={watch("unit") || ""}
-                        onValueChange={(value) =>
-                          setValue("unit", value.toUpperCase())
-                        }
+                        onValueChange={(value) => setValue("unit", value)}
                         placeholder="Select Unit"
                       >
                         {formData?.unit.map((unit) => (
-                          <SelectItem key={unit} value={unit.toUpperCase()}>
+                          <SelectItem key={unit} value={unit}>
                             {DOMPurify.sanitize(unit)}
                           </SelectItem>
                         ))}
@@ -1929,7 +2096,9 @@ const OfficerPptHandgunPage = () => {
                       <SelectComponent
                         name="category"
                         value={watch("category") || ""}
-                        onValueChange={(value) => setValue("category", value)}
+                        onValueChange={(value: string) =>
+                          setValue("category", value)
+                        }
                         placeholder="Select Category"
                       >
                         {formData?.category.map((category: string) => (
@@ -1941,8 +2110,9 @@ const OfficerPptHandgunPage = () => {
                     </div>
                   </div>
                 </>
-              ) : (
-                /* When frame only is yes, show gun type, category, and regulated in one row */
+              )}
+
+              {frameOnly === true && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Gun Type</Label>
@@ -1953,7 +2123,9 @@ const OfficerPptHandgunPage = () => {
                     <SelectComponent
                       name="category"
                       value={watch("category") || ""}
-                      onValueChange={(value) => setValue("category", value)}
+                      onValueChange={(value: string) =>
+                        setValue("category", value)
+                      }
                       placeholder="Select Category"
                     >
                       {formData?.category.map((category: string) => (
@@ -1968,7 +2140,9 @@ const OfficerPptHandgunPage = () => {
                     <SelectComponent
                       name="regulated"
                       value={watch("regulated") || ""}
-                      onValueChange={(value) => setValue("regulated", value)}
+                      onValueChange={(value: string) =>
+                        setValue("regulated", value)
+                      }
                       placeholder="Select"
                     >
                       {formData?.regulated.map((regulated: string) => (
@@ -2073,7 +2247,7 @@ const OfficerPptHandgunPage = () => {
                   ) : (
                     <SelectComponent
                       name="nonRosterExemption"
-                      value={nonRosterExemption || ""}
+                      value={watch("nonRosterExemption") || ""}
                       onValueChange={(value) =>
                         setValue("nonRosterExemption", value)
                       }

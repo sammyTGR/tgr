@@ -1513,7 +1513,7 @@ const PptHandgunPage = () => {
                 </div>
 
                 {/* Seller Physical Characteristics */}
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                   <div className="space-y-2">
                     <Label className="required">Gender</Label>
                     <SelectComponent
