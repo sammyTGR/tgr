@@ -38,65 +38,84 @@ export default function Home() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Query for checking auth session
+  // Query for checking auth state using getUser only
   const sessionQuery = useQuery<UserSession | null>({
     queryKey: ["auth-session"],
-    queryFn: () =>
-      supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+    queryFn: async () => {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
         if (userError || !user) {
           return null;
         }
+
         return {
           user,
         };
-      }),
+      } catch (error) {
+        console.error("Auth check error:", error);
+        return null;
+      }
+    },
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   // Query for fetching user role
   const roleQuery = useQuery<UserSession, Error>({
     queryKey: ["user-role", sessionQuery.data?.user?.id],
     enabled: !!sessionQuery.data?.user,
-    queryFn: () => {
+    queryFn: async () => {
       const user = sessionQuery.data?.user;
+      if (!user) throw new Error("No user found");
 
-      return Promise.resolve()
-        .then(() =>
-          supabase
-            .from("employees")
-            .select("role, employee_id")
-            .eq("user_uuid", user.id)
-            .single()
-        )
-        .then(({ data: employeeData, error: employeeError }) => {
-          if (!employeeError && employeeData) {
-            return {
-              user: sessionQuery.data?.user,
-              role: employeeData.role,
-              employee_id: employeeData.employee_id,
-            };
-          }
+      try {
+        // First try to get employee data
+        const { data: employeeData, error: employeeError } = await supabase
+          .from("employees")
+          .select("role, employee_id")
+          .eq("user_uuid", user.id)
+          .single();
 
-          // If not an employee, check customers table
-          return Promise.resolve()
-            .then(() =>
-              supabase
-                .from("customers")
-                .select("role")
-                .eq("email", user.email)
-                .single()
-            )
-            .then(({ data: customerData, error: customerError }) => {
-              if (customerError || !customerData) {
-                throw new Error("User role not found");
-              }
+        if (!employeeError && employeeData) {
+          return {
+            user: sessionQuery.data?.user,
+            role: employeeData.role,
+            employee_id: employeeData.employee_id,
+          };
+        }
 
-              return {
-                user: sessionQuery.data?.user,
-                role: customerData.role,
-              };
-            });
-        });
+        // If not an employee, check customers table
+        const { data: customerData, error: customerError } = await supabase
+          .from("customers")
+          .select("role")
+          .eq("email", user.email)
+          .single();
+
+        if (customerError || !customerData) {
+          throw new Error("User role not found");
+        }
+
+        return {
+          user: sessionQuery.data?.user,
+          role: customerData.role,
+        };
+      } catch (error) {
+        console.error("Role fetch error:", error);
+        throw error;
+      }
     },
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   // Navigation state query

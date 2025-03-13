@@ -38,9 +38,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const supabase = createClient();
+
+  // Get user data only
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  // Log any auth errors
+  if (userError) console.error("User fetch error:", userError);
+
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
