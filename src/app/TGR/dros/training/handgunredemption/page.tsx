@@ -203,48 +203,85 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   const formValues = useWatch({ control });
   const router = useRouter();
 
-  // Dialog state mutation
-  const { mutate: setDialogOpen } = useMutation({
-    mutationKey: ["previewDialog"],
-    mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
-  });
-
-  // const { data: agencyName } = useQuery({
-  //   queryKey: ["agencyName", formValues.agencyDepartment],
-  //   queryFn: async () => {
-  //     if (!formValues.agencyDepartment) return null;
-  //     const response = await fetch(
-  //       `/api/fetchAgencyPd?id=${formValues.agencyDepartment}`
-  //     );
-  //     if (!response.ok) throw new Error("Failed to fetch agency name");
-  //     const data = await response.json();
-  //     return data.label;
-  //   },
-  //   enabled: !!formValues.agencyDepartment,
-  // });
-
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
+      // Format the data before submission
+      const formattedData = {
+        ...data,
+        transaction_type: "handgun-redemption",
+        // Ensure required fields are present and properly formatted
+        firstName: data.firstName?.trim() || "",
+        lastName: data.lastName?.trim() || "",
+        streetAddress: data.streetAddress?.trim() || "",
+        zipCode: data.zipCode?.trim() || "",
+        city: data.city?.trim() || "",
+        state: data.state?.trim() || "",
+        gender: data.gender?.toLowerCase() || "",
+        hairColor: data.hairColor?.toLowerCase() || "",
+        eyeColor: data.eyeColor?.toLowerCase() || "",
+        heightFeet: data.heightFeet?.toString() || "",
+        heightInches: data.heightInches?.toString() || "",
+        dateOfBirth: data.dateOfBirth || "",
+        idType: data.idType?.toLowerCase() || "",
+        idNumber: data.idNumber?.trim() || "",
+        race: data.race?.toLowerCase() || "",
+        isUsCitizen: data.isUsCitizen?.toLowerCase() || "",
+        placeOfBirth: data.placeOfBirth?.toLowerCase() || "",
+        eligibilityQ1: data.eligibilityQ1?.toLowerCase() || "",
+        eligibilityQ2: data.eligibilityQ2?.toLowerCase() || "",
+        eligibilityQ3: data.eligibilityQ3?.toLowerCase() || "",
+        eligibilityQ4: data.eligibilityQ4?.toLowerCase() || "",
+        isGunShowTransaction: data.isGunShowTransaction?.toLowerCase() || "",
+        make: data.make?.toLowerCase() || "",
+        model: data.model?.toLowerCase() || "",
+        serialNumber: data.serialNumber?.trim() || "",
+        color: data.color?.toLowerCase() || "",
+        isNewGun: "used",
+        frame_only: data.frameOnly === "yes",
+        calibers: data.frameOnly === "yes" ? null : data.calibers,
+        additional_caliber:
+          data.frameOnly === "yes" ? null : data.additionalCaliber,
+        additional_caliber2:
+          data.frameOnly === "yes" ? null : data.additionalCaliber2,
+        additional_caliber3:
+          data.frameOnly === "yes" ? null : data.additionalCaliber3,
+        barrel_length:
+          data.frameOnly === "yes" ? null : parseFloat(data.barrelLength) || 0,
+        unit: data.frameOnly === "yes" ? null : "INCH",
+        gun_type: "HANDGUN",
+        category: data.category,
+        regulated:
+          data.frameOnly === "yes" ? data.regulated?.toUpperCase() : null,
+        restriction_exemption: "Return to Owner",
+        status: "submitted",
+      };
+
       const response = await fetch("/api/handgunRedemption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          transaction_type: "handgun-redemption",
-        }),
+        body: JSON.stringify(formattedData),
       });
-      if (!response.ok) throw new Error("Failed to submit form");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit form");
+      }
+
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Form submitted successfully" });
+      toast({
+        title: "Success",
+        description: "Form submitted successfully",
+        variant: "default",
+      });
       router.push("/TGR/dros/training");
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to submit form",
         variant: "destructive",
       });
     },
@@ -384,7 +421,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               <span>{formValues.color}</span>
 
               <span className="font-medium">New/Used:</span>
-              <span>{"Used"}</span>
+              <span>Used</span>
             </div>
           </div>
 
@@ -402,7 +439,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               <span>{formValues.hscFscNumber || "N/A"}</span>
 
               <span className="font-medium">Exemption Code:</span>
-              <span>{"Return to Owner"}</span>
+              <span>Return to Owner</span>
 
               <span className="font-medium">Comments:</span>
               <span>{formValues.comments || "N/A"}</span>
@@ -525,24 +562,17 @@ const HandgunRedemptionPage = () => {
     shouldUnregister: false,
   });
 
-  // Watch both zip code fields
+  // Watch fields that need real-time updates
   const zipCode = watch("zipCode");
-  //   const sellerZipCode = watch("sellerZipCode");
   const frameOnlySelection = watch("frameOnly");
+  const selectedMake = watch("make");
+  const selectedModel = watch("model");
 
-  // Use both zip code lookup hooks
+  // Use zip code lookup hook
   const { data: zipData, isLoading: isZipLoading } = useZipCodeLookup(
     zipCode || "",
     setValue
   );
-
-  // const { data: sellerZipData, isLoading: isSellerZipLoading } =
-  //     useSellerZipCodeLookup(sellerZipCode || "", setValue);
-
-  // Replace form state management with react-hook-form
-  const onSubmit = (data: FormData) => {
-    submitForm(data);
-  };
 
   // Form submission mutation
   const { mutate: submitForm, isPending: isSubmitting } = useMutation({
@@ -596,11 +626,10 @@ const HandgunRedemptionPage = () => {
     },
   });
 
-  // Example query - replace with your actual data fetching logic
+  // Form options query
   const { data: formData, isLoading: isLoadingFormData } = useQuery({
     queryKey: ["formOptions"],
     queryFn: async () => {
-      // Replace with your actual API call
       return {
         genders: FORM_OPTIONS.genders,
         eyeColors: FORM_OPTIONS.eyeColors,
@@ -626,7 +655,7 @@ const HandgunRedemptionPage = () => {
     },
   });
 
-  // Update the handgun roster query
+  // Handgun roster query
   const { data: handgunData, isLoading: isLoadingHandguns } = useQuery({
     queryKey: ["handgunRoster"],
     queryFn: async () => {
@@ -641,11 +670,7 @@ const HandgunRedemptionPage = () => {
     },
   });
 
-  // Watch the make and model fields
-  const selectedMake = watch("make");
-  const selectedModel = watch("model");
-
-  // Update the handgun details query
+  // Handgun details query
   const { data: handgunDetails } = useQuery({
     queryKey: ["handgunDetails", selectedMake, selectedModel],
     queryFn: async () => {
@@ -665,17 +690,10 @@ const HandgunRedemptionPage = () => {
     return handgunData[selectedMake]?.sort() || [];
   }, [handgunData, selectedMake]);
 
-  // Mutation for selected make (instead of useState)
+  // Mutation for selected make
   const { mutate: setSelectedMake } = useMutation({
     mutationKey: ["selectedMake"],
     mutationFn: async (make: string) => {
-      // First update the form state
-      const updatedForm = {
-        ...initialFormState,
-        make: make,
-        model: "",
-      } as Partial<FormData>;
-
       setValue("make", make);
       setValue("model", "");
       return make;
@@ -1095,6 +1113,7 @@ const HandgunRedemptionPage = () => {
                   <SelectItem value="no">No</SelectItem>
                 </SelectComponent>
               </div>
+
               {/* Question 3 */}
               <div className="space-y-2">
                 <Label className="required block text-sm font-medium">
@@ -1118,6 +1137,7 @@ const HandgunRedemptionPage = () => {
                   <SelectItem value="no">No</SelectItem>
                 </SelectComponent>
               </div>
+
               {/* Question 4 */}
               <div className="space-y-2">
                 <Label className="required block text-sm font-medium">
@@ -1245,7 +1265,6 @@ const HandgunRedemptionPage = () => {
               </div>
 
               {/* Caliber and Additional Caliber Sections */}
-
               {frameOnlySelection !== "yes" ? (
                 <>
                   {/* Show caliber sections when frame only is not yes */}
@@ -1415,7 +1434,7 @@ const HandgunRedemptionPage = () => {
                   <Input
                     onChange={(e) => {
                       const reenteredSerial = e.target.value;
-                      if (reenteredSerial === initialFormState?.serialNumber) {
+                      if (reenteredSerial === getValues("serialNumber")) {
                         // Serial numbers match - you could add visual feedback here
                       } else {
                         // Serial numbers don't match - you could add visual feedback here
@@ -1445,106 +1464,9 @@ const HandgunRedemptionPage = () => {
 
                 <div className="space-y-2">
                   <Label className="required">New/Used Gun</Label>
-                  {/* <SelectComponent
-                    name="isNewGun"
-                    value={watch("isNewGun") || ""}
-                    onValueChange={(value) => setValue("isNewGun", value)}
-                    placeholder="Select"
-                  >
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="used">Used</SelectItem>
-                  </SelectComponent> */}
                   <Input value="Used" disabled />
                 </div>
-                {/* <div className="space-y-2">
-                  <Label className="required">
-                    Firearm Safety Device (FSD)
-                  </Label>
-                  <SelectComponent
-                    name="firearmSafetyDevice"
-                    value={watch("firearmSafetyDevice") || ""}
-                    onValueChange={(value) =>
-                      setValue("firearmSafetyDevice", value)
-                    }
-                    placeholder="Select Firearm Safety Device (FSD)"
-                  >
-                    {formData?.fsd.map((code) => (
-                      <SelectItem key={code} value={code.toLowerCase()}>
-                        {code}
-                      </SelectItem>
-                    ))}
-                  </SelectComponent>
-                </div> */}
               </div>
-
-              {/* Non-Roster Exemption Section */}
-              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="required">
-                    Purchaser Non-Roster Exemption
-                  </Label>
-                  {isLoadingFormData ? (
-                    <SelectComponent
-                      name="nonRosterExemption"
-                      value=""
-                      onValueChange={() => {}}
-                      placeholder="Loading..."
-                    >
-                      <SelectItem value="loading">Loading...</SelectItem>
-                    </SelectComponent>
-                  ) : (
-                    <SelectComponent
-                      name="nonRosterExemption"
-                      value={watch("nonRosterExemption") || ""}
-                      onValueChange={(value) =>
-                        setValue("nonRosterExemption", value)
-                      }
-                      placeholder="Select Purchaser Non-Roster Exemption"
-                    >
-                      {(formData?.nonRosterExemption || [])
-                        .filter(
-                          (exemption) => exemption && exemption.trim() !== ""
-                        ) // Filter out empty values
-                        .map((exemption) => (
-                          <SelectItem
-                            key={exemption}
-                            value={exemption || `exemption-${Date.now()}`} // Ensure unique non-empty value
-                          >
-                            {exemption}
-                          </SelectItem>
-                        ))}
-                    </SelectComponent>
-                  )}
-                </div>
-
-                {(() => {
-                  const selectedExemption = watch("nonRosterExemption");
-                  let agencyType = null;
-
-                  if (selectedExemption === "Police Department")
-                    agencyType = "PD";
-                  else if (selectedExemption === "Sheriff's Office")
-                    agencyType = "SO";
-                  else if (
-                    selectedExemption === "Any District Attorney's Office"
-                  )
-                    agencyType = "DA";
-
-                  if (!agencyType) return null;
-
-                  return (
-                    <AgencyDepartmentSelect
-                      agencyType={agencyType}
-                      value={watch("agencyDepartment") ?? ""}
-                      onChange={(value) => {
-                        setValue("agencyDepartment", value, {
-                          shouldValidate: true,
-                        });
-                      }}
-                    />
-                  );
-                })()}
-              </div> */}
 
               {/* Comments Section */}
               <div className="space-y-2">
@@ -1556,7 +1478,7 @@ const HandgunRedemptionPage = () => {
                 />
                 <div className="text-sm text-gray-500">
                   200 character limit. Characters remaining:{" "}
-                  {200 - (initialFormState?.comments?.length || 0)}
+                  {200 - (watch("comments")?.length || 0)}
                 </div>
               </div>
             </CardContent>

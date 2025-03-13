@@ -20,62 +20,53 @@ export async function POST(request: Request) {
     const baseData = {
       user_id: user.id,
       // Purchaser Information
-      first_name: formData.firstName,
-      middle_name: formData.middleName,
-      last_name: formData.lastName,
-      suffix: formData.suffix,
-      street_address: formData.streetAddress,
-      zip_code: formData.zipCode,
-      city: formData.city,
-      state: formData.state?.toUpperCase(),
-      gender: formData.gender,
-      hair_color: formData.hairColor,
-      eye_color: formData.eyeColor,
+      first_name: formData.firstName?.trim(),
+      middle_name: formData.middleName?.trim() || null,
+      last_name: formData.lastName?.trim(),
+      suffix: formData.suffix?.trim() || null,
+      street_address: formData.streetAddress?.trim(),
+      zip_code: formData.zipCode?.trim(),
+      city: formData.city?.trim(),
+      state: formData.state?.toUpperCase()?.trim(),
+      gender: formData.gender?.toLowerCase()?.trim(),
+      hair_color: formData.hairColor?.toLowerCase()?.trim(),
+      eye_color: formData.eyeColor?.toLowerCase()?.trim(),
       height_feet: parseInt(formData.heightFeet),
       height_inches: parseInt(formData.heightInches),
       weight: formData.weight ? parseInt(formData.weight) : null,
       date_of_birth: formData.dateOfBirth,
-      id_type: formData.idType,
-      id_number: formData.idNumber,
-      race: formData.race,
-      is_us_citizen: formData.isUsCitizen?.toLowerCase(),
-      place_of_birth: formData.placeOfBirth,
-      phone_number: formData.phoneNumber,
-      alias_first_name: formData.aliasFirstName,
-      alias_middle_name: formData.aliasMiddleName,
-      alias_last_name: formData.aliasLastName,
-      alias_suffix: formData.aliasSuffix,
+      id_type: formData.idType?.toLowerCase()?.trim(),
+      id_number: formData.idNumber?.trim(),
+      race: formData.race?.toLowerCase()?.trim(),
+      is_us_citizen: formData.isUsCitizen?.toLowerCase()?.trim(),
+      place_of_birth: formData.placeOfBirth?.toLowerCase()?.trim(),
+      phone_number: formData.phoneNumber?.trim() || null,
+      alias_first_name: formData.aliasFirstName?.trim() || null,
+      alias_middle_name: formData.aliasMiddleName?.trim() || null,
+      alias_last_name: formData.aliasLastName?.trim() || null,
+      alias_suffix: formData.aliasSuffix?.trim() || null,
 
       // Transaction Information
-      hsc_fsc_number: formData.hscFscNumber,
-      exemption_code: formData.exemptionCode,
-      eligibility_q1: formData.eligibilityQ1
-        ? formData.eligibilityQ1.toLowerCase() === "yes"
-        : null,
-      eligibility_q2: formData.eligibilityQ2
-        ? formData.eligibilityQ2.toLowerCase() === "yes"
-        : null,
-      eligibility_q3: formData.eligibilityQ3
-        ? formData.eligibilityQ3.toLowerCase() === "yes"
-        : null,
-      eligibility_q4: formData.eligibilityQ4
-        ? formData.eligibilityQ4.toLowerCase() === "yes"
-        : null,
-      firearms_q1: formData.firearmsQ1
-        ? formData.firearmsQ1.toLowerCase()
-        : null,
-      is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase(),
-      waiting_period_exemption: formData.waitingPeriodExemption,
+      hsc_fsc_number: formData.hscFscNumber?.trim() || null,
+      exemption_code: formData.exemptionCode?.trim() || null,
+      eligibility_q1: formData.eligibilityQ1?.toLowerCase()?.trim() || "no",
+      eligibility_q2: formData.eligibilityQ2?.toLowerCase()?.trim() || "no",
+      eligibility_q3: formData.eligibilityQ3?.toLowerCase()?.trim() || "no",
+      eligibility_q4: formData.eligibilityQ4?.toLowerCase()?.trim() || "no",
+      firearms_q1: formData.firearmsQ1?.toLowerCase()?.trim() || "n/a",
+      is_gun_show_transaction:
+        formData.isGunShowTransaction?.toLowerCase()?.trim() || "no",
+      waiting_period_exemption: formData.waitingPeriodExemption?.trim() || null,
       restriction_exemption: "Return to Owner",
 
       // Common Firearm Information
-      make: formData.make,
-      model: formData.model,
-      serial_number: formData.serialNumber,
-      other_number: formData.otherNumber,
-      color: formData.color,
-      is_new_gun: "Used",
-      comments: formData.comments,
+      make: formData.make?.trim(),
+      model: formData.model?.trim(),
+      serial_number: formData.serialNumber?.trim(),
+      other_number: formData.otherNumber?.trim() || null,
+      color: formData.color?.toLowerCase()?.trim(),
+      is_new_gun: "used",
+      comments: formData.comments?.trim() || null,
       status: "submitted",
       transaction_type: "handgun-redemption",
     };
@@ -92,21 +83,21 @@ export async function POST(request: Request) {
             barrel_length: null,
             unit: null,
             gun_type: "HANDGUN",
-            category: formData.category,
-            regulated: formData.regulated?.toUpperCase(),
+            category: formData.category?.trim(),
+            regulated: formData.regulated?.toUpperCase()?.trim() || "NO",
           }
         : {
             frame_only: false,
-            calibers: formData.calibers,
-            additional_caliber: formData.additionalCaliber,
-            additional_caliber2: formData.additionalCaliber2,
-            additional_caliber3: formData.additionalCaliber3,
+            calibers: formData.calibers?.trim(),
+            additional_caliber: formData.additionalCaliber?.trim() || null,
+            additional_caliber2: formData.additionalCaliber2?.trim() || null,
+            additional_caliber3: formData.additionalCaliber3?.trim() || null,
             barrel_length: formData.barrelLength
               ? parseFloat(formData.barrelLength)
               : null,
-            unit: formData.unit?.toUpperCase(),
+            unit: "INCH",
             gun_type: "HANDGUN",
-            category: formData.category,
+            category: formData.category?.trim(),
             regulated: null,
           };
 
@@ -116,7 +107,7 @@ export async function POST(request: Request) {
       ...frameOnlyData,
     };
 
-    // console.log("Submitting data:", dbData); // Add this for debugging
+    console.log("Submitting data:", dbData); // Add this for debugging
 
     const { data, error } = await supabase
       .from("handgun_redemption")
@@ -126,7 +117,10 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Supabase error:", error);
-      throw error;
+      return NextResponse.json(
+        { error: "Database Error", details: error.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(data);
