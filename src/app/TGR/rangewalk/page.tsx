@@ -53,7 +53,6 @@ export default function Component() {
   const [description, setDescription] = useState<string>("");
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -66,15 +65,6 @@ export default function Component() {
 
       const user = userData.user;
       setUserId(user.id);
-
-      // Get session only for access token
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
-      if (sessionError) {
-        console.error("Error fetching session:", sessionError.message);
-        return;
-      }
-      setAccessToken(sessionData.session?.access_token || "");
 
       const { data: userDetails, error: detailsError } = await supabase
         .from("employees")
@@ -115,11 +105,11 @@ export default function Component() {
         role,
       };
 
+      // The Supabase client will automatically handle the authorization
       const response = await fetch("/api/submitRangeWalkReport", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`, // Include the access token in the request
         },
         body: JSON.stringify(data),
       });

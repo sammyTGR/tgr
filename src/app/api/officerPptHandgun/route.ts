@@ -8,6 +8,8 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.json();
+    // console.log("Received form data:", formData); // Log the received data
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -78,21 +80,15 @@ export async function POST(request: Request) {
       // Transaction Information
       hsc_fsc_number: formData.hscFscNumber,
       exemption_code: formData.exemptionCode,
-      eligibility_q1: formData.eligibilityQ1
-        ? formData.eligibilityQ1.toLowerCase() === "yes"
-        : null,
-      eligibility_q2: formData.eligibilityQ2
-        ? formData.eligibilityQ2.toLowerCase() === "yes"
-        : null,
-      eligibility_q3: formData.eligibilityQ3
-        ? formData.eligibilityQ3.toLowerCase() === "yes"
-        : null,
-      eligibility_q4: formData.eligibilityQ4
-        ? formData.eligibilityQ4.toLowerCase() === "yes"
-        : null,
-      firearms_q1: formData.firearmsQ1
-        ? formData.firearmsQ1.toLowerCase()
-        : null,
+      eligibility_q1:
+        formData.eligibilityQ1?.toLowerCase() === "yes" ? "yes" : "no",
+      eligibility_q2:
+        formData.eligibilityQ2?.toLowerCase() === "yes" ? "yes" : "no",
+      eligibility_q3:
+        formData.eligibilityQ3?.toLowerCase() === "yes" ? "yes" : "no",
+      eligibility_q4:
+        formData.eligibilityQ4?.toLowerCase() === "yes" ? "yes" : "no",
+      firearms_q1: formData.firearmsQ1?.toLowerCase(),
       is_gun_show_transaction: formData.isGunShowTransaction?.toLowerCase(),
       waiting_period_exemption: formData.waitingPeriodExemption,
       restriction_exemption:
@@ -103,7 +99,7 @@ export async function POST(request: Request) {
       model: formData.model,
       serial_number: formData.serialNumber,
       color: formData.color,
-      is_new_gun: formData.isNewGun,
+      is_new_gun: formData.isNewGun?.toLowerCase(),
       firearm_safety_device: formData.firearmSafetyDevice,
       non_roster_exemption: formData.nonRosterExemption,
       agency_department: formData.agencyDepartment,
@@ -148,7 +144,7 @@ export async function POST(request: Request) {
       ...frameOnlyData,
     };
 
-    // console.log("Submitting data:", dbData); // Add this for debugging
+    // console.log("Submitting data to database:", dbData); // Log the data being sent to database
 
     const { data, error } = await supabase
       .from("officer_ppt_handgun_transfers")
@@ -157,13 +153,18 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error("Supabase error details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       throw error;
     }
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error("Error:", error);
+    console.error("Detailed error:", error);
     if (error instanceof Error) {
       return NextResponse.json(
         { error: "Internal Server Error", details: error.message },

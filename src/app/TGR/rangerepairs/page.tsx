@@ -64,11 +64,11 @@ export default function Component() {
 
     try {
       const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-      if (error) throw error;
-      if (!session) {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
         toast.error("Unauthorized");
         return;
       }
@@ -80,11 +80,11 @@ export default function Component() {
         role,
       };
 
+      // The Supabase client will automatically handle the authorization
       const response = await fetch("/api/submitRangeRepairs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`, // Pass the access token to the server
         },
         body: JSON.stringify(data),
       });

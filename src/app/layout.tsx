@@ -39,14 +39,14 @@ export default async function RootLayout({
 }>) {
   const supabase = createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <SupabaseProvider initialSession={session}>
+        <SupabaseProvider initialUser={user}>
           <QueryProvider>
             <TooltipProvider>
               <GoogleOAuthProvider clientId={clientId}>

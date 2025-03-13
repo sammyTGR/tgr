@@ -361,7 +361,7 @@ const PreviewDialog = ({ form }: { form: UseFormReturn<FormData> }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          transaction_type: "ppt-handgun",
+          transaction_type: "officer-ppt-handgun",
         }),
       });
       if (!response.ok) throw new Error("Failed to submit form");
@@ -820,7 +820,7 @@ const OfficerPptHandgunPage = () => {
 
   const { register, handleSubmit, watch, setValue, getValues, control } = form;
 
-  // Better - Only watch fields that need reactive updates
+  // Only watch fields that need reactive updates
   const zipCode = useWatch({ control: form.control, name: "zipCode" });
   const sellerZipCode = useWatch({
     control: form.control,
@@ -832,51 +832,17 @@ const OfficerPptHandgunPage = () => {
   });
   const frameOnly = watch("frameOnly");
 
-  // Consolidate all useWatch calls at the top
-  const formValues = useWatch({ control: form.control });
-  const {
-    gender,
-    hairColor,
-    eyeColor,
-    heightFeet,
-    heightInches,
-    idType,
-    race,
-    isUsCitizen,
-    placeOfBirth,
-    exemptionCode,
-    eligibilityQ1,
-    eligibilityQ2,
-    eligibilityQ3,
-    eligibilityQ4,
-    firearmsQ1,
-    city,
-    make,
-    calibers,
-    additionalCaliber,
-    additionalCaliber2,
-    additionalCaliber3,
-    unit,
-    category,
-    regulated,
-    color,
-    isNewGun,
-    firearmSafetyDevice,
-    agencyDepartment,
-    isGunShowTransaction,
-    waitingPeriodExemption,
-    // Seller fields
-    sellerGender,
-    sellerHairColor,
-    sellerEyeColor,
-    sellerHeightFeet,
-    sellerHeightInches,
-    sellerIdType,
-    sellerRace,
-    sellerIsUsCitizen,
-    sellerPlaceOfBirth,
-    sellerCity,
-  } = formValues;
+  // Watch fields needed for validation
+  const eligibilityQ4 = watch("eligibilityQ4");
+  const firearmsQ1 = watch("firearmsQ1");
+  const sellerCity = watch("sellerCity");
+  const sellerGender = watch("sellerGender");
+  const sellerHairColor = watch("sellerHairColor");
+  const sellerEyeColor = watch("sellerEyeColor");
+  const sellerHeightFeet = watch("sellerHeightFeet");
+  const sellerHeightInches = watch("sellerHeightInches");
+  const sellerIdType = watch("sellerIdType");
+  const sellerRace = watch("sellerRace");
 
   // Add state for debounced values
   const [debouncedZipCode, setDebouncedZipCode] = useState("");
@@ -909,7 +875,7 @@ const OfficerPptHandgunPage = () => {
   // Form submission mutation
   const { mutate: submitForm, isPending: isSubmitting } = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/officer_ppt_handgun_transfers", {
+      const response = await fetch("/api/officerPptHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -964,13 +930,13 @@ const OfficerPptHandgunPage = () => {
 
   // Get models for selected manufacturer
   const models = useMemo(() => {
-    if (!handgunData || !make) return [];
-    const makeModels = handgunData[make as keyof typeof handgunData];
+    if (!handgunData || !watch("make")) return [];
+    const makeModels = handgunData[watch("make") as keyof typeof handgunData];
     return Array.isArray(makeModels) ? makeModels.sort() : [];
-  }, [handgunData, make]);
+  }, [handgunData, watch("make")]);
   // Use the optimized handgun details query
   const { data: handgunDetails } = useHandgunDetails(
-    make || "",
+    watch("make") || "",
     models?.[0] || ""
   );
 
@@ -1085,7 +1051,7 @@ const OfficerPptHandgunPage = () => {
                   <div className="space-y-2">
                     <Label>City</Label>
                     <SelectComponent
-                      value={city || ""}
+                      value={watch("city") || ""}
                       onValueChange={(value) => setValue("city", value)}
                       placeholder={
                         isZipLoading ? "Loading cities..." : "Select city"
@@ -1129,7 +1095,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">Gender</Label>
               <SelectComponent
                 name="gender"
-                value={gender || ""}
+                value={watch("gender") || ""}
                 onValueChange={(value) => setValue("gender", value)}
                 placeholder="Select Gender"
               >
@@ -1145,7 +1111,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">Hair Color</Label>
               <SelectComponent
                 name="hairColor"
-                value={hairColor || ""}
+                value={watch("hairColor") || ""}
                 onValueChange={(value) => setValue("hairColor", value)}
                 placeholder="Select Hair Color"
               >
@@ -1161,7 +1127,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">Eye Color</Label>
               <SelectComponent
                 name="eyeColor"
-                value={eyeColor || ""}
+                value={watch("eyeColor") || ""}
                 onValueChange={(value) => setValue("eyeColor", value)}
                 placeholder="Select Eye Color"
               >
@@ -1178,7 +1144,7 @@ const OfficerPptHandgunPage = () => {
               <div className="flex gap-2">
                 <SelectComponent
                   name="heightFeet"
-                  value={heightFeet || ""}
+                  value={watch("heightFeet") || ""}
                   onValueChange={(value) => setValue("heightFeet", value)}
                   placeholder="Feet"
                 >
@@ -1190,7 +1156,7 @@ const OfficerPptHandgunPage = () => {
                 </SelectComponent>
                 <SelectComponent
                   name="heightInches"
-                  value={heightInches || ""}
+                  value={watch("heightInches") || ""}
                   onValueChange={(value) => setValue("heightInches", value)}
                   placeholder="Inches"
                 >
@@ -1220,7 +1186,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">Purchaser ID Type</Label>
               <SelectComponent
                 name="idType"
-                value={idType || ""}
+                value={watch("idType") || ""}
                 onValueChange={(value) => setValue("idType", value)}
                 placeholder="Select ID Type"
               >
@@ -1241,7 +1207,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">Race</Label>
               <SelectComponent
                 name="race"
-                value={race || ""}
+                value={watch("race") || ""}
                 onValueChange={(value) => setValue("race", value)}
                 placeholder="Select Race"
               >
@@ -1257,7 +1223,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">U.S. Citizen</Label>
               <SelectComponent
                 name="isUsCitizen"
-                value={isUsCitizen || ""}
+                value={watch("isUsCitizen") || ""}
                 onValueChange={(value) => setValue("isUsCitizen", value)}
                 placeholder="Select"
               >
@@ -1275,7 +1241,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">Place of Birth</Label>
               <SelectComponent
                 name="placeOfBirth"
-                value={placeOfBirth || ""}
+                value={watch("placeOfBirth") || ""}
                 onValueChange={(value) => setValue("placeOfBirth", value)}
                 placeholder="Select Place of Birth"
               >
@@ -1328,7 +1294,7 @@ const OfficerPptHandgunPage = () => {
               <Label className="required">HSC / FSX Exemption Code</Label>
               <SelectComponent
                 name="exemptionCode"
-                value={exemptionCode || ""}
+                value={watch("exemptionCode") || ""}
                 onValueChange={(value) => setValue("exemptionCode", value)}
                 placeholder="Select Exemption Code"
               >
@@ -1361,7 +1327,7 @@ const OfficerPptHandgunPage = () => {
                 </Label>
                 <SelectComponent
                   name="eligibilityQ1"
-                  value={eligibilityQ1 || ""}
+                  value={watch("eligibilityQ1") || ""}
                   onValueChange={(value) => setValue("eligibilityQ1", value)}
                   placeholder="Select"
                 >
@@ -1385,7 +1351,7 @@ const OfficerPptHandgunPage = () => {
                 </Label>
                 <SelectComponent
                   name="eligibilityQ2"
-                  value={eligibilityQ2 || ""}
+                  value={watch("eligibilityQ2") || ""}
                   onValueChange={(value) => setValue("eligibilityQ2", value)}
                   placeholder="Select"
                 >
@@ -1408,7 +1374,7 @@ const OfficerPptHandgunPage = () => {
                 </Label>
                 <SelectComponent
                   name="eligibilityQ3"
-                  value={eligibilityQ3 || ""}
+                  value={watch("eligibilityQ3") || ""}
                   onValueChange={(value) => setValue("eligibilityQ3", value)}
                   placeholder="Select"
                 >
@@ -1429,7 +1395,7 @@ const OfficerPptHandgunPage = () => {
                 </Label>
                 <SelectComponent
                   name="eligibilityQ4"
-                  value={eligibilityQ4 || ""}
+                  value={watch("eligibilityQ4") || ""}
                   onValueChange={(value) => setValue("eligibilityQ4", value)}
                   placeholder="Select"
                 >
@@ -1451,7 +1417,7 @@ const OfficerPptHandgunPage = () => {
                 </Label>
                 <SelectComponent
                   name="firearmsQ1"
-                  value={firearmsQ1 || ""}
+                  value={watch("firearmsQ1") || ""}
                   onValueChange={(value) => setValue("firearmsQ1", value)}
                   placeholder="Select"
                 >
@@ -1517,7 +1483,7 @@ const OfficerPptHandgunPage = () => {
                       <div className="space-y-2">
                         <Label>City</Label>
                         <SelectComponent
-                          value={sellerCity || ""}
+                          value={watch("sellerCity") || ""}
                           onValueChange={(value) =>
                             setValue("sellerCity", value)
                           }
@@ -1567,7 +1533,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Gender</Label>
                   <SelectComponent
                     name="sellerGender"
-                    value={sellerGender || ""}
+                    value={watch("sellerGender") || ""}
                     onValueChange={(value) => setValue("sellerGender", value)}
                     placeholder="Select Gender"
                   >
@@ -1583,7 +1549,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Hair Color</Label>
                   <SelectComponent
                     name="sellerHairColor"
-                    value={sellerHairColor || ""}
+                    value={watch("sellerHairColor") || ""}
                     onValueChange={(value) =>
                       setValue("sellerHairColor", value)
                     }
@@ -1601,7 +1567,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Eye Color</Label>
                   <SelectComponent
                     name="sellerEyeColor"
-                    value={sellerEyeColor || ""}
+                    value={watch("sellerEyeColor") || ""}
                     onValueChange={(value) => setValue("sellerEyeColor", value)}
                     placeholder="Select Eye Color"
                   >
@@ -1620,7 +1586,7 @@ const OfficerPptHandgunPage = () => {
                   <div className="flex gap-2">
                     <SelectComponent
                       name="sellerHeightFeet"
-                      value={sellerHeightFeet || ""}
+                      value={watch("sellerHeightFeet") || ""}
                       onValueChange={(value) =>
                         setValue("sellerHeightFeet", value)
                       }
@@ -1634,7 +1600,7 @@ const OfficerPptHandgunPage = () => {
                     </SelectComponent>
                     <SelectComponent
                       name="sellerHeightInches"
-                      value={sellerHeightInches || ""}
+                      value={watch("sellerHeightInches") || ""}
                       onValueChange={(value) =>
                         setValue("sellerHeightInches", value)
                       }
@@ -1666,7 +1632,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Seller ID Type</Label>
                   <SelectComponent
                     name="sellerIdType"
-                    value={sellerIdType || ""}
+                    value={watch("sellerIdType") || ""}
                     onValueChange={(value) => setValue("sellerIdType", value)}
                     placeholder="Select ID Type"
                   >
@@ -1687,7 +1653,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Race</Label>
                   <SelectComponent
                     name="sellerRace"
-                    value={sellerRace || ""}
+                    value={watch("sellerRace") || ""}
                     onValueChange={(value) => setValue("sellerRace", value)}
                     placeholder="Select Race"
                   >
@@ -1705,7 +1671,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">U.S. Citizen</Label>
                   <SelectComponent
                     name="sellerIsUsCitizen"
-                    value={sellerIsUsCitizen || ""}
+                    value={watch("sellerIsUsCitizen") || ""}
                     onValueChange={(value) =>
                       setValue("sellerIsUsCitizen", value)
                     }
@@ -1725,7 +1691,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Seller Place of Birth</Label>
                   <SelectComponent
                     name="sellerPlaceOfBirth"
-                    value={sellerPlaceOfBirth || ""}
+                    value={watch("sellerPlaceOfBirth") || ""}
                     onValueChange={(value) =>
                       setValue("sellerPlaceOfBirth", value)
                     }
@@ -1779,7 +1745,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Gun Show Transaction</Label>
                   <SelectComponent
                     name="isGunShowTransaction"
-                    value={isGunShowTransaction || ""}
+                    value={watch("isGunShowTransaction") || ""}
                     onValueChange={(value) =>
                       setValue("isGunShowTransaction", value)
                     }
@@ -1793,7 +1759,7 @@ const OfficerPptHandgunPage = () => {
                   <Label>Waiting Period Exemption</Label>
                   <SelectComponent
                     name="waitingPeriodExemption"
-                    value={waitingPeriodExemption || ""}
+                    value={watch("waitingPeriodExemption") || ""}
                     onValueChange={(value) =>
                       setValue("waitingPeriodExemption", value)
                     }
@@ -1863,7 +1829,7 @@ const OfficerPptHandgunPage = () => {
                       <Label className="required">Caliber</Label>
                       <SelectComponent
                         name="calibers"
-                        value={calibers || ""}
+                        value={watch("calibers") || ""}
                         onValueChange={(value) => setValue("calibers", value)}
                         placeholder="Select Caliber"
                       >
@@ -1878,7 +1844,7 @@ const OfficerPptHandgunPage = () => {
                       <Label>Additional Caliber</Label>
                       <SelectComponent
                         name="additionalCaliber"
-                        value={additionalCaliber || ""}
+                        value={watch("additionalCaliber") || ""}
                         onValueChange={(value) =>
                           setValue("additionalCaliber", value)
                         }
@@ -1899,7 +1865,7 @@ const OfficerPptHandgunPage = () => {
                       <Label>Additional Caliber 2</Label>
                       <SelectComponent
                         name="additionalCaliber2"
-                        value={additionalCaliber2 || ""}
+                        value={watch("additionalCaliber2") || ""}
                         onValueChange={(value) =>
                           setValue("additionalCaliber2", value)
                         }
@@ -1916,7 +1882,7 @@ const OfficerPptHandgunPage = () => {
                       <Label>Additional Caliber 3</Label>
                       <SelectComponent
                         name="additionalCaliber3"
-                        value={additionalCaliber3 || ""}
+                        value={watch("additionalCaliber3") || ""}
                         onValueChange={(value) =>
                           setValue("additionalCaliber3", value)
                         }
@@ -1941,12 +1907,14 @@ const OfficerPptHandgunPage = () => {
                       <Label>Unit</Label>
                       <SelectComponent
                         name="unit"
-                        value={unit || ""}
-                        onValueChange={(value) => setValue("unit", value)}
+                        value={watch("unit") || ""}
+                        onValueChange={(value) =>
+                          setValue("unit", value.toUpperCase())
+                        }
                         placeholder="Select Unit"
                       >
                         {formData?.unit.map((unit) => (
-                          <SelectItem key={unit} value={unit}>
+                          <SelectItem key={unit} value={unit.toUpperCase()}>
                             {DOMPurify.sanitize(unit)}
                           </SelectItem>
                         ))}
@@ -1960,7 +1928,7 @@ const OfficerPptHandgunPage = () => {
                       <Label>Category</Label>
                       <SelectComponent
                         name="category"
-                        value={category || ""}
+                        value={watch("category") || ""}
                         onValueChange={(value) => setValue("category", value)}
                         placeholder="Select Category"
                       >
@@ -1984,7 +1952,7 @@ const OfficerPptHandgunPage = () => {
                     <Label>Category</Label>
                     <SelectComponent
                       name="category"
-                      value={category || ""}
+                      value={watch("category") || ""}
                       onValueChange={(value) => setValue("category", value)}
                       placeholder="Select Category"
                     >
@@ -1999,7 +1967,7 @@ const OfficerPptHandgunPage = () => {
                     <Label>Federally Regulated Firearm Precursor Part</Label>
                     <SelectComponent
                       name="regulated"
-                      value={regulated || ""}
+                      value={watch("regulated") || ""}
                       onValueChange={(value) => setValue("regulated", value)}
                       placeholder="Select"
                     >
@@ -2040,7 +2008,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Color</Label>
                   <SelectComponent
                     name="color"
-                    value={color || ""}
+                    value={watch("color") || ""}
                     onValueChange={(value) => setValue("color", value)}
                     placeholder="Select Color"
                   >
@@ -2058,7 +2026,7 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">New/Used Gun</Label>
                   <SelectComponent
                     name="isNewGun"
-                    value={isNewGun || ""}
+                    value={watch("isNewGun") || ""}
                     onValueChange={(value) => setValue("isNewGun", value)}
                     placeholder="Select"
                   >
@@ -2072,7 +2040,7 @@ const OfficerPptHandgunPage = () => {
                   </Label>
                   <SelectComponent
                     name="firearmSafetyDevice"
-                    value={firearmSafetyDevice || ""}
+                    value={watch("firearmSafetyDevice") || ""}
                     onValueChange={(value) =>
                       setValue("firearmSafetyDevice", value)
                     }
@@ -2149,7 +2117,7 @@ const OfficerPptHandgunPage = () => {
                   return (
                     <AgencyDepartmentSelect
                       agencyType={agencyType}
-                      value={agencyDepartment || ""}
+                      value={watch("agencyDepartment") || ""}
                       onChange={(value) => {
                         setValue("agencyDepartment", value, {
                           shouldValidate: true,

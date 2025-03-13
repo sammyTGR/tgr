@@ -29,22 +29,14 @@ export async function middleware(request: NextRequest) {
   const supabase = createMiddlewareClient({ req: request, res: res });
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Get role from JWT with proper typing
   let jwtRole = "authenticated";
-  if (session?.access_token) {
-    const jwt = jwtDecode<JWTPayload>(session.access_token);
-    jwtRole = jwt.app_metadata?.role || "authenticated";
+  if (user?.app_metadata?.role) {
+    jwtRole = user.app_metadata.role;
   }
-
-  // Refresh session if it exists
-  await supabase.auth.getUser();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!user?.email) {
     if (protectedPaths.includes(new URL(request.url).pathname)) {

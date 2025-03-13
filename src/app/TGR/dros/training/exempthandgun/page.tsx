@@ -184,22 +184,30 @@ const useZipCodeLookup = (
     queryFn: async (): Promise<ZipCodeData | null> => {
       if (zipCode.length !== 5) return null;
 
-      const { data, error } = await supabase
-        .from("zip_codes")
-        .select("primary_city, state, acceptable_cities")
-        .eq("zip", zipCode)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("zip_codes")
+          .select("primary_city, state, acceptable_cities")
+          .eq("zip", zipCode)
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        setValue("state", data.state, { shouldValidate: true });
+        if (data) {
+          setValue("state", data.state, { shouldValidate: true });
+        }
+
+        return data;
+      } catch (error) {
+        console.error("Error fetching zip code data:", error);
+        return null;
       }
-
-      return data;
     },
     enabled: zipCode?.length === 5,
-    staleTime: 30000,
+    staleTime: Infinity, // Cache forever since zip codes don't change
+    gcTime: 24 * 60 * 60 * 1000, // Keep cache for 24 hours
+    retry: false, // Don't retry on failure
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 };
 
@@ -211,27 +219,98 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
   const formValues = useWatch({ control });
   const router = useRouter();
 
-  // Dialog state mutation
-  const { mutate: setDialogOpen } = useMutation({
-    mutationKey: ["previewDialog"],
-    mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
-  });
-
   // Form submission mutation
   const { mutate: submitForm, isPending } = useMutation({
     mutationFn: async (data: FormData) => {
+      // Format the data before submission
+      const formattedData = {
+        ...data,
+        transaction_type: "exempt-handgun",
+        // Ensure required fields are present and properly formatted
+        firstName: data.firstName?.trim() || "",
+        lastName: data.lastName?.trim() || "",
+        streetAddress: data.streetAddress?.trim() || "",
+        zipCode: data.zipCode?.trim() || "",
+        city: data.city?.trim() || "",
+        state: data.state?.trim() || "",
+        gender: data.gender?.toLowerCase() || "",
+        hairColor: data.hairColor?.toLowerCase() || "",
+        eyeColor: data.eyeColor?.toLowerCase() || "",
+        heightFeet: data.heightFeet?.toString() || "",
+        heightInches: data.heightInches?.toString() || "",
+        dateOfBirth: data.dateOfBirth || "",
+        idType: data.idType?.toLowerCase() || "",
+        idNumber: data.idNumber?.trim() || "",
+        race: data.race?.toLowerCase() || "",
+        isUsCitizen: data.isUsCitizen?.toLowerCase() || "",
+        placeOfBirth: data.placeOfBirth?.toLowerCase() || "",
+        eligibilityQ1: data.eligibilityQ1?.toLowerCase() || "",
+        eligibilityQ2: data.eligibilityQ2?.toLowerCase() || "",
+        eligibilityQ3: data.eligibilityQ3?.toLowerCase() || "",
+        eligibilityQ4: data.eligibilityQ4?.toLowerCase() || "",
+        isGunShowTransaction: data.isGunShowTransaction?.toLowerCase() || "",
+        make: data.make?.toLowerCase() || "",
+        model: data.model?.toLowerCase() || "",
+        serialNumber: data.serialNumber?.trim() || "",
+        color: data.color?.toLowerCase() || "",
+        isNewGun: data.isNewGun?.toLowerCase() || "",
+        firearmSafetyDevice: data.firearmSafetyDevice?.toLowerCase() || "",
+        nonRosterExemption: data.nonRosterExemption || "",
+        frameOnly: data.frameOnly || "no",
+        // Handle optional fields
+        middleName: data.middleName?.trim() || null,
+        suffix: data.suffix?.trim() || null,
+        weight: data.weight || null,
+        phoneNumber: data.phoneNumber?.trim() || null,
+        aliasFirstName: data.aliasFirstName?.trim() || null,
+        aliasMiddleName: data.aliasMiddleName?.trim() || null,
+        aliasLastName: data.aliasLastName?.trim() || null,
+        aliasSuffix: data.aliasSuffix?.trim() || null,
+        hscFscNumber: data.hscFscNumber?.trim() || null,
+        waitingPeriodExemption:
+          data.waitingPeriodExemption?.toLowerCase() || null,
+        restrictionExemption: data.restrictionExemption?.toLowerCase() || null,
+        otherNumber: data.otherNumber?.trim() || null,
+        comments: data.comments?.trim() || null,
+        // Handle conditional fields based on frameOnly
+        calibers:
+          data.frameOnly === "yes"
+            ? null
+            : data.calibers?.toLowerCase() || null,
+        additionalCaliber:
+          data.frameOnly === "yes"
+            ? null
+            : data.additionalCaliber?.toLowerCase() || null,
+        additionalCaliber2:
+          data.frameOnly === "yes"
+            ? null
+            : data.additionalCaliber2?.toLowerCase() || null,
+        additionalCaliber3:
+          data.frameOnly === "yes"
+            ? null
+            : data.additionalCaliber3?.toLowerCase() || null,
+        barrelLength:
+          data.frameOnly === "yes" ? null : data.barrelLength || null,
+        unit:
+          data.frameOnly === "yes" ? null : data.unit?.toUpperCase() || null,
+        category: data.category?.toUpperCase() || null,
+        regulated:
+          data.frameOnly === "yes" ? data.regulated?.toUpperCase() : null,
+        firearmsQ1: data.firearmsQ1?.toLowerCase() || null,
+        agencyDepartment: data.agencyDepartment || null,
+      };
+
       const response = await fetch("/api/exemptHandgun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          transaction_type: "exempt-handgun",
-        }),
+        body: JSON.stringify(formattedData),
       });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to submit form");
       }
+
       return response.json();
     },
     onSuccess: () => {
@@ -249,6 +328,12 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
         variant: "destructive",
       });
     },
+  });
+
+  // Dialog state mutation
+  const { data: isDialogOpen, mutate: setDialogOpen } = useMutation({
+    mutationKey: ["previewDialog"],
+    mutationFn: (isOpen: boolean) => Promise.resolve(isOpen),
   });
 
   return (
@@ -901,43 +986,38 @@ const ExemptHandgun = () => {
                         .replace(/\D/g, "");
                       e.target.value = value;
                     },
-                    onBlur: (e) => {
-                      if (e.target.value.length === 5) {
-                        queryClient.invalidateQueries({
-                          queryKey: ["zipCode", e.target.value],
-                        });
-                      }
-                    },
                     maxLength: 5,
                   })}
                   className="w-24"
                 />
               </div>
 
-              {zipData && (
+              {isZipLoading ? (
+                <div className="space-y-2">
+                  <Label>Loading...</Label>
+                  <Input disabled className="w-32" />
+                </div>
+              ) : zipData ? (
                 <>
                   <div className="space-y-2">
                     <Label>City</Label>
                     <SelectComponent
                       name="city"
-                      value={getValues("city") || ""}
+                      value={watch("city") || ""}
                       onValueChange={(value) => setValue("city", value)}
-                      placeholder={
-                        isZipLoading ? "Loading cities..." : "Select city"
-                      }
+                      placeholder="Select city"
                     >
-                      {zipData?.primary_city &&
-                        zipData.primary_city.trim() !== "" && (
-                          <SelectItem value={zipData.primary_city}>
-                            {zipData.primary_city}
-                          </SelectItem>
-                        )}
-                      {zipData?.acceptable_cities
+                      {zipData.primary_city && (
+                        <SelectItem value={zipData.primary_city}>
+                          {zipData.primary_city}
+                        </SelectItem>
+                      )}
+                      {zipData.acceptable_cities
                         ?.filter(
                           (city) =>
                             city &&
                             city.trim() !== "" &&
-                            city !== zipData?.primary_city
+                            city !== zipData.primary_city
                         )
                         .map((city) => (
                           <SelectItem key={city} value={city}>
@@ -950,13 +1030,13 @@ const ExemptHandgun = () => {
                   <div className="space-y-2">
                     <Label>State</Label>
                     <Input
-                      value={zipData?.state || ""}
+                      value={zipData.state || ""}
                       disabled
                       className="w-16 bg-muted"
                     />
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
 

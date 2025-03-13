@@ -52,50 +52,26 @@ const TransactionTypePage = () => {
   const { data: userData } = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      let userRole = "authenticated";
-      if (user) {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const jwt = jwtDecode<JWTPayload>(session.access_token);
-          userRole = jwt.app_metadata?.role || "authenticated";
-        }
+      const response = await fetch("/api/getUserRole");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user role");
       }
-
-      // Set up auth state listener
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.access_token) {
-          const jwt = jwtDecode<JWTPayload>(session.access_token);
-          userRole = jwt.app_metadata?.role || "authenticated";
-        }
-      });
-
-      // Return user data with role
-      const userData = {
-        ...(user || {}),
-        decodedRole: userRole,
-      };
-
-      // Cleanup subscription
-      subscription.unsubscribe();
-
-      return userData;
+      const data = await response.json();
+      return data;
     },
   });
 
-  // Check the decoded role from JWT
-  const userRole = userData?.decodedRole;
-  const canReviewSubmissions =
-    userRole === "admin" || userRole === "dev" || userRole === "ceo";
+  // Check the role from the API response
+  const userRole = userData?.role;
+  // console.log("User Data:", userData);
+  // console.log("User Role:", userRole);
 
-  // console.log("Final User Role:", userRole);
+  const canReviewSubmissions =
+    userRole === "admin" ||
+    userRole === "dev" ||
+    userRole === "ceo" ||
+    userRole === "super admin";
+
   // console.log("Can Review:", canReviewSubmissions);
 
   const handgunTransactions = [
@@ -158,9 +134,14 @@ const TransactionTypePage = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold text-center mb-8 ">
+      <h1 className="text-2xl font-bold text-center mb-8">
         Select Transaction Type
       </h1>
+
+      {/* Debug info */}
+      {/* <div className="text-sm text-muted-foreground mb-4">
+        Current Role: {userRole || "Loading..."}
+      </div> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Handgun Transactions */}

@@ -68,7 +68,7 @@ function DelayedDeliveries({ className }: { className?: string }) {
               {/* Nested list item */}
               <hr className="my-4" />
               <li>
-                27.d. Select “Proceed” Then Enter The New Earliest Delivery Date
+                27.d. Select “No response was provided within 3 business days”
               </li>
               <hr className="my-4" />
               <li>32. Enter “DOJ Undetermined, Extended BG Check 30 Days”</li>
