@@ -1318,7 +1318,7 @@ const OfficerPptHandgunPage = () => {
                 </SelectComponent>
                 <SelectComponent
                   name="heightInches"
-                  value={String(watch("heightInches")) || ""}
+                  value={watch("heightInches")?.toString() || ""}
                   onValueChange={(value) =>
                     setValue("heightInches", Number(value))
                   }
