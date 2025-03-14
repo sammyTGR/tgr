@@ -61,6 +61,7 @@ import { toast } from "sonner"; // Import toast from Sonner
 import { useRouter } from "next/navigation"; // Use the router for redirects
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { Calendar } from "@/components/ui/calendar";
+import { ChevronDown } from "lucide-react";
 type OptionType = {
   label: string;
   value: string;
@@ -135,71 +136,108 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     name: "audits",
   });
 
-  const updateOptions = (data: DataRow[]) => {
-    const salesRepSet = new Set<OptionType>();
-    const auditTypeSet = new Set<OptionType>();
-    const errorLocationSet = new Set<OptionType>();
-    const errorDetailsSet = new Set<OptionType>();
+  const updateOptions = (newData: DataRow[]) => {
+    setSalesRepOptions((prevOptions) => {
+      // Create a map of existing options by value to prevent duplicates
+      const optionsMap = new Map(prevOptions.map((opt) => [opt.value, opt]));
 
-    data.forEach((row) => {
-      if (row.salesreps) {
-        salesRepSet.add({
-          value: row.salesreps.trim(),
-          label: row.salesreps.trim(),
+      // Add new options, overwriting any existing ones with the same value
+      newData
+        .filter((row) => row.salesreps)
+        .forEach((row) => {
+          const value = row.salesreps!.trim();
+          optionsMap.set(value, { value, label: value });
         });
-      }
-      if (row.audit_type) {
-        auditTypeSet.add({
-          value: row.audit_type.trim(),
-          label: row.audit_type.trim(),
-        });
-      }
-      if (row.error_location) {
-        errorLocationSet.add({
-          value: row.error_location.trim(),
-          label: row.error_location.trim(),
-        });
-      }
-      if (row.error_details) {
-        errorDetailsSet.add({
-          value: row.error_details.trim(),
-          label: row.error_details.trim(),
-        });
-      }
+
+      // Convert map back to array
+      return Array.from(optionsMap.values());
     });
 
-    setSalesRepOptions(Array.from(salesRepSet));
-    setAuditTypeOptions(Array.from(auditTypeSet));
-    setErrorLocationOptions(Array.from(errorLocationSet));
-    setErrorDetailsOptions(Array.from(errorDetailsSet));
+    setAuditTypeOptions((prevOptions) => {
+      const optionsMap = new Map(prevOptions.map((opt) => [opt.value, opt]));
+
+      newData
+        .filter((row) => row.audit_type)
+        .forEach((row) => {
+          const value = row.audit_type!.trim();
+          optionsMap.set(value, { value, label: value });
+        });
+
+      return Array.from(optionsMap.values());
+    });
+
+    setErrorLocationOptions((prevOptions) => {
+      const optionsMap = new Map(prevOptions.map((opt) => [opt.value, opt]));
+
+      newData
+        .filter((row) => row.error_location)
+        .forEach((row) => {
+          const value = row.error_location!.trim();
+          optionsMap.set(value, { value, label: value });
+        });
+
+      return Array.from(optionsMap.values());
+    });
+
+    setErrorDetailsOptions((prevOptions) => {
+      const optionsMap = new Map(prevOptions.map((opt) => [opt.value, opt]));
+
+      newData
+        .filter((row) => row.error_details)
+        .forEach((row) => {
+          const value = row.error_details!.trim();
+          optionsMap.set(value, { value, label: value });
+        });
+
+      return Array.from(optionsMap.values());
+    });
   };
   useEffect(() => {
     const fetchOptions = async () => {
-      const { data, error } = await supabase.from("Auditlists").select("*");
-      if (error) {
-        //console.("Failed to fetch options:", error.message);
-      } else if (data) {
-        updateOptions(data);
+      try {
+        const { data, error } = await supabase.from("Auditlists").select("*");
+
+        if (error) {
+          console.error("Failed to fetch options:", error.message);
+          toast.error("Failed to load dropdown options");
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // console.log("Fetched options:", data.length);
+          updateOptions(data);
+        } else {
+          console.warn("No data found in Auditlists table");
+        }
+      } catch (err) {
+        console.error("Error in fetchOptions:", err);
+        toast.error("An error occurred while loading options");
       }
     };
 
+    // Initial fetch
     fetchOptions();
 
-    const subscription = supabase
+    // Set up realtime subscription
+    const channel = supabase
       .channel("custom-all-channel")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "Auditlists" },
         (payload) => {
+          // console.log("Received realtime update:", payload);
           if (payload.new) {
-            updateOptions([payload.new]);
+            // Merge new data with existing options
+            updateOptions([payload.new as DataRow]);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // console.log("Subscription status:", status);
+      });
 
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -322,58 +360,64 @@ export default function SubmitAudits({ onAuditSubmitted }: SubmitAuditsProps) {
     placeholder,
   }) => {
     const [searchText, setSearchText] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
 
     // Filter options based on search text
     const filteredOptions = options.filter((option) =>
       option.label.toLowerCase().includes(searchText.toLowerCase())
     );
 
+    // Sort options alphabetically to maintain consistent order
+    const sortedOptions = [...filteredOptions].sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+
     return (
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full justify-between">
             {field.value
               ? options.find((option) => option.value === field.value)?.label ||
                 placeholder
               : placeholder}
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">
           <Command>
             <CommandInput
               placeholder={`Search ${placeholder}...`}
-              onInput={(e) => setSearchText(e.currentTarget.value)}
+              value={searchText}
+              onValueChange={setSearchText}
             />
             <CommandList>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
+              {sortedOptions.length > 0 ? (
+                sortedOptions.map((option) => (
                   <CommandItem
-                    key={option.value}
+                    key={`${option.value}-${option.label}`}
                     onSelect={() => {
                       field.onChange(option.value);
-                      setSearchText(""); // Clear search text after selection
+                      setSearchText("");
+                      setIsOpen(false);
                     }}
                     className={cn(
                       "flex items-center px-3 py-2 cursor-pointer",
-                      "hover:bg-gray-800", // Darker background on hover for dark mode
+                      "hover:bg-gray-800",
                       field.value === option.value
                         ? "font-semibold text-white"
                         : "text-gray-400"
                     )}
                   >
                     {option.label}
-                    <CheckIcon
-                      className={cn(
-                        "mr-auto",
-                        field.value === option.value
-                          ? "opacity-100"
-                          : "opacity-0"
-                      )}
-                    />
+                    {field.value === option.value && (
+                      <CheckIcon className="ml-auto h-4 w-4" />
+                    )}
                   </CommandItem>
                 ))
               ) : (
-                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandEmpty>
+                  {searchText ? "No results found." : "No options available."}
+                </CommandEmpty>
               )}
             </CommandList>
           </Command>
