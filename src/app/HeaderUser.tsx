@@ -135,39 +135,70 @@ const LazyDropdownMenu = dynamic(
 );
 
 const HeaderUser = React.memo(() => {
-  const [user, setUser] = useState<any>(null);
   const { setTheme } = useTheme();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
-    queryFn: () => {
-      return Promise.resolve(
-        new Promise((resolve) => {
-          setTimeout(() => resolve(null), 100);
-        })
-      );
+  const {
+    data: user,
+    isLoading: userLoading,
+    error: userError,
+  } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
     },
-    staleTime: 0, // Always refetch on route change
-    refetchInterval: 0, // Disable automatic refetching
+    retry: 3,
+    retryDelay: 1000,
+  });
+
+  const {
+    data: employeeData,
+    isLoading: employeeLoading,
+    error: employeeError,
+  } = useQuery({
+    queryKey: ["employee", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("role, employee_id")
+        .eq("user_uuid", user?.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    retry: 3,
+    retryDelay: 1000,
   });
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data) {
-        setUser(data.user);
-      }
-    };
-    fetchUser();
-  }, []);
+    if (userError || employeeError) {
+      console.error("Auth error:", userError || employeeError);
+      router.push("/auth");
+    }
+  }, [userError, employeeError, router]);
+
+  const handleHomeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (employeeData?.employee_id) {
+      router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
+    } else {
+      router.push("/");
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    window.location.href = "/"; // Redirect to sign-in page after sign-out
+    router.push("/");
   };
+
+  const isLoading = userLoading || employeeLoading;
 
   return (
     <RoleBasedWrapper allowedRoles={["user"]}>
@@ -236,11 +267,9 @@ const HeaderUser = React.memo(() => {
           </LazyNavigationMenuList>
         </LazyNavigationMenu>
         <div className="flex items-center mr-1">
-          <Link href="/">
-            <Button variant="linkHover2" size="icon">
-              <HomeIcon />
-            </Button>
-          </Link>
+          <Button variant="linkHover2" size="icon" onClick={handleHomeClick}>
+            <HomeIcon />
+          </Button>
           {user ? (
             <>
               <LazyDropdownMenu>

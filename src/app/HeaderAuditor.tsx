@@ -168,106 +168,94 @@ const LazyDropdownMenu = dynamic(
 );
 
 const HeaderAuditor = React.memo(() => {
-  const [user, setUser] = useState<any>(null);
-  const router = useRouter();
   const { setTheme } = useTheme();
-  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  const { isLoading } = useQuery({
-    queryKey: ["navigation", pathname, searchParams],
-    queryFn: () => {
-      return Promise.resolve(
-        new Promise((resolve) => {
-          setTimeout(() => resolve(null), 100);
-        })
-      );
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
     },
-    staleTime: 0, // Always refetch on route change
-    refetchInterval: 0, // Disable automatic refetching
   });
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data) {
-        setUser(data.user);
-      }
-    };
-    fetchUser();
-  }, []);
+  const { data: employeeData, isLoading: employeeLoading } = useQuery({
+    queryKey: ["employee", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("role, employee_id")
+        .eq("user_uuid", user?.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  // useEffect(() => {
-  //   setTotalUnreadCount(globalUnreadCount);
-  // }, [globalUnreadCount]);
+  const { data: unreadMessages, isLoading: messagesLoading } = useQuery({
+    queryKey: ["unread-messages", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("direct_messages")
+        .select("id, read_by")
+        .or(`receiver_id.eq.${user?.id},sender_id.eq.${user?.id}`);
 
-  // useEffect(() => {
-  //   const handleUnreadCountsChanged = () => {
-  //     setTotalUnreadCount(globalUnreadCount);
-  //   };
+      if (error) throw error;
 
-  //   window.addEventListener("unreadCountsChanged", handleUnreadCountsChanged);
+      return (
+        data?.filter((msg) => msg.read_by && !msg.read_by.includes(user?.id)) ||
+        []
+      );
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
 
-  //   return () => {
-  //     window.removeEventListener(
-  //       "unreadCountsChanged",
-  //       handleUnreadCountsChanged
-  //     );
-  //   };
-  // }, [globalUnreadCount]);
+  const handleHomeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (employeeData?.employee_id) {
+      router.push(`/TGR/crew/profile/${employeeData.employee_id}`);
+    } else {
+      router.push("/");
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    window.location.href = "/"; // Redirect to sign-in page after sign-out
+    router.push("/");
   };
 
   const handleChatClick = async () => {
-    if (user) {
-      const { data: messagesToUpdate, error: fetchError } = await supabase
-        .from("direct_messages")
-        .select("id, read_by")
-        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
+    if (!user?.id) return;
 
-      if (fetchError) {
-        //console.("Error fetching messages to update:", fetchError.message);
-        return;
+    // Update messages as read
+    const messageIds = unreadMessages?.map((msg) => msg.id) || [];
+    if (messageIds.length > 0) {
+      for (const messageId of messageIds) {
+        await supabase
+          .from("direct_messages")
+          .update({
+            read_by: [
+              ...(unreadMessages?.find((msg) => msg.id === messageId)
+                ?.read_by || []),
+              user.id,
+            ],
+          })
+          .eq("id", messageId);
       }
-
-      const messageIdsToUpdate = messagesToUpdate
-        .filter((msg) => msg.read_by && !msg.read_by.includes(user.id))
-        .map((msg) => msg.id);
-
-      if (messageIdsToUpdate.length > 0) {
-        for (const messageId of messageIdsToUpdate) {
-          const { error: updateError } = await supabase
-            .from("direct_messages")
-            .update({
-              read_by: [
-                ...(messagesToUpdate.find((msg) => msg.id === messageId)
-                  ?.read_by || []),
-                user.id,
-              ],
-            })
-            .eq("id", messageId);
-
-          if (updateError) {
-            console.error(
-              "Error updating messages as read:",
-              updateError.message
-            );
-          }
-        }
-      }
-
-      // Reset the unread count using the context
-      // resetUnreadCounts();
-
-      // Navigate to the chat page
-      router.push("/TGR/crew/chat");
     }
+
+    router.push("/TGR/crew/chat");
   };
+
+  const isLoading = userLoading || employeeLoading || messagesLoading;
+  const totalUnreadCount = unreadMessages?.length || 0;
 
   return (
     <RoleBasedWrapper allowedRoles={["auditor"]}>
@@ -358,11 +346,9 @@ const HeaderAuditor = React.memo(() => {
           </LazyNavigationMenuList>
         </LazyNavigationMenu>
         <div className="flex items-center mr-1">
-          <Link href="/">
-            <Button variant="linkHover2" size="icon">
-              <HomeIcon />
-            </Button>
-          </Link>
+          <Button variant="linkHover2" size="icon" onClick={handleHomeClick}>
+            <HomeIcon />
+          </Button>
           {user ? (
             <>
               <LazyDropdownMenu>
@@ -425,7 +411,7 @@ const HeaderAuditor = React.memo(() => {
             </>
           ) : (
             <Link href="/sign-in">
-              <Button>Sign In</Button>
+              <Button variant="linkHover2">Sign In</Button>
             </Link>
           )}
         </div>
