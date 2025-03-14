@@ -29,6 +29,7 @@ import { ChevronUp } from "lucide-react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TimesheetData, ScheduleData } from "./data-schema";
+import { User } from "@supabase/supabase-js";
 
 interface Schedule {
   employee_id: number;
@@ -379,7 +380,7 @@ const ManageSchedules = () => {
     "add-timesheet": false,
   });
   const queryClient = useQueryClient();
-  const { user } = useRole();
+  const { role } = useRole();
 
   const [addSchedulePopoverOpen, setAddSchedulePopoverOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
@@ -388,6 +389,19 @@ const ManageSchedules = () => {
   const [updateSchedulePopoverOpen, setUpdateSchedulePopoverOpen] =
     useState(false);
   const [showDecimalHours, setShowDecimalHours] = useState(false);
+
+  // Add user query
+  const { data: user } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    },
+  });
 
   useEffect(() => {
     fetchActualSchedules();
