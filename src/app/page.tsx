@@ -22,15 +22,15 @@ interface AuthState {
   role: string | null;
 }
 
-const LazyLandingPageCustomer = dynamic(
-  () =>
-    import("@/components/LandingPageCustomer").then((module) => ({
-      default: module.default,
-    })),
-  {
-    loading: () => <LoadingIndicator />,
-  }
-);
+// const LazyLandingPageCustomer = dynamic(
+//   () =>
+//     import("@/components/LandingPageCustomer").then((module) => ({
+//       default: module.default,
+//     })),
+//   {
+//     loading: () => <LoadingIndicator />,
+//   }
+// );
 
 export default function Home() {
   const router = useRouter();
@@ -76,6 +76,7 @@ export default function Home() {
       if (!user) throw new Error("No user found");
 
       try {
+        console.log("Checking employee data for user:", user.id);
         // First try to get employee data
         const { data: employeeData, error: employeeError } = await supabase
           .from("employees")
@@ -83,7 +84,13 @@ export default function Home() {
           .eq("user_uuid", user.id)
           .single();
 
-        if (!employeeError && employeeData) {
+        if (employeeError) {
+          console.log("Employee fetch error:", employeeError);
+        }
+
+        // If employee data exists, return it regardless of any other conditions
+        if (employeeData) {
+          console.log("Found employee data:", employeeData);
           return {
             user: sessionQuery.data?.user,
             role: employeeData.role,
@@ -91,24 +98,39 @@ export default function Home() {
           };
         }
 
-        // If not an employee, check customers table
+        // Check customers table if no employee data was found
+        console.log("No employee data found, checking customers table");
         const { data: customerData, error: customerError } = await supabase
           .from("customers")
           .select("role")
           .eq("email", user.email)
           .single();
 
-        if (customerError || !customerData) {
-          throw new Error("User role not found");
+        if (customerError) {
+          console.log("Customer fetch error:", customerError);
         }
 
-        return {
-          user: sessionQuery.data?.user,
-          role: customerData.role,
-        };
+        if (customerData) {
+          console.log("Found customer data:", customerData);
+          return {
+            user: sessionQuery.data?.user,
+            role: customerData.role,
+          };
+        }
+
+        // If we get here, no role was found in either table
+        console.log("No role found in either table");
+        throw new Error(
+          "No role found for user in employees or customers tables"
+        );
       } catch (error) {
         console.error("Role fetch error:", error);
-        throw error;
+        // Check if it's our custom error or a database error
+        if (error instanceof Error) {
+          throw error;
+        }
+        // If it's some other type of error, throw a generic one
+        throw new Error("Failed to fetch user role");
       }
     },
     retry: 1,
@@ -153,9 +175,9 @@ export default function Home() {
   });
 
   // Handle loading states
-  if (sessionQuery.isLoading || navigationQuery.isLoading) {
-    return <LoadingIndicator />;
-  }
+  // if (sessionQuery.isLoading || navigationQuery.isLoading) {
+  //   return <LoadingIndicator />;
+  // }
 
   // Handle role validation state
   if (roleQuery.isLoading) {
@@ -169,7 +191,7 @@ export default function Home() {
 
   // Handle customer role
   if (roleQuery.data?.role === "customer") {
-    return <LazyLandingPageCustomer />;
+    return <LandingPageCustomer />;
   }
 
   // Handle error states
