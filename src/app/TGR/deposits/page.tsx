@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
+import { User } from "@supabase/supabase-js";
 
 const denominations = [
   { name: "Pennies", value: 0.01 },
@@ -46,11 +47,24 @@ const registers = [
 ];
 
 export default function DailyDepositsPage() {
-  const { role, loading, user } = useRole();
+  const { role, loading } = useRole();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
   const queryClient = useQueryClient();
   const isFetching = useIsFetching({ queryKey: ["wheelEventHandlers"] });
+
+  // Add user query
+  const { data: user } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    },
+  });
 
   const [quantities, setQuantities] = useState<number[][]>(
     Array(registers.length)
