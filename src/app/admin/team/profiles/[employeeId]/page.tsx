@@ -70,6 +70,7 @@ import AuditDetailsChart from "../../../audits/AuditDetailsChart";
 import { HistoricalAuditChart } from "../../../audits/HistoricalAuditChart";
 import { Switch } from "@/components/ui/switch";
 import { createColumnHelper } from "@tanstack/react-table";
+import { User } from "@supabase/supabase-js";
 
 interface Note {
   id: number;
@@ -190,6 +191,11 @@ interface SummaryRowData {
   Department?: string;
 }
 
+interface ExtendedUser extends User {
+  id: string;
+  name: string;
+}
+
 const daysOfWeek = [
   "Sunday",
   "Monday",
@@ -221,7 +227,7 @@ const EmployeeProfile = () => {
   const [newGrowth, setNewGrowth] = useState("");
   const [newDailyBriefing, setNewDailyBriefing] = useState("");
   const [employee, setEmployee] = useState<any>(null);
-  const { user } = useRole();
+  const { user } = useRole() as { user: ExtendedUser | null };
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedLanid, setSelectedLanid] = useState<string | null>(null);
   const [salesData, setSalesData] = useState<SalesData[]>([]);
@@ -1119,6 +1125,76 @@ const EmployeeProfile = () => {
     };
   };
 
+  const addNoteMutation = useMutation({
+    mutationFn: async ({
+      type,
+      noteContent,
+    }: {
+      type: string;
+      noteContent: string;
+    }) => {
+      if (!user?.id || !employeeId || noteContent.trim() === "") {
+        throw new Error("Missing required data");
+      }
+
+      // Get the employee name from the employees table
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("user_uuid", user.id)
+        .single();
+
+      if (employeeError || !employeeData?.name) {
+        throw new Error("Could not fetch employee name");
+      }
+
+      const { data, error } = await supabase
+        .from("employee_profile_notes")
+        .insert([
+          {
+            profile_employee_id: employeeId,
+            employee_id: parseInt(user.id, 10),
+            note: noteContent,
+            type,
+            created_by: employeeData.name,
+          },
+        ])
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      // Clear the form and refetch notes
+      switch (variables.type) {
+        case "notes":
+          setNewNote("");
+          break;
+        case "reviews":
+          setNewReview("");
+          break;
+        case "growth":
+          setNewGrowth("");
+          break;
+        case "absence":
+          setNewAbsence("");
+          break;
+        case "daily_briefing":
+          setNewDailyBriefing("");
+          break;
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["employee-notes", employeeId],
+      });
+      toast.success("Note added successfully");
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add note"
+      );
+    },
+  });
+
   const handleAddNote = async (type: string) => {
     let noteContent = "";
     switch (type) {
@@ -1141,59 +1217,7 @@ const EmployeeProfile = () => {
         return;
     }
 
-    if (!employeeId || noteContent.trim() === "") return;
-
-    const employeeName = await fetchEmployeeNameByUserUUID(user.id);
-    if (!employeeName) return;
-
-    const { data, error } = await supabase
-      .from("employee_profile_notes")
-      .insert([
-        {
-          profile_employee_id: employeeId,
-          employee_id: parseInt(user.id, 10),
-          note: noteContent,
-          type,
-          created_by: employeeName,
-        },
-      ])
-      .select();
-
-    if (error) {
-      console.error("Error adding note:", error);
-    } else if (data) {
-      // Remove this line as the subscription will handle the update
-      // setNotes((prevNotes) => [data[0], ...prevNotes]);
-
-      switch (type) {
-        case "notes":
-          setNewNote("");
-          break;
-        case "reviews":
-          setNewReview("");
-          break;
-        case "growth":
-          setNewGrowth("");
-          break;
-        case "absence":
-          setNewAbsence("");
-          setAbsences((prevAbsences) => [
-            ...prevAbsences,
-            {
-              id: data[0].id,
-              schedule_date: noteContent.split(" ")[0],
-              status: noteContent.split(" ").slice(1).join(" "),
-              created_by: data[0].created_by,
-              created_at: data[0].created_at,
-              employee_id: employeeId,
-            },
-          ]);
-          break;
-        case "daily_briefing":
-          setNewDailyBriefing("");
-          break;
-      }
-    }
+    addNoteMutation.mutate({ type, noteContent });
   };
 
   const handleDeleteNote = async (id: number) => {
@@ -1251,7 +1275,7 @@ const EmployeeProfile = () => {
       .from("employee_profile_notes")
       .update({
         reviewed: newReviewedStatus,
-        reviewed_by: newReviewedStatus ? user.name : null,
+        reviewed_by: newReviewedStatus ? user?.name : null,
         reviewed_at: newReviewedStatus ? new Date().toISOString() : null,
       })
       .eq("id", id);
@@ -1265,7 +1289,7 @@ const EmployeeProfile = () => {
             ? {
                 ...note,
                 reviewed: newReviewedStatus,
-                reviewed_by: newReviewedStatus ? user.name : null,
+                reviewed_by: newReviewedStatus ? user?.name : undefined,
                 reviewed_at: newReviewedStatus
                   ? new Date().toISOString()
                   : undefined,
@@ -1286,7 +1310,7 @@ const EmployeeProfile = () => {
   const handleAddReview = async () => {
     if (!employeeId) return;
 
-    const employeeName = await fetchEmployeeNameByUserUUID(user.id);
+    const employeeName = await fetchEmployeeNameByUserUUID(user?.id || "");
     if (!employeeName) return;
 
     const reviewData = {

@@ -2,10 +2,11 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase/client";
-import { Session } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 
 interface RoleContextType {
   role: string | null;
+  user: User | null;
   loading: boolean;
   error: Error | null;
 }
@@ -19,7 +20,7 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children, initialSession }: RoleProviderProps) {
   const {
-    data: role,
+    data: { role, user } = { role: null, user: null },
     isLoading,
     error,
   } = useQuery({
@@ -31,7 +32,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
           error: userError,
         } = await supabase.auth.getUser();
         if (userError) throw userError;
-        if (!user) return null;
+        if (!user) return { role: null, user: null };
 
         const { data: employeeData, error: employeeError } = await supabase
           .from("employees")
@@ -41,7 +42,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
           .single();
 
         if (employeeData) {
-          return employeeData.role;
+          return { role: employeeData.role, user };
         }
 
         if (!employeeError || employeeError.code === "PGRST116") {
@@ -51,7 +52,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
             .eq("email", user.email)
             .single();
 
-          return customerData?.role || null;
+          return { role: customerData?.role || null, user };
         }
 
         throw employeeError;
@@ -66,7 +67,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
 
   return (
     <RoleContext.Provider
-      value={{ role, loading: isLoading, error: error as Error | null }}
+      value={{ role, user, loading: isLoading, error: error as Error | null }}
     >
       {children}
     </RoleContext.Provider>
