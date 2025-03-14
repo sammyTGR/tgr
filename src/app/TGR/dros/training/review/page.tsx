@@ -164,9 +164,9 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
     title: "Consignment Handgun Redemption",
     table: "handgun_redemption",
   },
-  "curio-handgun": {
+  "curiorelic-handgun": {
     title: "Curio / Relic Handgun Sale",
-    table: "curio_handgun",
+    table: "curio_relic_handgun",
   },
   "olympic-pistol": {
     title: "Olympic Pistol Sale",
@@ -208,6 +208,14 @@ const TRANSACTION_TYPES: { [key: string]: TransactionType } = {
     title: "Officer Non-Roster Handgun",
     table: "officer_handgun",
   },
+};
+
+// Add this utility function after the TRANSACTION_TYPES object
+const toUpperCase = (value: any): string => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "YES" : "NO";
+  if (typeof value === "string") return value.toUpperCase();
+  return String(value).toUpperCase();
 };
 
 // Add this query hook at the component level
@@ -293,6 +301,15 @@ const ReviewPage = () => {
 
       if (handgunRedemptionError) throw handgunRedemptionError;
 
+      // Fetch curio/relic handgun
+      const { data: curioRelicHandgun, error: curioRelicHandgunError } =
+        await supabase
+          .from("curiorelic_handgun")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+      if (curioRelicHandgunError) throw curioRelicHandgunError;
+
       // Combine and sort all results
       const allSubmissions = [
         ...(dealerSales || []),
@@ -301,6 +318,7 @@ const ReviewPage = () => {
         ...(officerHandgun || []),
         ...(exemptHandgun || []),
         ...(handgunRedemption || []),
+        ...(curioRelicHandgun || []),
       ].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -500,24 +518,28 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Name:</strong> {submission.first_name}{" "}
-                  {submission.middle_name} {submission.last_name}
+                  <strong>Name:</strong> {toUpperCase(submission.first_name)}{" "}
+                  {toUpperCase(submission.middle_name)}{" "}
+                  {toUpperCase(submission.last_name)}
                 </p>
                 <p>
-                  <strong>Address:</strong> {submission.street_address}
+                  <strong>Address:</strong>{" "}
+                  {toUpperCase(submission.street_address)}
                 </p>
                 <p>
-                  <strong>Location:</strong> {submission.city},{" "}
-                  {submission.state} {submission.zip_code}
+                  <strong>Location:</strong> {toUpperCase(submission.city)},{" "}
+                  {toUpperCase(submission.state)}{" "}
+                  {toUpperCase(submission.zip_code)}
                 </p>
                 <p>
-                  <strong>Phone:</strong> {submission.phone_number}
+                  <strong>Phone:</strong> {toUpperCase(submission.phone_number)}
                 </p>
                 <p>
-                  <strong>ID Type:</strong> {submission.id_type}
+                  <strong>ID Type:</strong> {toUpperCase(submission.id_type)}
                 </p>
                 <p>
-                  <strong>ID Number:</strong> {submission.id_number}
+                  <strong>ID Number:</strong>{" "}
+                  {toUpperCase(submission.id_number)}
                 </p>
               </CardContent>
             </Card>
@@ -531,34 +553,43 @@ const ReviewPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p>
-                    <strong>Name:</strong> {submission.seller_first_name}{" "}
-                    {submission.seller_middle_name}{" "}
-                    {submission.seller_last_name} {submission.seller_suffix}
+                    <strong>Name:</strong>{" "}
+                    {toUpperCase(submission.seller_first_name)}{" "}
+                    {toUpperCase(submission.seller_middle_name)}{" "}
+                    {toUpperCase(submission.seller_last_name)}{" "}
+                    {toUpperCase(submission.seller_suffix)}
                   </p>
                   <p>
-                    <strong>Address:</strong> {submission.seller_street_address}
+                    <strong>Address:</strong>{" "}
+                    {toUpperCase(submission.seller_street_address)}
                   </p>
                   <p>
-                    <strong>Location:</strong> {submission.seller_city},{" "}
-                    {submission.seller_state} {submission.seller_zip_code}
+                    <strong>Location:</strong>{" "}
+                    {toUpperCase(submission.seller_city)},{" "}
+                    {toUpperCase(submission.seller_state)}{" "}
+                    {toUpperCase(submission.seller_zip_code)}
                   </p>
                   <p>
-                    <strong>Phone:</strong> {submission.seller_phone_number}
+                    <strong>Phone:</strong>{" "}
+                    {toUpperCase(submission.seller_phone_number)}
                   </p>
                   <p>
-                    <strong>ID Type:</strong> {submission.seller_id_type}
+                    <strong>ID Type:</strong>{" "}
+                    {toUpperCase(submission.seller_id_type)}
                   </p>
                   <p>
-                    <strong>ID Number:</strong> {submission.seller_id_number}
+                    <strong>ID Number:</strong>{" "}
+                    {toUpperCase(submission.seller_id_number)}
                   </p>
                   {submission.transaction_type === "officer-ppt-handgun" && (
                     <>
                       <p>
                         <strong>Non-Roster Exemption:</strong>{" "}
-                        {submission.non_roster_exemption}
+                        {toUpperCase(submission.non_roster_exemption)}
                       </p>
                       <p>
-                        <strong>Agency:</strong> {agencyData?.label || ""}
+                        <strong>Agency:</strong>{" "}
+                        {toUpperCase(agencyData?.label || "")}
                       </p>
                     </>
                   )}
@@ -573,13 +604,15 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Gender:</strong> {submission.gender}
+                  <strong>Gender:</strong> {toUpperCase(submission.gender)}
                 </p>
                 <p>
-                  <strong>Hair Color:</strong> {submission.hair_color}
+                  <strong>Hair Color:</strong>{" "}
+                  {toUpperCase(submission.hair_color)}
                 </p>
                 <p>
-                  <strong>Eye Color:</strong> {submission.eye_color}
+                  <strong>Eye Color:</strong>{" "}
+                  {toUpperCase(submission.eye_color)}
                 </p>
                 <p>
                   <strong>Height:</strong> {submission.height_feet}&apos;{" "}
@@ -592,7 +625,7 @@ const ReviewPage = () => {
                   <strong>Date of Birth:</strong> {submission.date_of_birth}
                 </p>
                 <p>
-                  <strong>Race:</strong> {submission.race}
+                  <strong>Race:</strong> {toUpperCase(submission.race)}
                 </p>
               </CardContent>
             </Card>
@@ -604,28 +637,29 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Make:</strong> {submission.make}
+                  <strong>Make:</strong> {toUpperCase(submission.make)}
                 </p>
                 <p>
-                  <strong>Model:</strong> {submission.model}
+                  <strong>Model:</strong> {toUpperCase(submission.model)}
                 </p>
                 <p>
-                  <strong>Serial Number:</strong> {submission.serial_number}
+                  <strong>Serial Number:</strong>{" "}
+                  {toUpperCase(submission.serial_number)}
                 </p>
                 <p>
-                  <strong>Color:</strong> {submission.color}
+                  <strong>Color:</strong> {toUpperCase(submission.color)}
                 </p>
                 <p>
                   <strong>Condition:</strong>{" "}
-                  {submission.is_new_gun ? "New" : "Used"}
+                  {submission.is_new_gun ? "NEW" : "USED"}
                 </p>
                 <p>
                   <strong>Safety Device:</strong>{" "}
-                  {submission.firearm_safety_device}
+                  {toUpperCase(submission.firearm_safety_device)}
                 </p>
                 <p>
                   <strong>Gun Show Transaction:</strong>{" "}
-                  {submission.is_gun_show_transaction ? "Yes" : "No"}
+                  {submission.is_gun_show_transaction ? "YES" : "NO"}
                 </p>
               </CardContent>
             </Card>
@@ -637,18 +671,20 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>HSC/FSC Number:</strong> {submission.hsc_fsc_number}
+                  <strong>HSC/FSC Number:</strong>{" "}
+                  {toUpperCase(submission.hsc_fsc_number)}
                 </p>
                 <p>
-                  <strong>Exemption Code:</strong> {submission.exemption_code}
+                  <strong>Exemption Code:</strong>{" "}
+                  {toUpperCase(submission.exemption_code)}
                 </p>
                 <p>
                   <strong>Waiting Period Exemption:</strong>{" "}
-                  {submission.waiting_period_exemption}
+                  {toUpperCase(submission.waiting_period_exemption)}
                 </p>
                 <p>
                   <strong>Restriction Exemption:</strong>{" "}
-                  {submission.restriction_exemption}
+                  {toUpperCase(submission.restriction_exemption)}
                 </p>
               </CardContent>
             </Card>
@@ -663,45 +699,45 @@ const ReviewPage = () => {
                   <strong>Question 1:</strong>{" "}
                   {typeof submission.eligibility_q1 === "string"
                     ? submission.eligibility_q1.toLowerCase() === "yes"
-                      ? "Yes"
-                      : "No"
+                      ? "YES"
+                      : "NO"
                     : submission.eligibility_q1
-                      ? "Yes"
-                      : "No"}
+                      ? "YES"
+                      : "NO"}
                 </p>
                 <p>
                   <strong>Question 2:</strong>{" "}
                   {typeof submission.eligibility_q2 === "string"
                     ? submission.eligibility_q2.toLowerCase() === "yes"
-                      ? "Yes"
-                      : "No"
+                      ? "YES"
+                      : "NO"
                     : submission.eligibility_q2
-                      ? "Yes"
-                      : "No"}
+                      ? "YES"
+                      : "NO"}
                 </p>
                 <p>
                   <strong>Question 3:</strong>{" "}
                   {typeof submission.eligibility_q3 === "string"
                     ? submission.eligibility_q3.toLowerCase() === "yes"
-                      ? "Yes"
-                      : "No"
+                      ? "YES"
+                      : "NO"
                     : submission.eligibility_q3
-                      ? "Yes"
-                      : "No"}
+                      ? "YES"
+                      : "NO"}
                 </p>
                 <p>
                   <strong>Question 4:</strong>{" "}
                   {typeof submission.eligibility_q4 === "string"
                     ? submission.eligibility_q4.toLowerCase() === "yes"
-                      ? "Yes"
-                      : "No"
+                      ? "YES"
+                      : "NO"
                     : submission.eligibility_q4
-                      ? "Yes"
-                      : "No"}
+                      ? "YES"
+                      : "NO"}
                 </p>
                 <p>
                   <strong>Firearms Possession Question:</strong>{" "}
-                  {submission.firearms_q1 || ""}
+                  {toUpperCase(submission.firearms_q1 || "")}
                 </p>
               </CardContent>
             </Card>
@@ -713,7 +749,7 @@ const ReviewPage = () => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Status:</strong> {submission.status}
+                  <strong>Status:</strong> {toUpperCase(submission.status)}
                 </p>
                 <p>
                   <strong>Submitted:</strong>{" "}
@@ -721,7 +757,8 @@ const ReviewPage = () => {
                 </p>
                 {submission.comments && (
                   <p>
-                    <strong>Comments:</strong> {submission.comments}
+                    <strong>Comments:</strong>{" "}
+                    {toUpperCase(submission.comments)}
                   </p>
                 )}
               </CardContent>
@@ -783,11 +820,13 @@ const ReviewPage = () => {
                       {TRANSACTION_TYPES[submission.transaction_type]?.title}
                     </TableCell>
                     <TableCell>
-                      {submission.first_name} {submission.last_name}
+                      {toUpperCase(submission.first_name)}{" "}
+                      {toUpperCase(submission.last_name)}
                     </TableCell>
 
                     <TableCell>
-                      {submission.make} {submission.model}
+                      {toUpperCase(submission.make)}{" "}
+                      {toUpperCase(submission.model)}
                     </TableCell>
                     {/* <TableCell>
                     <span

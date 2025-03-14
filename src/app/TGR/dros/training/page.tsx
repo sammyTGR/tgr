@@ -95,7 +95,7 @@ const TransactionTypePage = () => {
     },
     {
       title: "Curio/Relic Handgun Sale",
-      path: "/TGR/dros/training/curiohandgun",
+      path: "/TGR/dros/training/curiorelichandgun",
     },
     {
       title: "Olympic Pistol Sale",
