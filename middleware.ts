@@ -114,6 +114,11 @@ export async function middleware(request: NextRequest) {
             case "admin":
               redirectUrl = "/admin/reports/dashboard/admin";
               break;
+            case "user":
+            case "gunsmith":
+            case "auditor":
+              redirectUrl = `/TGR/crew/profile/${employeeId}`;
+              break;
             default:
               redirectUrl = `/TGR/crew/profile/${employeeId}`;
           }
