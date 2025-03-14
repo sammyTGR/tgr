@@ -138,6 +138,7 @@ const HeaderUser = React.memo(() => {
   const { setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     data: user,
@@ -180,7 +181,7 @@ const HeaderUser = React.memo(() => {
   useEffect(() => {
     if (userError || employeeError) {
       console.error("Auth error:", userError || employeeError);
-      router.push("/auth");
+      router.push("/sign-in");
     }
   }, [userError, employeeError, router]);
 
@@ -194,8 +195,9 @@ const HeaderUser = React.memo(() => {
   };
 
   const handleSignOut = async () => {
+    queryClient.clear();
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/sign-in");
   };
 
   const isLoading = userLoading || employeeLoading;

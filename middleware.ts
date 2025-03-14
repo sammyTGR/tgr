@@ -74,19 +74,16 @@ export async function middleware(request: NextRequest) {
         console.log("JWT Role:", jwtRole);
       }
 
-      // Use a single database query with error handling
+      // First check if user is an employee
       const { data: employeeData, error: employeeError } = await supabase
         .from("employees")
-        .select("role, employee_id")
+        .select("role, employee_id, status")
         .eq("user_uuid", session.user.id)
+        .eq("status", "active")
         .single();
 
-      if (employeeError) {
-        console.error("Error fetching employee role:", employeeError.message);
-        return NextResponse.redirect(new URL("/auth", request.url));
-      }
-
-      if (employeeData) {
+      // If employee data exists and is active, handle employee routing
+      if (employeeData && !employeeError) {
         const dbRole = employeeData.role;
         const employeeId = employeeData.employee_id;
         console.log("DB Role:", dbRole, "Employee ID:", employeeId);
@@ -127,10 +124,35 @@ export async function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL(redirectUrl, request.url));
         }
       } else {
-        console.log("No employee data found");
-        if (pathname === "/" || pathname === "") {
-          return NextResponse.redirect(new URL("/auth", request.url));
+        // If not an employee or employee not active, check if customer
+        const { data: customerData, error: customerError } = await supabase
+          .from("customers")
+          .select("role, id, status")
+          .eq("user_uuid", session.user.id)
+          .eq("status", "active")
+          .single();
+
+        if (customerData && !customerError) {
+          // For customers on the root path, let the page component handle rendering
+          if (pathname === "/" || pathname === "") {
+            return res;
+          }
+
+          // Restrict customers from accessing employee routes
+          if (
+            pathname.startsWith("/admin") ||
+            pathname.startsWith("/TGR") ||
+            pathname.startsWith("/sales")
+          ) {
+            return NextResponse.redirect(new URL("/", request.url));
+          }
+
+          return res;
         }
+
+        // If neither employee nor customer, redirect to auth
+        console.log("No valid role found");
+        return NextResponse.redirect(new URL("/auth", request.url));
       }
     }
 

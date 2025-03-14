@@ -1,64 +1,82 @@
 "use client";
 import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSupabase } from "@/providers/supabase-provider";
+import { supabase } from "@/utils/supabase/client";
+import { Session } from "@supabase/supabase-js";
 
 interface RoleContextType {
   role: string | null;
   loading: boolean;
-  user: any;
   error: Error | null;
+}
+
+interface RoleProviderProps {
+  children: ReactNode;
+  initialSession?: Session | null;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-export const RoleProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useSupabase();
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["userRole", user?.id],
+export function RoleProvider({ children, initialSession }: RoleProviderProps) {
+  const {
+    data: role,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["role"],
     queryFn: async () => {
-      if (!user) {
-        return { role: null, user: null };
-      }
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) return null;
 
-      const response = await fetch("/api/getUserRole", {
-        credentials: "include",
-      });
+        const { data: employeeData, error: employeeError } = await supabase
+          .from("employees")
+          .select("role")
+          .eq("user_uuid", user.id)
+          .eq("status", "active")
+          .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to fetch user role");
+        if (employeeData) {
+          return employeeData.role;
+        }
+
+        if (!employeeError || employeeError.code === "PGRST116") {
+          const { data: customerData } = await supabase
+            .from("customers")
+            .select("role")
+            .eq("email", user.email)
+            .single();
+
+          return customerData?.role || null;
+        }
+
+        throw employeeError;
+      } catch (error) {
+        console.error("Role fetch error:", error);
+        throw error;
       }
-      return response.json();
     },
-    enabled: !!user,
-    retry: false,
+    enabled: !!initialSession,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  if (error) {
-    console.error("Error fetching user role:", error);
-  }
-
   return (
     <RoleContext.Provider
-      value={{
-        role: data?.role ?? null,
-        loading: isLoading,
-        user: data?.user ?? null,
-        error: error as Error | null,
-      }}
+      value={{ role, loading: isLoading, error: error as Error | null }}
     >
       {children}
     </RoleContext.Provider>
   );
-};
+}
 
-export const useRole = () => {
+export function useRole() {
   const context = useContext(RoleContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useRole must be used within a RoleProvider");
   }
   return context;
-};
+}

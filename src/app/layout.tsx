@@ -19,6 +19,7 @@ import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrap
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { createClient } from "@/utils/supabase/server";
 import { FeatureFlagsProvider } from "@/context/FeatureFlagsContext";
+import { headers } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,21 +40,22 @@ export default async function RootLayout({
 }>) {
   const supabase = createClient();
 
-  // Get user data only
+  // Only get the session first
   const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
 
-  // Log any auth errors
-  if (userError) console.error("User fetch error:", userError);
+  if (sessionError) {
+    console.error("Session fetch error:", sessionError);
+  }
 
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <SupabaseProvider initialUser={user}>
+        <SupabaseProvider initialUser={null}>
           <QueryProvider>
             <TooltipProvider>
               <GoogleOAuthProvider clientId={clientId}>
@@ -68,15 +70,15 @@ export default async function RootLayout({
                     disableTransitionOnChange
                   >
                     <NotificationsProvider>
-                      <RoleProvider>
+                      <RoleProvider initialSession={session}>
                         <RealTimeNotificationsWrapper />
                         <Header />
-                        <main>
+                        <main className="min-h-screen">
                           {children as ReactElement}
                           {shouldInjectToolbar && <VercelToolbar />}
                           <Analytics />
                         </main>
-                        <Toaster />
+                        <Toaster position="top-center" />
                       </RoleProvider>
                     </NotificationsProvider>
                   </ThemeProvider>
