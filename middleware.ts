@@ -25,94 +25,109 @@ interface JWTPayload {
 }
 
 export async function middleware(request: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req: request, res: res });
+  const pathname = new URL(request.url).pathname;
+
+  // Skip middleware for public paths and static files
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/static") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.startsWith("/public") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/auth") // Skip auth routes
+  ) {
+    return res;
+  }
+
   try {
-    const res = NextResponse.next();
-    const supabase = createMiddlewareClient({ req: request, res: res });
-
     const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (userError) {
-      console.error("Error getting user:", userError.message);
-      return NextResponse.redirect(new URL("/auth", request.url));
+    // If no session and trying to access protected path, redirect to auth
+    if (!session && protectedPaths.includes(pathname)) {
+      return NextResponse.redirect(
+        new URL("/auth?next=" + pathname, request.url)
+      );
     }
 
-    // Get role from JWT with proper typing
-    let jwtRole = "authenticated";
-    if (user?.app_metadata?.role) {
-      jwtRole = user.app_metadata.role;
-    }
+    // If we have a session, get the user
+    if (session) {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (!user?.email) {
-      if (protectedPaths.includes(new URL(request.url).pathname)) {
-        return NextResponse.redirect(
-          new URL("/auth?next=" + new URL(request.url).pathname, request.url)
-        );
-      }
-      return res;
-    }
-
-    // Get employee data
-    const { data: employeeData, error: employeeError } = await supabase
-      .from("employees")
-      .select("role, employee_id")
-      .eq("user_uuid", user.id)
-      .maybeSingle();
-
-    if (employeeError) {
-      console.error("Error fetching employee role:", employeeError.message);
-      // Don't redirect on error, just log and continue
-      return res;
-    }
-
-    if (employeeData) {
-      const dbRole = employeeData.role;
-      const employeeId = employeeData.employee_id;
-
-      // Verify JWT role matches database role
-      if (jwtRole !== dbRole) {
-        await supabase.auth.signOut();
+      if (userError) {
+        console.error("Error getting user:", userError.message);
         return NextResponse.redirect(new URL("/auth", request.url));
       }
 
-      // Handle redirects for authenticated employees
-      const pathname = new URL(request.url).pathname;
-      if (pathname === "/auth" || pathname === "/") {
-        if (dbRole === "ceo" || dbRole === "super admin") {
-          return NextResponse.redirect(
-            new URL("/admin/reports/dashboard/ceo", request.url)
-          );
-        } else if (dbRole === "dev") {
-          return NextResponse.redirect(
-            new URL("/admin/reports/dashboard/dev", request.url)
-          );
-        } else if (["admin"].includes(dbRole)) {
-          return NextResponse.redirect(
-            new URL("/admin/reports/dashboard/admin", request.url)
-          );
-        } else {
-          return NextResponse.redirect(
-            new URL(`/TGR/crew/profile/${employeeId}`, request.url)
-          );
+      if (user?.email) {
+        // Get role from JWT with proper typing
+        let jwtRole = "authenticated";
+        if (session.access_token) {
+          const jwt = jwtDecode<JWTPayload>(session.access_token);
+          jwtRole = jwt.app_metadata?.role || "authenticated";
         }
-      }
 
-      // Allow access to profile pages for the correct employee
-      if (pathname.startsWith("/TGR/crew/profile/")) {
-        const profileId = pathname.split("/").pop();
-        if (profileId === employeeId) {
+        // Use a single database query with error handling
+        const { data: employeeData, error: employeeError } = await supabase
+          .from("employees")
+          .select("role, employee_id")
+          .eq("user_uuid", user.id)
+          .maybeSingle();
+
+        if (employeeError) {
+          console.error("Error fetching employee role:", employeeError.message);
           return res;
+        }
+
+        if (employeeData) {
+          const dbRole = employeeData.role;
+          const employeeId = employeeData.employee_id;
+
+          // Verify JWT role matches database role
+          if (user.app_metadata?.role !== dbRole) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(new URL("/auth", request.url));
+          }
+
+          // Handle redirects for authenticated employees
+          if (pathname === "/") {
+            if (dbRole === "ceo" || dbRole === "super admin") {
+              return NextResponse.redirect(
+                new URL("/admin/reports/dashboard/ceo", request.url)
+              );
+            } else if (dbRole === "dev") {
+              return NextResponse.redirect(
+                new URL("/admin/reports/dashboard/dev", request.url)
+              );
+            } else if (["admin"].includes(dbRole)) {
+              return NextResponse.redirect(
+                new URL("/admin/reports/dashboard/admin", request.url)
+              );
+            } else {
+              return NextResponse.redirect(
+                new URL(`/TGR/crew/profile/${employeeId}`, request.url)
+              );
+            }
+          }
         }
       }
     }
 
     return res;
   } catch (error) {
-    console.error("Middleware error:", error);
-    // On error, allow the request to continue but log the error
-    return NextResponse.next();
+    // If there's an error getting the session, treat it as no session
+    if (protectedPaths.includes(pathname)) {
+      return NextResponse.redirect(
+        new URL("/auth?next=" + pathname, request.url)
+      );
+    }
+    return res;
   }
 }
 
@@ -122,6 +137,6 @@ export const config = {
     "/api/:path*",
     "/TGR/:path*",
     "/sales/:path*",
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/auth|auth).*)",
   ],
 };
