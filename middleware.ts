@@ -29,6 +29,8 @@ export async function middleware(request: NextRequest) {
   const supabase = createMiddlewareClient({ req: request, res: res });
   const pathname = new URL(request.url).pathname;
 
+  console.log("Middleware processing path:", pathname);
+
   // Skip middleware for public paths and static files
   if (
     pathname.startsWith("/_next") ||
@@ -44,83 +46,92 @@ export async function middleware(request: NextRequest) {
   try {
     const {
       data: { session },
+      error: sessionError,
     } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error("Session error:", sessionError.message);
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
 
     // If no session and trying to access protected path, redirect to auth
     if (!session && protectedPaths.includes(pathname)) {
+      console.log("No session, redirecting to auth");
       return NextResponse.redirect(
         new URL("/auth?next=" + pathname, request.url)
       );
     }
 
     // If we have a session, get the user
-    if (session) {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+    if (session?.user) {
+      console.log("Session found, checking user role");
 
-      if (userError) {
-        console.error("Error getting user:", userError.message);
+      // Get role from JWT with proper typing
+      let jwtRole = "authenticated";
+      if (session.access_token) {
+        const jwt = jwtDecode<JWTPayload>(session.access_token);
+        jwtRole = jwt.app_metadata?.role || "authenticated";
+        console.log("JWT Role:", jwtRole);
+      }
+
+      // Use a single database query with error handling
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("role, employee_id")
+        .eq("user_uuid", session.user.id)
+        .single();
+
+      if (employeeError) {
+        console.error("Error fetching employee role:", employeeError.message);
         return NextResponse.redirect(new URL("/auth", request.url));
       }
 
-      if (user?.email) {
-        // Get role from JWT with proper typing
-        let jwtRole = "authenticated";
-        if (session.access_token) {
-          const jwt = jwtDecode<JWTPayload>(session.access_token);
-          jwtRole = jwt.app_metadata?.role || "authenticated";
+      if (employeeData) {
+        const dbRole = employeeData.role;
+        const employeeId = employeeData.employee_id;
+        console.log("DB Role:", dbRole, "Employee ID:", employeeId);
+
+        // Verify JWT role matches database role
+        if (session.user.app_metadata?.role !== dbRole) {
+          console.log("Role mismatch, signing out");
+          await supabase.auth.signOut();
+          return NextResponse.redirect(new URL("/auth", request.url));
         }
 
-        // Use a single database query with error handling
-        const { data: employeeData, error: employeeError } = await supabase
-          .from("employees")
-          .select("role, employee_id")
-          .eq("user_uuid", user.id)
-          .maybeSingle();
+        // Handle redirects for authenticated employees
+        if (pathname === "/" || pathname === "") {
+          console.log("Root path detected, redirecting based on role");
+          let redirectUrl;
 
-        if (employeeError) {
-          console.error("Error fetching employee role:", employeeError.message);
-          return res;
+          switch (dbRole) {
+            case "super admin":
+            case "ceo":
+              redirectUrl = "/admin/reports/dashboard/ceo";
+              break;
+            case "dev":
+              redirectUrl = "/admin/reports/dashboard/dev";
+              break;
+            case "admin":
+              redirectUrl = "/admin/reports/dashboard/admin";
+              break;
+            default:
+              redirectUrl = `/TGR/crew/profile/${employeeId}`;
+          }
+
+          console.log("Redirecting to:", redirectUrl);
+          return NextResponse.redirect(new URL(redirectUrl, request.url));
         }
-
-        if (employeeData) {
-          const dbRole = employeeData.role;
-          const employeeId = employeeData.employee_id;
-
-          // Verify JWT role matches database role
-          if (user.app_metadata?.role !== dbRole) {
-            await supabase.auth.signOut();
-            return NextResponse.redirect(new URL("/auth", request.url));
-          }
-
-          // Handle redirects for authenticated employees
-          if (pathname === "/") {
-            if (dbRole === "ceo" || dbRole === "super admin") {
-              return NextResponse.redirect(
-                new URL("/admin/reports/dashboard/ceo", request.url)
-              );
-            } else if (dbRole === "dev") {
-              return NextResponse.redirect(
-                new URL("/admin/reports/dashboard/dev", request.url)
-              );
-            } else if (["admin"].includes(dbRole)) {
-              return NextResponse.redirect(
-                new URL("/admin/reports/dashboard/admin", request.url)
-              );
-            } else {
-              return NextResponse.redirect(
-                new URL(`/TGR/crew/profile/${employeeId}`, request.url)
-              );
-            }
-          }
+      } else {
+        console.log("No employee data found");
+        if (pathname === "/" || pathname === "") {
+          return NextResponse.redirect(new URL("/auth", request.url));
         }
       }
     }
 
     return res;
   } catch (error) {
+    console.error("Middleware error:", error);
     // If there's an error getting the session, treat it as no session
     if (protectedPaths.includes(pathname)) {
       return NextResponse.redirect(
@@ -133,6 +144,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/admin/:path*",
     "/api/:path*",
     "/TGR/:path*",
