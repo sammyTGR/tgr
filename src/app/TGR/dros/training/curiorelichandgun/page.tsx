@@ -344,7 +344,7 @@ const PreviewDialog = ({ control }: { control: Control<FormData> }) => {
               Submitting...
             </>
           ) : (
-            "Preview & Submit"
+            "Preview"
           )}
         </Button>
       </DialogTrigger>

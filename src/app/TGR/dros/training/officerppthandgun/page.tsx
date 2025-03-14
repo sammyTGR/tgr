@@ -84,9 +84,9 @@ export type FormData = {
   gender: string;
   hairColor: string;
   eyeColor: string;
-  heightFeet: number;
-  heightInches: number;
-  weight?: number;
+  heightFeet: string;
+  heightInches: string;
+  weight?: string;
   dateOfBirth: string;
   idType: string;
   idNumber: string;
@@ -109,9 +109,9 @@ export type FormData = {
   sellerGender: string;
   sellerHairColor: string;
   sellerEyeColor: string;
-  sellerHeightFeet: number;
-  sellerHeightInches: number;
-  sellerWeight?: number;
+  sellerHeightFeet: string;
+  sellerHeightInches: string;
+  sellerWeight?: string;
   sellerDateOfBirth: string;
   sellerIdType: string;
   sellerIdNumber: string;
@@ -144,12 +144,12 @@ export type FormData = {
   comments?: string;
   status: string;
   transaction_type: string;
-  frameOnly?: boolean;
+  frameOnly: string;
   calibers?: string;
   additionalCaliber?: string;
   additionalCaliber2?: string;
   additionalCaliber3?: string;
-  barrelLength?: number;
+  barrelLength?: string;
   unit?: string;
   gunType?: string;
   category?: string;
@@ -175,9 +175,9 @@ const initialFormState: Partial<FormData> = {
   gender: "",
   hairColor: "",
   eyeColor: "",
-  heightFeet: 0,
-  heightInches: 0,
-  weight: undefined,
+  heightFeet: "",
+  heightInches: "",
+  weight: "",
   dateOfBirth: "",
   idType: "",
   idNumber: "",
@@ -200,9 +200,9 @@ const initialFormState: Partial<FormData> = {
   sellerGender: "",
   sellerHairColor: "",
   sellerEyeColor: "",
-  sellerHeightFeet: 0,
-  sellerHeightInches: 0,
-  sellerWeight: undefined,
+  sellerHeightFeet: "",
+  sellerHeightInches: "",
+  sellerWeight: "",
   sellerDateOfBirth: "",
   sellerIdType: "",
   sellerIdNumber: "",
@@ -236,12 +236,12 @@ const initialFormState: Partial<FormData> = {
   comments: "",
   status: "pending",
   transaction_type: "officer-ppt-handgun",
-  frameOnly: false,
+  frameOnly: "no",
   calibers: "",
   additionalCaliber: "",
   additionalCaliber2: "",
   additionalCaliber3: "",
-  barrelLength: undefined,
+  barrelLength: "",
   unit: "",
   gunType: "HANDGUN",
   category: "",
@@ -520,7 +520,7 @@ const PreviewDialog = ({ form }: { form: UseFormReturn<FormData> }) => {
               <span className="font-medium">Model:</span>
               <span>{values.model}</span>
 
-              {values.frameOnly !== false && (
+              {values.frameOnly !== "no" && (
                 <>
                   <span className="font-medium">Caliber:</span>
                   <span>{values.calibers}</span>
@@ -557,7 +557,7 @@ const PreviewDialog = ({ form }: { form: UseFormReturn<FormData> }) => {
               <span className="font-medium">Category:</span>
               <span>{values.category}</span>
 
-              {values.frameOnly === true && (
+              {values.frameOnly === "yes" && (
                 <>
                   <span className="font-medium">Federally Regulated:</span>
                   <span>{values.regulated}</span>
@@ -832,7 +832,7 @@ const OfficerPptHandgunPage = () => {
       const errors: Record<string, { type: string; message: string }> = {};
 
       // Validate frame only constraints
-      if (values.frameOnly === true) {
+      if (values.frameOnly === "yes") {
         if (!values.regulated) {
           errors.regulated = {
             type: "required",
@@ -857,7 +857,7 @@ const OfficerPptHandgunPage = () => {
             message: "Unit should not be set when frame only is true",
           };
         }
-      } else if (values.frameOnly === false) {
+      } else if (values.frameOnly === "no") {
         if (!values.calibers) {
           errors.calibers = {
             type: "required",
@@ -1304,13 +1304,11 @@ const OfficerPptHandgunPage = () => {
               <div className="flex gap-2">
                 <SelectComponent
                   name="heightFeet"
-                  value={String(watch("heightFeet")) || ""}
-                  onValueChange={(value) =>
-                    setValue("heightFeet", Number(value))
-                  }
+                  value={watch("heightFeet") || ""}
+                  onValueChange={(value) => setValue("heightFeet", value)}
                   placeholder="Feet"
                 >
-                  {formData?.heightFeet.map((feet: string) => (
+                  {formData?.heightFeet.map((feet) => (
                     <SelectItem key={feet} value={feet}>
                       {feet}
                     </SelectItem>
@@ -1318,13 +1316,11 @@ const OfficerPptHandgunPage = () => {
                 </SelectComponent>
                 <SelectComponent
                   name="heightInches"
-                  value={watch("heightInches")?.toString() || ""}
-                  onValueChange={(value) =>
-                    setValue("heightInches", Number(value))
-                  }
+                  value={watch("heightInches") || ""}
+                  onValueChange={(value) => setValue("heightInches", value)}
                   placeholder="Inches"
                 >
-                  {formData?.heightInches.map((inches: string) => (
+                  {formData?.heightInches.map((inches) => (
                     <SelectItem key={inches} value={inches}>
                       {inches}
                     </SelectItem>
@@ -1750,13 +1746,13 @@ const OfficerPptHandgunPage = () => {
                   <div className="flex gap-2">
                     <SelectComponent
                       name="sellerHeightFeet"
-                      value={String(watch("sellerHeightFeet")) || ""}
+                      value={watch("sellerHeightFeet") || ""}
                       onValueChange={(value) =>
-                        setValue("sellerHeightFeet", Number(value))
+                        setValue("sellerHeightFeet", value)
                       }
-                      placeholder="ft"
+                      placeholder="Feet"
                     >
-                      {formData?.heightFeet.map((feet: string) => (
+                      {formData?.heightFeet.map((feet) => (
                         <SelectItem key={feet} value={feet}>
                           {feet}
                         </SelectItem>
@@ -1764,13 +1760,13 @@ const OfficerPptHandgunPage = () => {
                     </SelectComponent>
                     <SelectComponent
                       name="sellerHeightInches"
-                      value={watch("sellerHeightInches")?.toString() || ""}
+                      value={watch("sellerHeightInches") || ""}
                       onValueChange={(value) =>
-                        setValue("sellerHeightInches", Number(value))
+                        setValue("sellerHeightInches", value)
                       }
-                      placeholder="in"
+                      placeholder="Inches"
                     >
-                      {formData?.heightInches.map((inches: string) => (
+                      {formData?.heightInches.map((inches) => (
                         <SelectItem key={inches} value={inches}>
                           {inches}
                         </SelectItem>
@@ -1956,9 +1952,9 @@ const OfficerPptHandgunPage = () => {
                   <Label className="required">Frame Only</Label>
                   <SelectComponent
                     name="frameOnly"
-                    value={frameOnly ? "yes" : "no"}
+                    value={watch("frameOnly") || "no"}
                     onValueChange={(value: string) => {
-                      setValue("frameOnly", value === "yes", {
+                      setValue("frameOnly", value, {
                         shouldValidate: true,
                       });
                     }}
@@ -1988,7 +1984,7 @@ const OfficerPptHandgunPage = () => {
               </div>
 
               {/* Caliber and Additional Caliber Sections */}
-              {frameOnly === false && (
+              {frameOnly !== "yes" && (
                 <>
                   {/* Show caliber sections when frame only is not yes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2112,7 +2108,7 @@ const OfficerPptHandgunPage = () => {
                 </>
               )}
 
-              {frameOnly === true && (
+              {frameOnly === "yes" && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Gun Type</Label>
