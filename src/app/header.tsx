@@ -1,6 +1,5 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import HeaderDev from "./HeaderDev";
 import HeaderUser from "./HeaderUser";
@@ -10,21 +9,10 @@ import HeaderPublic from "./HeaderPublic";
 import HeaderCustomer from "./HeaderCustomer";
 import HeaderGunsmith from "./HeaderGunsmith";
 import HeaderAuditor from "./HeaderAuditor";
+import { useRole } from "@/context/RoleContext";
 
 export default function Header() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["userRole"],
-    queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to fetch user role");
-      }
-      return response.json();
-    },
-    retry: false,
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-  });
+  const { role, loading: isLoading, error } = useRole();
 
   const LazyHeaderDev = dynamic(
     () => import("./HeaderDev").then((module) => ({ default: module.default })),
@@ -90,15 +78,15 @@ export default function Header() {
   }
 
   if (error) {
-    console.error("Error fetching role:", error);
+    console.error("Error fetching role:", error.message);
     return <LazyHeaderPublic />;
   }
 
-  if (!data?.role) {
+  if (!role) {
     return <LazyHeaderPublic />;
   }
 
-  switch (data.role) {
+  switch (role) {
     case "super admin":
       return <LazyHeaderSuperAdmin />;
     case "dev":

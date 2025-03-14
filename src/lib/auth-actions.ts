@@ -9,17 +9,24 @@ export async function handlePostGoogleSignIn() {
   const supabase = createClient();
 
   // Get the current authenticated user
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (error || !user || !user.email) {
-    console.error("Error fetching authenticated user:", error?.message || "User or email undefined");
+    console.error(
+      "Error fetching authenticated user:",
+      error?.message || "User or email undefined"
+    );
     redirect("/error");
     return;
   }
 
   const emailDomain = user.email.split("@")[1];
-  const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.email.split('@')[0];
-  const lastName = user.user_metadata?.full_name?.split(' ')[1] || '';
+  const firstName =
+    user.user_metadata?.full_name?.split(" ")[0] || user.email.split("@")[0];
+  const lastName = user.user_metadata?.full_name?.split(" ")[1] || "";
 
   // Check if the email domain exists in the employee_domains table
   const { data: domainData, error: domainError } = await supabase
@@ -44,21 +51,25 @@ export async function handlePostGoogleSignIn() {
 
     if (!existingEmployee) {
       // Insert into the employees table if not exists
-      const { error: insertEmployeeError } = await supabase.from("employees").upsert({
-        user_uuid: user.id, 
-        contact_info: user.email,
-        name: firstName,
-        role: "user",  // Automatically assign the role of "user"
-      });
+      const { error: insertEmployeeError } = await supabase
+        .from("employees")
+        .upsert({
+          user_uuid: user.id,
+          contact_info: user.email,
+          name: firstName,
+          role: "user", // Automatically assign the role of "user"
+        });
 
       if (insertEmployeeError) {
-        console.error("Error inserting new employee:", insertEmployeeError.message);
+        console.error(
+          "Error inserting new employee:",
+          insertEmployeeError.message
+        );
         redirect("/error");
       } else {
         // console.log("User inserted into employees table:", user.email);
       }
     }
-
   } else {
     // Check if the user already exists in the customers table
     const { data: existingCustomer } = await supabase
@@ -69,16 +80,21 @@ export async function handlePostGoogleSignIn() {
 
     if (!existingCustomer) {
       // Insert into the customers table if not exists
-      const { error: insertCustomerError } = await supabase.from("customers").upsert({
-        user_uuid: user.id,
-        email: user.email,
-        first_name: firstName,
-        last_name: lastName,
-        role: "customer",  // Automatically assign the role of "customer"
-      });
+      const { error: insertCustomerError } = await supabase
+        .from("customers")
+        .upsert({
+          user_uuid: user.id,
+          email: user.email,
+          first_name: firstName,
+          last_name: lastName,
+          role: "customer", // Automatically assign the role of "customer"
+        });
 
       if (insertCustomerError) {
-        console.error("Error inserting new customer:", insertCustomerError.message);
+        console.error(
+          "Error inserting new customer:",
+          insertCustomerError.message
+        );
         redirect("/error");
       } else {
         // console.log("User inserted into customers table:", user.email);
@@ -87,7 +103,6 @@ export async function handlePostGoogleSignIn() {
   }
 }
 
-
 export async function login(formData: FormData) {
   const supabase = createClient();
 
@@ -95,37 +110,61 @@ export async function login(formData: FormData) {
   const password = formData.get("password") as string;
 
   try {
-    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) throw error;
     if (!user) throw new Error("User not found");
 
     // Check the role in both employees and customers tables
     const [{ data: employeeData }, { data: customerData }] = await Promise.all([
-      supabase.from("employees").select("role").eq("user_uuid", user.id).single(),
-      supabase.from("customers").select("role").eq("user_uuid", user.id).single()
+      supabase
+        .from("employees")
+        .select("role")
+        .eq("user_uuid", user.id)
+        .single(),
+      supabase
+        .from("customers")
+        .select("role")
+        .eq("user_uuid", user.id)
+        .single(),
     ]);
 
     const role = employeeData?.role || customerData?.role;
 
     if (role === "blocked") {
       await supabase.auth.signOut();
-      return { error: "Your account has been blocked. Please contact support for assistance." };
+      return {
+        error:
+          "Your account has been blocked. Please contact support for assistance.",
+      };
     }
 
     if (!role) {
-      return { error: "User account not properly set up. Please contact support." };
+      return {
+        error: "User account not properly set up. Please contact support.",
+      };
     }
 
     revalidatePath("/", "layout");
     return { success: true, role };
   } catch (error) {
     console.error("Login error:", error);
-    return { error: error instanceof Error ? error.message : "An unexpected error occurred" };
+    return {
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
+    };
   }
 }
 
-export async function signup(data: { firstName: string, lastName: string, email: string, password: string }) {
+export async function signup(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}) {
   const supabase = createClient();
 
   const { firstName, lastName, email, password } = data;
@@ -150,15 +189,13 @@ export async function signup(data: { firstName: string, lastName: string, email:
   const user = signUpData.user;
 
   if (user) {
-    const { error: profileError } = await supabase
-      .from("customers")
-      .upsert({
-        user_uuid: user.id,
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        role: "customer",
-      });
+    const { error: profileError } = await supabase.from("customers").upsert({
+      user_uuid: user.id,
+      email: email,
+      first_name: firstName,
+      last_name: lastName,
+      role: "customer",
+    });
 
     if (profileError) {
       console.error(profileError);
@@ -169,7 +206,6 @@ export async function signup(data: { firstName: string, lastName: string, email:
   revalidatePath("/", "layout");
   redirect("/");
 }
-
 
 export async function signout() {
   const supabase = createClient();
@@ -212,7 +248,7 @@ export async function signInWithGoogle() {
         access_type: "offline",
         prompt: "consent",
       },
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,  // Replace with your callback URL
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`, // Replace with your callback URL
     },
   });
 
@@ -224,7 +260,6 @@ export async function signInWithGoogle() {
   // Redirect the user to the OAuth URL
   redirect(data.url);
 }
-
 
 // Function to handle user data sync after OAuth sign-in
 // export async function handleOAuthUser(user: any) {
@@ -275,9 +310,9 @@ export async function signInWithGoogle() {
 
 export async function handleOAuthUser(user: any) {
   const supabase = createClient();
-  const fullName = user.user_metadata.full_name || '';
-  const firstName = fullName.split(' ')[0];
-  const lastName = fullName.split(' ')[1] || '';
+  const fullName = user.user_metadata.full_name || "";
+  const firstName = fullName.split(" ")[0];
+  const lastName = fullName.split(" ")[1] || "";
   const emailDomain = user.email.split("@")[1];
 
   // Check if the email domain exists in the employee_domains table
@@ -295,41 +330,48 @@ export async function handleOAuthUser(user: any) {
 
   if (domainData) {
     // Upsert into the employees table
-    const { error: employeeError } = await supabase
-      .from("employees")
-      .upsert({
+    const { error: employeeError } = await supabase.from("employees").upsert(
+      {
         user_uuid: user.id,
         contact_info: user.email,
         name: firstName,
-        role: "user",  // Automatically assign the role of "user"
-      }, {
-        onConflict: "contact_info",  // Use onConflict to handle duplicate entries
-      });
+        role: "user", // Automatically assign the role of "user"
+      },
+      {
+        onConflict: "contact_info", // Use onConflict to handle duplicate entries
+      }
+    );
 
     if (employeeError) {
-      console.error("Error upserting into employees table:", employeeError.message);
+      console.error(
+        "Error upserting into employees table:",
+        employeeError.message
+      );
       redirect("/error");
       return;
     }
 
     // console.log("User upserted into employees table:", user.email);
-
   } else {
     // Upsert into the customers table
-    const { error: customerError } = await supabase
-      .from("customers")
-      .upsert({
+    const { error: customerError } = await supabase.from("customers").upsert(
+      {
         user_uuid: user.id,
         email: user.email,
         first_name: firstName,
         last_name: lastName,
-        role: "customer",  // Automatically assign the role of "customer"
-      }, {
-        onConflict: "email",  // Use onConflict to handle duplicate entries
-      });
+        role: "customer", // Automatically assign the role of "customer"
+      },
+      {
+        onConflict: "email", // Use onConflict to handle duplicate entries
+      }
+    );
 
     if (customerError) {
-      console.error("Error upserting into customers table:", customerError.message);
+      console.error(
+        "Error upserting into customers table:",
+        customerError.message
+      );
       redirect("/error");
       return;
     }
@@ -338,23 +380,24 @@ export async function handleOAuthUser(user: any) {
   }
 }
 
-
 export async function updateProfile(user: any) {
   const supabase = createClient();
-  const { id, email, user_metadata: { full_name } } = user;
-  const fullName = full_name || '';
-  const firstName = fullName.split(' ')[0];
-  const lastName = fullName.split(' ')[1] || '';
+  const {
+    id,
+    email,
+    user_metadata: { full_name },
+  } = user;
+  const fullName = full_name || "";
+  const firstName = fullName.split(" ")[0];
+  const lastName = fullName.split(" ")[1] || "";
 
-  const { error: profileError } = await supabase
-    .from("customers")
-    .upsert({
-      user_uuid: id,
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      role: "user"
-    });
+  const { error: profileError } = await supabase.from("customers").upsert({
+    user_uuid: id,
+    first_name: firstName,
+    last_name: lastName,
+    email: email,
+    role: "user",
+  });
 
   if (profileError) {
     // console.log(profileError);

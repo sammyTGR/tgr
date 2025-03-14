@@ -1,27 +1,40 @@
 "use client";
 import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSupabase } from "@/providers/supabase-provider";
 
 interface RoleContextType {
   role: string | null;
   loading: boolean;
   user: any;
+  error: Error | null;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export const RoleProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useSupabase();
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["userRole"],
+    queryKey: ["userRole", user?.id],
     queryFn: async () => {
-      const response = await fetch("/api/getUserRole");
+      if (!user) {
+        return { role: null, user: null };
+      }
+
+      const response = await fetch("/api/getUserRole", {
+        credentials: "include",
+      });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to fetch user role");
       }
       return response.json();
     },
+    enabled: !!user,
     retry: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   if (error) {
@@ -34,6 +47,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
         role: data?.role ?? null,
         loading: isLoading,
         user: data?.user ?? null,
+        error: error as Error | null,
       }}
     >
       {children}
