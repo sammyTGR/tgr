@@ -90,7 +90,7 @@ const LazyNavigationMenuList = dynamic(
       default: module.NavigationMenuList,
     })),
   {
-    loading: () => <LoadingIndicator />,
+    loading: () => <div>Loading...</div>,
   }
 );
 
@@ -100,7 +100,7 @@ const LazyDropdownMenu = dynamic(
       default: module.DropdownMenu,
     })),
   {
-    loading: () => <LoadingIndicator />,
+    loading: () => <div>Loading...</div>,
   }
 );
 
@@ -330,7 +330,6 @@ const useAuthStateSubscription = (queryClient: QueryClient) => {
     queryFn: async () => {
       const subscription = supabase.auth.onAuthStateChange((event, session) => {
         if (event === "SIGNED_IN") {
-          queryClient.invalidateQueries({ queryKey: ["authSession"] });
           queryClient.invalidateQueries({ queryKey: ["userRole"] });
           queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         } else if (event === "SIGNED_OUT") {
@@ -434,18 +433,6 @@ const HeaderDev = React.memo(() => {
     refetchInterval: 0,
   });
 
-  // Session query
-  const { data: authData, isLoading: isAuthLoading } = useQuery({
-    queryKey: ["authSession"],
-    queryFn: async () => {
-      const response = await fetch("/api/check-session");
-      if (!response.ok) throw new Error("Failed to check session");
-      return response.json();
-    },
-    staleTime: 1000 * 60,
-    refetchOnWindowFocus: true,
-  });
-
   // User role query
   const { data: userData, refetch: refetchUserRole } = useQuery<UserData>({
     queryKey: ["userRole"],
@@ -488,8 +475,8 @@ const HeaderDev = React.memo(() => {
       if (!response.ok) throw new Error("Failed to fetch unread orders");
       return response.json();
     },
-    enabled: !!authData?.user,
-    refetchInterval: 300000, // Refetch every 5 minutes
+    enabled: !!currentUser,
+    refetchInterval: 300000,
   });
 
   const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
@@ -500,7 +487,7 @@ const HeaderDev = React.memo(() => {
         throw new Error("Failed to fetch unread time-off requests");
       return response.json();
     },
-    enabled: !!authData?.user,
+    enabled: !!currentUser,
     refetchInterval: 300000,
   });
 
@@ -674,7 +661,7 @@ const HeaderDev = React.memo(() => {
         </Suspense>
         {/* Unread notifications */}
         <div className="flex items-center space-x-0">
-          {authData?.user ? (
+          {currentUser ? (
             <>
               <Link href="/sales/orderreview" className="mr-1">
                 <Button variant="ghost" size="icon" className="relative">
@@ -707,7 +694,7 @@ const HeaderDev = React.memo(() => {
               </Link>
 
               <div className="flex items-center space-x-1">
-                <Suspense fallback={<LoadingIndicator />}>
+                <Suspense fallback={"Loading..."}>
                   <LazyDropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button

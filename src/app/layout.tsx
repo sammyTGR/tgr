@@ -71,7 +71,7 @@ export default async function RootLayout({
                   >
                     <NotificationsProvider>
                       <RoleProvider initialSession={session}>
-                        <RealTimeNotificationsWrapper />
+                        {/* <RealTimeNotificationsWrapper /> */}
                         <Header />
                         <main className="min-h-screen">
                           {children as ReactElement}

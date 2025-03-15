@@ -53,7 +53,8 @@ type Role =
   | "admin"
   | "gunsmith"
   | "user"
-  | "customer";
+  | "customer"
+  | "auditor";
 
 // Define navigation item with role permissions
 interface NavigationItem {
@@ -72,7 +73,7 @@ const navigationSections = {
         title: "Submit & Review Audits",
         href: "/admin/audits",
         description: "Enter Audits & Review Existing Ones",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "auditor"],
       },
       {
         title: "DROS Guidance",
@@ -85,12 +86,13 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
     ],
   },
   staffManagement: {
-    title: "Staff Management",
+    title: "Scheduling",
     items: [
       {
         title: "Team Calendar",
@@ -103,6 +105,7 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
@@ -111,12 +114,12 @@ const navigationSections = {
         description: "View All Requests For Time Off",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
       },
-      {
-        title: "Staff Profiles",
-        href: "/admin/dashboard",
-        description: "All Profiles",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
+      // {
+      //   title: "Staff Profiles",
+      //   href: "/admin/dashboard",
+      //   description: "All Profiles",
+      //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
+      // },
       {
         title: "Create | Manage Schedules",
         href: "/admin/schedules",
@@ -128,25 +131,25 @@ const navigationSections = {
   formsAndReports: {
     title: "Forms & Reports",
     items: [
-      {
-        title: "Safety Waiver",
-        href: "/public/waiver",
-        description: "Submit A Safety Waiver",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "user",
-          "gunsmith",
-        ],
-      },
-      {
-        title: "Review Waivers",
-        href: "/sales/waiver/checkin",
-        description: "Review Waivers & Check-Ins",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
-      },
+      // {
+      //   title: "Safety Waiver",
+      //   href: "/public/waiver",
+      //   description: "Submit A Safety Waiver",
+      //   allowedRoles: [
+      //     "super admin",
+      //     "ceo",
+      //     "dev",
+      //     "admin",
+      //     "user",
+      //     "gunsmith",
+      //   ],
+      // },
+      // {
+      //   title: "Review Waivers",
+      //   href: "/sales/waiver/checkin",
+      //   description: "Review Waivers & Check-Ins",
+      //   allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+      // },
       {
         title: "View Certifications",
         href: "/TGR/certifications",
@@ -158,6 +161,7 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
@@ -171,13 +175,14 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
         title: "Submit Special Orders",
         href: "/sales/orders",
         description: "Submit Requests For Customers",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
       {
         title: "Special Orders Report",
@@ -189,7 +194,14 @@ const navigationSections = {
         title: "Gunsmithing",
         href: "/TGR/gunsmithing",
         description: "Weekly Gunsmithing Maintenance",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "gunsmith"],
+        allowedRoles: [
+          "super admin",
+          "ceo",
+          "dev",
+          "admin",
+          "gunsmith",
+          "auditor",
+        ],
       },
       {
         title: "Rental Firearms Checklist",
@@ -202,19 +214,20 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
         title: "Submit Daily Deposits",
         href: "/TGR/deposits",
         description: "Daily Deposits",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
       {
         title: "DROS Training",
         href: "/TGR/dros/training",
         description: "DROS Simulation",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
       {
         title: "Bulletin Board",
@@ -227,35 +240,36 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
         title: "Points Submissions",
         href: "/TGR/crew/points",
         description: "Report All Submitted Points",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
     ],
   },
-  fastbound: {
-    title: "Fastbound",
-    items: [
-      {
-        title: "Inventory",
-        href: "/TGR/fastbound/inventory",
-        description: "Inventory",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
-      },
-      {
-        title: "Acquisitions",
-        href: "/TGR/fastbound/acquisitions",
-        description: "Acquisitions",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
-      },
-    ],
-  },
+  // fastbound: {
+  //   title: "Fastbound",
+  //   items: [
+  //     {
+  //       title: "Inventory",
+  //       href: "/TGR/fastbound/inventory",
+  //       description: "Inventory",
+  //       allowedRoles: ["super admin", "dev"],
+  //     },
+  //     {
+  //       title: "Acquisitions",
+  //       href: "/TGR/fastbound/acquisitions",
+  //       description: "Acquisitions",
+  //       allowedRoles: ["super admin", "dev"],
+  //     },
+  //   ],
+  // },
   management: {
-    title: "Management",
+    title: "Staff Management",
     items: [
       {
         title: "Staff Profiles",
@@ -291,22 +305,22 @@ const navigationSections = {
         title: "Manage Staff Data",
         href: "/TGR/employees",
         description: "Set All Staff Details",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        allowedRoles: ["super admin", "dev"],
       },
-      {
-        title: "Audit Management",
-        href: "/admin/audits",
-        description: "Testing Audits",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
+      // {
+      //   title: "Audit Management",
+      //   href: "/admin/audits",
+      //   description: "Testing Audits",
+      //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
+      // },
       {
         title: "Upload Files",
         href: "/admin/upload",
         description: "Uploadthing",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        allowedRoles: ["super admin", "dev"],
       },
       {
-        title: "Reports Dashboard",
+        title: "Admin Dashboard",
         href: "/admin/reports/dashboard",
         description: "Daily Dashboard",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
@@ -315,7 +329,7 @@ const navigationSections = {
         title: "Onboarding",
         href: "/admin/onboarding",
         description: "New Member Onboarding",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        allowedRoles: ["super admin", "dev"],
       },
       {
         title: "Products & Pricing",
@@ -333,7 +347,7 @@ const navigationSections = {
         title: "Newsletter",
         href: "/public/subscribe",
         description: "Subscribe To Our Email List",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
       {
         title: "Banned Firearms",
@@ -346,6 +360,7 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
@@ -358,7 +373,7 @@ const navigationSections = {
         title: "Check On Orders",
         href: "/sales/orderreview/crew",
         description: "Check On Submitted Order Status",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
+        allowedRoles: ["super admin", "dev", "user"],
       },
     ],
   },
@@ -376,35 +391,56 @@ const navigationSections = {
           "admin",
           "user",
           "gunsmith",
+          "auditor",
         ],
       },
       {
         title: "Admin SOPs",
         href: "/admin/sop",
         description: "SOPs For Back Of The House",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "auditor"],
       },
     ],
   },
-  aim: {
-    title: "AIM",
-    items: [
-      {
-        title: "AIM",
-        href: "/aim",
-        description: "API Testing",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
-    ],
-  },
+  // aim: {
+  //   title: "AIM",
+  //   items: [
+  //     {
+  //       title: "AIM",
+  //       href: "/aim",
+  //       description: "API Testing",
+  //       allowedRoles: ["super admin", "dev"],
+  //     },
+  //   ],
+  // },
 };
 
-const HeaderTest = () => {
+const header = () => {
   const router = useRouter();
   const { setTheme } = useTheme();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+
+  // Auth state subscription query
+  useQuery({
+    queryKey: ["authStateSubscription"],
+    queryFn: async () => {
+      const subscription = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN") {
+          queryClient.invalidateQueries({ queryKey: ["userRole"] });
+          queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+        } else if (event === "SIGNED_OUT") {
+          queryClient.clear();
+          window.location.href = "/";
+        }
+      });
+
+      return () => subscription.data.subscription.unsubscribe();
+    },
+    gcTime: 0,
+    staleTime: Infinity,
+  });
 
   // User data query
   const { data: currentUser } = useQuery({
@@ -416,7 +452,7 @@ const HeaderTest = () => {
       return user;
     },
     staleTime: Infinity,
-  });
+  }) as { data: User | null };
 
   // Role data query
   const { data: userData } = useQuery({
@@ -426,7 +462,8 @@ const HeaderTest = () => {
       if (!response.ok) {
         throw new Error("Failed to fetch user role");
       }
-      return response.json();
+      const data = await response.json();
+      return data;
     },
     enabled: !!currentUser,
     staleTime: Infinity,
@@ -449,10 +486,85 @@ const HeaderTest = () => {
     enabled: !!currentUser?.id,
   });
 
-  const userRole = userData?.user?.role as Role;
+  // Unread counts queries
+  const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
+    queryKey: ["unreadOrders"],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadOrders");
+      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      return response.json();
+    },
+    enabled: !!currentUser,
+    refetchInterval: 300000, // Refetch every 5 minutes
+  });
+
+  const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
+    queryKey: ["unreadTimeOff"],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadTimeOffRequests");
+      if (!response.ok)
+        throw new Error("Failed to fetch unread time-off requests");
+      return response.json();
+    },
+    enabled: !!currentUser,
+    refetchInterval: 300000,
+  });
+
+  // Add subscription queries
+  useQuery({
+    queryKey: ["ordersSubscription"],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("orders")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser,
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+
+  useQuery({
+    queryKey: ["timeOffSubscription"],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("time_off_requests")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "time_off_requests" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser,
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+
+  // Extract user role and add console.log for debugging
+  const userRole = userData?.role as Role;
+  console.log("Current user role:", userRole);
+  console.log("User data:", userData);
 
   // Function to check if a navigation item should be visible
   const isItemVisible = (allowedRoles: Role[]) => {
+    if (!userRole) return false;
     return allowedRoles.includes(userRole);
   };
 
@@ -485,8 +597,18 @@ const HeaderTest = () => {
     router.push(redirectUrl);
   };
 
+  const handleSupportClick = () => {
+    router.push("/support");
+  };
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+      queryClient.clear();
+      router.push("/sign-in");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
@@ -526,6 +648,33 @@ const HeaderTest = () => {
       <div className="flex items-center space-x-0">
         {currentUser ? (
           <>
+            {/* Admin-only menu items */}
+            {["super admin", "ceo", "dev", "admin"].includes(userRole) && (
+              <>
+                <Link href="/sales/orderreview" className="mr-1">
+                  <Button variant="ghost" size="icon" className="relative">
+                    <FileTextIcon />
+                    {unreadOrdersData.unreadOrderCount > 0 && (
+                      <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
+                        {unreadOrdersData.unreadOrderCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+
+                <Link href="/admin/timeoffreview" className="mr-1">
+                  <Button variant="ghost" size="icon" className="relative">
+                    <CalendarIcon />
+                    {unreadTimeOffData.unreadTimeOffCount > 0 && (
+                      <span className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center text-xs">
+                        {unreadTimeOffData.unreadTimeOffCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+              </>
+            )}
+
             {/* Only show these buttons for employee roles */}
             {userRole !== "customer" && (
               <>
@@ -556,6 +705,7 @@ const HeaderTest = () => {
                       </DropdownMenuItem>
                     )}
 
+                    <DropdownMenuSeparator />
                     {/* Admin-only menu items */}
                     {["super admin", "ceo", "dev", "admin"].includes(
                       userRole
@@ -574,6 +724,12 @@ const HeaderTest = () => {
                         >
                           <DashboardIcon className="mr-2 h-4 w-4" />
                           Admin Dashboard
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem onClick={handleSupportClick}>
+                          <QuestionMarkIcon className="mr-2 h-4 w-4" />
+                          <span>Support</span>
                         </DropdownMenuItem>
                       </>
                     )}
@@ -656,4 +812,4 @@ const ListItem = React.forwardRef<
 
 ListItem.displayName = "ListItem";
 
-export default HeaderTest;
+export default header;
