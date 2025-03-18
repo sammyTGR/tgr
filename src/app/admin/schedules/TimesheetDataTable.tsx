@@ -546,6 +546,42 @@ export function TimesheetDataTable({
             if (!row.total_hours) return "";
 
             try {
+              const formatTotalHours = (totalHours: string | null): string => {
+                if (!totalHours) return "";
+
+                try {
+                  // Handle HH:MM format
+                  if (totalHours.includes(":")) {
+                    const [hours, minutes] = totalHours.split(":");
+                    if (showDecimalHours) {
+                      const decimalHours =
+                        parseInt(hours) + parseInt(minutes) / 60;
+                      return decimalHours.toFixed(2);
+                    }
+                    return totalHours;
+                  }
+
+                  // Handle numeric format
+                  const numericHours = parseFloat(totalHours);
+                  if (!isNaN(numericHours)) {
+                    if (showDecimalHours) {
+                      return numericHours.toFixed(2);
+                    }
+                    const hours = Math.floor(numericHours);
+                    const minutes = Math.round((numericHours - hours) * 60);
+                    return `${hours}:${minutes.toString().padStart(2, "0")}`;
+                  }
+
+                  return totalHours;
+                } catch (error) {
+                  console.error("Error formatting total hours:", error);
+                  return totalHours;
+                }
+              };
+
+              return formatTotalHours(row.total_hours);
+            } catch (error) {
+              console.error("Error formatting total hours:", error);
               const [hours, minutes] = row.total_hours.split(":");
               const totalHours = parseInt(hours);
               const totalMinutes = parseInt(minutes);
@@ -556,9 +592,6 @@ export function TimesheetDataTable({
               }
 
               return `${totalHours}:${totalMinutes.toString().padStart(2, "0")}`;
-            } catch (error) {
-              console.error("Error formatting total hours:", error);
-              return row.total_hours;
             }
           },
         };
@@ -643,7 +676,6 @@ export function TimesheetDataTable({
     if (!intervalStr) return "";
     try {
       // Handle different PostgreSQL interval formats
-      // Could be "HH:MM:SS" or "H hours M minutes" or just a number
       if (intervalStr.includes(":")) {
         const [hours, minutes] = intervalStr.split(":");
         return `${parseInt(hours)}:${minutes.padStart(2, "0")}`;
@@ -793,12 +825,36 @@ export function TimesheetDataTable({
         const lunchStart = safeFormatTime(item.lunch_start);
         const lunchEnd = safeFormatTime(item.lunch_end);
 
-        const formatTotalHours = (totalHours: string | null) => {
+        const formatTotalHours = (totalHours: string | null): string => {
           if (!totalHours) return "";
-          if (showDecimalHours) {
-            return parseInterval(totalHours).toFixed(2);
+
+          try {
+            // Handle HH:MM format
+            if (totalHours.includes(":")) {
+              const [hours, minutes] = totalHours.split(":");
+              if (showDecimalHours) {
+                const decimalHours = parseInt(hours) + parseInt(minutes) / 60;
+                return decimalHours.toFixed(2);
+              }
+              return totalHours;
+            }
+
+            // Handle numeric format
+            const numericHours = parseFloat(totalHours);
+            if (!isNaN(numericHours)) {
+              if (showDecimalHours) {
+                return numericHours.toFixed(2);
+              }
+              const hours = Math.floor(numericHours);
+              const minutes = Math.round((numericHours - hours) * 60);
+              return `${hours}:${minutes.toString().padStart(2, "0")}`;
+            }
+
+            return totalHours;
+          } catch (error) {
+            console.error("Error formatting total hours:", error);
+            return totalHours;
           }
-          return formatIntervalForExcel(totalHours);
         };
 
         return [
