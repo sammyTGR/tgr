@@ -9,7 +9,6 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import dynamic from "next/dynamic";
 
 interface UserSession {
-  session: any;
   user: any;
   role?: string;
   employee_id?: number;
@@ -39,28 +38,16 @@ export default function Home() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Query for checking auth session
+  // Query for checking auth user
   const sessionQuery = useQuery<UserSession | null>({
-    queryKey: ["auth-session"],
+    queryKey: ["auth-user"],
     queryFn: () =>
-      supabase.auth
-        .getSession()
-        .then(({ data: { session }, error: sessionError }) => {
-          if (sessionError || !session) {
-            return null;
-          }
-          return supabase.auth
-            .getUser()
-            .then(({ data: { user }, error: userError }) => {
-              if (userError) {
-                throw new Error(userError.message);
-              }
-              return {
-                session,
-                user,
-              };
-            });
-        }),
+      supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+        if (userError || !user) {
+          return null;
+        }
+        return { user };
+      }),
   });
 
   // Query for fetching user role
@@ -81,7 +68,6 @@ export default function Home() {
         .then(({ data: employeeData, error: employeeError }) => {
           if (!employeeError && employeeData) {
             return {
-              session: sessionQuery.data?.session,
               user: sessionQuery.data?.user,
               role: employeeData.role,
               employee_id: employeeData.employee_id,
@@ -103,7 +89,6 @@ export default function Home() {
               }
 
               return {
-                session: sessionQuery.data?.session,
                 user: sessionQuery.data?.user,
                 role: customerData.role,
               };
@@ -156,7 +141,7 @@ export default function Home() {
     return <div>Validating Role...</div>;
   }
 
-  // Handle no session state
+  // Handle no user state
   if (!sessionQuery.data) {
     return router.push("/sign-in");
   }

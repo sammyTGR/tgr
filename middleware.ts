@@ -45,31 +45,32 @@ export async function middleware(request: NextRequest) {
 
   try {
     const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (sessionError) {
-      console.error("Session error:", sessionError.message);
+    if (userError) {
+      console.error("User error:", userError.message);
       return NextResponse.redirect(new URL("/auth", request.url));
     }
 
-    // If no session and trying to access protected path, redirect to auth
-    if (!session && protectedPaths.includes(pathname)) {
-      console.log("No session, redirecting to auth");
+    // If no user and trying to access protected path, redirect to auth
+    if (!user && protectedPaths.includes(pathname)) {
+      console.log("No user, redirecting to auth");
       return NextResponse.redirect(
         new URL("/auth?next=" + pathname, request.url)
       );
     }
 
-    // If we have a session, get the user
-    if (session?.user) {
-      console.log("Session found, checking user role");
+    // If we have a user, check their role
+    if (user) {
+      console.log("User found, checking user role");
 
       // Get role from JWT with proper typing
       let jwtRole = "authenticated";
-      if (session.access_token) {
-        const jwt = jwtDecode<JWTPayload>(session.access_token);
+      const token = request.cookies.get("sb-access-token")?.value;
+      if (token) {
+        const jwt = jwtDecode<JWTPayload>(token);
         jwtRole = jwt.app_metadata?.role || "authenticated";
         console.log("JWT Role:", jwtRole);
       }
@@ -78,7 +79,7 @@ export async function middleware(request: NextRequest) {
       const { data: employeeData, error: employeeError } = await supabase
         .from("employees")
         .select("role, employee_id, status")
-        .eq("user_uuid", session.user.id)
+        .eq("user_uuid", user.id)
         .eq("status", "active")
         .single();
 
@@ -89,7 +90,7 @@ export async function middleware(request: NextRequest) {
         console.log("DB Role:", dbRole, "Employee ID:", employeeId);
 
         // Verify JWT role matches database role
-        if (session.user.app_metadata?.role !== dbRole) {
+        if (user.app_metadata?.role !== dbRole) {
           console.log("Role mismatch, signing out");
           await supabase.auth.signOut();
           return NextResponse.redirect(new URL("/auth", request.url));
@@ -128,7 +129,7 @@ export async function middleware(request: NextRequest) {
         const { data: customerData, error: customerError } = await supabase
           .from("customers")
           .select("role, id, status")
-          .eq("user_uuid", session.user.id)
+          .eq("user_uuid", user.id)
           .eq("status", "active")
           .single();
 
@@ -159,7 +160,7 @@ export async function middleware(request: NextRequest) {
     return res;
   } catch (error) {
     console.error("Middleware error:", error);
-    // If there's an error getting the session, treat it as no session
+    // If there's an error getting the user, treat it as no user
     if (protectedPaths.includes(pathname)) {
       return NextResponse.redirect(
         new URL("/auth?next=" + pathname, request.url)
