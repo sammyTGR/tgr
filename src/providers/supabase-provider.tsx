@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/auth-helpers-nextjs";
+import type { User, Session } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "../../types/supabase";
 import { supabase } from "@/utils/supabase/client";
 
@@ -15,27 +15,21 @@ const Context = createContext<SupabaseContextType | undefined>(undefined);
 
 export default function SupabaseProvider({
   children,
-  initialUser,
+  initialSession,
 }: {
   children: React.ReactNode;
-  initialUser: User | null;
+  initialSession: Session | null;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(initialUser);
+  const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
 
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN") {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
-        router.refresh();
-      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (event === "SIGNED_IN") router.refresh();
       if (event === "SIGNED_OUT") {
-        setUser(null);
         router.refresh();
         router.push("/sign-in");
       }

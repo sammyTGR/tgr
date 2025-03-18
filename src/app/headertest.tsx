@@ -182,7 +182,21 @@ const navigationSections = {
         title: "Submit Special Orders",
         href: "/sales/orders",
         description: "Submit Requests For Customers",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
+        allowedRoles: [
+          "super admin",
+          "ceo",
+          "dev",
+          "admin",
+          "user",
+          "auditor",
+          "gunsmith",
+        ],
+      },
+      {
+        title: "View Special Orders",
+        href: "/sales/orderreview/crew",
+        description: "View All Submitted Orders",
+        allowedRoles: ["super admin", "dev", "user"],
       },
       {
         title: "Special Orders Report",
@@ -194,14 +208,7 @@ const navigationSections = {
         title: "Gunsmithing",
         href: "/TGR/gunsmithing",
         description: "Weekly Gunsmithing Maintenance",
-        allowedRoles: [
-          "super admin",
-          "ceo",
-          "dev",
-          "admin",
-          "gunsmith",
-          "auditor",
-        ],
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "gunsmith"],
       },
       {
         title: "Rental Firearms Checklist",
@@ -249,6 +256,12 @@ const navigationSections = {
         description: "Report All Submitted Points",
         allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
+      {
+        title: "Newsletter",
+        href: "/public/subscribe",
+        description: "Subscribe To Our Email List",
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
+      },
     ],
   },
   // fastbound: {
@@ -277,30 +290,30 @@ const navigationSections = {
         description: "All Profiles",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
       },
-      {
-        title: "Monthly Contest",
-        href: "/admin/audits/contest",
-        description: "Monthly Sales Contest",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
+      // {
+      //   title: "Monthly Contest",
+      //   href: "/admin/audits/contest",
+      //   description: "Monthly Sales Contest",
+      //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
+      // },
       {
         title: "Weekly Meetings",
         href: "/admin/meetings",
         description: "Update & Meet Weekly",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
       },
-      {
-        title: "Sales Report",
-        href: "/admin/reports/sales",
-        description: "View Daily Sales",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
-      {
-        title: "Download Reports",
-        href: "/admin/reports/download",
-        description: "Download Various Reports",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
+      // {
+      //   title: "Sales Report",
+      //   href: "/admin/reports/sales",
+      //   description: "View Daily Sales",
+      //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
+      // },
+      // {
+      //   title: "Download Reports",
+      //   href: "/admin/reports/download",
+      //   description: "Download Various Reports",
+      //   allowedRoles: ["super admin", "ceo", "dev", "admin"],
+      // },
       {
         title: "Manage Staff Data",
         href: "/TGR/employees",
@@ -320,12 +333,6 @@ const navigationSections = {
         allowedRoles: ["super admin", "dev"],
       },
       {
-        title: "Admin Dashboard",
-        href: "/admin/reports/dashboard",
-        description: "Daily Dashboard",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
-      {
         title: "Onboarding",
         href: "/admin/onboarding",
         description: "New Member Onboarding",
@@ -343,16 +350,25 @@ const navigationSections = {
         description: "Class Scheduling Page",
         allowedRoles: ["super admin", "ceo", "dev", "admin", "user"],
       },
+
+      // {
+      //   title: "Banned Firearms",
+      //   href: "/TGR/dros/banned",
+      //   description: "Banned Firearms",
+      //   allowedRoles: [
+      //     "super admin",
+      //     "ceo",
+      //     "dev",
+      //     "admin",
+      //     "user",
+      //     "gunsmith",
+      //     "auditor",
+      //   ],
+      // },
       {
-        title: "Newsletter",
-        href: "/public/subscribe",
-        description: "Subscribe To Our Email List",
-        allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
-      },
-      {
-        title: "Banned Firearms",
-        href: "/TGR/dros/banned",
-        description: "Banned Firearms",
+        title: "Patch Notes",
+        href: "/patch-notes",
+        description: "Patch Notes",
         allowedRoles: [
           "super admin",
           "ceo",
@@ -362,18 +378,6 @@ const navigationSections = {
           "gunsmith",
           "auditor",
         ],
-      },
-      {
-        title: "Patch Notes",
-        href: "/patch-notes",
-        description: "Patch Notes",
-        allowedRoles: ["super admin", "ceo", "dev", "admin"],
-      },
-      {
-        title: "Check On Orders",
-        href: "/sales/orderreview/crew",
-        description: "Check On Submitted Order Status",
-        allowedRoles: ["super admin", "dev", "user"],
       },
     ],
   },
@@ -617,6 +621,19 @@ const header = () => {
         <NavigationMenuList className="flex space-x-1 mr-3">
           {/* Render navigation sections based on role */}
           {Object.entries(navigationSections).map(([key, section]) => {
+            // Skip Staff Management section for non-admin roles
+            if (
+              key === "management" &&
+              !["super admin", "ceo", "dev", "admin"].includes(userRole)
+            ) {
+              return null;
+            }
+
+            // Skip Auditing section for gunsmiths
+            if (key === "auditing" && userRole === "gunsmith") {
+              return null;
+            }
+
             const visibleItems = getVisibleItems(
               section.items as NavigationItem[]
             );
@@ -693,24 +710,31 @@ const header = () => {
                     <DropdownMenuSeparator />
                     {/* Profile link - visible to all employees */}
                     {userRole && employeeData?.employee_id && (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          router.push(
-                            `/TGR/crew/profile/${employeeData.employee_id}`
-                          )
-                        }
-                      >
-                        <PersonIcon className="mr-2 h-4 w-4" />
-                        Profile
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            router.push(
+                              `/TGR/crew/profile/${employeeData.employee_id}`
+                            )
+                          }
+                        >
+                          <PersonIcon className="mr-2 h-4 w-4" />
+                          Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSupportClick}>
+                          <QuestionMarkIcon className="mr-2 h-4 w-4" />
+                          <span>Support</span>
+                        </DropdownMenuItem>
+                      </>
                     )}
 
-                    <DropdownMenuSeparator />
                     {/* Admin-only menu items */}
                     {["super admin", "ceo", "dev", "admin"].includes(
                       userRole
                     ) && (
                       <>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => router.push("/admin/domains")}
                         >
@@ -724,12 +748,6 @@ const header = () => {
                         >
                           <DashboardIcon className="mr-2 h-4 w-4" />
                           Admin Dashboard
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuItem onClick={handleSupportClick}>
-                          <QuestionMarkIcon className="mr-2 h-4 w-4" />
-                          <span>Support</span>
                         </DropdownMenuItem>
                       </>
                     )}

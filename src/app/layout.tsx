@@ -19,7 +19,6 @@ import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrap
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { createClient } from "@/utils/supabase/server";
 import { FeatureFlagsProvider } from "@/context/FeatureFlagsContext";
-import { headers } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,23 +38,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const supabase = createClient();
-
-  // Only get the session first
   const {
     data: { session },
-    error: sessionError,
   } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    console.error("Session fetch error:", sessionError);
-  }
-
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <SupabaseProvider initialUser={null}>
+        <SupabaseProvider initialSession={session}>
           <QueryProvider>
             <TooltipProvider>
               <GoogleOAuthProvider clientId={clientId}>
@@ -70,15 +61,15 @@ export default async function RootLayout({
                     disableTransitionOnChange
                   >
                     <NotificationsProvider>
-                      <RoleProvider initialSession={session}>
-                        {/* <RealTimeNotificationsWrapper /> */}
+                      <RoleProvider>
+                        <RealTimeNotificationsWrapper />
                         <Header />
-                        <main className="min-h-screen">
+                        <main>
                           {children as ReactElement}
                           {shouldInjectToolbar && <VercelToolbar />}
                           <Analytics />
                         </main>
-                        <Toaster position="top-center" />
+                        <Toaster />
                       </RoleProvider>
                     </NotificationsProvider>
                   </ThemeProvider>
