@@ -27,7 +27,6 @@ import {
 } from "date-fns-tz";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "../../../../utils/supabase/client";
-import { useRole } from "../../../../context/RoleContext";
 import classNames from "classnames";
 import { Button } from "@/components/ui/button";
 import {
@@ -408,9 +407,30 @@ const getBreakRoomDutyEmployee = async (
   }
 };
 
+// Add this type definition
+interface UserRoleResponse {
+  role: string;
+  user: any;
+}
+
+// Add this function before the Component
+const fetchUserRole = async (): Promise<UserRoleResponse> => {
+  const response = await fetch("/api/getUserRole");
+  if (!response.ok) {
+    throw new Error("Failed to fetch user role");
+  }
+  return response.json();
+};
+
 // Component
 export default function Component() {
-  const role = useRole().role;
+  // Replace useRole with useQuery
+  const { data: roleData, isLoading: isRoleLoading } = useQuery({
+    queryKey: ["userRole"],
+    queryFn: fetchUserRole,
+  });
+
+  const role = roleData?.role;
   const queryClient = useQueryClient();
 
   // Queries
@@ -1197,14 +1217,18 @@ export default function Component() {
     (calendarEvent: CalendarEvent, employee: EmployeeCalendar) => {
       if (role && ["admin", "super admin", "dev"].includes(role)) {
         return (
-          <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100">
+          <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="linkHover1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-muted"
+                >
                   <CaretUpIcon className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent>
+              <PopoverContent className="w-56 p-2" align="end">
                 <Button
                   variant="linkHover2"
                   disabled={updateStatusMutation.isPending}
@@ -1525,10 +1549,11 @@ export default function Component() {
       }
       return null;
     },
-    [role, lateStartDataQuery.data, updateStatusMutation, queryClient]
+    [role, updateStatusMutation, queryClient]
   );
 
   if (
+    isRoleLoading ||
     currentDateQuery.isLoading ||
     calendarDataQuery.isLoading ||
     breakRoomDutyQuery.isLoading
