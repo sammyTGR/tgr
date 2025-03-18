@@ -115,10 +115,10 @@ export async function middleware(request: NextRequest) {
             case "user":
             case "gunsmith":
             case "auditor":
-              redirectUrl = `/TGR/crew/profile/${employeeId}`;
+              redirectUrl = `/TGR/crew/bulletin`;
               break;
             default:
-              redirectUrl = `/TGR/crew/profile/${employeeId}`;
+              redirectUrl = `/TGR/crew/bulletin`;
           }
 
           console.log("Redirecting to:", redirectUrl);

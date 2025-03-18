@@ -144,6 +144,17 @@ export default function BulletinBoard() {
     },
   });
 
+  const { data: userRoleData } = useQuery({
+    queryKey: ["userRole"],
+    queryFn: async () => {
+      const response = await fetch("/api/getUserRole");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user role");
+      }
+      return response.json();
+    },
+  });
+
   const { data: currentEmployee } = useQuery({
     queryKey: ["currentEmployee", user?.id],
     queryFn: async () => {
@@ -231,7 +242,7 @@ export default function BulletinBoard() {
         currentEmployee?.department || ""
       );
 
-      // Return true (no need to acknowledge) if employee is NOT in required departments
+      // Return false (need to acknowledge) if employee IS in required departments
       return !isInRequiredDepartment;
     }
 
@@ -362,9 +373,9 @@ export default function BulletinBoard() {
       <main className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Crew Bulletin Board</h1>
-          {(currentEmployee?.role === "admin" ||
-            currentEmployee?.role === "super admin" ||
-            currentEmployee?.role === "dev") && (
+          {(userRoleData?.role === "admin" ||
+            userRoleData?.role === "super admin" ||
+            userRoleData?.role === "dev") && (
             <Dialog
               open={dialogStatesQuery.data?.createBulletinOpen}
               onOpenChange={(open) => {
@@ -601,9 +612,9 @@ export default function BulletinBoard() {
         <Tabs defaultValue="bulletins" className="w-full">
           <TabsList>
             <TabsTrigger value="bulletins">Bulletins</TabsTrigger>
-            {(currentEmployee?.role === "admin" ||
-              currentEmployee?.role === "super admin" ||
-              currentEmployee?.role === "dev") && (
+            {(userRoleData?.role === "admin" ||
+              userRoleData?.role === "super admin" ||
+              userRoleData?.role === "dev") && (
               <TabsTrigger value="acknowledgments">Acknowledgments</TabsTrigger>
             )}
           </TabsList>
@@ -616,9 +627,9 @@ export default function BulletinBoard() {
                     <CardTitle className="flex justify-between items-center">
                       <span>{post.title}</span>
                       <div className="flex items-center gap-2">
-                        {(currentEmployee?.role === "admin" ||
-                          currentEmployee?.role === "super admin" ||
-                          currentEmployee?.role === "dev") && (
+                        {(userRoleData?.role === "admin" ||
+                          userRoleData?.role === "super admin" ||
+                          userRoleData?.role === "dev") && (
                           <>
                             <Dialog
                               open={
@@ -997,6 +1008,13 @@ export default function BulletinBoard() {
                           <Form {...form}>
                             <form
                               onSubmit={form.handleSubmit((data) => {
+                                if (
+                                  !currentEmployee?.employee_id ||
+                                  !currentEmployee?.name
+                                ) {
+                                  toast.error("Employee data not found");
+                                  return;
+                                }
                                 acknowledgeMutation.mutate({
                                   postId: post.id,
                                   summary: data.summary,

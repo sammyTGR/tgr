@@ -124,7 +124,7 @@ export default function Home() {
         } else if (["admin"].includes(role || "")) {
           router.push("/admin/reports/dashboard/admin");
         } else if (employeeId) {
-          router.push(`/TGR/crew/profile/${employeeId}`);
+          router.push(`/TGR/crew/bulletin`);
         }
         return null;
       }),
