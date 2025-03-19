@@ -329,7 +329,7 @@ export default function DailyDepositsPage() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev", "ceo"]}
     >
       <main className="grid flex-1 items-start my-6 max-w-4xl sm:px-6 sm:py-0 md:gap-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
