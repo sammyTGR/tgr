@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useRole } from "@/context/RoleContext";
 import { supabase } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import {
@@ -47,7 +46,6 @@ const registers = [
 ];
 
 export default function DailyDepositsPage() {
-  const { role, loading } = useRole();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
   const queryClient = useQueryClient();
@@ -329,17 +327,6 @@ export default function DailyDepositsPage() {
     }
   };
 
-  if (
-    loading ||
-    (role !== "user" &&
-      role !== "auditor" &&
-      role !== "admin" &&
-      role !== "super admin" &&
-      role !== "dev")
-  ) {
-    return <div></div>;
-  }
-
   return (
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
@@ -498,15 +485,6 @@ export default function DailyDepositsPage() {
               </Card>
             </TabsContent>
           ))}
-          {/* {!isSecondCount && (
-            <Button
-              variant="gooeyRight"
-              className="flex justify-between ml-auto mt-4"
-              onClick={handleSubmit}
-            >
-              Submit Final
-            </Button>
-          )} */}
         </Tabs>
       </main>
     </RoleBasedWrapper>
