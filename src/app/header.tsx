@@ -317,9 +317,9 @@ const navigationSections = {
         allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
       {
-        title: "Newsletter",
+        title: "Email Blasts",
         href: "/public/subscribe",
-        description: "Subscribe To Our Email List",
+        description: "Sign Customers Up For Email Blasts",
         allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
     ],
