@@ -36,11 +36,11 @@ function DelayedDeliveries({ className }: { className?: string }) {
             </h2>
             <br />
             <ul className="list-none pl-4">
-              <li>27.a. Enter The New Earliest Delivery Date</li>
+              <li>27.a. Keep This Date The Same (Must Match Date In 23)</li>
               <ul className="list-none pl-4">
                 <li>
-                  If That Date Doesn’t Work, Remove 3 Days From The Current Date
-                  (The Day You Are Disposing The Firearm)
+                  - If That Date Doesn’t Work, Remove 3 Days From The Current
+                  Date (The Day You Are Disposing The Firearm)
                 </li>
               </ul>
               {/* Nested list item */}
