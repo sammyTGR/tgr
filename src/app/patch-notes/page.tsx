@@ -11,7 +11,6 @@ import { AddPatchNoteDialog } from "./add-patch-note-dialog";
 import { useState } from "react";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { PatchNotesSection } from "./patch-notes-section";
-import { useRole } from "@/context/RoleContext";
 
 interface PatchNote {
   id: string;
@@ -33,7 +32,6 @@ interface ExpandableCardProps {
 
 export default function PatchNotesPage() {
   const { data: patchNotes, isLoading } = usePatchNotes();
-  const { role } = useRole();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<PatchNote | null>(null);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
@@ -73,7 +71,6 @@ export default function PatchNotesPage() {
     return (
       <Card className={`relative ${isExpanded ? "h-auto" : "h-[200px]"}`}>
         <CardHeader className="flex flex-row items-center justify-between">
-          {/* <CardTitle>{title}</CardTitle> */}
           <Button
             variant="ghost"
             size="sm"
@@ -103,36 +100,28 @@ export default function PatchNotesPage() {
     );
   };
 
-  const AdminSection = () => {
-    if (role !== "dev") return null;
-
-    return (
-      <Button onClick={() => setDialogOpen(true)}>
-        <Plus className="w-4 h-4 mr-2" />
-        Add Patch Note
-      </Button>
-    );
-  };
-
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Patch Notes</h1>
-        <AdminSection />
-      </div>
+    <RoleBasedWrapper allowedRoles={["dev"]}>
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Patch Notes</h1>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Patch Note
+          </Button>
+        </div>
 
-      {role === "dev" && (
         <AddPatchNoteDialog
           open={dialogOpen}
           onOpenChange={handleDialogClose}
           editNote={selectedNote}
         />
-      )}
 
-      <PatchNotesSection
-        onEdit={setSelectedNote}
-        setDialogOpen={setDialogOpen}
-      />
-    </div>
+        <PatchNotesSection
+          onEdit={setSelectedNote}
+          setDialogOpen={setDialogOpen}
+        />
+      </div>
+    </RoleBasedWrapper>
   );
 }
