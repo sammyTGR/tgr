@@ -23,8 +23,10 @@ import {
 import { ChevronDown } from "lucide-react";
 import { CertificationDataTablePagination } from "./data-table-pagination";
 import { PopoverForm } from "./PopoverForm";
-import { useRole } from "@/context/RoleContext";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabase/client";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 export interface CertificationData {
   id: string;
@@ -57,13 +59,41 @@ export function CertificationDataTable({
   employees,
   onAddCertificate,
 }: CertificationDataTableProps) {
-  const { role } = useRole();
-  const isAdmin = role === "admin" || role === "super admin" || role === "dev";
+  const { data: userRole } = useQuery({
+    queryKey: ["userRole"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("user_uuid", user.id)
+        .single();
+
+      if (employeeError) {
+        const { data: customerData } = await supabase
+          .from("customers")
+          .select("role")
+          .eq("email", user.email)
+          .single();
+
+        return customerData?.role || null;
+      }
+
+      return employeeData?.role || null;
+    },
+  });
+
+  const isAdmin =
+    userRole === "admin" || userRole === "super admin" || userRole === "dev";
 
   return (
     <div className="flex flex-col h-full max-w-7xl">
       <div className="flex flex-row items-center justify-between mb-2">
-        {isAdmin && (
+        <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev", "ceo"]}>
           <Button variant="outline">
             <PopoverForm
               onSubmit={(_, updates) => onAddCertificate(updates)}
@@ -73,7 +103,7 @@ export function CertificationDataTable({
               employees={employees}
             />
           </Button>
-        )}
+        </RoleBasedWrapper>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

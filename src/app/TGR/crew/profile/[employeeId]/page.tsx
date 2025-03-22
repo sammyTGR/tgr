@@ -1157,6 +1157,7 @@ const EmployeeProfilePage = () => {
         "admin",
         "super admin",
         "dev",
+        "ceo",
       ]}
     >
       <div className="section w-full">
