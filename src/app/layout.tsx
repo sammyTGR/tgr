@@ -19,6 +19,9 @@ import RealTimeNotificationsWrapper from "@/components/RealTimeNotificationsWrap
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { createClient } from "@/utils/supabase/server";
 import { FeatureFlagsProvider } from "@/context/FeatureFlagsContext";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { cookies } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +46,10 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
   const shouldInjectToolbar = process.env.NODE_ENV === "development";
 
+  // Get the sidebar state from cookies
+  const cookieStore = cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
@@ -63,12 +70,16 @@ export default async function RootLayout({
                     <NotificationsProvider>
                       <RoleProvider>
                         <RealTimeNotificationsWrapper />
+                        {/* <SidebarProvider defaultOpen={defaultOpen}> */}
+                        {/* <AppSidebar /> */}
                         <Header />
                         <main>
+                          {/* <SidebarTrigger /> */}
                           {children as ReactElement}
                           {shouldInjectToolbar && <VercelToolbar />}
                           <Analytics />
                         </main>
+                        {/* </SidebarProvider> */}
                         <Toaster />
                       </RoleProvider>
                     </NotificationsProvider>
