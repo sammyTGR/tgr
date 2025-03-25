@@ -2084,12 +2084,20 @@ function AdminDashboardContent() {
                   </div>
                 </div>
 
-                <div className="w-full overflow-hidden">
+                <div className="w-full max-h-[calc(100vh-50px)] overflow-hidden">
                   <h3 className="font-bold p-1 underline">Patch Notes</h3>
                   <div className="col-span-full overflow-hidden mt-2">
-                    <div className="h-full w-full overflow-hidden">
-                      <PatchNotesSection />
-                    </div>
+                    <ScrollArea
+                      className={classNames(
+                        styles.noScroll,
+                        "h-[calc(100vh-150px)] overflow-hidden relative"
+                      )}
+                    >
+                      <div className="h-full w-full overflow-hidden">
+                        <PatchNotesSection />
+                      </div>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
                   </div>
                 </div>
 
