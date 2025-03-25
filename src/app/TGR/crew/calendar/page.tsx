@@ -1595,9 +1595,10 @@ export default function Component() {
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={TITLE} />
         </h1>
-        {(role === "admin" || role === "super admin" || role === "dev") && (
-          <HolidayManager />
-        )}
+        {(role === "admin" ||
+          role === "super admin" ||
+          role === "dev" ||
+          role === "ceo") && <HolidayManager />}
         <div className="w-full max-w-7xl">
           <div className="flex justify-between items-center mb-4">
             <Dialog
