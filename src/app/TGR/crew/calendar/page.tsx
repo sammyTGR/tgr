@@ -1637,46 +1637,6 @@ export default function Component() {
                 </Button>
               </div>
               <div className="overflow-hidden">
-                <div className="overflow-hidden">
-                  <Table
-                    className={`w-full ${
-                      selectedDayQuery.data ? "max-w-sm mr-auto" : ""
-                    }`}
-                  >
-                    <TableHeader className="sticky top-0 z-5 bg-background">
-                      <TableRow>
-                        {/* Employee Name Header */}
-                        <TableHead className="text-left w-28 max-w-sm bg-background sticky left-0 z-5">
-                          Employee
-                        </TableHead>
-                        {/* Days of the Week Headers */}
-                        {DAYS_OF_WEEK.map((day) => (
-                          <TableHead
-                            key={day}
-                            className={`text-left w-28 max-w-sm ${
-                              selectedDayQuery.data === day ? "bg-muted" : ""
-                            } ${
-                              role &&
-                              ["admin", "super admin", "dev", "user"].includes(
-                                role
-                              )
-                                ? "hover:bg-muted cursor-pointer"
-                                : ""
-                            } ${
-                              selectedDayQuery.data &&
-                              day !== selectedDayQuery.data
-                                ? "hidden"
-                                : ""
-                            }`}
-                            onClick={() => handleDayClick(day)}
-                          >
-                            {day} {weekDates[day]}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                  </Table>
-                </div>
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
@@ -1689,10 +1649,43 @@ export default function Component() {
                     }`}
                   >
                     <Table
-                      className={`overflow-hidden w-full ${
-                        selectedDayQuery.data ? "max-w-sm" : ""
+                      className={`w-full overflow-hidden ${
+                        selectedDayQuery.data ? "max-w-sm mr-auto" : ""
                       }`}
                     >
+                      <TableHeader className="sticky top-0 z-5 bg-background">
+                        <TableRow>
+                          <TableHead className="text-left w-28 max-w-sm bg-background sticky left-0 z-5">
+                            Employee
+                          </TableHead>
+                          {DAYS_OF_WEEK.map((day) => (
+                            <TableHead
+                              key={day}
+                              className={`text-left w-28 max-w-sm ${
+                                selectedDayQuery.data === day ? "bg-muted" : ""
+                              } ${
+                                role &&
+                                [
+                                  "admin",
+                                  "super admin",
+                                  "dev",
+                                  "user",
+                                ].includes(role)
+                                  ? "hover:bg-muted cursor-pointer"
+                                  : ""
+                              } ${
+                                selectedDayQuery.data &&
+                                day !== selectedDayQuery.data
+                                  ? "hidden"
+                                  : ""
+                              }`}
+                              onClick={() => handleDayClick(day)}
+                            >
+                              {day} {weekDates[day]}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
                       <TableBody>
                         {sortedFilteredCalendarData.length > 0 ? (
                           sortedFilteredCalendarData.map((employee) =>
