@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // Create a sanitize function that uses DOMPurify
 const sanitizeInput = (value: string) => {
@@ -40,6 +41,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 function SubscribeForm() {
+  const { state } = useSidebar();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -94,7 +96,9 @@ function SubscribeForm() {
   }
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen mx-auto">
+    <div
+      className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-70rem)] mt-12 ml-24 mx-auto" : "w-[calc(100vw-70rem)] mt-12 ml-24 mx-auto"} transition-all duration-300`}
+    >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
           <div className="flex w-full">

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import styled from "styled-components";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const title = "TGR SOP's";
 
@@ -24,6 +25,7 @@ const SlidesContainer = styled.div`
 `;
 
 const SlidesPage: React.FC = () => {
+  const { state } = useSidebar();
   const router = useRouter();
   const [user, setUser] = useState(null);
 
@@ -38,7 +40,9 @@ const SlidesPage: React.FC = () => {
         "dev",
       ]}
     >
-      <div className="flex flex-col items-center justify-center text-center mt-12 ">
+      <div
+        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-30rem)] mt-12 ml-24 mx-auto" : "w-[calc(100vw-30rem)] mt-12 ml-24 mx-auto"} transition-all duration-300`}
+      >
         <h1 className="flex justify-start ">
           <TextGenerateEffect words={title} />
         </h1>

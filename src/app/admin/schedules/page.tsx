@@ -30,6 +30,7 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TimesheetData, ScheduleData } from "./data-schema";
 import { User } from "@supabase/supabase-js";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface Schedule {
   employee_id: number;
@@ -371,6 +372,7 @@ const createTimesheetColumns = (
 ];
 
 const ManageSchedules = () => {
+  const { state } = useSidebar();
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
     "generate-single-schedule": false,
     "generate-all-schedules": false,
@@ -1129,7 +1131,9 @@ const ManageSchedules = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <Card className="flex flex-col h-full max-w-full sm:max-w-[calc(100vw-32px)] lg:max-w-[calc(100vw-40px)] mx-2 sm:mx-auto my-12">
+      <Card
+        className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] ml-6" : "w-[calc(100vw-20rem)] ml-6"} h-full overflow-hidden flex-1 transition-all duration-300`}
+      >
         <CardHeader className="bg-muted dark:bg-muted px-6 py-4 border-b rounded-t-lg border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-bold">Manage Employee Schedules</h1>
         </CardHeader>

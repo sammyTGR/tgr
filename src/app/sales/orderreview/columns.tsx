@@ -42,7 +42,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Employee" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "30px" },
     },
   },
   {
@@ -51,7 +51,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Customer Type" />
     ),
     meta: {
-      style: { width: "40px", overflow: "hidden" },
+      style: { width: "30px", overflow: "hidden" },
     },
   },
   {
@@ -60,7 +60,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Inquiry Type" />
     ),
     meta: {
-      style: { width: "150px" },
+      style: { width: "100px" },
     },
   },
   {
@@ -87,7 +87,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Phone" />
     ),
     meta: {
-      style: { width: "180px" },
+      style: { width: "200px" },
     },
   },
   {

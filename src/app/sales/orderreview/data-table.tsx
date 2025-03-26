@@ -23,14 +23,19 @@ import { DataTablePagination } from "@/app/admin/audits/review/pagination";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 import styles from "./table.module.css";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface DataTableProps<TData> {
   table: TableType<TData>;
 }
 
 export function DataTable<TData>({ table }: DataTableProps<TData>) {
+  const { state } = useSidebar();
+
   return (
-    <div className="flex flex-col max-h-full w-full overflow-hidden">
+    <div
+      className={`flex flex-col max-h-full ${state === "collapsed" ? "w-[calc(100vw-20rem)]" : "w-[calc(100vw-25rem)]"} overflow-hidden transition-all duration-300`}
+    >
       <div className="flex flex-row items-center justify-between mx-2 my-2 overflow-hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -59,15 +64,19 @@ export function DataTable<TData>({ table }: DataTableProps<TData>) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden max-h-full rounded-md border w-full sm:w-full md:w-full lg:max-w-8xl">
+      <div
+        className={`flex-1 overflow-hidden max-h-full rounded-md border ${state === "collapsed" ? "w-[calc(100vw-20rem)]" : "w-[calc(100vw-25rem)]"} sm:w-full md:w-full lg:max-w-[${state === "collapsed" ? "calc(100vw-40rem)" : "calc(100vw-40rem)"}] transition-all duration-300`}
+      >
         <div className="overflow-hidden">
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-500px)] w-[calc(100vw-50px)] overflow-auto relative"
+              "h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] overflow-hidden relative"
             )}
           >
-            <Table className="w-full overflow-hidden">
+            <Table
+              className={`${state === "collapsed" ? "w-[calc(100vw-20rem)]" : "w-[calc(100vw-25rem)]"} overflow-hidden transition-all duration-300`}
+            >
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>

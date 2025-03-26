@@ -87,6 +87,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const schedulestitle = "Scheduling";
 const performancetitle = "Individual Performance";
@@ -181,6 +182,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const EmployeeProfilePage = () => {
+  const { state } = useSidebar();
   const params = useParams();
   const employeeIdParam = params?.employeeId ?? "";
   const employeeId = Array.isArray(employeeIdParam)
@@ -1160,8 +1162,10 @@ const EmployeeProfilePage = () => {
         "ceo",
       ]}
     >
-      <div className="section w-full">
-        <Card className="flex flex-col h-full max-w-6xl mx-auto my-12">
+      <div
+        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] ml-24" : "w-[calc(100vw-40rem)] ml-24"} transition-all duration-300`}
+      >
+        <Card className="flex flex-col h-full w-[calc(100vw-40rem)] mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700 rounded-lg">
             <div className="flex items-center gap-4">
               <Avatar>

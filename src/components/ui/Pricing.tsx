@@ -13,6 +13,7 @@ import { useTransition } from "react";
 import { Price } from "@/types_db";
 import { supabase } from "@/utils/supabase/client";
 import { format, toZonedTime } from "date-fns-tz";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type Product = Tables<"products"> & {
   prices: Tables<"prices">[];
@@ -40,6 +41,7 @@ type BillingInterval = "one_time" | "training" | "monthly" | "yearly"; // Add ot
 type PriceType = "one_time" | "training" | "recurring"; // Add other valid price types
 
 export default function Pricing({ user, products, subscription }: Props) {
+  const { state } = useSidebar();
   const router = useRouter();
   const [billingInterval, setBillingInterval] =
     useState<BillingInterval>("one_time");
@@ -236,7 +238,9 @@ export default function Pricing({ user, products, subscription }: Props) {
   ];
 
   return (
-    <div className="max-w-6xl px-4 py-4 mx-auto sm:py-24 sm:px-6 lg:px-8">
+    <div
+      className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+    >
       <div className="sm:flex sm:flex-col sm:align-center">
         <div className="w-full mx-auto items-center justify-center max-w-3xl">
           <Image
@@ -357,8 +361,8 @@ export default function Pricing({ user, products, subscription }: Props) {
                       {subscription
                         ? "Manage"
                         : price.type === "one_time"
-                        ? "Add to Cart"
-                        : "Subscribe"}
+                          ? "Add to Cart"
+                          : "Subscribe"}
                     </Button>
                   </div>
                 </div>
@@ -474,8 +478,8 @@ export default function Pricing({ user, products, subscription }: Props) {
                     {subscription
                       ? "Manage"
                       : price.type === "one_time"
-                      ? "Add to Cart"
-                      : "Subscribe"}
+                        ? "Add to Cart"
+                        : "Subscribe"}
                   </Button>
                 </div>
               </div>

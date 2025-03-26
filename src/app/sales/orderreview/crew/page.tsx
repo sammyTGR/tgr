@@ -13,10 +13,12 @@ import {
   getSortedRowModel,
 } from "@tanstack/react-table";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const title = "Check Order Status";
 
 export default function OrdersReviewPage() {
+  const { state } = useSidebar();
   const [data, setData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,8 +113,10 @@ export default function OrdersReviewPage() {
           </div>
           <div className="flex-1 flex flex-col space-y-4">
             <OrderTableToolbar table={table} />
-            <div className="rounded-md border flex-1 flex flex-col">
-              <div className="relative w-full h-full overflow-auto flex-1">
+            <div className="rounded-md flex-1 flex flex-col">
+              <div
+                className={`relative ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+              >
                 {loading ? <p></p> : <DataTable table={table} />}
               </div>
             </div>

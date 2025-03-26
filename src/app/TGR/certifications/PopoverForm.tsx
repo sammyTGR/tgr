@@ -114,7 +114,9 @@ export const PopoverForm: React.FC<PopoverFormProps> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost">{buttonText}</Button>
+        <div className="inline-block">
+          <Button variant="ghost">{buttonText}</Button>
+        </div>
       </PopoverTrigger>
       <PopoverContent align="end" className="p-4">
         <div>

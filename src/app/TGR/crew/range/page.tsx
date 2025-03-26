@@ -30,8 +30,10 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export default function RangeWalkPage() {
+  const { state } = useSidebar();
   const { role } = useRole();
   const queryClient = useQueryClient();
 
@@ -332,7 +334,9 @@ export default function RangeWalkPage() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
-      <div className="section w-full overflow-hidden max-w-[calc(100vw-90px)] mx-auto">
+      <div
+        className={`flex flex-col items-center space-y-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] ml-24" : "w-[calc(100vw-40rem)] ml-24"} transition-all duration-300`}
+      >
         <h1 className="text-3xl font-bold mt-8">Range Walks & Repairs</h1>
         <div className="col-span-full overflow-hidden mt-14 ">
           <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 space-x-2 overflow-hidden">
@@ -341,7 +345,7 @@ export default function RangeWalkPage() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-2xl font-bold">Range Walk</CardTitle>
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent>
                 <Popover
                   open={rangeWalkPopoverState}
                   onOpenChange={handleRangeWalkPopoverOpenChange}
@@ -354,7 +358,7 @@ export default function RangeWalkPage() {
                       Submit Daily Range Walk
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-2" align="start">
+                  <PopoverContent align="start">
                     <RangewalkForm
                       onSubmitSuccess={handleRangeWalkSubmitSuccess}
                       onClose={() => handleRangeWalkPopoverOpenChange(false)}
@@ -371,7 +375,7 @@ export default function RangeWalkPage() {
                   Repair Notes
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent>
                 <Popover
                   open={repairNotesPopoverState}
                   onOpenChange={handleRepairNotesPopoverOpenChange}
@@ -446,7 +450,7 @@ export default function RangeWalkPage() {
         </div>
 
         {/* Range Report Card */}
-        <div className="max-w-[calc(100vw-90px)] overflow-hidden">
+        <div className="max-w-[calc(100vw-40rem)] overflow-hidden">
           <Card className="flex flex-col col-span-full mt-2 mb-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -458,10 +462,10 @@ export default function RangeWalkPage() {
               <ScrollArea
                 className={classNames(
                   styles.noScroll,
-                  "w-[calc(100vw-90px)] overflow-auto relative"
+                  "w-[calc(100vw-40rem)] overflow-hidden relative"
                 )}
               >
-                <CardContent className="flex flex-col overflow-auto">
+                <CardContent className="flex flex-col overflow-hidden">
                   {userLoading || dataLoading ? (
                     <p></p>
                   ) : (

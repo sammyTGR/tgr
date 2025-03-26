@@ -37,6 +37,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type Employee = {
   name: string;
@@ -61,6 +62,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function OrdersComponent() {
+  const { state } = useSidebar();
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [customerTypes, setCustomerTypes] = useState<string[]>([]);
@@ -127,21 +129,20 @@ export default function OrdersComponent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [customerTypesResponse, inquiryTypesResponse] = await Promise.all([
-          fetch("/api/customer-types"),
-          fetch("/api/inquiry-types")
-        ]);
-  
+        const [customerTypesResponse, inquiryTypesResponse] = await Promise.all(
+          [fetch("/api/customer-types"), fetch("/api/inquiry-types")]
+        );
+
         if (!customerTypesResponse.ok || !inquiryTypesResponse.ok) {
           throw new Error("One or more API calls failed");
         }
-  
+
         const customerTypesData = await customerTypesResponse.json();
         const inquiryTypesData = await inquiryTypesResponse.json();
-  
+
         //console.log("Fetched customer types:", customerTypesData);
         //console.log("Fetched inquiry types:", inquiryTypesData);
-  
+
         setCustomerTypes(customerTypesData);
         setInquiryTypes(inquiryTypesData);
       } catch (error) {
@@ -150,7 +151,7 @@ export default function OrdersComponent() {
         // setError("Failed to load dropdown options. Please try again later.");
       }
     };
-  
+
     fetchData();
   }, []);
 
@@ -179,7 +180,9 @@ export default function OrdersComponent() {
   };
 
   return (
-    <div className="flex justify-center mt-36">
+    <div
+      className={`flex flex-col items-center space-y-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] mt-12 ml-24" : "w-[calc(100vw-40rem)] mt-12 ml-24"} transition-all duration-300`}
+    >
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Special Orders & Requests</CardTitle>

@@ -11,6 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface ChartData {
   Lanid: string;
@@ -85,6 +86,7 @@ const inverseTransform = (value: number): number => {
 const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
   selectedRange,
 }) => {
+  const { state } = useSidebar();
   const queryClient = useQueryClient();
 
   const { data: activeView } = useQuery({
@@ -376,8 +378,11 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
   }
 
   return (
-    <div style={{ minWidth: chartData?.processedData.length * 100 }}>
-      <div className="flex flex-row items-center justify-between space-y-0 pb-4 w-[calc(100vw-220px)]">
+    <div
+      style={{ minWidth: chartData?.processedData.length * 100 }}
+      className="w-full"
+    >
+      <div className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="flex flex-row items-center justify-center gap-2 px-6 py-5 sm:py-6">
           <h1 className="text-2xl font-bold flex items-center gap-2"></h1>
         </div>
@@ -416,7 +421,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
 
       <ChartContainer
         config={chartConfig}
-        className="min-h-[20px] max-h-[400px] w-[calc(100vw-220px)]"
+        className="min-h-[20px] max-h-[400px] w-full"
       >
         <BarChart
           data={chartData.processedData}

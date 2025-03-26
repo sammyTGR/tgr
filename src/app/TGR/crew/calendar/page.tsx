@@ -68,6 +68,7 @@ import { isHoliday } from "@/utils/holidays";
 import styles from "./calendar.module.css";
 import { HolidayManager } from "@/components/HolidayManager";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // Constants
 const TITLE = "TGR Team Calendar";
@@ -424,6 +425,7 @@ const fetchUserRole = async (): Promise<UserRoleResponse> => {
 
 // Component
 export default function Component() {
+  const { state } = useSidebar();
   // Replace useRole with useQuery
   const { data: roleData, isLoading: isRoleLoading } = useQuery({
     queryKey: ["userRole"],
@@ -1591,7 +1593,9 @@ export default function Component() {
         "dev",
       ]}
     >
-      <div className="flex flex-col items-center space-y-4 p-4">
+      <div
+        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] ml-24" : "w-[calc(100vw-40rem)] ml-24"} transition-all duration-300`}
+      >
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={TITLE} />
         </h1>

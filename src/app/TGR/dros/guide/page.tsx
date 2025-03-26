@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import BannedFirearmsPage from "../banned/page";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type DataRow = string[];
 type Data = DataRow[];
@@ -38,6 +39,7 @@ interface DropdownItem {
 }
 
 export default function DROSGuide() {
+  const { state } = useSidebar();
   const queryClient = useQueryClient();
   const [activeDialogContentId, setActiveDialogContentId] = useState<
     string | null
@@ -169,7 +171,9 @@ export default function DROSGuide() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
-      <div className="container mx-auto py-6">
+      <div
+        className={`items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-30rem)] mt-12 ml-24 mx-auto" : "w-[calc(100vw-30rem)] mt-12 ml-24 mx-auto"} transition-all duration-300`}
+      >
         <div className="flex flow-row items-center justify-between mb-8">
           <div className="flex justify-center items-center mx-auto mb-24 w-full">
             <SupportMenu />

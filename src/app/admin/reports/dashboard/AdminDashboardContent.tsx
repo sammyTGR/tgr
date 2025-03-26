@@ -105,6 +105,7 @@ import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
 import DashboardKPI from "./dashboard-kpi";
 import PatchNotesPage from "@/app/patch-notes/page";
 import { PatchNotesSection } from "@/app/patch-notes/patch-notes-section";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface Certificate {
   id: number;
@@ -211,6 +212,7 @@ const columns = [
 ];
 
 function AdminDashboardContent() {
+  const { state } = useSidebar();
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {}
   );
@@ -2036,7 +2038,9 @@ function AdminDashboardContent() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <div className="max-w-[calc(100vw-40px)] py-4">
+      <div
+        className={`space-y-4 ${state === "collapsed" ? "w-[calc(100vw-20rem)] " : "w-[calc(100vw-20rem)] "} transition-all duration-300`}
+      >
         {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-3xl font-bold">CEO Dashboard</CardTitle>
@@ -2477,8 +2481,12 @@ function AdminDashboardContent() {
 
               {/* Sales Chart*/}
 
-              <div className="col-span-full overflow-hidden">
-                <Card className="flex flex-col col-span-full mt-2 mb-2">
+              <div
+                className={`relative col-span-full ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+              >
+                <Card
+                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChartIcon className="h-6 w-6" />
@@ -2489,18 +2497,22 @@ function AdminDashboardContent() {
                     <ScrollArea
                       className={classNames(
                         styles.noScroll,
-                        "w-[calc(100vw-100px)] overflow-auto relative"
+                        "w-full overflow-auto relative"
                       )}
                     >
                       <CardContent className="flex-grow overflow-auto">
                         <div className="h-full">
                           {selectedRange ? (
-                            <SalesRangeStackedBarChart
-                              selectedRange={{
-                                start: selectedRange.start,
-                                end: selectedRange.end,
-                              }}
-                            />
+                            <div
+                              className={`${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} transition-all duration-300`}
+                            >
+                              <SalesRangeStackedBarChart
+                                selectedRange={{
+                                  start: selectedRange.start,
+                                  end: selectedRange.end,
+                                }}
+                              />
+                            </div>
                           ) : (
                             <div>Please select a date range</div>
                           )}

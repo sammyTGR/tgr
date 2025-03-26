@@ -19,6 +19,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { User } from "@supabase/supabase-js";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const denominations = [
   { name: "Pennies", value: 0.01 },
@@ -46,6 +47,7 @@ const registers = [
 ];
 
 export default function DailyDepositsPage() {
+  const { state } = useSidebar();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
   const queryClient = useQueryClient();
@@ -331,7 +333,9 @@ export default function DailyDepositsPage() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev", "ceo"]}
     >
-      <main className="grid flex-1 items-start my-6 max-w-4xl sm:px-6 sm:py-0 md:gap-8">
+      <main
+        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-70rem)] ml-24" : "w-[calc(100vw-70rem)] ml-24"} transition-all duration-300`}
+      >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>

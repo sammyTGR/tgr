@@ -101,14 +101,18 @@ export default function PatchNotesPage() {
   };
 
   return (
-    <RoleBasedWrapper allowedRoles={["dev"]}>
+    <RoleBasedWrapper
+      allowedRoles={["dev", "ceo", "admin", "user", "gunsmith", "auditor"]}
+    >
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Patch Notes</h1>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Patch Note
-          </Button>
+          <RoleBasedWrapper allowedRoles={["dev"]}>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Patch Note
+            </Button>
+          </RoleBasedWrapper>
         </div>
 
         <AddPatchNoteDialog

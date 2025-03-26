@@ -12,6 +12,8 @@ import {
   Send,
   Settings2,
   SquareTerminal,
+  FileTextIcon,
+  CalendarIcon,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -26,10 +28,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const data = {
   user: {
@@ -156,6 +166,8 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const { data: currentUser } = useQuery({
     queryKey: ["currentUser"],
     queryFn: async () => {
@@ -197,6 +209,81 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     enabled: !!currentUser?.id,
   });
 
+  // Unread counts queries
+  const { data: unreadOrdersData = { unreadOrderCount: 0 } } = useQuery({
+    queryKey: ["unreadOrders"],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadOrders");
+      if (!response.ok) throw new Error("Failed to fetch unread orders");
+      return response.json();
+    },
+    enabled: !!currentUser,
+    refetchInterval: 300000, // Refetch every 5 minutes
+  });
+
+  const { data: unreadTimeOffData = { unreadTimeOffCount: 0 } } = useQuery({
+    queryKey: ["unreadTimeOff"],
+    queryFn: async () => {
+      const response = await fetch("/api/useUnreadTimeOffRequests");
+      if (!response.ok)
+        throw new Error("Failed to fetch unread time-off requests");
+      return response.json();
+    },
+    enabled: !!currentUser,
+    refetchInterval: 300000,
+  });
+
+  // Add subscription queries
+  useQuery({
+    queryKey: ["ordersSubscription"],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("orders")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["unreadOrders"] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser,
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+
+  useQuery({
+    queryKey: ["timeOffSubscription"],
+    queryFn: async () => {
+      const channel = supabase
+        .channel("time_off_requests")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "time_off_requests" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["unreadTimeOff"] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    },
+    enabled: !!currentUser,
+    gcTime: 0,
+    staleTime: Infinity,
+  });
+
+  const isAdmin = ["super admin", "ceo", "dev", "admin"].includes(
+    userData?.role
+  );
+
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -205,7 +292,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton size="lg" asChild>
               <a href="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Command className="size-4" />
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarImage
+                      src={
+                        currentUser?.user_metadata?.avatar_url ||
+                        "https://utfs.io/f/9jzftpblGSv7nvddLr3ZYIXtyiAHqxfuS6V9231FedsGbMWh"
+                      }
+                      alt={currentUser?.email || ""}
+                    />
+                    <AvatarFallback className="rounded-lg">
+                      {currentUser?.email?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">TGR</span>
@@ -216,6 +314,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isAdmin && (
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="lg"
+                  asChild
+                  onClick={() => router.push("/sales/orderreview")}
+                >
+                  <a href="/sales/orderreview">
+                    <FileTextIcon className="h-4 w-4" />
+                    <span>Special Orders</span>
+                  </a>
+                </SidebarMenuButton>
+                {unreadOrdersData.unreadOrderCount > 0 && (
+                  <SidebarMenuBadge>
+                    {unreadOrdersData.unreadOrderCount}
+                  </SidebarMenuBadge>
+                )}
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="lg"
+                  asChild
+                  onClick={() => router.push("/admin/timeoffreview")}
+                >
+                  <a href="/admin/timeoffreview">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span>Time Off Requests</span>
+                  </a>
+                </SidebarMenuButton>
+                {unreadTimeOffData.unreadTimeOffCount > 0 && (
+                  <SidebarMenuBadge>
+                    {unreadTimeOffData.unreadTimeOffCount}
+                  </SidebarMenuBadge>
+                )}
+              </SidebarMenuItem>
+            </>
+          )}
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>

@@ -22,7 +22,6 @@ import { CertificationDataTable } from "./certification-data-table";
 import { CertificationTableToolbar } from "./certification-table-toolbar";
 import { certificationColumns } from "./columns";
 import { toast } from "sonner";
-import { useRole } from "@/context/RoleContext";
 import { PopoverForm } from "./PopoverForm";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -30,6 +29,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 import styles from "./table.module.css";
+import { useSidebar } from "@/components/ui/sidebar";
 import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 // Types and Interfaces
@@ -64,8 +64,8 @@ interface MutationError extends Error {
 }
 
 const CertificationsPage: React.FC = () => {
+  const { state } = useSidebar();
   const queryClient = useQueryClient();
-  const { role } = useRole();
 
   // Convert tableState from ref to state
   const [tableState, setTableState] = React.useState({
@@ -281,60 +281,69 @@ const CertificationsPage: React.FC = () => {
         "user",
       ]}
     >
-      <div className="flex flex-col h-screen my-8 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Tabs defaultValue="certifications" className="flex-1 flex flex-col">
-            <div className="container justify-start px-4 mt-4">
-              <TabsList>
-                <TabsTrigger value="certifications">Certifications</TabsTrigger>
-              </TabsList>
-            </div>
+      <div
+        className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] mt-2 ml-4" : "w-[calc(100vw-20rem)] mt-2 ml-4"} h-full overflow-hidden flex-1 transition-all duration-300`}
+      >
+        {/* <div className="flex-1 flex flex-col"> */}
+        <Tabs defaultValue="certifications" className="w-full">
+          {/* <div className="container justify-start mt-4"> */}
+          <TabsList>
+            <TabsTrigger value="certifications">Certifications</TabsTrigger>
+          </TabsList>
+          {/* </div> */}
 
-            <div className="grid flex-1 items-start mt-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body">
-              <div className="container px-4 mt-4">
-                <TabsContent value="certifications" className="overflow-hidden">
-                  <Card className="h-full overflow-hidden">
-                    <CardHeader>
-                      <CardTitle className="text-2xl font-bold">
-                        <TextGenerateEffect words="Certifications Management" />
-                      </CardTitle>
-                    </CardHeader>
-                    <ScrollArea>
-                      <div className="max-h-[calc(100vh-300px)] max-w-[calc(100vw-20px)] overflow-auto relative">
-                        <CardContent className="mx-auto overflow-hidden">
-                          <CertificationTableToolbar
-                            table={table}
-                            onFilterChange={(filters) => {
-                              setTableState((prev) => ({
-                                ...prev,
-                                columnFilters: filters,
-                              }));
-                              queryClient.invalidateQueries({
-                                queryKey: ["certifications"],
-                              });
-                            }}
-                          />
-                          <div>
-                            <CertificationDataTable
-                              data={tableData}
-                              table={table}
-                              employees={employeesQuery.data ?? []}
-                              onAddCertificate={(
-                                cert: Partial<CertificationData>
-                              ) => addMutation.mutate(cert)}
-                            />
-                          </div>
-                        </CardContent>
-                        <ScrollBar orientation="vertical" />
-                        <ScrollBar orientation="horizontal" />
-                      </div>
-                    </ScrollArea>
-                  </Card>
-                </TabsContent>
-              </div>
-            </div>
-          </Tabs>
-        </div>
+          <div
+            className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] " : "w-[calc(100vw-20rem)] "} h-full overflow-hidden flex-1 transition-all duration-300`}
+          >
+            <TabsContent value="certifications" className="overflow-hidden">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold">
+                    <TextGenerateEffect words="Certifications Management" />
+                  </CardTitle>
+                </CardHeader>
+                {/* <ScrollArea
+                    className={classNames(
+                      styles.noScroll,
+                      "h-[calc(100vh-500px)] w-[calc(100vw-25rem)] overflow-hidden relative"
+                    )}
+                  > */}
+                <div className="flex-1 overflow-hidden">
+                  <CardContent className="mx-auto">
+                    <CertificationTableToolbar
+                      table={table}
+                      onFilterChange={(filters) => {
+                        setTableState((prev) => ({
+                          ...prev,
+                          columnFilters: filters,
+                        }));
+                        queryClient.invalidateQueries({
+                          queryKey: ["certifications"],
+                        });
+                      }}
+                    />
+                    <div
+                      className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] " : "w-[calc(100vw-20rem)] "} h-full overflow-hidden flex-1 transition-all duration-300`}
+                    >
+                      <CertificationDataTable
+                        data={tableData}
+                        table={table}
+                        employees={employeesQuery.data ?? []}
+                        onAddCertificate={(cert: Partial<CertificationData>) =>
+                          addMutation.mutate(cert)
+                        }
+                      />
+                    </div>
+                  </CardContent>
+                </div>
+                {/* <ScrollBar orientation="vertical" />
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea> */}
+              </Card>
+            </TabsContent>
+          </div>
+        </Tabs>
+        {/* </div> */}
       </div>
     </RoleBasedWrapper>
   );

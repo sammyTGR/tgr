@@ -11,6 +11,7 @@ import AddFirearmForm from "@/app/TGR/gunsmithing/AddFirearmForm";
 import { ProgressBar } from "@/components/ProgressBar";
 import { toZonedTime, format as formatTZ } from "date-fns-tz";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const words = "Firearms Checklist";
 const timeZone = "America/Los_Angeles";
@@ -29,6 +30,7 @@ interface FirearmVerification {
 }
 
 export default function FirearmsChecklist() {
+  const { state } = useSidebar();
   const [data, setData] = useState<FirearmsMaintenanceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -253,10 +255,10 @@ export default function FirearmsChecklist() {
         highlight: isVerified
           ? "text-green-600"
           : withGunsmith
-          ? "text-amber"
-          : currentlyRentedOut
-          ? "text-red"
-          : "",
+            ? "text-amber"
+            : currentlyRentedOut
+              ? "text-red"
+              : "",
       };
     });
 
@@ -641,7 +643,9 @@ export default function FirearmsChecklist() {
     <RoleBasedWrapper
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
-      <div className="h-screen max-w-8xl mx-auto flex flex-col">
+      <div
+        className={`relative ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+      >
         <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div>
@@ -712,10 +716,10 @@ export default function FirearmsChecklist() {
                             item.notes === "With Gunsmith"
                               ? "amber"
                               : item.notes === "Currently Rented Out"
-                              ? "red"
-                              : item.notes === "Verified"
-                              ? "green-600"
-                              : "", // Ensure this handles the empty string correctly
+                                ? "red"
+                                : item.notes === "Verified"
+                                  ? "green-600"
+                                  : "", // Ensure this handles the empty string correctly
                         }))}
                         userRole={userRole}
                         userUuid={userUuid}

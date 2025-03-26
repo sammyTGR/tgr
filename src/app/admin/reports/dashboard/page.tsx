@@ -105,6 +105,7 @@ import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
 import DashboardKPI from "./dashboard-kpi";
 import PatchNotesPage from "@/app/patch-notes/page";
 import { PatchNotesSection } from "@/app/patch-notes/patch-notes-section";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface Certificate {
   id: number;
@@ -211,6 +212,7 @@ const columns = [
 ];
 
 function AdminDashboardContent() {
+  const { state } = useSidebar();
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
     {}
   );
@@ -2477,8 +2479,12 @@ function AdminDashboardContent() {
 
               {/* Sales Chart*/}
 
-              <div className="col-span-full overflow-hidden">
-                <Card className="flex flex-col col-span-full mt-2 mb-2">
+              <div
+                className={`relative col-span-full ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+              >
+                <Card
+                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChartIcon className="h-6 w-6" />
@@ -2489,7 +2495,7 @@ function AdminDashboardContent() {
                     <ScrollArea
                       className={classNames(
                         styles.noScroll,
-                        "w-[calc(100vw-100px)] overflow-auto relative"
+                        "w-[calc(100vw-20rem)] overflow-hidden relative"
                       )}
                     >
                       <CardContent className="flex-grow overflow-auto">
@@ -2549,7 +2555,9 @@ function AdminDashboardContent() {
 
             <TabsContent value="sales-glance">
               <div className="w-full overflow-hidden">
-                <Card className="flex flex-col col-span-full h-full mb-4">
+                <Card
+                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                >
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
                       <TableIcon className="h-6 w-6" />
@@ -2765,80 +2773,95 @@ function AdminDashboardContent() {
             </TabsContent>
 
             <TabsContent value="metrics">
-              <div className="grid gap-6">
-                {/* 2024 Metrics */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>2024 Metrics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Metric</TableHead>
-                          <TableHead>Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {table2024.getRowModel().rows.map((row) => (
-                          <TableRow key={row.id}>
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
-                              </TableCell>
-                            ))}
+              <div
+                className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+              >
+                <div className="grid grid-cols-2 space-x-2">
+                  {/* 2024 Metrics */}
+                  <Card className="relative h-full overflow-hidden flex-1 transition-all duration-300">
+                    <CardHeader>
+                      <CardTitle>2024 Metrics</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Metric</TableHead>
+                            <TableHead>Value</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    {metricsData?.metrics2024 && (
-                      <CustomerFrequencyCard2024
-                        metrics={metricsData.metrics2024}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+                        </TableHeader>
+                        <TableBody>
+                          {table2024.getRowModel().rows.map((row) => (
+                            <TableRow key={row.id}>
+                              {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id}>
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                  )}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {metricsData?.metrics2024 && (
+                        <CustomerFrequencyCard2024
+                          metrics={metricsData.metrics2024}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
 
-                {/* 2025 Metrics */}
-                <Card>
+                  {/* 2025 Metrics */}
+                  <Card className="relative h-full overflow-hidden flex-1 transition-all duration-300">
+                    <CardHeader>
+                      <CardTitle>2025 Metrics</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Metric</TableHead>
+                            <TableHead>Value</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {table2025.getRowModel().rows.map((row) => (
+                            <TableRow key={row.id}>
+                              {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id}>
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                  )}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {metricsData?.metrics2025 && (
+                        <CustomerFrequencyCard2025
+                          metrics={metricsData.metrics2025}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Annual Revenue Chart */}
+                <Card
+                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] mt-2" : "w-[calc(100vw-20rem)] mt-2"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                >
                   <CardHeader>
-                    <CardTitle>2025 Metrics</CardTitle>
+                    <CardTitle>Annual Revenue</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Metric</TableHead>
-                          <TableHead>Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {table2025.getRowModel().rows.map((row) => (
-                          <TableRow key={row.id}>
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    {metricsData?.metrics2025 && (
-                      <CustomerFrequencyCard2025
-                        metrics={metricsData.metrics2025}
-                      />
-                    )}
+                    <AnnualRevenueBarChart />
                   </CardContent>
                 </Card>
               </div>
-              <AnnualRevenueBarChart />
             </TabsContent>
           </div>
         </Tabs>

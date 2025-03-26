@@ -17,6 +17,7 @@ import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { toast } from "sonner";
 import { useRole } from "@/context/RoleContext";
 import { statuses } from "./data";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const title = "Review Submissions";
 
@@ -25,6 +26,7 @@ export default function OrdersReviewPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string[]>(["not_contacted"]); // Default filter
   const { user } = useRole();
+  const { state } = useSidebar();
 
   const fetchOrderData = useCallback(async () => {
     const { data, error } = await supabase
@@ -265,7 +267,9 @@ export default function OrdersReviewPage() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <div className="h-screen flex flex-col">
+      <div
+        className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] ml-4" : "w-[calc(100vw-20rem)] ml-4"} h-full overflow-hidden flex-1 transition-all duration-300`}
+      >
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">
             <div>
@@ -282,8 +286,10 @@ export default function OrdersReviewPage() {
               table={table}
               onFilterChange={setStatusFilter}
             />
-            <div className="rounded-md border flex-1 flex flex-col">
-              <div className="relative w-full h-full overflow-auto flex-1">
+            <div className="rounded-md flex-1 flex flex-col">
+              <div
+                className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] " : "w-[calc(100vw-20rem)] "} h-full overflow-hidden flex-1 transition-all duration-300`}
+              >
                 {loading ? <p></p> : <DataTable table={table} />}
               </div>
             </div>

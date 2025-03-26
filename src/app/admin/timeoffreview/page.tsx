@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast, Toaster } from "sonner";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const title = "Review Time Off Requests";
 const timeZone = "America/Los_Angeles"; // Set your desired timezone
@@ -82,6 +83,7 @@ type RequestAction =
 export default function ApproveRequestsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { state } = useSidebar();
 
   // Query for fetching time off requests
   const { data: requests = [], isLoading } = useQuery({
@@ -858,259 +860,269 @@ export default function ApproveRequestsPage() {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Toaster richColors position="top-center" />
-      <div className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
-        <h1 className="text-2xl font-bold mb-6">
-          <TextGenerateEffect words={title} />
-        </h1>
-        <div className="space-y-6">
-          {requests.map((request: TimeOffRequest) => (
-            <Card key={request.request_id}>
-              <CardHeader>
-                <CardTitle>Time Off Request - {request.name}</CardTitle>
-                <CardDescription>
-                  Submitted on{" "}
-                  {formatTZ(
-                    toZonedTime(parseISO(request.created_at), timeZone),
-                    "MMM d, yyyy 'at' h:mm a",
-                    { timeZone }
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="details">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="time">Use Sick Or Vacation</TabsTrigger>
-                    <TabsTrigger value="actions">Actions</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="details">
-                    <div className="space-y-2">
-                      <p>
-                        <strong>Start Date:</strong>{" "}
-                        {formatTZ(
-                          toZonedTime(parseISO(request.start_date), timeZone),
-                          "MMM d, yyyy",
-                          { timeZone }
-                        )}
-                      </p>
-                      <p>
-                        <strong>End Date:</strong>{" "}
-                        {formatTZ(
-                          toZonedTime(parseISO(request.end_date), timeZone),
-                          "MMM d, yyyy",
-                          { timeZone }
-                        )}
-                      </p>
-                      <p>
-                        <strong>Reason:</strong> {request.reason}
-                      </p>
-                      {request.other_reason && (
+      <div className="w-full">
+        <div
+          className={`${state === "collapsed" ? "w-[calc(100vw-60rem)]" : "w-[calc(100vw-60rem)]"} mx-auto px-4 py-8 md:py-12 transition-all duration-300`}
+        >
+          <h1 className="text-2xl font-bold mb-6">
+            <TextGenerateEffect words={title} />
+          </h1>
+          <div className="space-y-6">
+            {requests.map((request: TimeOffRequest) => (
+              <Card key={request.request_id} className="w-full">
+                <CardHeader>
+                  <CardTitle>Time Off Request - {request.name}</CardTitle>
+                  <CardDescription>
+                    Submitted on{" "}
+                    {formatTZ(
+                      toZonedTime(parseISO(request.created_at), timeZone),
+                      "MMM d, yyyy 'at' h:mm a",
+                      { timeZone }
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="details">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="details">Details</TabsTrigger>
+                      <TabsTrigger value="time">
+                        Use Sick Or Vacation
+                      </TabsTrigger>
+                      <TabsTrigger value="actions">Actions</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="details">
+                      <div className="space-y-2">
                         <p>
-                          <strong>Details:</strong> {request.other_reason}
+                          <strong>Start Date:</strong>{" "}
+                          {formatTZ(
+                            toZonedTime(parseISO(request.start_date), timeZone),
+                            "MMM d, yyyy",
+                            { timeZone }
+                          )}
                         </p>
-                      )}
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="time">
-                    {renderTimeUsageSwitches(request)}
-                  </TabsContent>
-                  <TabsContent value="actions">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() => handleApprove(request.request_id)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() => handleDeny(request.request_id)}
-                      >
-                        Deny
-                      </Button>
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() =>
-                          handleOpenCustomApproval(request.request_id)
-                        }
-                      >
-                        Custom Approval
-                      </Button>
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() => handleCalledOut(request.request_id)}
-                      >
-                        Called Out
-                      </Button>
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() =>
-                          handleLeftEarlyWithTime(request.request_id)
-                        }
-                      >
-                        Early Leave
-                      </Button>
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() =>
-                          markDuplicateMutation.mutateAsync(request.request_id)
-                        }
-                      >
-                        Mark As Duplicate
-                      </Button>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          ))}
+                        <p>
+                          <strong>End Date:</strong>{" "}
+                          {formatTZ(
+                            toZonedTime(parseISO(request.end_date), timeZone),
+                            "MMM d, yyyy",
+                            { timeZone }
+                          )}
+                        </p>
+                        <p>
+                          <strong>Reason:</strong> {request.reason}
+                        </p>
+                        {request.other_reason && (
+                          <p>
+                            <strong>Details:</strong> {request.other_reason}
+                          </p>
+                        )}
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="time">
+                      {renderTimeUsageSwitches(request)}
+                    </TabsContent>
+                    <TabsContent value="actions">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => handleApprove(request.request_id)}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => handleDeny(request.request_id)}
+                        >
+                          Deny
+                        </Button>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() =>
+                            handleOpenCustomApproval(request.request_id)
+                          }
+                        >
+                          Custom Approval
+                        </Button>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => handleCalledOut(request.request_id)}
+                        >
+                          Called Out
+                        </Button>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() =>
+                            handleLeftEarlyWithTime(request.request_id)
+                          }
+                        >
+                          Early Leave
+                        </Button>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() =>
+                            markDuplicateMutation.mutateAsync(
+                              request.request_id
+                            )
+                          }
+                        >
+                          Mark As Duplicate
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            ))}
 
-          <Dialog
-            open={dialogQuery.data?.isOpen || false}
-            onOpenChange={(open) => {
-              if (!open) handleCloseCustomApproval();
-            }}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Custom Approval</DialogTitle>
-              </DialogHeader>
-              <Textarea
-                value={dialogQuery.data?.text || ""}
-                onChange={(e) => handleCustomApprovalTextChange(e.target.value)}
-                placeholder="Enter custom approval text..."
-                className="min-h-[100px]"
-              />
-              <DialogFooter>
-                <Button variant="outline" onClick={handleCloseCustomApproval}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSubmitCustomApproval}>Submit</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            <Dialog
+              open={dialogQuery.data?.isOpen || false}
+              onOpenChange={(open) => {
+                if (!open) handleCloseCustomApproval();
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Custom Approval</DialogTitle>
+                </DialogHeader>
+                <Textarea
+                  value={dialogQuery.data?.text || ""}
+                  onChange={(e) =>
+                    handleCustomApprovalTextChange(e.target.value)
+                  }
+                  placeholder="Enter custom approval text..."
+                  className="min-h-[100px]"
+                />
+                <DialogFooter>
+                  <Button variant="outline" onClick={handleCloseCustomApproval}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSubmitCustomApproval}>Submit</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-          <Dialog
-            open={leftEarlyDialogQuery.data?.isOpen || false}
-            onOpenChange={(open) => {
-              if (!open) {
-                leftEarlyDialogMutation.mutate({
-                  isOpen: false,
-                  time: "",
-                  currentRequestId: null,
-                });
-              }
-            }}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Early Leave Time</DialogTitle>
-              </DialogHeader>
-              <div className="flex space-x-2">
-                <div className="flex-1">
-                  <Label>Hour</Label>
-                  <Input
-                    type="text"
-                    placeholder="HH"
-                    maxLength={2}
-                    value={leftEarlyDataQuery.data?.hour || ""}
-                    onChange={(e) => {
-                      const currentData = queryClient.getQueryData([
-                        "leftEarlyData",
-                      ]) as any;
-                      queryClient.setQueryData(["leftEarlyData"], {
-                        ...currentData,
-                        hour: e.target.value,
-                      });
-                    }}
-                  />
+            <Dialog
+              open={leftEarlyDialogQuery.data?.isOpen || false}
+              onOpenChange={(open) => {
+                if (!open) {
+                  leftEarlyDialogMutation.mutate({
+                    isOpen: false,
+                    time: "",
+                    currentRequestId: null,
+                  });
+                }
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Early Leave Time</DialogTitle>
+                </DialogHeader>
+                <div className="flex space-x-2">
+                  <div className="flex-1">
+                    <Label>Hour</Label>
+                    <Input
+                      type="text"
+                      placeholder="HH"
+                      maxLength={2}
+                      value={leftEarlyDataQuery.data?.hour || ""}
+                      onChange={(e) => {
+                        const currentData = queryClient.getQueryData([
+                          "leftEarlyData",
+                        ]) as any;
+                        queryClient.setQueryData(["leftEarlyData"], {
+                          ...currentData,
+                          hour: e.target.value,
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label>Minute</Label>
+                    <Input
+                      type="text"
+                      placeholder="MM"
+                      maxLength={2}
+                      value={leftEarlyDataQuery.data?.minute || ""}
+                      onChange={(e) => {
+                        const currentData = queryClient.getQueryData([
+                          "leftEarlyData",
+                        ]) as any;
+                        queryClient.setQueryData(["leftEarlyData"], {
+                          ...currentData,
+                          minute: e.target.value,
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label>AM/PM</Label>
+                    <Select
+                      value={leftEarlyDataQuery.data?.period || "PM"}
+                      onValueChange={(value) => {
+                        const currentData = queryClient.getQueryData([
+                          "leftEarlyData",
+                        ]) as any;
+                        queryClient.setQueryData(["leftEarlyData"], {
+                          ...currentData,
+                          period: value,
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AM">AM</SelectItem>
+                        <SelectItem value="PM">PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <Label>Minute</Label>
-                  <Input
-                    type="text"
-                    placeholder="MM"
-                    maxLength={2}
-                    value={leftEarlyDataQuery.data?.minute || ""}
-                    onChange={(e) => {
-                      const currentData = queryClient.getQueryData([
-                        "leftEarlyData",
-                      ]) as any;
-                      queryClient.setQueryData(["leftEarlyData"], {
-                        ...currentData,
-                        minute: e.target.value,
-                      });
-                    }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label>AM/PM</Label>
-                  <Select
-                    value={leftEarlyDataQuery.data?.period || "PM"}
-                    onValueChange={(value) => {
-                      const currentData = queryClient.getQueryData([
-                        "leftEarlyData",
-                      ]) as any;
-                      queryClient.setQueryData(["leftEarlyData"], {
-                        ...currentData,
-                        period: value,
-                      });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AM">AM</SelectItem>
-                      <SelectItem value="PM">PM</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    leftEarlyDialogMutation.mutate({
-                      isOpen: false,
-                      time: "",
-                      currentRequestId: null,
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => {
-                    const data = queryClient.getQueryData([
-                      "leftEarlyData",
-                    ]) as any;
-                    if (data?.hour && data?.minute && data?.period) {
-                      const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
-                      handleRequest(
-                        leftEarlyDialogQuery.data?.currentRequestId!,
-                        `Custom: Early Leave @ ${formattedTime}` as RequestAction,
-                        `Your schedule has been updated to reflect that you left early at ${formattedTime}.`
-                      );
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
                       leftEarlyDialogMutation.mutate({
                         isOpen: false,
                         time: "",
                         currentRequestId: null,
                       });
-                    }
-                  }}
-                >
-                  Submit
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const data = queryClient.getQueryData([
+                        "leftEarlyData",
+                      ]) as any;
+                      if (data?.hour && data?.minute && data?.period) {
+                        const formattedTime = `${data.hour}:${data.minute} ${data.period}`;
+                        handleRequest(
+                          leftEarlyDialogQuery.data?.currentRequestId!,
+                          `Custom: Early Leave @ ${formattedTime}` as RequestAction,
+                          `Your schedule has been updated to reflect that you left early at ${formattedTime}.`
+                        );
+                        leftEarlyDialogMutation.mutate({
+                          isOpen: false,
+                          time: "",
+                          currentRequestId: null,
+                        });
+                      }
+                    }}
+                  >
+                    Submit
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
     </RoleBasedWrapper>

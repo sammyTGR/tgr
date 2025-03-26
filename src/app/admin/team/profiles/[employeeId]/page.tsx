@@ -18,8 +18,6 @@ import {
   PersonIcon,
 } from "@radix-ui/react-icons";
 import { supabase } from "@/utils/supabase/client";
-import { useRole } from "@/context/RoleContext";
-import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 import Link from "next/link";
 import { CustomCalendar } from "@/components/ui/calendar";
 import { DataTableProfile } from "../../../audits/contest/data-table-profile";
@@ -71,6 +69,8 @@ import { HistoricalAuditChart } from "../../../audits/HistoricalAuditChart";
 import { Switch } from "@/components/ui/switch";
 import { createColumnHelper } from "@tanstack/react-table";
 import { User } from "@supabase/supabase-js";
+import { useSidebar } from "@/components/ui/sidebar";
+import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 
 interface Note {
   id: number;
@@ -209,6 +209,7 @@ const daysOfWeek = [
 const timezone = "America/Los_Angeles";
 
 const EmployeeProfile = () => {
+  const { state } = useSidebar();
   const queryClient = useQueryClient();
   const params = useParams()!;
   const employeeIdParam = params.employeeId;
@@ -227,7 +228,6 @@ const EmployeeProfile = () => {
   const [newGrowth, setNewGrowth] = useState("");
   const [newDailyBriefing, setNewDailyBriefing] = useState("");
   const [employee, setEmployee] = useState<any>(null);
-  const { user } = useRole() as { user: ExtendedUser | null };
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedLanid, setSelectedLanid] = useState<string | null>(null);
   const [salesData, setSalesData] = useState<SalesData[]>([]);
@@ -286,6 +286,18 @@ const EmployeeProfile = () => {
   }>({
     calendarData: [],
     employeeNames: [],
+  });
+
+  // Add currentUser query
+  const { data: currentUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
+    staleTime: Infinity,
   });
 
   const combinedSchedules = useMemo(() => {
@@ -754,7 +766,7 @@ const EmployeeProfile = () => {
   };
 
   useEffect(() => {
-    if (user && employeeId) {
+    if (currentUser && employeeId) {
       const fetchData = async () => {
         try {
           await fetchEmployeeData();
@@ -785,7 +797,7 @@ const EmployeeProfile = () => {
                           : newRecord.status.replace(/^Custom:\s*/i, "").trim();
 
                     const createdByName = await fetchEmployeeNameByUserUUID(
-                      user.id
+                      currentUser.id
                     );
                     if (!createdByName) return;
 
@@ -828,7 +840,7 @@ const EmployeeProfile = () => {
 
       fetchData();
     }
-  }, [user, employeeId]);
+  }, [currentUser, employeeId]);
 
   useEffect(() => {
     if (employee && employee.lanid) {
@@ -1133,7 +1145,7 @@ const EmployeeProfile = () => {
       type: string;
       noteContent: string;
     }) => {
-      if (!user?.id || !employeeId || noteContent.trim() === "") {
+      if (!currentUser?.id || !employeeId || noteContent.trim() === "") {
         throw new Error("Missing required data");
       }
 
@@ -1141,7 +1153,7 @@ const EmployeeProfile = () => {
       const { data: employeeData, error: employeeError } = await supabase
         .from("employees")
         .select("name")
-        .eq("user_uuid", user.id)
+        .eq("user_uuid", currentUser.id)
         .single();
 
       if (employeeError || !employeeData?.name) {
@@ -1153,7 +1165,7 @@ const EmployeeProfile = () => {
         .insert([
           {
             profile_employee_id: employeeId,
-            employee_id: parseInt(user.id, 10),
+            employee_id: parseInt(currentUser.id, 10),
             note: noteContent,
             type,
             created_by: employeeData.name,
@@ -1275,13 +1287,15 @@ const EmployeeProfile = () => {
       .from("employee_profile_notes")
       .update({
         reviewed: newReviewedStatus,
-        reviewed_by: newReviewedStatus ? user?.name : null,
+        reviewed_by: newReviewedStatus
+          ? currentUser?.user_metadata?.full_name
+          : null,
         reviewed_at: newReviewedStatus ? new Date().toISOString() : null,
       })
       .eq("id", id);
 
     if (error) {
-      //console.("Error reviewing note:", error);
+      console.error("Error reviewing note:", error);
     } else {
       setNotes(
         notes.map((note) =>
@@ -1289,7 +1303,9 @@ const EmployeeProfile = () => {
             ? {
                 ...note,
                 reviewed: newReviewedStatus,
-                reviewed_by: newReviewedStatus ? user?.name : undefined,
+                reviewed_by: newReviewedStatus
+                  ? currentUser?.user_metadata?.full_name
+                  : undefined,
                 reviewed_at: newReviewedStatus
                   ? new Date().toISOString()
                   : undefined,
@@ -1310,7 +1326,9 @@ const EmployeeProfile = () => {
   const handleAddReview = async () => {
     if (!employeeId) return;
 
-    const employeeName = await fetchEmployeeNameByUserUUID(user?.id || "");
+    const employeeName = await fetchEmployeeNameByUserUUID(
+      currentUser?.id || ""
+    );
     if (!employeeName) return;
 
     const reviewData = {
@@ -1838,9 +1856,11 @@ const EmployeeProfile = () => {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <div className="section w-full">
+      <div
+        className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+      >
         <Card className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto my-12">
-          <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <header className="bg-gray-100 dark:bg-muted rounded-t-lg px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-4">
               <Avatar
                 className={employee.avatar_url ? "w-32 h-32" : "w-24 h-24"}
@@ -3011,7 +3031,7 @@ const EmployeeProfile = () => {
                       <h1 className="text-xl font-bold mb-2 ml-2">
                         <TextGenerateEffect words="Audits" />
                       </h1>
-                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                      {/* <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                         <Card className="mt-4">
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-2xl font-bold mb-6">
@@ -3124,13 +3144,13 @@ const EmployeeProfile = () => {
                             </div>
                           </CardContent>
                         </Card>
-                      </div>
+                      </div> */}
 
-                      <AuditDetailsChart
+                      {/* <AuditDetailsChart
                         data={auditDetailsQuery.data || []}
                         isLoading={auditDetailsQuery.isLoading}
                         selectedDate={auditDateSelection}
-                      />
+                      /> */}
 
                       <Card>
                         <CardContent>

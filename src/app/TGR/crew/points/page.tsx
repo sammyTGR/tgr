@@ -26,6 +26,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Calendar } from "@/components/ui/calendar";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type Employee = {
   name: string;
@@ -40,13 +41,16 @@ const schema = z.object({
   dros_number: z.string().min(2, { message: "DROS Number is required" }),
   invoice_number: z.string().min(2, { message: "Invoice Number is required" }),
   serial_number: z.string().min(2, { message: "Serial Number is required" }),
-  start_trans: z.string().nonempty({ message: "Start Transaction status is required" }),
+  start_trans: z
+    .string()
+    .nonempty({ message: "Start Transaction status is required" }),
   details: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export default function PointsComponent() {
+  const { state } = useSidebar();
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [drosStatus, setDrosStatus] = useState<string[]>([]);
@@ -163,12 +167,15 @@ export default function PointsComponent() {
   };
 
   return (
-    <div className="flex justify-center mt-36">
+    <div
+      className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-70rem)] mt-12 ml-24" : "w-[calc(100vw-70rem)] mt-12 ml-24"} transition-all duration-300`}
+    >
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Submitted Points Tracker</CardTitle>
           <CardDescription>
-            Fill out the form only AFTER the firearm has been delivered. You cannot submit for points if the firearm has not been delivered.
+            Fill out the form only AFTER the firearm has been delivered. You
+            cannot submit for points if the firearm has not been delivered.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -243,7 +250,9 @@ export default function PointsComponent() {
                   {...register("invoice_number")}
                 />
                 {errors.invoice_number && (
-                  <p className="text-red-500">{errors.invoice_number.message}</p>
+                  <p className="text-red-500">
+                    {errors.invoice_number.message}
+                  </p>
                 )}
               </div>
             </div>

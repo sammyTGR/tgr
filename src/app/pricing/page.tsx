@@ -7,6 +7,7 @@ import {
 } from "@/utils/supabase/queries";
 import { syncStripeData } from "@/utils/stripe/syncStripeData";
 import { cache } from "react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const cachedSyncStripeData = cache(async () => {
   // console.log("Syncing Stripe data");

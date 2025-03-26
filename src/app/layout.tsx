@@ -70,16 +70,16 @@ export default async function RootLayout({
                     <NotificationsProvider>
                       <RoleProvider>
                         <RealTimeNotificationsWrapper />
-                        {/* <SidebarProvider defaultOpen={defaultOpen}> */}
-                        {/* <AppSidebar /> */}
-                        <Header />
-                        <main>
-                          {/* <SidebarTrigger /> */}
-                          {children as ReactElement}
-                          {shouldInjectToolbar && <VercelToolbar />}
-                          <Analytics />
-                        </main>
-                        {/* </SidebarProvider> */}
+                        <SidebarProvider defaultOpen={defaultOpen}>
+                          <AppSidebar />
+                          {/* <Header /> */}
+                          <main>
+                            <SidebarTrigger />
+                            {children as ReactElement}
+                            {shouldInjectToolbar && <VercelToolbar />}
+                            <Analytics />
+                          </main>
+                        </SidebarProvider>
                         <Toaster />
                       </RoleProvider>
                     </NotificationsProvider>

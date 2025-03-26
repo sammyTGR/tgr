@@ -23,6 +23,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import DOMPurify from "isomorphic-dompurify";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import dynamic from "next/dynamic";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // Type definitions
 interface Customer {
@@ -67,6 +68,7 @@ export default function SignIn() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { state } = useSidebar();
 
   const { isLoading } = useQuery({
     queryKey: ["navigation", pathname, searchParams],
@@ -182,7 +184,9 @@ export default function SignIn() {
   };
 
   return (
-    <div className="grid place-items-center h-screen">
+    <div
+      className={`grid place-items-center h-screen ${state === "collapsed" ? "ml-4 mx-auto" : "ml-64 mx-auto"} transition-all duration-300`}
+    >
       {isLoading && <LoadingIndicator />}
       <Card className="mx-auto min-w-[350px]">
         <CardHeader>

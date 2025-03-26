@@ -58,6 +58,7 @@ import {
 import { format, toZonedTime } from "date-fns-tz";
 import { parseISO, format as formatDate } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type NoteItem = {
   id: string;
@@ -135,6 +136,7 @@ type DiscussedNotes = {
 const TIME_ZONE = "America/Los_Angeles";
 
 export default function TeamWeeklyNotes() {
+  const { state } = useSidebar();
   const queryClient = useQueryClient();
   const supabase = createClientComponentClient();
   const popoverRef = useRef<HTMLButtonElement>(null);
@@ -151,7 +153,7 @@ export default function TeamWeeklyNotes() {
 
   const draftQuery = useQuery({
     queryKey: ["noteDrafts"],
-    queryFn: () => ({} as DraftNote),
+    queryFn: () => ({}) as DraftNote,
     staleTime: Infinity,
   });
 
@@ -498,327 +500,136 @@ export default function TeamWeeklyNotes() {
     <RoleBasedWrapper
       allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
     >
-      <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <h1 className="text-2xl font-bold mb-4">Weekly Agenda Notes</h1>
+      <div
+        className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+      >
+        <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+          <h1 className="text-2xl font-bold mb-4">Weekly Agenda Notes</h1>
 
-        {!hasAddedSelf && (
-          <div className="flex flex-col items-start gap-2">
-            <Button
-              variant="gooeyRight"
-              onClick={addYourself}
-              disabled={
-                hasAddedSelf &&
-                currentEmployee?.role !== "super admin" &&
-                currentEmployee?.role !== "dev"
-              }
-            >
-              Add Yourself
-            </Button>
-            <label>
-              <span>
-                If this is your first time, add yourself to the meeting by
-                clicking the button above.
-              </span>
-            </label>
-          </div>
-        )}
+          {!hasAddedSelf && (
+            <div className="flex flex-col items-start gap-2">
+              <Button
+                variant="gooeyRight"
+                onClick={addYourself}
+                disabled={
+                  hasAddedSelf &&
+                  currentEmployee?.role !== "super admin" &&
+                  currentEmployee?.role !== "dev"
+                }
+              >
+                Add Yourself
+              </Button>
+              <label>
+                <span>
+                  If this is your first time, add yourself to the meeting by
+                  clicking the button above.
+                </span>
+              </label>
+            </div>
+          )}
 
-        <Tabs defaultValue="weekly-notes" className="w-full">
-          <div className="flex items-center space-x-2 mb-4">
-            <TabsList>
-              <TabsTrigger value="weekly-notes">Team Updates</TabsTrigger>
-              <TabsTrigger value="edit-notes">Edit Your Notes</TabsTrigger>
-              <TabsTrigger value="discussed-notes">
-                Discussed Topics
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <Tabs defaultValue="weekly-notes" className="w-full">
+            <div className="flex items-center space-x-2 mb-4">
+              <TabsList>
+                <TabsTrigger value="weekly-notes">Team Updates</TabsTrigger>
+                <TabsTrigger value="edit-notes">Edit Your Notes</TabsTrigger>
+                <TabsTrigger value="discussed-notes">
+                  Discussed Topics
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          <Card className="mt-4">
-            <CardContent className="pt-6">
-              <TabsContent value="weekly-notes">
-                <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {teamMembers.map((member) => {
-                    const employee = employees.find(
-                      (e) => e.employee_id === member.employee_id
-                    );
-                    return (
-                      <Card key={member.note_id}>
-                        <CardHeader>
-                          <CardTitle>
-                            <span className="text-xl font-semibold">
-                              {employee?.name ||
-                                `Employee ID: ${member.employee_id}`}
-                            </span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="ml-6">
-                          {topics.map((topic) => (
-                            <div key={topic} className="mb-2">
-                              <h3 className="font-semibold">
-                                {topicDisplayNames[topic]}
-                              </h3>
-                              <ul className="list-none ml-2">
-                                {member[topic]?.length ? (
-                                  member[topic].map((item) => (
-                                    <li
-                                      key={item.id}
-                                      className="flex items-start text-sm group relative"
-                                    >
-                                      <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                      <span>{item.content || ""}</span>
-                                      {(currentEmployee?.role === "dev" ||
-                                        currentEmployee?.role === "admin") && (
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="opacity-0 group-hover:opacity-100 absolute right-0"
-                                            >
-                                              Actions
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent>
-                                            <DropdownMenuItem
-                                              onClick={() => {
-                                                const employeeName =
-                                                  employees.find(
-                                                    (e) =>
-                                                      e.employee_id ===
-                                                      member.employee_id
-                                                  )?.name || "Unknown";
-
-                                                markAsDiscussedMutation.mutate({
-                                                  content: item.content,
-                                                  topic,
-                                                  employeeId:
-                                                    member.employee_id,
-                                                  employeeName: employeeName,
-                                                });
-                                              }}
-                                            >
-                                              Mark as Discussed
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                              onClick={() =>
-                                                dismissNoteMutation.mutate({
-                                                  memberId: member.note_id,
-                                                  topic,
-                                                  noteId: item.id,
-                                                })
-                                              }
-                                            >
-                                              Dismiss
-                                            </DropdownMenuItem>
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      )}
-                                    </li>
-                                  ))
-                                ) : (
-                                  <li>
-                                    <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                  </li>
-                                )}
-                              </ul>
-                            </div>
-                          ))}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="edit-notes">
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredTeamMembers.map((member) => {
-                    const employee = employees.find(
-                      (e) => e.employee_id === member.employee_id
-                    );
-                    return (
-                      <Card key={member.note_id} className="relative">
-                        <CardHeader>
-                          <CardTitle>
-                            <p className="text-xl font-semibold">
-                              {employee?.name ||
-                                `Employee ID: ${member.employee_id}`}
-                            </p>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {topics.map((topic) => (
-                            <div key={topic} className="mb-4">
-                              <Label>{topicDisplayNames[topic]}</Label>
-                              <div className="mt-1">
-                                {" "}
-                                {/* Add this wrapper div */}
-                                {(member[topic]?.length ?? 0) > 0 ? (
-                                  // Render existing notes if they exist
-                                  member[topic]?.map((item) => (
-                                    <div
-                                      key={item.id}
-                                      className="mt-1 flex items-center gap-2"
-                                    >
-                                      <Textarea
-                                        defaultValue={item.content}
-                                        onChange={(e) => {
-                                          const newValue = e.target.value;
-                                          updateLocalNote(
-                                            member.note_id,
-                                            topic,
-                                            item.id,
-                                            newValue
-                                          );
-                                        }}
-                                        placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
-                                        className="flex-grow"
-                                      />
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() =>
-                                          removeLocalItem(
-                                            member.note_id,
-                                            topic,
-                                            item.id
-                                          )
-                                        }
-                                      >
-                                        <Minus className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  ))
-                                ) : (
-                                  // Render a placeholder when no notes exist
-                                  <div className="text-sm text-muted-foreground">
-                                    No notes added yet
-                                  </div>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    addLocalItem(member.note_id, topic)
-                                  }
-                                  className="mt-2"
-                                >
-                                  <Plus className="h-4 w-4 mr-1" /> Add Item
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </CardContent>
-                        <CardFooter className="flex justify-between">
-                          {(currentEmployee?.role === "super admin" ||
-                            currentEmployee?.role === "dev") && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                  Remove Employee
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you absolutely sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will
-                                    permanently delete the employee&apos;s notes
-                                    and remove them from the team.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleRemoveEmployee(member.employee_id)
-                                    }
-                                  >
-                                    Remove
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                          <Button
-                            variant="outline"
-                            onClick={() => saveChanges(member.note_id)}
-                          >
-                            Save Changes
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="discussed-notes">
-                <div className="grid gap-6">
-                  {Object.values(groupedDiscussedNotes)
-                    .sort(
-                      (a, b) =>
-                        new Date(b.meeting_date).getTime() -
-                        new Date(a.meeting_date).getTime()
-                    )
-                    .map((dateGroup) => {
-                      // Convert UTC date from Supabase to Pacific time
-                      const utcDate = parseISO(dateGroup.meeting_date);
-                      const zonedDate = toZonedTime(utcDate, TIME_ZONE);
-
-                      // Format the date in Pacific time
-                      const formattedDate = formatInTimeZone(
-                        utcDate,
-                        TIME_ZONE,
-                        "EEEE, MMMM d, yyyy"
+            <Card className="mt-4">
+              <CardContent className="pt-6">
+                <TabsContent value="weekly-notes">
+                  <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {teamMembers.map((member) => {
+                      const employee = employees.find(
+                        (e) => e.employee_id === member.employee_id
                       );
-
                       return (
-                        <Card key={dateGroup.meeting_date}>
+                        <Card key={member.note_id}>
                           <CardHeader>
                             <CardTitle>
-                              Meeting Notes - {formattedDate}
+                              <span className="text-xl font-semibold">
+                                {employee?.name ||
+                                  `Employee ID: ${member.employee_id}`}
+                              </span>
                             </CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="ml-6">
                             {topics.map((topic) => (
-                              <div key={topic} className="mb-6">
-                                <h3 className="font-semibold text-lg mb-2">
+                              <div key={topic} className="mb-2">
+                                <h3 className="font-semibold">
                                   {topicDisplayNames[topic]}
                                 </h3>
-                                <ul className="space-y-2">
-                                  {dateGroup.notes[topic]?.map((note) => (
-                                    <li
-                                      key={note.id}
-                                      className="flex items-start text-sm group relative"
-                                    >
-                                      <div className="flex items-start">
+                                <ul className="list-none ml-2">
+                                  {member[topic]?.length ? (
+                                    member[topic].map((item) => (
+                                      <li
+                                        key={item.id}
+                                        className="flex items-start text-sm group relative"
+                                      >
                                         <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
-                                        <span>{note.content}</span>
-                                      </div>
-                                      <span className="text-sm text-muted-foreground ml-2">
-                                        {note.employee_name}
-                                      </span>
-                                      {(currentEmployee?.role === "dev" ||
-                                        currentEmployee?.role === "admin") && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="opacity-0 group-hover:opacity-100 absolute right-0"
-                                          onClick={() =>
-                                            removeDiscussedNoteMutation.mutate(
-                                              note.id
-                                            )
-                                          }
-                                        >
-                                          Remove
-                                        </Button>
-                                      )}
+                                        <span>{item.content || ""}</span>
+                                        {(currentEmployee?.role === "dev" ||
+                                          currentEmployee?.role ===
+                                            "admin") && (
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="opacity-0 group-hover:opacity-100 absolute right-0"
+                                              >
+                                                Actions
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                              <DropdownMenuItem
+                                                onClick={() => {
+                                                  const employeeName =
+                                                    employees.find(
+                                                      (e) =>
+                                                        e.employee_id ===
+                                                        member.employee_id
+                                                    )?.name || "Unknown";
+
+                                                  markAsDiscussedMutation.mutate(
+                                                    {
+                                                      content: item.content,
+                                                      topic,
+                                                      employeeId:
+                                                        member.employee_id,
+                                                      employeeName:
+                                                        employeeName,
+                                                    }
+                                                  );
+                                                }}
+                                              >
+                                                Mark as Discussed
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem
+                                                onClick={() =>
+                                                  dismissNoteMutation.mutate({
+                                                    memberId: member.note_id,
+                                                    topic,
+                                                    noteId: item.id,
+                                                  })
+                                                }
+                                              >
+                                                Dismiss
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        )}
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li>
+                                      <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
                                     </li>
-                                  )) || <li>No discussed notes</li>}
+                                  )}
                                 </ul>
                               </div>
                             ))}
@@ -826,12 +637,214 @@ export default function TeamWeeklyNotes() {
                         </Card>
                       );
                     })}
-                </div>
-              </TabsContent>
-            </CardContent>
-          </Card>
-        </Tabs>
-      </main>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="edit-notes">
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredTeamMembers.map((member) => {
+                      const employee = employees.find(
+                        (e) => e.employee_id === member.employee_id
+                      );
+                      return (
+                        <Card key={member.note_id} className="relative">
+                          <CardHeader>
+                            <CardTitle>
+                              <p className="text-xl font-semibold">
+                                {employee?.name ||
+                                  `Employee ID: ${member.employee_id}`}
+                              </p>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {topics.map((topic) => (
+                              <div key={topic} className="mb-4">
+                                <Label>{topicDisplayNames[topic]}</Label>
+                                <div className="mt-1">
+                                  {" "}
+                                  {/* Add this wrapper div */}
+                                  {(member[topic]?.length ?? 0) > 0 ? (
+                                    // Render existing notes if they exist
+                                    member[topic]?.map((item) => (
+                                      <div
+                                        key={item.id}
+                                        className="mt-1 flex items-center gap-2"
+                                      >
+                                        <Textarea
+                                          defaultValue={item.content}
+                                          onChange={(e) => {
+                                            const newValue = e.target.value;
+                                            updateLocalNote(
+                                              member.note_id,
+                                              topic,
+                                              item.id,
+                                              newValue
+                                            );
+                                          }}
+                                          placeholder={`Enter ${topicDisplayNames[topic]} notes...`}
+                                          className="flex-grow"
+                                        />
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() =>
+                                            removeLocalItem(
+                                              member.note_id,
+                                              topic,
+                                              item.id
+                                            )
+                                          }
+                                        >
+                                          <Minus className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    // Render a placeholder when no notes exist
+                                    <div className="text-sm text-muted-foreground">
+                                      No notes added yet
+                                    </div>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      addLocalItem(member.note_id, topic)
+                                    }
+                                    className="mt-2"
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" /> Add Item
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </CardContent>
+                          <CardFooter className="flex justify-between">
+                            {(currentEmployee?.role === "super admin" ||
+                              currentEmployee?.role === "dev") && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive">
+                                    Remove Employee
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Are you absolutely sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. This will
+                                      permanently delete the employee&apos;s
+                                      notes and remove them from the team.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleRemoveEmployee(member.employee_id)
+                                      }
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                            <Button
+                              variant="outline"
+                              onClick={() => saveChanges(member.note_id)}
+                            >
+                              Save Changes
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="discussed-notes">
+                  <div className="grid gap-6">
+                    {Object.values(groupedDiscussedNotes)
+                      .sort(
+                        (a, b) =>
+                          new Date(b.meeting_date).getTime() -
+                          new Date(a.meeting_date).getTime()
+                      )
+                      .map((dateGroup) => {
+                        // Convert UTC date from Supabase to Pacific time
+                        const utcDate = parseISO(dateGroup.meeting_date);
+                        const zonedDate = toZonedTime(utcDate, TIME_ZONE);
+
+                        // Format the date in Pacific time
+                        const formattedDate = formatInTimeZone(
+                          utcDate,
+                          TIME_ZONE,
+                          "EEEE, MMMM d, yyyy"
+                        );
+
+                        return (
+                          <Card key={dateGroup.meeting_date}>
+                            <CardHeader>
+                              <CardTitle>
+                                Meeting Notes - {formattedDate}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {topics.map((topic) => (
+                                <div key={topic} className="mb-6">
+                                  <h3 className="font-semibold text-lg mb-2">
+                                    {topicDisplayNames[topic]}
+                                  </h3>
+                                  <ul className="space-y-2">
+                                    {dateGroup.notes[topic]?.map((note) => (
+                                      <li
+                                        key={note.id}
+                                        className="flex items-start text-sm group relative"
+                                      >
+                                        <div className="flex items-start">
+                                          <Dot className="h-4 w-4 mt-1 mr-1 flex-shrink-0" />
+                                          <span>{note.content}</span>
+                                        </div>
+                                        <span className="text-sm text-muted-foreground ml-2">
+                                          {note.employee_name}
+                                        </span>
+                                        {(currentEmployee?.role === "dev" ||
+                                          currentEmployee?.role ===
+                                            "admin") && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="opacity-0 group-hover:opacity-100 absolute right-0"
+                                            onClick={() =>
+                                              removeDiscussedNoteMutation.mutate(
+                                                note.id
+                                              )
+                                            }
+                                          >
+                                            Remove
+                                          </Button>
+                                        )}
+                                      </li>
+                                    )) || <li>No discussed notes</li>}
+                                  </ul>
+                                </div>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                </TabsContent>
+              </CardContent>
+            </Card>
+          </Tabs>
+        </main>
+      </div>
     </RoleBasedWrapper>
   );
 }
