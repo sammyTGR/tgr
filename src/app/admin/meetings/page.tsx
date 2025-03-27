@@ -501,9 +501,13 @@ export default function TeamWeeklyNotes() {
       allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
     >
       <div
-        className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+        className={`relative ${
+          state === "collapsed"
+            ? "w-full md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-20rem)]"
+            : "w-full md:w-[calc(100vw-25rem)] lg:w-[calc(100vw-25rem)]"
+        } mx-auto ml-0 md:ml-4 h-full overflow-auto flex-1 transition-all duration-300`}
       >
-        <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <main className="grid flex-1 items-start my-4 mb-4 max-w-8xl gap-4 p-2 sm:p-4 sm:px-6 sm:py-0 md:gap-8">
           <h1 className="text-2xl font-bold mb-4">Weekly Agenda Notes</h1>
 
           {!hasAddedSelf && (
