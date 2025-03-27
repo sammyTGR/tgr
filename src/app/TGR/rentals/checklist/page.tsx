@@ -644,7 +644,7 @@ export default function FirearmsChecklist() {
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div
-        className={`relative ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+        className={`relative w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <Toaster position="top-right" />
         <section className="flex-1 flex flex-col space-y-4 p-4">

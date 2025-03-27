@@ -83,7 +83,7 @@ export function CertificationDataTable({
 
   return (
     <div
-      className={`flex flex-col max-h-full ${state === "collapsed" ? "w-[calc(100vw-20rem)]" : "w-[calc(100vw-25rem)]"} overflow-hidden transition-all duration-300`}
+      className={`flex flex-col max-h-full w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden transition-all duration-300`}
     >
       <div className="flex items-center justify-between">
         <RoleBasedWrapper allowedRoles={["admin", "super admin", "dev", "ceo"]}>
@@ -123,19 +123,16 @@ export function CertificationDataTable({
       </div>
 
       <div
-        className={`flex-1 overflow-hidden max-h-full rounded-md border ${state === "collapsed" ? "w-[calc(100vw-20rem)] mt-2" : "w-[calc(100vw-25rem)] mt-2"} sm:w-full md:w-full lg:max-w-[${state === "collapsed" ? "calc(100vw-40rem)" : "calc(100vw-40rem)"}] transition-all duration-300`}
+        className={`flex-1 overflow-hidden max-h-full rounded-md border w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] mt-2 transition-all duration-300`}
       >
         <div className="overflow-hidden">
           <ScrollArea
             className={classNames(
               styles.noScroll,
-              "h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] overflow-hidden relative"
+              "h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative"
             )}
           >
-            {/* <div className="rounded-md border"> */}
-            <Table
-              className={`${state === "collapsed" ? "w-[calc(100vw-20rem)]" : "w-[calc(100vw-25rem)]"} overflow-hidden transition-all duration-300`}
-            >
+            <Table className="w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden transition-all duration-300">
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
@@ -197,7 +194,6 @@ export function CertificationDataTable({
             </Table>
             <ScrollBar orientation="vertical" />
             <ScrollBar orientation="horizontal" />
-            {/* </div> */}
           </ScrollArea>
         </div>
       </div>

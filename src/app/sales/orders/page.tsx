@@ -181,7 +181,7 @@ export default function OrdersComponent() {
 
   return (
     <div
-      className={`flex flex-col items-center space-y-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] mt-12 ml-24" : "w-[calc(100vw-40rem)] mt-12 ml-24"} transition-all duration-300`}
+      className={`flex flex-col items-center space-y-4 w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
     >
       <Card className="w-full max-w-2xl">
         <CardHeader>

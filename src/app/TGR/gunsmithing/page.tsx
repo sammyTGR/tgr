@@ -35,6 +35,14 @@ import styles from "./profiles.module.css";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import classNames from "classnames";
 import DailyChecklist from "./DailyChecklist";
+import { DataTableToolbar } from "./data-table-toolbar";
+import {
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 
 const words = "Gunsmithing Maintenance";
 
@@ -610,7 +618,9 @@ export default function GunsmithingMaintenance() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <div className="flex flex-col h-screen my-8">
+      <div
+        className={`flex flex-col space-y-4 w-full overflow-hidden md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
+      >
         <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs
             defaultValue="dailyChecklist"
@@ -632,11 +642,11 @@ export default function GunsmithingMaintenance() {
 
             <div
               className={classNames(
-                "grid flex-1 items-start mt-4 max-w-8xl gap-4 p-2 sm:px-6 sm:py-0 md:gap-8 body",
+                "grid flex-1 items-start mt-4 max-w-8xl w-full overflow-hidden",
                 styles.noScroll
               )}
             >
-              <ScrollArea className="h-[calc(100vh-300px)] overflow-auto relative">
+              <ScrollArea className="h-[calc(100vh-5rem)] overflow-hidden relative">
                 <div className="container px-4 mt-4">
                   <TabsContent value="dailyChecklist" className="mt-0">
                     <Card className="h-full">
@@ -657,37 +667,38 @@ export default function GunsmithingMaintenance() {
                   </TabsContent>
 
                   <TabsContent value="maintenance" className="mt-0">
-                    <Card className="h-full">
-                      <CardHeader>
-                        <CardTitle className="text-2xl font-bold">
-                          <TextGenerateEffect words={words} />
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0">
-                        <div className="flex items-center justify-between p-4">
-                          {["admin", "super admin", "dev"].includes(
-                            userRole || ""
-                          ) && (
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsDialogOpen(true)}
-                            >
-                              Add Firearm
-                            </Button>
-                          )}
+                    {/* <Card className="h-full"> */}
+                    {/* <CardHeader>
+                      <CardTitle className="text-2xl font-bold">
+                        <TextGenerateEffect words={words} />
+                      </CardTitle>
+                    </CardHeader> */}
+                    <CardContent className="p-0">
+                      <div className="flex items-center justify-between p-4">
+                        {["admin", "super admin", "dev"].includes(
+                          userRole || ""
+                        ) && (
                           <Button
                             variant="outline"
-                            onClick={regenerateFirearmsList}
+                            onClick={() => setIsDialogOpen(true)}
                           >
-                            Regenerate Firearms List
+                            Add Firearm
                           </Button>
-                        </div>
-                        <div className="border rounded-md">
-                          {loading ? (
-                            <p></p>
-                          ) : (
-                            userRole &&
-                            userUuid && (
+                        )}
+                        <Button
+                          variant="outline"
+                          onClick={regenerateFirearmsList}
+                        >
+                          Regenerate Firearms List
+                        </Button>
+                      </div>
+                      <div className="border rounded-md">
+                        {loading ? (
+                          <p></p>
+                        ) : (
+                          userRole &&
+                          userUuid && (
+                            <>
                               <DataTable
                                 columns={columns}
                                 data={data}
@@ -698,20 +709,21 @@ export default function GunsmithingMaintenance() {
                                 onUpdateFrequency={handleUpdateFrequency}
                                 onDeleteFirearm={handleDeleteFirearm}
                               />
-                            )
-                          )}
-                        </div>
-                        <div className="container justify-start p-4 mt-4">
-                          <Button
-                            variant="ringHover"
-                            onClick={handleSubmit}
-                            className="w-full max-w-lg"
-                          >
-                            Submit Maintenance List
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                            </>
+                          )
+                        )}
+                      </div>
+                      <div className="container justify-start p-4 mt-4">
+                        <Button
+                          variant="ringHover"
+                          onClick={handleSubmit}
+                          className="w-full max-w-lg"
+                        >
+                          Submit Maintenance List
+                        </Button>
+                      </div>
+                    </CardContent>
+                    {/* </Card> */}
                   </TabsContent>
 
                   <AlertDialog
@@ -735,7 +747,7 @@ export default function GunsmithingMaintenance() {
                   </AlertDialog>
 
                   <TabsContent value="repairs" className="mt-0">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                    <div className="grid grid-cols-1">
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-2xl font-bold">

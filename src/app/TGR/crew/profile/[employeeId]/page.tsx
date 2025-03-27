@@ -1163,9 +1163,9 @@ const EmployeeProfilePage = () => {
       ]}
     >
       <div
-        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] ml-24" : "w-[calc(100vw-40rem)] ml-24"} transition-all duration-300`}
+        className={`relative max-w-6xl ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
-        <Card className="flex flex-col h-full w-[calc(100vw-40rem)] mx-auto my-12">
+        <Card className="flex flex-col h-full max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted px-6 py-4 border-b border-gray-200 dark:border-gray-700 rounded-lg">
             <div className="flex items-center gap-4">
               <Avatar>
@@ -1202,12 +1202,14 @@ const EmployeeProfilePage = () => {
                 <TabsTrigger value="profile">Manage Profile</TabsTrigger>
               )}
             </TabsList>
-            <ScrollArea className="h-[calc(100vh-300px)]">
+            <ScrollArea
+              className={classNames(
+                styles.noScroll,
+                "h-[calc(100vh-5rem)] max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] overflow-hidden relative"
+              )}
+            >
               <main
-                className={classNames(
-                  "grid flex-1 items-start mx-auto my-4 mb-4 max-w-8xl gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 body relative",
-                  styles.noScroll
-                )}
+                className={`relative max-w-6xl mx-auto md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
               >
                 <Suspense
                   fallback={<ProgressBar value={100} showAnimation={true} />}
@@ -1218,409 +1220,423 @@ const EmployeeProfilePage = () => {
                     <h1 className="text-xl font-bold mb-2 ml-2">
                       <TextGenerateEffect words="Time Clock" />
                     </h1>
-                    <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
-                      {/* Time Card */}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Time Card
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {!currentShift?.start_time && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button className="w-full mx-auto">
-                                  Clock In
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  {unacknowledgedBulletins &&
-                                  unacknowledgedBulletins.length > 0 ? (
-                                    <>
-                                      <AlertDialogTitle>
-                                        Unacknowledged Bulletins
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        You have{" "}
-                                        {unacknowledgedBulletins.length}{" "}
-                                        bulletin
-                                        {unacknowledgedBulletins.length === 1
-                                          ? ""
-                                          : "s"}{" "}
-                                        that require
-                                        {unacknowledgedBulletins.length === 1
-                                          ? "s"
-                                          : ""}{" "}
-                                        your acknowledgment. Please review and
-                                        acknowledge them.
-                                      </AlertDialogDescription>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <AlertDialogTitle>
-                                        Clock In Confirmation
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you ready to start your shift?
-                                      </AlertDialogDescription>
-                                    </>
-                                  )}
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  {unacknowledgedBulletins &&
-                                  unacknowledgedBulletins.length > 0 ? (
-                                    <AlertDialogAction
-                                      onClick={handleClockInAndBulletin}
-                                    >
-                                      Clock In & View Bulletin
-                                    </AlertDialogAction>
-                                  ) : (
-                                    <AlertDialogAction
-                                      onClick={() => clockInMutation.mutate()}
-                                    >
-                                      Clock In
-                                    </AlertDialogAction>
-                                  )}
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                          {currentShift?.start_time &&
-                            !currentShift?.end_time && (
-                              <>
-                                {!currentShift.lunch_start && (
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        className="w-full mx-auto"
+                    <div
+                      className={`relative max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+                    >
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
+                        {/* Time Card */}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              Time Card
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {!currentShift?.start_time && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button className="w-full mx-auto">
+                                    Clock In
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    {unacknowledgedBulletins &&
+                                    unacknowledgedBulletins.length > 0 ? (
+                                      <>
+                                        <AlertDialogTitle>
+                                          Unacknowledged Bulletins
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          You have{" "}
+                                          {unacknowledgedBulletins.length}{" "}
+                                          bulletin
+                                          {unacknowledgedBulletins.length === 1
+                                            ? ""
+                                            : "s"}{" "}
+                                          that require
+                                          {unacknowledgedBulletins.length === 1
+                                            ? "s"
+                                            : ""}{" "}
+                                          your acknowledgment. Please review and
+                                          acknowledge them.
+                                        </AlertDialogDescription>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AlertDialogTitle>
+                                          Clock In Confirmation
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you ready to start your shift?
+                                        </AlertDialogDescription>
+                                      </>
+                                    )}
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    {unacknowledgedBulletins &&
+                                    unacknowledgedBulletins.length > 0 ? (
+                                      <AlertDialogAction
+                                        onClick={handleClockInAndBulletin}
                                       >
-                                        Clock Out
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent>
-                                      <div className="flex w-full justify-center space-x-2">
-                                        <Button
-                                          variant="outline"
-                                          onClick={() =>
-                                            startLunchBreakMutation.mutate()
-                                          }
-                                        >
-                                          Lunch Break
-                                        </Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button variant="ghost">
-                                              End Shift
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>
-                                                End Shift Confirmation
-                                              </AlertDialogTitle>
-                                              <AlertDialogDescription>
-                                                Are you sure you want to end
-                                                your shift for the day? Only a
-                                                manager can correct your
-                                                timesheet to fix this.
-                                              </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>
-                                                Cancel
-                                              </AlertDialogCancel>
-                                              <AlertDialogAction
-                                                onClick={() =>
-                                                  clockOutMutation.mutate()
-                                                }
-                                              >
-                                                Confirm End Shift
-                                              </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                )}
-                                {currentShift.lunch_start &&
-                                  !currentShift.lunch_end && (
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          className="w-full mx-auto"
-                                        >
-                                          Clock Back In From Lunch
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogDescription>
-                                          <p className="mb-4">
-                                            You must take at least a 30-minute
-                                            lunch break.
-                                          </p>
-                                          <Button
-                                            variant="gooeyLeft"
-                                            className="w-full mx-auto mt-4"
-                                            onClick={() =>
-                                              endLunchBreakMutation.mutate()
-                                            }
-                                          >
-                                            Confirm Clocking Back In
-                                          </Button>
-                                        </DialogDescription>
-                                      </DialogContent>
-                                    </Dialog>
-                                  )}
-                                {currentShift.lunch_start &&
-                                  currentShift.lunch_end && (
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          className="w-full mx-auto"
-                                        >
-                                          End Shift
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>
-                                            End Shift Confirmation
-                                          </AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to end your
-                                            shift for the day? Only a manager
-                                            can correct your timesheet to fix
-                                            this.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>
-                                            Cancel
-                                          </AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() =>
-                                              clockOutMutation.mutate()
-                                            }
-                                          >
-                                            Confirm End Shift
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                              </>
+                                        Clock In & View Bulletin
+                                      </AlertDialogAction>
+                                    ) : (
+                                      <AlertDialogAction
+                                        onClick={() => clockInMutation.mutate()}
+                                      >
+                                        Clock In
+                                      </AlertDialogAction>
+                                    )}
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
-                        </CardContent>
-                      </Card>
+                            {currentShift?.start_time &&
+                              !currentShift?.end_time && (
+                                <>
+                                  {!currentShift.lunch_start && (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          className="w-full mx-auto"
+                                        >
+                                          Clock Out
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent>
+                                        <div className="flex w-full justify-center space-x-2">
+                                          <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                              startLunchBreakMutation.mutate()
+                                            }
+                                          >
+                                            Lunch Break
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost">
+                                                End Shift
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                  End Shift Confirmation
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Are you sure you want to end
+                                                  your shift for the day? Only a
+                                                  manager can correct your
+                                                  timesheet to fix this.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>
+                                                  Cancel
+                                                </AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() =>
+                                                    clockOutMutation.mutate()
+                                                  }
+                                                >
+                                                  Confirm End Shift
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                  )}
+                                  {currentShift.lunch_start &&
+                                    !currentShift.lunch_end && (
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className="w-full mx-auto"
+                                          >
+                                            Clock Back In From Lunch
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                          <DialogDescription>
+                                            <p className="mb-4">
+                                              You must take at least a 30-minute
+                                              lunch break.
+                                            </p>
+                                            <Button
+                                              variant="gooeyLeft"
+                                              className="w-full mx-auto mt-4"
+                                              onClick={() =>
+                                                endLunchBreakMutation.mutate()
+                                              }
+                                            >
+                                              Confirm Clocking Back In
+                                            </Button>
+                                          </DialogDescription>
+                                        </DialogContent>
+                                      </Dialog>
+                                    )}
+                                  {currentShift.lunch_start &&
+                                    currentShift.lunch_end && (
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            className="w-full mx-auto"
+                                          >
+                                            End Shift
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                              End Shift Confirmation
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to end your
+                                              shift for the day? Only a manager
+                                              can correct your timesheet to fix
+                                              this.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                              Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() =>
+                                                clockOutMutation.mutate()
+                                              }
+                                            >
+                                              Confirm End Shift
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    )}
+                                </>
+                              )}
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
 
-                    <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
-                      {/* Start of Shift */}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Start Of Shift
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {currentShift?.start_time ? (
-                            <div className="text-left">
-                              <div className="text-lg font-bold">
-                                {formatTZ(
-                                  toZonedTime(
-                                    new Date(
-                                      `${currentShift.event_date}T${currentShift.start_time}`
+                    <div
+                      className={`relative max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+                    >
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
+                        {/* Start of Shift */}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              Start Of Shift
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {currentShift?.start_time ? (
+                              <div className="text-left">
+                                <div className="text-lg font-bold">
+                                  {formatTZ(
+                                    toZonedTime(
+                                      new Date(
+                                        `${currentShift.event_date}T${currentShift.start_time}`
+                                      ),
+                                      "America/Los_Angeles"
                                     ),
-                                    "America/Los_Angeles"
-                                  ),
-                                  "EEEE",
-                                  { timeZone: "America/Los_Angeles" }
-                                )}
-                              </div>
-                              <div>
-                                {formatTZ(
-                                  toZonedTime(
-                                    new Date(
-                                      `${currentShift.event_date}T${currentShift.start_time}`
+                                    "EEEE",
+                                    { timeZone: "America/Los_Angeles" }
+                                  )}
+                                </div>
+                                <div>
+                                  {formatTZ(
+                                    toZonedTime(
+                                      new Date(
+                                        `${currentShift.event_date}T${currentShift.start_time}`
+                                      ),
+                                      "America/Los_Angeles"
                                     ),
-                                    "America/Los_Angeles"
-                                  ),
-                                  "MMM d - h:mm a",
-                                  { timeZone: "America/Los_Angeles" }
-                                )}
+                                    "MMM d - h:mm a",
+                                    { timeZone: "America/Los_Angeles" }
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <div>Not clocked in</div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      {/* Lunch Break Calculation Card*/}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Lunch Break
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {currentShift ? (
-                            currentShift.lunch_start &&
-                            currentShift.lunch_end ? (
-                              <div>{`Your Lunch Break Was From ${formatTZ(
-                                toZonedTime(
-                                  new Date(
-                                    `1970-01-01T${currentShift.lunch_start}`
-                                  ),
-                                  "America/Los_Angeles"
-                                ),
-                                "h:mm a",
-                                { timeZone: "America/Los_Angeles" }
-                              )} to ${formatTZ(
-                                toZonedTime(
-                                  new Date(
-                                    `1970-01-01T${currentShift.lunch_end}`
-                                  ),
-                                  "America/Los_Angeles"
-                                ),
-                                "h:mm a",
-                                { timeZone: "America/Los_Angeles" }
-                              )}`}</div>
-                            ) : currentShift.lunch_start ? (
-                              <div>{`You Clocked Out For Lunch At ${formatTZ(
-                                toZonedTime(
-                                  new Date(
-                                    `1970-01-01T${currentShift.lunch_start}`
-                                  ),
-                                  "America/Los_Angeles"
-                                ),
-                                "h:mm a",
-                                { timeZone: "America/Los_Angeles" }
-                              )}`}</div>
                             ) : (
-                              <div>{`Please Start Your Lunch Break By ${formatTZ(
-                                toZonedTime(
-                                  new Date(
-                                    new Date(
-                                      `${currentShift.event_date}T${currentShift.start_time}`
-                                    ).getTime() +
-                                      5 * 60 * 60 * 1000
-                                  ),
-                                  "America/Los_Angeles"
-                                ),
-                                "h:mm a",
-                                { timeZone: "America/Los_Angeles" }
-                              )}`}</div>
-                            )
-                          ) : (
-                            <div>No active shift</div>
-                          )}
-                        </CardContent>
-                      </Card>
+                              <div>Not clocked in</div>
+                            )}
+                          </CardContent>
+                        </Card>
 
-                      {/* End of Shift */}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            End Of Shift
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {currentShift?.start_time &&
-                          !currentShift?.end_time ? (
-                            <div>
-                              {(() => {
-                                const startTime = new Date(
-                                  `1970-01-01T${currentShift.start_time}`
-                                );
-                                const endTime = new Date(
-                                  startTime.getTime() + 8.5 * 60 * 60 * 1000
-                                ); // 8.5 hours in milliseconds
-                                const formattedEndTime = format(
-                                  endTime,
-                                  "h:mm a"
-                                );
-                                return `Still on shift until no later than ${formattedEndTime}`;
-                              })()}
-                            </div>
-                          ) : currentShift?.end_time ? (
-                            <div>Shift Complete</div>
-                          ) : (
-                            <div>Not clocked in</div>
-                          )}
-                        </CardContent>
-                      </Card>
+                        {/* Lunch Break Calculation Card*/}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              Lunch Break
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {currentShift ? (
+                              currentShift.lunch_start &&
+                              currentShift.lunch_end ? (
+                                <div>{`Your Lunch Break Was From ${formatTZ(
+                                  toZonedTime(
+                                    new Date(
+                                      `1970-01-01T${currentShift.lunch_start}`
+                                    ),
+                                    "America/Los_Angeles"
+                                  ),
+                                  "h:mm a",
+                                  { timeZone: "America/Los_Angeles" }
+                                )} to ${formatTZ(
+                                  toZonedTime(
+                                    new Date(
+                                      `1970-01-01T${currentShift.lunch_end}`
+                                    ),
+                                    "America/Los_Angeles"
+                                  ),
+                                  "h:mm a",
+                                  { timeZone: "America/Los_Angeles" }
+                                )}`}</div>
+                              ) : currentShift.lunch_start ? (
+                                <div>{`You Clocked Out For Lunch At ${formatTZ(
+                                  toZonedTime(
+                                    new Date(
+                                      `1970-01-01T${currentShift.lunch_start}`
+                                    ),
+                                    "America/Los_Angeles"
+                                  ),
+                                  "h:mm a",
+                                  { timeZone: "America/Los_Angeles" }
+                                )}`}</div>
+                              ) : (
+                                <div>{`Please Start Your Lunch Break By ${formatTZ(
+                                  toZonedTime(
+                                    new Date(
+                                      new Date(
+                                        `${currentShift.event_date}T${currentShift.start_time}`
+                                      ).getTime() +
+                                        5 * 60 * 60 * 1000
+                                    ),
+                                    "America/Los_Angeles"
+                                  ),
+                                  "h:mm a",
+                                  { timeZone: "America/Los_Angeles" }
+                                )}`}</div>
+                              )
+                            ) : (
+                              <div>No active shift</div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* End of Shift */}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              End Of Shift
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {currentShift?.start_time &&
+                            !currentShift?.end_time ? (
+                              <div>
+                                {(() => {
+                                  const startTime = new Date(
+                                    `1970-01-01T${currentShift.start_time}`
+                                  );
+                                  const endTime = new Date(
+                                    startTime.getTime() + 8.5 * 60 * 60 * 1000
+                                  ); // 8.5 hours in milliseconds
+                                  const formattedEndTime = format(
+                                    endTime,
+                                    "h:mm a"
+                                  );
+                                  return `Still on shift until no later than ${formattedEndTime}`;
+                                })()}
+                              </div>
+                            ) : currentShift?.end_time ? (
+                              <div>Shift Complete</div>
+                            ) : (
+                              <div>Not clocked in</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
 
-                    <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
-                      {/* Daily Summary Card*/}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Daily Summary
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {currentShift ? (
-                            <div>
-                              {`You've logged ${calculateDurationWithLunch(
-                                currentShift.start_time,
-                                currentShift.end_time ||
-                                  format(new Date(), "HH:mm:ss"),
-                                currentShift.lunch_start,
-                                currentShift.lunch_end
-                              )} hours today!`}
-                            </div>
-                          ) : (
-                            <div>No shift data available</div>
-                          )}
-                        </CardContent>
-                      </Card>
+                    <div
+                      className={`relative max-w-6xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+                    >
+                      <div className="grid p-2 gap-4 md:grid-cols-3 lg:grid-cols-3">
+                        {/* Daily Summary Card*/}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              Daily Summary
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {currentShift ? (
+                              <div>
+                                {`You've logged ${calculateDurationWithLunch(
+                                  currentShift.start_time,
+                                  currentShift.end_time ||
+                                    format(new Date(), "HH:mm:ss"),
+                                  currentShift.lunch_start,
+                                  currentShift.lunch_end
+                                )} hours today!`}
+                              </div>
+                            ) : (
+                              <div>No shift data available</div>
+                            )}
+                          </CardContent>
+                        </Card>
 
-                      {/* Weekly Summary Card*/}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Weekly Summary
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {weeklySummary !== null ? (
-                            <div>{weeklySummary} hours</div>
-                          ) : (
-                            <div>No data</div>
-                          )}
-                        </CardContent>
-                      </Card>
+                        {/* Weekly Summary Card*/}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              Weekly Summary
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {weeklySummary !== null ? (
+                              <div>{weeklySummary} hours</div>
+                            ) : (
+                              <div>No data</div>
+                            )}
+                          </CardContent>
+                        </Card>
 
-                      {/* Pay Period Card*/}
-                      <Card className="mt-4">
-                        <CardHeader className="flex justify-between items-center">
-                          <CardTitle className="text-2xl font-bold">
-                            Pay Period
-                            <div className="text-sm text-gray-500">
-                              {payPeriodSummary?.payPeriodDates.start} -{" "}
-                              {payPeriodSummary?.payPeriodDates.end}
-                            </div>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="mx-auto">
-                          {payPeriodSummary ? (
-                            <div>
-                              <div>{payPeriodSummary?.hours} hours</div>
-                            </div>
-                          ) : (
-                            <div>No data</div>
-                          )}
-                        </CardContent>
-                      </Card>
+                        {/* Pay Period Card*/}
+                        <Card className="mt-4">
+                          <CardHeader className="flex justify-between items-center">
+                            <CardTitle className="text-2xl font-bold">
+                              Pay Period
+                              <div className="text-sm text-gray-500">
+                                {payPeriodSummary?.payPeriodDates.start} -{" "}
+                                {payPeriodSummary?.payPeriodDates.end}
+                              </div>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="mx-auto">
+                            {payPeriodSummary ? (
+                              <div>
+                                <div>{payPeriodSummary?.hours} hours</div>
+                              </div>
+                            ) : (
+                              <div>No data</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -2110,7 +2126,10 @@ const EmployeeProfilePage = () => {
                                 {[
                                   { label: "First Name", id: "name" },
                                   { label: "Last Name", id: "last_name" },
-                                  { label: "Phone Number", id: "phone_number" },
+                                  {
+                                    label: "Phone Number",
+                                    id: "phone_number",
+                                  },
                                   {
                                     label: "Street Address",
                                     id: "street_address",

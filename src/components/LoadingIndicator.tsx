@@ -7,13 +7,13 @@ const LoadingIndicator = () => {
 
   return (
     <div
-      className={`w-full flex flex-col items-center justify-center ${state === "collapsed" ? "ml-4 mx-auto" : "ml-64 mx-auto"} transition-all duration-300`}
+      className={`relative max-w-lg mx-auto ml-16 md:ml-16 lg:ml-16 md:w-lg lg:w-lg overflow-hidden flex-1 transition-all duration-300`}
     >
       <div className="w-full mb-4">
         <Progress value={90} className="h-2 animate-pulse" />
       </div>
       <h2 className="text-center text-xl font-semibold">Chill...</h2>
-      <p className="w-full max-w-md px-4 text-center">We're working on it!</p>
+      <p className="w-full max-w-lg px-4 text-center">We're working on it!</p>
     </div>
   );
 };

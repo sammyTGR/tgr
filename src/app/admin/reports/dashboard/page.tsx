@@ -2038,7 +2038,9 @@ function AdminDashboardContent() {
 
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
-      <div className="max-w-[calc(100vw-40px)] py-4">
+      <div
+        className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+      >
         {/* <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-3xl font-bold">CEO Dashboard</CardTitle>
@@ -2065,7 +2067,7 @@ function AdminDashboardContent() {
             </TabsList>
           </div>
 
-          <div className="relative section w-full overflow-y-auto">
+          <div className="relative section w-full overflow-hidden">
             {isLoading && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50">
                 <LoadingIndicator />
@@ -2073,14 +2075,12 @@ function AdminDashboardContent() {
             )}
 
             <TabsContent value="reporting">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mx-auto max-w-[calc(100vw-100px)] overflow-hidden">
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mx-auto overflow-y-auto"> */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 max-w-[calc(100vw-10rem)] overflow-hidden">
                 {/*todo card*/}
-
                 <div className="w-full overflow-hidden">
                   <h3 className="font-bold p-1 underline">Todos</h3>
                   <div className="col-span-full overflow-hidden mt-2">
-                    <div className="h-full w-full overflow-hidden">
+                    <div className="h-[calc(100vh-12rem)] w-full overflow-hidden">
                       <TodoWrapper />
                     </div>
                   </div>
@@ -2092,7 +2092,7 @@ function AdminDashboardContent() {
                     <ScrollArea
                       className={classNames(
                         styles.noScroll,
-                        "h-[calc(100vh-150px)] overflow-hidden relative"
+                        "h-[calc(100vh-10rem)] w-full overflow-hidden relative"
                       )}
                     >
                       <div className="h-full w-full overflow-hidden">
@@ -2104,7 +2104,7 @@ function AdminDashboardContent() {
                 </div>
 
                 {/*All Report cards*/}
-                <div className="w-full col-span-2">
+                <div className="w-full col-span-1 md:col-span-2">
                   <h3 className="font-bold p-1 underline">Reports Overview</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mt-2">
                     <ReportCard
@@ -2310,7 +2310,7 @@ function AdminDashboardContent() {
             <TabsContent value="sales">
               {/* Super Admin Only*/}
               <div className="w-full overflow-hidden">
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 my-2 gap-6 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 my-2 gap-6 overflow-hidden">
                   {/* File Upload Section */}
                   {/* 
                     (role === "super admin" || role === "dev") && (
@@ -2437,7 +2437,7 @@ function AdminDashboardContent() {
                           />
                           <span>
                             {detailedSalesFileData?.fileName ||
-                              "Select Detailed Sales File"}
+                              "Select Sales File"}
                           </span>
                         </label>
                         <Button
@@ -2456,7 +2456,7 @@ function AdminDashboardContent() {
                         >
                           {uploadDetailedSalesMutation.isPending
                             ? "Uploading Detailed Sales Data..."
-                            : "Upload & Process Detailed Sales Data"}
+                            : "Upload & Process"}
                         </Button>
 
                         {uploadDetailedSalesMutation.isPending && (
@@ -2480,10 +2480,10 @@ function AdminDashboardContent() {
               {/* Sales Chart*/}
 
               <div
-                className={`relative col-span-full ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
               >
                 <Card
-                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                  className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -2495,7 +2495,7 @@ function AdminDashboardContent() {
                     <ScrollArea
                       className={classNames(
                         styles.noScroll,
-                        "w-[calc(100vw-20rem)] overflow-hidden relative"
+                        "h-[calc(100vh-20rem)] w-full md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] overflow-hidden relative"
                       )}
                     >
                       <CardContent className="flex-grow overflow-auto">
@@ -2556,7 +2556,7 @@ function AdminDashboardContent() {
             <TabsContent value="sales-glance">
               <div className="w-full overflow-hidden">
                 <Card
-                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                  className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
                 >
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2">
@@ -2774,7 +2774,7 @@ function AdminDashboardContent() {
 
             <TabsContent value="metrics">
               <div
-                className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)]" : "w-[calc(100vw-20rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
               >
                 <div className="grid grid-cols-2 space-x-2">
                   {/* 2024 Metrics */}
@@ -2852,7 +2852,7 @@ function AdminDashboardContent() {
 
                 {/* Annual Revenue Chart */}
                 <Card
-                  className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] mt-2" : "w-[calc(100vw-20rem)] mt-2"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                  className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
                 >
                   <CardHeader>
                     <CardTitle>Annual Revenue</CardTitle>

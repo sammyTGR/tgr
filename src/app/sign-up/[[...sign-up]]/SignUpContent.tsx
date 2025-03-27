@@ -117,7 +117,9 @@ function SignUpForm() {
   };
 
   return (
-    <div className="grid place-items-center h-screen">
+    <div
+      className={`relative items-center h-screen max-w-xl mx-auto ml-16 md:ml-16 lg:ml-16 md:w-xl lg:w-xl overflow-hidden flex-1 transition-all duration-300`}
+    >
       {isLoading && <LoadingIndicator />}
       <Card className="mx-auto max-w-sm">
         <CardHeader>

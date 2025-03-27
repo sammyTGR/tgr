@@ -282,7 +282,7 @@ const CertificationsPage: React.FC = () => {
       ]}
     >
       <div
-        className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] mt-2 ml-4" : "w-[calc(100vw-20rem)] mt-2 ml-4"} h-full overflow-hidden flex-1 transition-all duration-300`}
+        className={`relative w-full ml-6 md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-15rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         {/* <div className="flex-1 flex flex-col"> */}
         <Tabs defaultValue="certifications" className="w-full">
@@ -293,7 +293,7 @@ const CertificationsPage: React.FC = () => {
           {/* </div> */}
 
           <div
-            className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] " : "w-[calc(100vw-20rem)] "} h-full overflow-hidden flex-1 transition-all duration-300`}
+            className={`relative w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-15rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
           >
             <TabsContent value="certifications" className="overflow-hidden">
               <Card>
@@ -323,7 +323,7 @@ const CertificationsPage: React.FC = () => {
                       }}
                     />
                     <div
-                      className={`relative ${state === "collapsed" ? "w-[calc(100vw-15rem)] " : "w-[calc(100vw-20rem)] "} h-full overflow-hidden flex-1 transition-all duration-300`}
+                      className={`relative w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-15rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
                     >
                       <CertificationDataTable
                         data={tableData}

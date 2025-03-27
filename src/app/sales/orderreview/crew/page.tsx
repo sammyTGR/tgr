@@ -102,7 +102,9 @@ export default function OrdersReviewPage() {
         "dev",
       ]}
     >
-      <div className="h-screen flex flex-col">
+      <div
+        className={`relative w-full ml-6 md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-15rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
+      >
         <section className="flex-1 flex flex-col space-y-4 p-4">
           <div className="flex items-center justify-between space-y-2">
             <div>
@@ -115,7 +117,7 @@ export default function OrdersReviewPage() {
             <OrderTableToolbar table={table} />
             <div className="rounded-md flex-1 flex flex-col">
               <div
-                className={`relative ${state === "collapsed" ? "w-[calc(100vw-40rem)]" : "w-[calc(100vw-40rem)]"} h-full overflow-hidden flex-1 transition-all duration-300`}
+                className={`relative w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-15rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
               >
                 {loading ? <p></p> : <DataTable table={table} />}
               </div>

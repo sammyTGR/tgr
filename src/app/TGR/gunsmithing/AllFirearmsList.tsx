@@ -77,54 +77,52 @@ const AllFirearmsList: React.FC<AllFirearmsListProps> = ({ userRole }) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Select A Firearm</CardTitle>
-      </CardHeader>
-      <CardContent>
+    // <Card>
+    //   <CardHeader>
+    //     <CardTitle>Select A Firearm</CardTitle>
+    //   </CardHeader>
+    <CardContent>
+      <div className="mt-4">
+        <Select
+          value={selectedFirearm ? String(selectedFirearm.id) : ""}
+          onValueChange={(value) => {
+            const firearm = firearms.find((f) => f.id === Number(value));
+            setSelectedFirearm(firearm || null);
+            setNotes(firearm?.maintenance_notes || "");
+          }}
+        >
+          <SelectTrigger className="w-full border border-gray-300 rounded-md shadow-sm">
+            <SelectValue placeholder="Select a firearm" />
+          </SelectTrigger>
+          <SelectContent>
+            {firearms.map((firearm) => (
+              <SelectItem key={firearm.id} value={String(firearm.id)}>
+                {firearm.firearm_name} ({firearm.firearm_type})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {selectedFirearm && (
         <div className="mb-4">
-          <Select
-            value={selectedFirearm ? String(selectedFirearm.id) : ""}
-            onValueChange={(value) => {
-              const firearm = firearms.find((f) => f.id === Number(value));
-              setSelectedFirearm(firearm || null);
-              setNotes(firearm?.maintenance_notes || "");
-            }}
+          <label className="block text-sm font-medium">Maintenance Notes</label>
+          <Textarea
+            name="maintenance_notes"
+            value={notes}
+            onChange={handleNotesChange}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
+          />
+          <Button
+            onClick={handleSaveNotes}
+            variant="linkHover1"
+            className="mt-2"
           >
-            <SelectTrigger className="w-full border border-gray-300 rounded-md shadow-sm">
-              <SelectValue placeholder="Select a firearm" />
-            </SelectTrigger>
-            <SelectContent>
-              {firearms.map((firearm) => (
-                <SelectItem key={firearm.id} value={String(firearm.id)}>
-                  {firearm.firearm_name} ({firearm.firearm_type})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            Save Notes
+          </Button>
         </div>
-        {selectedFirearm && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium">
-              Maintenance Notes
-            </label>
-            <Textarea
-              name="maintenance_notes"
-              value={notes}
-              onChange={handleNotesChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
-            />
-            <Button
-              onClick={handleSaveNotes}
-              variant="linkHover1"
-              className="mt-2"
-            >
-              Save Notes
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </CardContent>
+    // </Card>
   );
 };
 

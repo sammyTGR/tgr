@@ -185,7 +185,7 @@ export default function SignIn() {
 
   return (
     <div
-      className={`grid place-items-center h-screen ${state === "collapsed" ? "ml-4 mx-auto" : "ml-64 mx-auto"} transition-all duration-300`}
+      className={`relative place-items-center h-screen max-w-xl mx-auto ml-16 md:ml-16 lg:ml-16 md:w-xl lg:w-xl overflow-hidden flex-1 transition-all duration-300`}
     >
       {isLoading && <LoadingIndicator />}
       <Card className="mx-auto min-w-[350px]">

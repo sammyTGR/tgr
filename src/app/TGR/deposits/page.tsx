@@ -334,7 +334,7 @@ export default function DailyDepositsPage() {
       allowedRoles={["user", "auditor", "admin", "super admin", "dev", "ceo"]}
     >
       <main
-        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-70rem)] ml-24" : "w-[calc(100vw-70rem)] ml-24"} transition-all duration-300`}
+        className={`relative w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-60rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">

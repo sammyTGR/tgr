@@ -335,14 +335,14 @@ export default function RangeWalkPage() {
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div
-        className={`flex flex-col items-center space-y-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] ml-24" : "w-[calc(100vw-40rem)] ml-24"} transition-all duration-300`}
+        className={`flex flex-col items-center space-y-4 w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
       >
         <h1 className="text-3xl font-bold mt-8">Range Walks & Repairs</h1>
-        <div className="col-span-full overflow-hidden mt-14 ">
-          <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 space-x-2 overflow-hidden">
+        <div className="col-span-full overflow-hidden mt-14 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 space-x-2 space-y-2 overflow-hidden">
             {/* Range Walk Card */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                 <CardTitle className="text-2xl font-bold">Range Walk</CardTitle>
               </CardHeader>
               <CardContent>
@@ -355,7 +355,7 @@ export default function RangeWalkPage() {
                       variant="outline"
                       className="w-full text-left font-normal"
                     >
-                      Submit Daily Range Walk
+                      Submit Range Walk
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="start">
@@ -370,7 +370,7 @@ export default function RangeWalkPage() {
 
             {/* Repair Notes Card */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                 <CardTitle className="text-2xl font-bold">
                   Repair Notes
                 </CardTitle>
@@ -388,7 +388,7 @@ export default function RangeWalkPage() {
                       Enter Repair Notes
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-2xl p-2" align="start">
+                  <PopoverContent className="w-2xl" align="start">
                     <div className="space-y-4">
                       <Select onValueChange={handleSelectedRangeWalkChange}>
                         <SelectTrigger>
@@ -450,7 +450,7 @@ export default function RangeWalkPage() {
         </div>
 
         {/* Range Report Card */}
-        <div className="max-w-[calc(100vw-40rem)] overflow-hidden">
+        <div className="w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden">
           <Card className="flex flex-col col-span-full mt-2 mb-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -462,7 +462,7 @@ export default function RangeWalkPage() {
               <ScrollArea
                 className={classNames(
                   styles.noScroll,
-                  "w-[calc(100vw-40rem)] overflow-hidden relative"
+                  "w-full md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] overflow-hidden relative"
                 )}
               >
                 <CardContent className="flex flex-col overflow-hidden">

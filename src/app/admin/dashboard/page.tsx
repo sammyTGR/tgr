@@ -42,7 +42,7 @@ const Dashboard = () => {
       allowedRoles={["auditor", "admin", "ceo", "super admin", "dev"]}
     >
       <div
-        className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+        className={`relative w-full mx-auto ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <section>
           <div className="container px-4 mt-4 md:px-6">

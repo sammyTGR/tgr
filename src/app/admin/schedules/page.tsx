@@ -1132,7 +1132,7 @@ const ManageSchedules = () => {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <Card
-        className={`relative w-full md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-20rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
+        className={`relative w-full ml-6 md:w-[calc(100vw-15rem)] md:ml-6 lg:w-[calc(100vw-20rem)] lg:ml-6 h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <CardHeader className="bg-muted dark:bg-muted px-6 py-4 border-b rounded-t-lg border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-bold">Manage Employee Schedules</h1>

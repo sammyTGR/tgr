@@ -172,7 +172,7 @@ export default function DROSGuide() {
       allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
     >
       <div
-        className={`items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-30rem)] mt-12 ml-24 mx-auto" : "w-[calc(100vw-30rem)] mt-12 ml-24 mx-auto"} transition-all duration-300`}
+        className={`flex flex-col space-y-4 w-full ml-4 md:ml-4 lg:ml-4 overflow-hidden md:w-[calc(100vw-15rem)] lg:w-[calc(100vw-20rem)] transition-all duration-300`}
       >
         <div className="flex flow-row items-center justify-between mb-8">
           <div className="flex justify-center items-center mx-auto mb-24 w-full">

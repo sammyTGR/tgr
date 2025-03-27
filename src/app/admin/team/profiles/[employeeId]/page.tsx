@@ -1857,7 +1857,7 @@ const EmployeeProfile = () => {
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div
-        className={`relative ${state === "collapsed" ? "w-[calc(100vw-20rem)] mx-auto ml-4" : "w-[calc(100vw-25rem)] mx-auto ml-4"} h-full overflow-auto flex-1 transition-all duration-300`}
+        className={`relative w-full mx-auto ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <Card className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto my-12">
           <header className="bg-gray-100 dark:bg-muted rounded-t-lg px-6 py-4 border-b border-gray-200 dark:border-gray-700">

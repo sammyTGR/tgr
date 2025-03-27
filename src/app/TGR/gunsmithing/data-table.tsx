@@ -214,7 +214,7 @@ export function DataTable<TData extends FirearmsMaintenanceData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex-1 overflow-hidden max-h-full rounded-md border w-full">
+      <div className="flex-1 overflow-hidden max-h-full rounded-md w-full">
         <div className="overflow-hidden">
           <ScrollArea
             className={classNames(
