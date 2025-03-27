@@ -9,7 +9,7 @@ const LoadingIndicator = () => {
     <div
       className={`w-full flex flex-col items-center justify-center ${state === "collapsed" ? "ml-4 mx-auto" : "ml-64 mx-auto"} transition-all duration-300`}
     >
-      <div className="w-[60%] mb-4">
+      <div className="w-full mb-4">
         <Progress value={90} className="h-2 animate-pulse" />
       </div>
       <h2 className="text-center text-xl font-semibold">Chill...</h2>
