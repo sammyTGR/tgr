@@ -1224,6 +1224,7 @@ export default function Component() {
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
+                  effect="shineHover"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-muted"
                 >
@@ -1594,27 +1595,29 @@ export default function Component() {
       ]}
     >
       <div
-        className={`flex flex-col items-center space-y-4 p-4 ${
-          state === "collapsed"
-            ? "w-full md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-5rem)]"
-            : "w-full md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-5rem)]"
-        } mx-auto ml-0 md:ml-4 transition-all duration-300`}
+        className={`relative max-w-6xl ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem) overflow-hidden flex-1 transition-all duration-300`}
       >
-        <h1 className="text-2xl font-bold">
-          <TextGenerateEffect words={TITLE} />
-        </h1>
-        {(role === "admin" ||
-          role === "super admin" ||
-          role === "dev" ||
-          role === "ceo") && <HolidayManager />}
-        <div className="w-full max-w-7xl">
+        <div className="flex flex-col w-full items-center mb-4">
+          <h1 className="text-2xl font-bold">
+            <TextGenerateEffect words={TITLE} />
+          </h1>
+          {(role === "admin" ||
+            role === "super admin" ||
+            role === "dev" ||
+            role === "ceo") && <HolidayManager />}
+        </div>
+        <div
+          className={`relative max-w-6xl md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] overflow-hidden flex-1 transition-all duration-300`}
+        >
           <div className="flex justify-between items-center mb-4">
             <Dialog
               open={timeOffDialogOpenQuery.data}
               onOpenChange={handleDialogOpen}
             >
               <DialogTrigger asChild>
-                <Button variant="gooeyLeft">Request Time Off</Button>
+                <Button variant="gooeyLeft" effect="shineHover">
+                  Request Time Off
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogTitle>Request Time Off</DialogTitle>
@@ -1633,7 +1636,9 @@ export default function Component() {
             )}
           </div>
 
-          <Card className="flex-1 flex flex-col h-full w-full max-w-7xl">
+          <Card
+            className={`relative max-w-6xl md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+          >
             <CardContent className="h-full flex flex-col">
               <div className="flex justify-between w-full mb-4">
                 <Button variant="linkHover2" onClick={handlePreviousWeek}>
@@ -1649,7 +1654,7 @@ export default function Component() {
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
-                    "h-[calc(100vh-350px)] overflow-hidden relative"
+                    "h-[calc(100vh-15rem)] w-full md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] overflow-hidden relative"
                   )}
                 >
                   <div
