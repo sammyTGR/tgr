@@ -2427,7 +2427,7 @@ function AdminDashboardContent() {
                         </CardHeader> */}
                     <CardContent>
                       <div className="space-y-4">
-                        <label className="flex items-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
+                        <label className="flex items-center text-center gap-2 p-2 rounded-md cursor-pointer border border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full">
                           <Input
                             type="file"
                             accept=".csv,.xlsx"
@@ -2435,20 +2435,21 @@ function AdminDashboardContent() {
                             key={detailedSalesFileData?.fileInputKey}
                             className="hidden"
                           />
-                          <span>
+                          <span className="text-center items-center">
                             {detailedSalesFileData?.fileName ||
                               "Select Sales File"}
                           </span>
                         </label>
                         <Button
                           variant="outline"
+                          effect="ringHover"
                           onClick={() =>
                             detailedSalesFileData?.file &&
                             uploadDetailedSalesMutation.mutate(
                               detailedSalesFileData.file
                             )
                           }
-                          className="w-full"
+                          className="w-full flex justify-center items-center"
                           disabled={
                             uploadDetailedSalesMutation.isPending ||
                             !detailedSalesFileData?.file
@@ -2483,7 +2484,7 @@ function AdminDashboardContent() {
                 className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
               >
                 <Card
-                  className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+                  className={`relative max-w-8xl mx-auto md:w-[calc(100vw-5rem)] lg:w-[calc(100vw-25rem)] overflow-hidden flex-1 transition-all duration-300`}
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
