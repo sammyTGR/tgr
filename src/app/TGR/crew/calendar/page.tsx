@@ -1594,7 +1594,11 @@ export default function Component() {
       ]}
     >
       <div
-        className={`flex flex-col items-center space-y-4 p-4 ${state === "collapsed" ? "w-[calc(100vw-40rem)] ml-24" : "w-[calc(100vw-40rem)] ml-24"} transition-all duration-300`}
+        className={`flex flex-col items-center space-y-4 p-4 ${
+          state === "collapsed"
+            ? "w-full md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-20rem)]"
+            : "w-full md:w-[calc(100vw-25rem)] lg:w-[calc(100vw-25rem)]"
+        } mx-auto ml-0 md:ml-4 transition-all duration-300`}
       >
         <h1 className="text-2xl font-bold">
           <TextGenerateEffect words={TITLE} />
