@@ -1654,7 +1654,7 @@ export default function Component() {
                 <ScrollArea
                   className={classNames(
                     styles.noScroll,
-                    "h-[calc(100vh-15rem)] w-full md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] overflow-hidden relative"
+                    "h-[calc(100vh-15rem)] overflow-hidden relative"
                   )}
                 >
                   <div
