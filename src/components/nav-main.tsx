@@ -67,7 +67,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
     url: "#",
     items: [
       {
-        title: "Submit & Review Audits",
+        title: "Auditing & Sales",
         url: "/admin/audits",
         description: "Enter Audits & Review Existing Ones",
         allowedRoles: ["super admin", "ceo", "dev", "admin", "auditor"],
@@ -100,13 +100,13 @@ const navigationSections: { [key: string]: NavigationSection } = {
         ],
       },
       {
-        title: "Review Time Off Requests",
+        title: "Time Off Requests",
         url: "/admin/timeoffreview",
         description: "View All Requests For Time Off",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
       },
       {
-        title: "Create | Manage Schedules",
+        title: "Manage Schedules",
         url: "/admin/schedules",
         description: "Manage Schedules & Timesheets",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
@@ -151,7 +151,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
         allowedRoles: ["super admin", "dev", "user"],
       },
       {
-        title: "Special Orders Report",
+        title: "Special Orders Review",
         url: "/sales/orderreview",
         description: "View Submitted Orders",
         allowedRoles: ["super admin", "ceo", "dev", "admin"],
@@ -163,7 +163,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
         allowedRoles: ["super admin", "ceo", "dev", "admin", "gunsmith"],
       },
       {
-        title: "Rental Firearms Checklist",
+        title: "Rental Firearms",
         url: "/TGR/rentals/checklist",
         description: "Rental Inventory Check",
         allowedRoles: [
@@ -177,7 +177,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
         ],
       },
       {
-        title: "Submit Daily Deposits",
+        title: "Daily Deposits",
         url: "/TGR/deposits",
         description: "Daily Deposits",
         allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
@@ -231,7 +231,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
     ],
   },
   management: {
-    title: "Staff Management",
+    title: "Management",
     icon: Users,
     url: "#",
     items: [
