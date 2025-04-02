@@ -5,6 +5,8 @@ import styled from "styled-components";
 import { supabase } from "@/utils/supabase/client";
 import { Button } from "./button";
 import RoleBasedWrapper from "../RoleBasedWrapper";
+import { ScrollArea, ScrollBar } from "./scroll-area";
+import { Cross2Icon } from "@radix-ui/react-icons";
 
 // Verify and update the paths here
 const DeptId = dynamic(() => import("../../app/TGR/dros/cards/DeptId"), {
@@ -141,21 +143,27 @@ const SubItemWrapper = styled.div`
 
 // z-index: 100; ensures the dialog is above other content
 const DialogContainer = styled.div`
-  position: absolute;
-  padding: 10px;
-  background-color: none;
-  border: none;
-  z-index: 100;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
 `;
 
 // Close Button - Styled component for the close button
 const CloseButton = styled.button`
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
   background: none;
   border: none;
   cursor: pointer;
+  z-index: 1001;
+  padding: 0.5rem;
+  color: #666;
+  &:hover {
+    color: #ff5733;
+  }
 `;
 
 const LineSeparator = styled.div`
@@ -299,7 +307,9 @@ export default function SupportNavMenu() {
     return (
       <DialogContainer ref={dialogRef}>
         {ContentComponent}
-        <CloseButton onClick={closeDialog}>Close</CloseButton>
+        <CloseButton onClick={closeDialog}>
+          <Cross2Icon className="w-4 h-4" />
+        </CloseButton>
       </DialogContainer>
     );
   };
@@ -384,6 +394,7 @@ export default function SupportNavMenu() {
         "super admin",
         "dev",
         "gunsmith",
+        "ceo",
       ]}
     >
       <div
@@ -441,19 +452,22 @@ export default function SupportNavMenu() {
             />
           </NavigationMenu.List>
         </NavigationMenu.Root>
+
         {activeDialogContent && (
-          <div
-            ref={dialogRef}
-            style={{
-              position: "absolute",
-              display: "block",
-              padding: "10px",
-              zIndex: 1000,
-              transition: "all 0.5s ease",
-            }}
-          >
-            {activeDialogContent}
-          </div>
+          <DialogContainer ref={dialogRef}>
+            <CloseButton
+              onClick={() => {
+                setActiveDialogContent(null);
+                setActiveDialog(null);
+              }}
+            >
+              <Cross2Icon className="w-4 h-4" />
+            </CloseButton>
+            <ScrollArea className="h-[calc(100vh-10rem)] rounded-md">
+              <div>{activeDialogContent}</div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
+          </DialogContainer>
         )}
       </div>
     </RoleBasedWrapper>
