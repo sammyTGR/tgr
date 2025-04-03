@@ -254,6 +254,8 @@ const dialogContentComponents = {
   WorkVISA: <WorkVISA />,
   EmpAuth: <EmpAuth />,
   PendingResident: <PendingResident />,
+  FirstLine: <FirstLine />,
+  BlueLabel: <BlueLabel />,
   // Add other mappings as necessary
 };
 
