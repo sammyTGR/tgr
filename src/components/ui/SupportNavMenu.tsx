@@ -115,6 +115,12 @@ const PendingResident = dynamic(
   () => import("../../app/TGR/dros/cards/PendingResident"),
   { ssr: false }
 );
+const FirstLine = dynamic(() => import("../../app/TGR/dros/cards/FirstLine"), {
+  ssr: false,
+});
+const BlueLabel = dynamic(() => import("../../app/TGR/dros/cards/BlueLabel"), {
+  ssr: false,
+});
 // Add other imports as needed
 
 // Width sets fixed width, max-width ensure does not exceed viewport width, overflow-x: hidden hides horizontal overflow
