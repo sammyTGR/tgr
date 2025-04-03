@@ -405,6 +405,10 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
             `Desc.ilike.%Laser Engraving%,` +
             `Desc.ilike.%Reloaded%,` +
             `SubDesc.eq.Targets,` +
+            `SubDesc.eq.Shooting Bag,` +
+            `SubDesc.eq.Shooting Sled,` +
+            `SubDesc.eq.Ear Protection,` +
+            `SubDesc.eq.Eye Protection,` +
             `CatDesc.eq.Gun Range Rental,` +
             `CatDesc.eq.Ammunition,` +
             `CatDesc.eq.Pistol,` +
@@ -578,11 +582,11 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
             [
               "Ear Muffs",
               "12 & Under Earmuff Rentals",
-              "Disposable Earplugs 32db 1 Pair",
-              "3M Disposable earplugs 1 pair/pack 200 pack/case",
-              "Mirage Clear Lens Safety Glasses",
-              "Radians Mirage Clear Lens Safety Glasses",
-              "Medium ERP EP4 Ear Plugs",
+              // "Disposable Earplugs 32db 1 Pair",
+              // "3M Disposable earplugs 1 pair/pack 200 pack/case",
+              // "Mirage Clear Lens Safety Glasses",
+              // "Radians Mirage Clear Lens Safety Glasses",
+              // "Medium ERP EP4 Ear Plugs",
             ].includes(item.Desc?.trim())
           ) {
             category = "Range Protection Equipment";
@@ -591,15 +595,22 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
 
           // Simplify Gun Range Rental categorization
           else if (item.CatDesc === "Gun Range Rental") {
-            category = "Gun Range Rental";
             if (
               item.SubDesc === "Shooting Bag" ||
               item.SubDesc === "Shooting Sled"
             ) {
+              category = "Range Shooting Equipment";
               variant = item.SubDesc;
             } else {
+              category = "Range Firearm Rental";
               variant = item.SubDesc?.trim() || "Unknown";
             }
+          }
+
+          // Add PPE Sold categorization
+          else if (item.CatDesc === "Personal Protection Equipment") {
+            category = "PPE Sold";
+            variant = item.SubDesc?.trim() || "Unknown";
           }
 
           // Add firearms categorization

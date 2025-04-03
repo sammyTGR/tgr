@@ -154,8 +154,9 @@ function DashboardKPI({
   const rangeRentalsCategories = [
     "Range Targets",
     "Range Protection Equipment",
+    "Range Shooting Equipment",
     "Range Station Rental",
-    "Gun Range Rental",
+    "Range Firearm Rental",
   ];
   const firearmCategories = [
     "Pistol",
@@ -416,12 +417,13 @@ function DashboardKPI({
                   {`(${rangeRentalsCategories.filter((cat) => kpiQuery.data?.[cat]).length} categories)`}
                 </span>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {[
                   "Range Targets",
                   "Range Protection Equipment",
+                  "Range Shooting Equipment",
                   "Range Station Rental",
-                  "Gun Range Rental",
+                  "Range Firearm Rental",
                 ].map((category) => {
                   // Add debug logging for Range Station Rental
                   if (
@@ -449,9 +451,11 @@ function DashboardKPI({
                         title={
                           category === "Range Protection Equipment"
                             ? "PPE"
-                            : category.startsWith("Range ")
-                              ? category.replace("Range ", "")
-                              : category
+                            : category === "Range Shooting Equipment"
+                              ? "Shooting Equipment"
+                              : category.startsWith("Range ")
+                                ? category.replace("Range ", "")
+                                : category
                         }
                       >
                         <div className="space-y-4">
@@ -584,7 +588,7 @@ function DashboardKPI({
                   {`(${ammoCategories.filter((cat) => kpiQuery.data?.[cat]).length} categories)`}
                 </span>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {["Reloads", "Factory Ammo"].map(
                   (category) =>
                     kpiQuery.data?.[category] && (
@@ -641,6 +645,64 @@ function DashboardKPI({
                         </div>
                       </ExpandableCard>
                     )
+                )}
+              </div>
+            </div>
+
+            {/* PPE Sold Section */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">
+                PPE Sold
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {`(${kpiQuery.data?.["PPE Sold"] ? 1 : 0} category)`}
+                </span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {kpiQuery.data?.["PPE Sold"] && (
+                  <ExpandableCard key="PPE Sold" id="ppe-sold" title="PPE Sold">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Total Net
+                        </span>
+                        <span className="text-2xl font-bold">
+                          {formatter.format(kpiQuery.data["PPE Sold"].revenue)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Quantity
+                        </span>
+                        <span className="text-2xl font-bold">
+                          {kpiQuery.data["PPE Sold"].qty}
+                        </span>
+                      </div>
+                      {/* Variants */}
+                      {kpiQuery.data["PPE Sold"].variants && (
+                        <div className="mt-4 space-y-2">
+                          {Object.entries(
+                            kpiQuery.data["PPE Sold"].variants
+                          ).map(([variant, stats]) => (
+                            <div key={variant} className="text-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">{variant}</span>
+                              </div>
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>
+                                  Qty: {(stats as { qty: number }).qty}
+                                </span>
+                                <span>
+                                  {formatter.format(
+                                    (stats as { revenue: number }).revenue
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </ExpandableCard>
                 )}
               </div>
             </div>
