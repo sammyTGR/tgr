@@ -99,14 +99,15 @@ function DashboardKPI({
   // Add debug logging for KPI data
   React.useEffect(() => {
     if (kpiQuery.data) {
-      // console.log("KPI Query Data:", {
-      //   firearms: ["Pistol", "Receiver", "Revolver", "Rifle", "Shotgun"].map(
-      //     (category) => ({
-      //       category,
-      //       data: kpiQuery.data[category],
-      //     })
-      //   ),
-      //   protection: kpiQuery.data["Range Protection Equipment"],
+      // console.log("Range Station Rental Data:", {
+      //   category: "Range Station Rental",
+      //   data: kpiQuery.data["Range Station Rental"],
+      //   variants: kpiQuery.data["Range Station Rental"]?.variants,
+      //   standardShooterFee:
+      //     kpiQuery.data["Range Station Rental"]?.variants?.[
+      //       "Standard Shooter Fee"
+      //     ],
+      //   totalRevenue: kpiQuery.data["Range Station Rental"]?.revenue,
       // });
     }
   }, [kpiQuery.data]);
@@ -422,12 +423,12 @@ function DashboardKPI({
                   "Range Station Rental",
                   "Gun Range Rental",
                 ].map((category) => {
-                  // Add debug logging for PPE
+                  // Add debug logging for Range Station Rental
                   if (
-                    category === "Range Protection Equipment" &&
+                    category === "Range Station Rental" &&
                     kpiQuery.data?.[category]
                   ) {
-                    // console.log("PPE Data in UI:", {
+                    // console.log("Rendering Range Station Rental:", {
                     //   category,
                     //   data: kpiQuery.data[category],
                     //   variants: Object.entries(

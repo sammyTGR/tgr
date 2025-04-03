@@ -417,7 +417,8 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
             `Desc.ilike.%Disposable Earplugs 32db%,` +
             `Desc.ilike.%3M Disposable earplugs%,` +
             `Desc.ilike.%Mirage Clear Lens Safety Glasses%,` +
-            `Desc.ilike.%Radians Mirage Clear Lens Safety Glasses%`
+            `Desc.ilike.%Radians Mirage Clear Lens Safety Glasses%,` +
+            `Desc.ilike.%Medium ERP EP4 Ear Plugs%`
         )
         .gte("SoldDate", formattedStartDate)
         .lt("SoldDate", formattedEndDate);
@@ -455,17 +456,45 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
       const soldDate = new Date(item.SoldDate);
       // Only process items within the date range
       if (soldDate >= start && soldDate <= end) {
-        // Handle Station Rental first
         if (item.CatDesc === "Station Rental") {
+          // Debug logging for Station Rental entries
+          // console.log("Processing Station Rental:", {
+          //   id: item.id,
+          //   desc: item.Desc,
+          //   subDesc: item.SubDesc,
+          //   rawSubDesc:
+          //     item.SubDesc === null
+          //       ? "NULL"
+          //       : item.SubDesc === ""
+          //         ? "EMPTY"
+          //         : item.SubDesc,
+          //   qty: item.Qty,
+          //   margin: item.Margin,
+          //   soldDate: item.SoldDate,
+          //   isStandardShooterFee:
+          //     item.SubDesc === "Standard Shooter Fee" ||
+          //     !item.SubDesc ||
+          //     item.SubDesc.trim() === "" ||
+          //     (item.SubDesc === null && item.Desc.includes("Shooters Card")),
+          // });
+
           const category = "Range Station Rental";
-          // Only count as Standard Shooter Fee if SubDesc is null, undefined, or empty string
+          // Match SQL query logic: count as Standard Shooter Fee if SubDesc is exactly 'Standard Shooter Fee' or null/empty
+          // Also include Shooters Card entries with null SubDesc
           const variant =
-            !item.SubDesc || item.SubDesc.trim() === ""
+            item.SubDesc === "Standard Shooter Fee" ||
+            !item.SubDesc ||
+            item.SubDesc.trim() === "" ||
+            (item.SubDesc === null && item.Desc.includes("Shooters Card"))
               ? "Standard Shooter Fee"
               : item.SubDesc.trim();
+
           const qty = Number(item.Qty) || 0;
-          const margin = Number(item.Margin) || 0;
-          const revenue = margin; // Use margin directly for revenue
+          // For Shooters Card entries with null SubDesc, use standard $26 margin
+          const margin =
+            item.SubDesc === null && item.Desc.includes("Shooters Card")
+              ? 26
+              : Number(item.Margin) || 0;
 
           // Initialize category if needed
           if (!acc[category]) {
@@ -477,155 +506,175 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
             };
           }
 
-          // Update category totals
-          acc[category].qty += qty;
-          acc[category].revenue += revenue;
-
-          // Initialize and update variant
+          // Initialize variant if needed
           if (!acc[category].variants[variant]) {
             acc[category].variants[variant] = { qty: 0, revenue: 0 };
           }
-          acc[category].variants[variant].qty += qty;
-          acc[category].variants[variant].revenue += revenue;
 
-          return acc;
-        }
-
-        let category = "";
-        let variant = "";
-        const desc = item.Desc?.toLowerCase() || "";
-        const subDesc = item.SubDesc || "Unknown";
-
-        // Updated categorization logic
-        if (
-          desc.includes("gunsmithing") ||
-          desc.includes("sight in/ function fee") ||
-          desc.includes("pistol optic zero fee")
-        ) {
-          category = "Gunsmithing";
-
-          if (desc.includes("parts")) {
-            variant = "Gunsmithing Parts";
-          } else if (desc.includes("sight in/ function fee")) {
-            variant = "Sight In/Function Fee";
-          } else if (desc.includes("pistol optic zero fee")) {
-            variant = "Pistol Optic Zero Fee";
-          } else {
-            variant = "Gunsmithing";
-          }
-        } else if (desc.includes("laser engraving")) {
-          category = "Laser Engraving/Stippling";
-          variant = item.Desc?.trim() || "Unknown";
-        } else if (item.CatDesc === "Ammunition") {
-          if (desc.includes("reloaded")) {
-            category = "Reloads";
-            variant = item.Desc?.trim() || "Unknown";
-          } else {
-            category = "Factory Ammo";
-            variant = item.Mfg?.trim() || "Unknown Manufacturer";
-          }
-        }
-        // Range Rentals categorization logic
-        else if (item.SubDesc === "Targets") {
-          category = "Range Targets";
-        } else if (
-          [
-            "Ear Muffs",
-            "12 & Under Earmuff Rentals",
-            "Disposable Earplugs 32db 1 Pair",
-            "3M Disposable earplugs 1 pair/pack 200 pack/case",
-            "Mirage Clear Lens Safety Glasses",
-            "Radians Mirage Clear Lens Safety Glasses",
-          ].includes(item.Desc?.trim())
-        ) {
-          category = "Range Protection Equipment";
-          variant = item.Desc?.trim() || "Unknown PPE";
-        }
-
-        // Simplify Gun Range Rental categorization
-        else if (item.CatDesc === "Gun Range Rental") {
-          category = "Gun Range Rental";
-          if (
-            item.SubDesc === "Shooting Bag" ||
-            item.SubDesc === "Shooting Sled"
-          ) {
-            variant = item.SubDesc;
-          } else {
-            variant = item.SubDesc?.trim() || "Unknown";
-          }
-        }
-
-        // Add firearms categorization
-        else if (
-          ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].includes(
-            item.CatDesc
-          )
-        ) {
-          category = item.CatDesc;
-          variant = item.Mfg?.trim() || "Unknown";
-        }
-
-        // Add class categorization
-        else if (item.CatDesc === "Class") {
-          category = "Classes";
-          // Combine SubDesc with Full_Name for the variant
-          variant = `${item.SubDesc?.trim() || "Unknown Class"} - ${item.Full_Name?.trim() || "Unknown Student"}`;
-        }
-
-        if (category) {
-          if (!acc[category]) {
-            acc[category] = {
-              qty: 0,
-              revenue: 0,
-              variants: {},
-              group: [
-                "Ear Muffs",
-                "12 & Under Earmuff Rentals",
-                "Disposable Earplugs 32db 1 Pair",
-                "3M Disposable earplugs 1 pair/pack 200 pack/case",
-                "Mirage Clear Lens Safety Glasses",
-                "Radians Mirage Clear Lens Safety Glasses",
-              ].includes(category)
-                ? "Range Protection"
-                : category.startsWith("Range") || category === "PPE"
-                  ? "Range Rentals"
-                  : [
-                        "Pistol",
-                        "Receiver",
-                        "Revolver",
-                        "Rifle",
-                        "Shotgun",
-                      ].includes(category)
-                    ? "Firearms"
-                    : "Services",
-            };
-          }
-
-          const qty = Number(item.Qty) || 0;
-          const margin = Number(item.Margin) || 0;
-          const revenue = margin; // Use margin directly for revenue
-
-          // Debug logging for all categories
-          // console.log(`Sale:`, {
-          //   category,
+          // Debug logging before update
+          // console.log("Before update:", {
           //   variant,
-          //   qty,
-          //   margin,
-          //   revenue,
-          //   date: item.SoldDate,
-          //   id: item.id,
+          //   categoryTotal: acc[category].revenue,
+          //   variantTotal: acc[category].variants[variant].revenue,
+          //   addingMargin: margin,
+          //   currentQty: qty,
           // });
 
           // Update category totals
           acc[category].qty += qty;
-          acc[category].revenue += revenue;
+          acc[category].revenue += margin;
 
-          // Track variants
-          if (!acc[category].variants[variant]) {
-            acc[category].variants[variant] = { qty: 0, revenue: 0 };
-          }
+          // Update variant totals
           acc[category].variants[variant].qty += qty;
-          acc[category].variants[variant].revenue += revenue;
+          acc[category].variants[variant].revenue += margin;
+
+          // Debug logging after update
+          // console.log("After update:", {
+          //   variant,
+          //   categoryTotal: acc[category].revenue,
+          //   variantTotal: acc[category].variants[variant].revenue,
+          //   addedMargin: margin,
+          //   runningQty: acc[category].variants[variant].qty,
+          // });
+        } else {
+          let category = "";
+          let variant = "";
+          const desc = item.Desc?.toLowerCase() || "";
+          const subDesc = item.SubDesc || "Unknown";
+
+          // Updated categorization logic
+          if (
+            desc.includes("gunsmithing") ||
+            desc.includes("sight in/ function fee") ||
+            desc.includes("pistol optic zero fee")
+          ) {
+            category = "Gunsmithing";
+
+            if (desc.includes("parts")) {
+              variant = "Gunsmithing Parts";
+            } else if (desc.includes("sight in/ function fee")) {
+              variant = "Sight In/Function Fee";
+            } else if (desc.includes("pistol optic zero fee")) {
+              variant = "Pistol Optic Zero Fee";
+            } else {
+              variant = "Gunsmithing";
+            }
+          } else if (desc.includes("laser engraving")) {
+            category = "Laser Engraving/Stippling";
+            variant = item.Desc?.trim() || "Unknown";
+          } else if (item.CatDesc === "Ammunition") {
+            if (desc.includes("reloaded")) {
+              category = "Reloads";
+              variant = item.Desc?.trim() || "Unknown";
+            } else {
+              category = "Factory Ammo";
+              variant = item.Mfg?.trim() || "Unknown Manufacturer";
+            }
+          }
+          // Range Rentals categorization logic
+          else if (item.SubDesc === "Targets") {
+            category = "Range Targets";
+          } else if (
+            [
+              "Ear Muffs",
+              "12 & Under Earmuff Rentals",
+              "Disposable Earplugs 32db 1 Pair",
+              "3M Disposable earplugs 1 pair/pack 200 pack/case",
+              "Mirage Clear Lens Safety Glasses",
+              "Radians Mirage Clear Lens Safety Glasses",
+              "Medium ERP EP4 Ear Plugs",
+            ].includes(item.Desc?.trim())
+          ) {
+            category = "Range Protection Equipment";
+            variant = item.Desc?.trim() || "Unknown PPE";
+          }
+
+          // Simplify Gun Range Rental categorization
+          else if (item.CatDesc === "Gun Range Rental") {
+            category = "Gun Range Rental";
+            if (
+              item.SubDesc === "Shooting Bag" ||
+              item.SubDesc === "Shooting Sled"
+            ) {
+              variant = item.SubDesc;
+            } else {
+              variant = item.SubDesc?.trim() || "Unknown";
+            }
+          }
+
+          // Add firearms categorization
+          else if (
+            ["Pistol", "Rifle", "Revolver", "Shotgun", "Receiver"].includes(
+              item.CatDesc
+            )
+          ) {
+            category = item.CatDesc;
+            variant = item.Mfg?.trim() || "Unknown";
+          }
+
+          // Add class categorization
+          else if (item.CatDesc === "Class") {
+            category = "Classes";
+            // Combine SubDesc with Full_Name for the variant
+            variant = `${item.SubDesc?.trim() || "Unknown Class"} - ${item.Full_Name?.trim() || "Unknown Student"}`;
+          }
+
+          if (category) {
+            if (!acc[category]) {
+              acc[category] = {
+                qty: 0,
+                revenue: 0,
+                variants: {},
+                group: [
+                  "Ear Muffs",
+                  "12 & Under Earmuff Rentals",
+                  "Disposable Earplugs 32db 1 Pair",
+                  "3M Disposable earplugs 1 pair/pack 200 pack/case",
+                  "Mirage Clear Lens Safety Glasses",
+                  "Radians Mirage Clear Lens Safety Glasses",
+                  "Medium ERP EP4 Ear Plugs",
+                ].includes(category)
+                  ? "Range Protection"
+                  : category.startsWith("Range") || category === "PPE"
+                    ? "Range Rentals"
+                    : [
+                          "Pistol",
+                          "Receiver",
+                          "Revolver",
+                          "Rifle",
+                          "Shotgun",
+                        ].includes(category)
+                      ? "Firearms"
+                      : "Services",
+              };
+            }
+
+            const qty = Number(item.Qty) || 0;
+            const margin = Number(item.Margin) || 0;
+            const revenue = margin; // Use margin directly for revenue
+
+            // Debug logging for all categories
+            // console.log(`Sale:`, {
+            //   category,
+            //   variant,
+            //   qty,
+            //   margin,
+            //   revenue,
+            //   date: item.SoldDate,
+            //   id: item.id,
+            // });
+
+            // Update category totals
+            acc[category].qty += qty;
+            acc[category].revenue += revenue;
+
+            // Track variants
+            if (!acc[category].variants[variant]) {
+              acc[category].variants[variant] = { qty: 0, revenue: 0 };
+            }
+            acc[category].variants[variant].qty += qty;
+            acc[category].variants[variant].revenue += revenue;
+          }
         }
       }
 
