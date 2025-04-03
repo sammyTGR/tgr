@@ -69,6 +69,7 @@ function DashboardKPI({
           <CardTitle>{title}</CardTitle>
           <Button
             variant="ghost"
+            effect="shineHover"
             size="sm"
             onClick={() => toggleCardExpansion(id)}
             className="h-8 w-8 p-0"
