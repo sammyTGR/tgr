@@ -9,10 +9,10 @@ export default function AuditManagementPage() {
       id: "enter-audit",
       title: "Entering an Audit",
       content: `To enter an audit:
-        • First navigate to the audit management page by hovering over the "Auditing" tab in the navigation bar then clicking on "Audits & Sales Performance"
+        • First navigate to the audit management page by expanding the "Auditing" tab in the navigation sidebar then clicking on "Auditing & Sales"
         • Click the "Submit Audits" tab in the page tabs list
-        • Fill in all fields
-        • For the Audit Category field, if you can't find the exact category, select the closest option
+        • Fill in all fields as accurately as possible since each audit is counted towards the monthly sales performance of the employee
+        • For the Audit Category field, if you can't find the exact category, select the option that best describes the general category of the audit
         • In Auditing Details, enter each unique audit detail for the selected Transaction Type, Audit Location & Audit Category in individual lines, each line is saved as a unique audit using the same Transaction Type, Audit Location and Audit Category
         • For any changes in Transaction Type, Audit Location or Audit Category, you will need to create a new audit by clicking "Add Another Audit"
         • If there is an audit that is not needed, click on "Remove Audit" to remove that particular audit
@@ -23,8 +23,7 @@ export default function AuditManagementPage() {
       id: "review-audits",
       title: "Reviewing Audits",
       content: `To review audits:
-        • First navigate to the audit management page by hovering over the "Auditing" tab in the navigation bar then clicking on "Audits & Sales Performance"
-        • Click the "Review Audits" tab in the page tabs list
+        • From the "Auditing & Sales" page, click the "Review Audits" tab in the page tabs list
         • You can search for specific audits by utilizing the search bars at the top of the page
         • Filter which columns are visible by clicking on the Columns dropdown menu to the right of the search bars
         • Utilize the pagination at the bottom of the page to navigate through the audits and view more or less audits per page
@@ -34,8 +33,7 @@ export default function AuditManagementPage() {
       id: "sales-performance",
       title: "Sales Performance",
       content: `To view sales performance:
-        • First navigate to the audit management page by hovering over the "Auditing" tab in the navigation bar then clicking on "Audits & Sales Performance"
-        • Click the "Sales Performance" tab in the page tabs list
+        • From the "Auditing & Sales" page, click the "Sales Performance" tab in the page tabs list
         • If you want to review sales performance for a specific employee, click on the employee's name from the dropdown menu under "Sales Rep"
         • If you want to review sales performance for all employees, click on the "Show All Employees" toggle button under "Sales Rep"
         • Select the date within the month that you want to review sales performance for
@@ -51,8 +49,7 @@ export default function AuditManagementPage() {
       id: "audit-guidelines",
       title: "Audit Guidelines",
       content: `To view audit guidelines:
-        • First navigate to the audit management page by hovering over the "Auditing" tab in the navigation bar then clicking on "Audits & Sales Performance"
-        • Click the "Audit Guidelines" tab in the page tabs list
+        • From the "Auditing & Sales" page, click the "Audit Guidelines" tab in the page tabs list
         • The page will show a list of all the audit guidelines that are currently established
         • Click on the down caret button to view the full audit guideline details for each card
         • Click on the "Add Guideline" button to add a new audit guideline

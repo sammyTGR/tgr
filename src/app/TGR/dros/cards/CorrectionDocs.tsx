@@ -85,11 +85,18 @@ function CorrectionDocs({ className }: { className?: string }) {
                   - Exception For long guns - no utility bill needed, only needs
                   W-2
                 </li>
-                <li>
-                  - Exception For LEO - W-2 Along With Department ID And Valid
-                  CA ID | DL
-                </li>
+
                 <li>- Cannot Accept W-2s After April 30th</li>
+              </ul>
+              <li>
+                W2 Exception For LEO - W-2 Along With Department ID And Valid CA
+                ID | DL
+              </li>
+              <ul className="list-none list-inside pl-4">
+                <li>
+                  - Name Format Can Be First Initial, Middle Initial, FULL Last
+                  Name If It Is Not Showing Full First Name & Middle Name
+                </li>
               </ul>
 
               <li>

@@ -182,6 +182,7 @@ export function NavUser() {
                   Profile
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push("/support")}>
                 <QuestionMarkIcon className="mr-2 h-4 w-4" />
                 Support

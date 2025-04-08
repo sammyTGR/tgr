@@ -1,15 +1,77 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabase/client";
+import LoadingIndicator from "@/components/LoadingIndicator";
+
+// Define role types
+type Role =
+  | "super admin"
+  | "ceo"
+  | "dev"
+  | "admin"
+  | "gunsmith"
+  | "user"
+  | "customer"
+  | "auditor";
 
 export default function SchedulingPage() {
+  // User data and role queries
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
+    staleTime: Infinity,
+  });
+
+  const { data: userData, isLoading: isLoadingRole } = useQuery({
+    queryKey: ["userRole"],
+    queryFn: async () => {
+      const response = await fetch("/api/getUserRole");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user role");
+      }
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!currentUser,
+    staleTime: Infinity,
+  });
+
+  const userRole = userData?.role as Role;
+  const isLoading = isLoadingUser || isLoadingRole;
+
+  // Function to check if a section should be visible based on role
+  const isSectionVisible = (title: string) => {
+    if (!userRole) return false;
+
+    // Only admin roles can see Manage Schedules section
+    if (
+      title === "Manage Schedules" ||
+      title === "Managing Timesheets" ||
+      title === "Time Off Review"
+    ) {
+      return ["super admin", "ceo", "dev", "admin"].includes(userRole);
+    }
+
+    // All other sections are visible to all roles
+    return true;
+  };
+
   const sections = [
     {
       id: "scheduling-guide",
       title: "Scheduling Guide",
       content: `To view schedules & admin options:
-        • First navigate to the scheduling page by hovering over the "Scheduling" tab in the navigation bar
+        • First navigate to the scheduling section by expanding the "Scheduling" tab in the side bar menu
         • All user roles can click on "Team Calendar" to view the team calendar
         • Admins will see additional options to view time off requests and to create and manage schedules as well as time clock entries
         • After clicking into Team Calendar, you'll see the team's schedule 1 week at a time
@@ -18,9 +80,18 @@ export default function SchedulingPage() {
         `,
     },
     {
+      id: "submit-time-off",
+      title: "Submit Time Off",
+      content: `To submit a time off request:
+        • From the "Team Calendar" page, click on Team Calendar
+        • Click on the "Request Time Off" button located in the top right corner of the schedules table
+        • Fill out all fields of the time off request form, including who you have swapped schedules with to cover for your shift during your time off, and details of your request
+        `,
+    },
+    {
       id: "manage-schedules",
       title: "Manage Schedules",
-      content: `After opening the manage schedules & timesheets page:
+      content: `After opening the "Manage Schedules" page from the "Scheduling" sidebar menu, click on the "Scheduling" tab (this is the default tab):
         • The Scheduling tab will show you all of the employee's schedules as well as the action cards to create and delete schedules from the Team Calendar for individual and all employees
         • To genereate a schedule in the Team Calendar for an individual employee, select the employee's name from the dropdown menu in the Generate A Single Schedule card
         • To generate schedules for all employees in the Team Calendar, click the "Select # Of Weeks" button in the Generate All Schedules card, then enter the number of weeks you want to generate schedules out for
@@ -37,7 +108,7 @@ export default function SchedulingPage() {
     {
       id: "timesheets",
       title: "Managing Timesheets",
-      content: `To review timesheets and time clock entries:
+      content: `After opening the "Manage Schedules" page from the "Scheduling" sidebar menu, click on the "Timesheets" tab:
         • The Timesheets tab will show all timesheets for all employees with action cards to enter timesheet entries for individual employees that forgot to clock in, and review existing timesheet entries for all employees
         • To enter a timesheet entry for an employee that forgot to clock in, click on the "Add Timesheet Entry" button in the "Add Timesheet Entry" card
         • You can search for specific employees by selecting the employee's name from the dropdown menu under "Select employee"
@@ -59,8 +130,7 @@ export default function SchedulingPage() {
     {
       id: "timeoff-review",
       title: "Time Off Review",
-      content: `To review time off requests:
-        • First navigate to the time off review page by hovering over the "Scheduling" tab in the navigation bar then clicking on "Review Time Off Requests"
+      content: `After opening the "Time Off Requests" page from the "Scheduling" sidebar menu:
         • All requests will be listed starting with the earliest request at the top and the latest request at the bottom
         • The "Details" tab will show you the start and end date range for the request, the reason for the request and details that should list who they have covering for their shift
         • The "Use Sick Or Vacation" tab will show you the available sick time for hourly employees and the available vacation time for salaried employees
@@ -95,55 +165,65 @@ export default function SchedulingPage() {
         </Button>
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Table of Contents */}
-        <Card className="lg:col-span-1 h-fit">
-          <CardHeader>
-            <CardTitle>Contents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <nav className="space-y-2">
-              {sections.map((section) => (
-                <Link
-                  key={section.id}
-                  href={`#${section.id}`}
-                  className="block text-sm hover:text-primary transition-colors"
-                >
-                  {section.title}
-                </Link>
-              ))}
-            </nav>
-          </CardContent>
-        </Card>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-[calc(100vh-250px)]">
+          <LoadingIndicator />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Table of Contents */}
+          <Card className="lg:col-span-1 h-fit">
+            <CardHeader>
+              <CardTitle>Contents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <nav className="space-y-2">
+                {sections
+                  .filter((section) => isSectionVisible(section.title))
+                  .map((section) => (
+                    <Link
+                      key={section.id}
+                      href={`#${section.id}`}
+                      className="block text-sm hover:text-primary transition-colors"
+                    >
+                      {section.title}
+                    </Link>
+                  ))}
+              </nav>
+            </CardContent>
+          </Card>
 
-        {/* Main Content */}
-        <ScrollArea className="lg:col-span-3">
-          <div className="space-y-8">
-            <h1 className="text-4xl font-bold mb-4">Scheduling Guide</h1>
-            <p className="text-muted-foreground">
-              Utilize this guide to help you navigate through the scheduling
-              process.
-            </p>
+          {/* Main Content */}
+          <ScrollArea className="lg:col-span-3">
+            <div className="space-y-8">
+              <h1 className="text-4xl font-bold mb-4">Scheduling Guide</h1>
+              <p className="text-muted-foreground">
+                Learn how to manage schedules, timesheets, and time off
+                requests.
+              </p>
 
-            {sections.map((section) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-16"
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{section.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="whitespace-pre-line">{section.content}</p>
-                  </CardContent>
-                </Card>
-              </section>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
+              {sections
+                .filter((section) => isSectionVisible(section.title))
+                .map((section) => (
+                  <section
+                    key={section.id}
+                    id={section.id}
+                    className="scroll-mt-16"
+                  >
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>{section.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="whitespace-pre-line">{section.content}</p>
+                      </CardContent>
+                    </Card>
+                  </section>
+                ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
     </div>
   );
 }

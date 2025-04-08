@@ -10,22 +10,26 @@ export default function GettingStartedPage() {
       title: "Dashboards Overview",
       content: `The dashboard provides a comprehensive view of each user role's activities. You'll find:
         • All admin roles or higher will see the admin dashboard
-        • All user roles or higher will see their user profiles
+        • All user roles for employees will see their user profiles
         • All landing pages will have tabs for common actions and insights
-        • Admin roles or higher will see reporting & certification status, summary statistics and key metrics
+        • All user roles for employees will see the bulletin board after logging in with the option to view their profile pages to review quarterly reviews and current audits for sales staff
+        • Admin roles or higher will see reporting & certification status, summary statistics and key metrics for daily sales, manage their tasks with to-dos, and more
         • Navigation menu for accessing different pages and features`,
     },
     {
       id: "navbar-overview",
-      title: "Navigation Bar Overview",
-      content: `The navigation bar provides access to all pages and features allowed for each role:
+      title: "Navigation Sidebar Overview",
+      content: `The navigation sidebar provides access to all pages and features allowed for each role:
         • All admin roles or higher will see Auditing, Scheduling, Forms, and Reporting
-        • All user roles or higher will see DROS Support, Forms and Schedules
-        • Admins can manage user profiles to show notes, attendance, and performance reviews
+        • All user roles for employees will see DROS Support, Forms and Schedules
+        • All users can view bulletin board posts
+        • All users can view patch notes left by developers to see all updates to the application
+        • Admins can manage user profiles to view create & edit notes, attendance, and performance reviews
         • Admins can manage all employees' schedules, time off requests, and timesheets
         • Admins can view and manage all submitted daily reports such as range walks, checklists, daily deposits, and more
-        • All users can view bulletin board posts and admins can submit their own posts
+        • Admins can submit their own posts to the bulletin board
         • Admins can view and create audits, view sales performance, and access auditing guidelines
+        • Admins can view and manage the rental firearms checklist
         `,
     },
     // {
@@ -41,9 +45,9 @@ export default function GettingStartedPage() {
       id: "navigation",
       title: "Navigating the TGR Application",
       content: `The TGR Application features an intuitive navigation system:
-        • Use the navigation bar to access different sections
-        • The user profile dropdown menu contains quick actions and user settings
-        • Search functionality is available throughout the platform`,
+        • Use the navigation sidebar to access different sections
+        • The user profile dropdown menu located at the bottom of the sidebar contains quick actions and user settings and access to the profile page
+        • Click on the double arrows at the top of the sidebar to expand or collapse the sidebar menu or press control + b on your keyboard`,
     },
   ];
 

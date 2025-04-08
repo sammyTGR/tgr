@@ -64,7 +64,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
   auditing: {
     title: "Auditing",
     icon: ClipboardCheck,
-    url: "#",
+    url: "/admin/audits",
     items: [
       {
         title: "Auditing & Sales",
@@ -83,7 +83,7 @@ const navigationSections: { [key: string]: NavigationSection } = {
   staffManagement: {
     title: "Scheduling",
     icon: CalendarIcon,
-    url: "#",
+    url: "/TGR/crew/calendar",
     items: [
       {
         title: "Team Calendar",
