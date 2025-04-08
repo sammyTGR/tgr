@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardDescription,
@@ -7,8 +9,68 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabase/client";
+import LoadingIndicator from "@/components/LoadingIndicator";
+
+// Define role types
+type Role =
+  | "super admin"
+  | "ceo"
+  | "dev"
+  | "admin"
+  | "gunsmith"
+  | "user"
+  | "customer"
+  | "auditor";
 
 export default function SupportPage() {
+  // User data and role queries
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
+    staleTime: Infinity,
+  });
+
+  const { data: userData, isLoading: isLoadingRole } = useQuery({
+    queryKey: ["userRole"],
+    queryFn: async () => {
+      const response = await fetch("/api/getUserRole");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user role");
+      }
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!currentUser,
+    staleTime: Infinity,
+  });
+
+  const userRole = userData?.role as Role;
+  const isLoading = isLoadingUser || isLoadingRole;
+
+  // Function to check if a section should be visible based on role
+  const isSectionVisible = (title: string) => {
+    if (!userRole) return false;
+
+    // Only admin roles can see Audit Management and Management
+    if (title === "Audit Management") {
+      return ["super admin", "ceo", "dev", "admin", "auditor"].includes(
+        userRole
+      );
+    } else if (title === "Management") {
+      return ["super admin", "ceo", "dev", "admin"].includes(userRole);
+    }
+
+    // All other sections are visible to all roles
+    return true;
+  };
+
   const supportSections = [
     {
       title: "Getting Started",
@@ -52,20 +114,28 @@ export default function SupportPage() {
         </p>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-250px)]">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {supportSections.map((section) => (
-            <Link href={section.href} key={section.title}>
-              <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-                <CardHeader>
-                  <CardTitle>{section.title}</CardTitle>
-                  <CardDescription>{section.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-[calc(100vh-250px)]">
+          <LoadingIndicator />
         </div>
-      </ScrollArea>
+      ) : (
+        <ScrollArea className="h-[calc(100vh-250px)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {supportSections
+              .filter((section) => isSectionVisible(section.title))
+              .map((section) => (
+                <Link href={section.href} key={section.title}>
+                  <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+                    <CardHeader>
+                      <CardTitle>{section.title}</CardTitle>
+                      <CardDescription>{section.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              ))}
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 }
