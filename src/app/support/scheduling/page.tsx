@@ -77,6 +77,7 @@ export default function SchedulingPage() {
         • After clicking into Team Calendar, you'll see the team's schedule 1 week at a time
         • To submit a time off request, click on the "Request Time Off" button
         • Fill out all fields of the time off request form, including who you have swapped schedules with to cover for your shift during your time off
+        • Admins will be able to hover over an employee's schedule for a specific date to view options to mark the employee as called out, left early (no notice given), late start (no notice given), no call no show, or if they were supposed to be off for the day - all of these actions will trigger an automated email to the employee
         `,
     },
     {
