@@ -82,7 +82,9 @@ export const columns: ColumnDef<Employee>[] = [
   },
   {
     accessorKey: "hire_date",
-    header: "Hire Date",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Hire Date" />
+    ),
     cell: ({ row }) => {
       const date = row.getValue("hire_date");
       if (!date || typeof date !== "string") return null;
