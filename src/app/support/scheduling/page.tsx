@@ -84,7 +84,7 @@ export default function SchedulingPage() {
       id: "submit-time-off",
       title: "Submit Time Off",
       content: `To submit a time off request:
-        • From the "Team Calendar" page, click on Team Calendar
+        • Expand the "Scheduling" sidebar menu, click on Team Calendar
         • Click on the "Request Time Off" button located in the top right corner of the schedules table
         • Fill out all fields of the time off request form, including who you have swapped schedules with to cover for your shift during your time off, and details of your request
         `,
