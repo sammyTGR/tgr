@@ -103,6 +103,7 @@ import { TimeTrackingDataTable } from "./TimeTrackingDataTable";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronUp, ChevronDown } from "lucide-react";
 import DashboardKPI from "./dashboard-kpi";
+import DashboardWeeklyKPI from "./dashboard-weekly-kpi";
 import PatchNotesPage from "@/app/patch-notes/page";
 import { PatchNotesSection } from "@/app/patch-notes/patch-notes-section";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -2063,6 +2064,7 @@ function AdminDashboardContent() {
                 Sales By Employee
               </TabsTrigger>
               <TabsTrigger value="sales-kpis">KPIs</TabsTrigger>
+              {/* <TabsTrigger value="weekly-kpis">Weekly KPIs</TabsTrigger> */}
               <TabsTrigger value="metrics">Key Metrics</TabsTrigger>
             </TabsList>
           </div>
@@ -2766,6 +2768,15 @@ function AdminDashboardContent() {
               <DashboardKPI
                 kpiQuery={kpiQuery}
                 drosCancellationsQuery={drosCancellationsQuery} // Add this line
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                getDefaultDateRange={getDefaultDateRange}
+                formatter={formatter}
+              />
+            </TabsContent>
+
+            <TabsContent value="weekly-kpis">
+              <DashboardWeeklyKPI
                 dateRange={dateRange}
                 setDateRange={setDateRange}
                 getDefaultDateRange={getDefaultDateRange}

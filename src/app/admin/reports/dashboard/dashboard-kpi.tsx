@@ -200,6 +200,15 @@ function DashboardKPI({
     );
   };
 
+  const groupOrder = [
+    "Sales",
+    "Services",
+    "Classes",
+    "Range Protection",
+    "Range Rentals",
+    "Firearms",
+  ];
+
   return (
     <TabsContent value="sales-kpis">
       <div className="space-y-4">

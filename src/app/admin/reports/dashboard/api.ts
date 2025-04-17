@@ -34,7 +34,7 @@ interface SalesItem {
   Mfg: string;
 }
 
-interface KPIResult {
+export interface KPIResult {
   qty: number;
   revenue: number;
   variants: Record<string, { qty: number; revenue: number }>;
@@ -656,7 +656,15 @@ export const fetchKPIData = async (startDate: Date, endDate: Date) => {
                           "Shotgun",
                         ].includes(category)
                       ? "Firearms"
-                      : "Services",
+                      : category === "Classes"
+                        ? "Classes"
+                        : [
+                              "Gunsmithing",
+                              "Reloads",
+                              "Laser Engraving/Stippling",
+                            ].includes(category)
+                          ? "Services"
+                          : "Sales",
               };
             }
 
