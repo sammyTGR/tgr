@@ -34,6 +34,13 @@ interface SalesItem {
   Mfg: string;
 }
 
+interface SalesData {
+  totalGross: number;
+  totalMargin: number;
+  totalMarginMinusExclusions: number;
+  salesData: any[];
+}
+
 export interface KPIResult {
   qty: number;
   revenue: number;
@@ -252,38 +259,32 @@ export const sendEmailMutation = async ({
   return response.json();
 };
 
-export const fetchLatestSalesData = async (startDate: Date, endDate: Date) => {
-  const utcStartDate = new Date(startDate.toUTCString().slice(0, -4));
-  const utcEndDate = new Date(endDate.toUTCString().slice(0, -4));
+export async function fetchLatestSalesData(
+  startDate: Date,
+  endDate: Date
+): Promise<SalesData> {
+  const { data, error } = await supabase
+    .from("sales_records")
+    .select("*")
+    .gte("Date", startDate.toISOString())
+    .lte("Date", endDate.toISOString())
+    .order("Date", { ascending: false });
 
-  const response = await fetch("/api/fetch-sales-data", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      startDate: utcStartDate.toISOString(),
-      endDate: utcEndDate.toISOString(),
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Error fetching sales data");
+  if (error) {
+    console.error("Error fetching sales data:", error);
+    throw error;
   }
 
-  const responseData = await response.json();
-  let salesData;
+  const { totalGross, totalMargin, totalMarginMinusExclusions, salesData } =
+    processAndCalculateSalesData(data);
 
-  if (Array.isArray(responseData)) {
-    salesData = responseData;
-  } else if (responseData && Array.isArray(responseData.data)) {
-    salesData = responseData.data;
-  } else {
-    throw new Error("Unexpected data format");
-  }
-
-  return processAndCalculateSalesData(salesData);
-};
+  return {
+    totalGross,
+    totalMargin,
+    totalMarginMinusExclusions,
+    salesData,
+  };
+}
 
 // Helper function to process sales data
 function processAndCalculateSalesData(salesData: any[]) {
@@ -304,29 +305,34 @@ function processAndCalculateSalesData(salesData: any[]) {
   ];
 
   let totalGross = 0;
-  let totalNetMinusExclusions = 0;
-  let totalNet = 0;
+  let totalMargin = 0;
+  let totalMarginMinusExclusions = 0;
 
   salesData.forEach(
     (item: {
       category_label: string;
       total_gross: number;
-      total_net: number;
+      total_net: number; // This is actually Margin in the API response
     }) => {
       const category = item.category_label;
       const grossValue = item.total_gross ?? 0;
-      const netValue = item.total_net ?? 0;
+      const marginValue = item.total_net ?? 0; // This is actually Margin
 
       totalGross += grossValue;
-      totalNet += netValue;
+      totalMargin += marginValue;
 
       if (!excludeCategoriesFromTotalNet.includes(category)) {
-        totalNetMinusExclusions += netValue;
+        totalMarginMinusExclusions += marginValue;
       }
     }
   );
 
-  return { totalGross, totalNet, totalNetMinusExclusions, salesData };
+  return {
+    totalGross,
+    totalMargin,
+    totalMarginMinusExclusions,
+    salesData,
+  };
 }
 
 // Add this mutation function

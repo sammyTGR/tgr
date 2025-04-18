@@ -2777,7 +2777,10 @@ function AdminDashboardContent() {
 
             <TabsContent value="weekly-kpis">
               <DashboardWeeklyKPI
-                dateRange={dateRange}
+                dateRange={{
+                  from: dateRange?.from,
+                  to: dateRange?.to ?? new Date(), // provide a default value for to if it's undefined
+                }}
                 setDateRange={setDateRange}
                 getDefaultDateRange={getDefaultDateRange}
                 formatter={formatter}
