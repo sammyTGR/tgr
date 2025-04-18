@@ -470,7 +470,7 @@ const SalesRangeStackedBarChart: React.FC<SalesRangeStackedBarChartProps> = ({
                 index === 0
                   ? [4, 4, 0, 0]
                   : index === chartData.categories.length - 1
-                    ? [0, 0, 4, 4]
+                    ? [2, 2, 4, 4]
                     : [0, 0, 0, 0]
               }
             />
