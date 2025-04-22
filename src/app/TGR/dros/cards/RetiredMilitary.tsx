@@ -61,7 +61,7 @@ function RetiredMilitary({ className }: { className?: string }) {
               <hr className="my-4" />
               <p>
                 Veterans Are <span className="text-red-500">NOT</span>{" "}
-                Non-Roster | 30 Day Exempt
+                Non-Roster Exempt
               </p>
             </ul>
           </div>

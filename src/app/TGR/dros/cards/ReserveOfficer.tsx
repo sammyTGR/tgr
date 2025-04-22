@@ -50,11 +50,6 @@ function ReserveOfficer({ className }: { className?: string }) {
               </ul>
               <hr className="my-4" />
               <p>
-                Reserve Officers Are <span className="text-red-500">NOT</span>{" "}
-                30 Day Exempt
-              </p>
-              <hr className="my-4" />
-              <p>
                 If The Transaction Is For A{" "}
                 <span className="text-blue-500">Blue Label</span> Firearm, Fill
                 Out The <span className="text-blue-500">Blue Label</span> Form
