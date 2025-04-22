@@ -1065,13 +1065,13 @@ export default function Component() {
 
       return (
         <TableRow key={employee.employee_id}>
-          <TableCell className="text-left font-medium w-22 sticky max-w-sm z-5 bg-background">
+          <TableCell className="text-left font-medium w-23 sticky max-w-sm z-5 bg-background">
             {employee.name}
           </TableCell>
           {DAYS_OF_WEEK.map((day) => (
             <TableCell
               key={day}
-              className={`text-left relative group w-22 max-w-sm ${
+              className={`text-left relative group w-23 max-w-sm ${
                 selectedDayQuery.data && day !== selectedDayQuery.data
                   ? "hidden"
                   : ""
@@ -1595,7 +1595,7 @@ export default function Component() {
       ]}
     >
       <div
-        className={`relative max-w-6xl ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem) overflow-hidden flex-1 transition-all duration-300`}
+        className={`relative max-w-6xl ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-30rem)] lg:w-[calc(100vw-20rem) overflow-hidden flex-1 transition-all duration-300`}
       >
         <div className="flex flex-col w-full items-center mb-4">
           <h1 className="text-2xl font-bold">
@@ -1607,7 +1607,7 @@ export default function Component() {
             role === "ceo") && <HolidayManager />}
         </div>
         <div
-          className={`relative max-w-6xl md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] overflow-hidden flex-1 transition-all duration-300`}
+          className={`relative max-w-6xl md:w-[calc(100vw-30rem)] lg:w-[calc(100vw-20rem)] overflow-hidden flex-1 transition-all duration-300`}
         >
           <div className="flex justify-between items-center mb-4">
             <Dialog
@@ -1637,7 +1637,7 @@ export default function Component() {
           </div>
 
           <Card
-            className={`relative max-w-6xl md:w-[calc(100vw-20rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+            className={`relative max-w-6xl md:w-[calc(100vw-30rem)] lg:w-[calc(100vw-20rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
           >
             <CardContent className="h-full flex flex-col">
               <div className="flex justify-between w-full mb-4">
@@ -1669,13 +1669,13 @@ export default function Component() {
                     >
                       <TableHeader className="sticky top-0 z-5 bg-background">
                         <TableRow>
-                          <TableHead className="text-left w-28 max-w-sm bg-background sticky left-0 z-5">
+                          <TableHead className="text-left w-30 max-w-sm bg-background sticky left-0 z-5">
                             Employee
                           </TableHead>
                           {DAYS_OF_WEEK.map((day) => (
                             <TableHead
                               key={day}
-                              className={`text-left w-28 max-w-sm ${
+                              className={`text-left w-30 max-w-sm ${
                                 selectedDayQuery.data === day ? "bg-muted" : ""
                               } ${
                                 role &&
