@@ -641,7 +641,7 @@ export default function FirearmsChecklist() {
 
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev", "ceo"]}
     >
       <div
         className={`relative w-full ml-6 md:ml-6 lg:ml-6 md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-30rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
