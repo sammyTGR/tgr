@@ -7,7 +7,7 @@ import RoleBasedWrapper from "@/components/RoleBasedWrapper";
 export default function SubmitAudits() {
   return (
     <RoleBasedWrapper
-      allowedRoles={["user", "auditor", "admin", "super admin", "dev"]}
+      allowedRoles={["user", "auditor", "admin", "super admin", "dev", "ceo"]}
     >
       <main>
         <header>
