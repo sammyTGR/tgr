@@ -1,6 +1,10 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { parseISO } from "date-fns";
+
+const TIME_ZONE = "America/Los_Angeles";
 
 export async function POST(request: Request) {
   const { employeeId, date, startTime, endTime } = await request.json();
@@ -15,12 +19,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get employee name first
+    const { data: employee, error: employeeError } = await supabase
+      .from("employees")
+      .select("name")
+      .eq("employee_id", employeeId)
+      .single();
+
+    if (employeeError) {
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 }
+      );
+    }
+
+    // Calculate day_of_week in Pacific timezone
+    const pacificDate = toZonedTime(parseISO(date), TIME_ZONE);
+    const dayOfWeek = formatInTimeZone(pacificDate, TIME_ZONE, "EEEE");
+
     const { error } = await supabase
       .from("schedules")
       .update({
         start_time: startTime,
         end_time: endTime,
         schedule_date: date,
+        name: employee.name,
+        day_of_week: dayOfWeek,
       })
       .eq("employee_id", employeeId)
       .eq("schedule_date", date);

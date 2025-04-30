@@ -169,10 +169,6 @@ const formatDateForDB = (dateString: string) => {
   // Format the date in YYYY-MM-DD format while preserving the Pacific timezone
   const formattedDate = formatInTimeZone(pacificDate, TIME_ZONE, "yyyy-MM-dd");
 
-  // Log for debugging
-  // console.log("Original date:", dateString);
-  // console.log("Formatted date for DB:", formattedDate);
-
   return formattedDate;
 };
 
@@ -967,13 +963,16 @@ export default function Component() {
           throw new Error("Failed to fetch employee data");
         }
 
+        // Format the date for the database
+        const formattedDate = formatDateForDB(schedule_date);
+
         // Update schedule status
         const scheduleResponse = await fetch("/api/update_schedule_status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             employee_id,
-            schedule_date,
+            schedule_date: formattedDate,
             status,
           }),
         });
