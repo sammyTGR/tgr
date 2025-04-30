@@ -37,6 +37,7 @@ const SlidesPage: React.FC = () => {
         "auditor",
         "admin",
         "super admin",
+        "ceo",
         "dev",
       ]}
     >
