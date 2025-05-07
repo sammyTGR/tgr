@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -21,9 +20,7 @@ export async function GET(request: Request) {
 
     if (!weekStart && !getLastAssignment) {
       return NextResponse.json(
-        {
-          error: "Week start date is required",
-        },
+        { error: "Week start date is required" },
         { status: 400 }
       );
     }
@@ -32,7 +29,7 @@ export async function GET(request: Request) {
       const { data, error } = await supabase
         .from("break_room_duty")
         .select("employee_id")
-        .order("week_start", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (error) throw error;
@@ -47,12 +44,7 @@ export async function GET(request: Request) {
     if (error) throw error;
     return NextResponse.json(data);
   } catch (error: any) {
-    return NextResponse.json(
-      {
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -63,6 +55,7 @@ export async function POST(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -82,188 +75,214 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get all weekdays for the given week
     const weekDates = getWeekDates(duty_date);
-
-    // Get all eligible employees ordered by employee_id
-    const { data: allEligibleEmployees, error: eligibleError } = await supabase
-      .from("employees")
-      .select("employee_id")
-      .in("department", ["Sales", "Range"])
-      .eq("status", "active")
-      .order("employee_id", { ascending: true });
-
-    if (eligibleError) throw eligibleError;
-
-    // Get all assignments for the current year to check rotation
-    const currentYear = new Date(duty_date).getFullYear();
-    const { data: yearAssignments, error: yearAssignmentsError } =
-      await supabase
-        .from("break_room_duty")
-        .select("employee_id")
-        .eq("year", currentYear)
-        .order("created_at", { ascending: true });
-
-    if (yearAssignmentsError) throw yearAssignmentsError;
+    console.log("Week dates:", weekDates);
 
     // Function to find closest scheduled day to Friday
-    const findClosestScheduledDay = async (employeeId: number) => {
+    const findClosestScheduledDay = async (employeeId: string) => {
+      // Get all schedules for this employee for this week
       const { data: schedules, error: scheduleError } = await supabase
         .from("schedules")
         .select("*")
         .eq("employee_id", employeeId)
         .in("schedule_date", weekDates)
-        .in("status", ["scheduled", "added_day"])
+        .in("status", ["scheduled", "added_day", "updated_shift"])
         .order("schedule_date", { ascending: true });
 
-      if (scheduleError || !schedules?.length) return null;
+      if (scheduleError) {
+        console.error("Schedule error:", scheduleError);
+        return null;
+      }
 
-      // Check Friday first
-      const friday = weekDates[4];
+      if (!schedules || schedules.length === 0) {
+        console.log(
+          `No scheduled days found for employee ${employeeId} this week`
+        );
+        return null;
+      }
+
+      console.log(
+        `Found ${schedules.length} scheduled days for employee ${employeeId}`
+      );
+
+      // Check if scheduled for Friday first
+      const friday = weekDates[4]; // Friday is the 5th day (index 4)
       const fridaySchedule = schedules.find((s) => s.schedule_date === friday);
-      if (fridaySchedule) return friday;
 
-      // If not scheduled Friday, find closest day
-      return schedules.reduce((closest, schedule) => {
-        const currentDiff = Math.abs(
-          new Date(schedule.schedule_date).getTime() -
-            new Date(friday).getTime()
-        );
-        const closestDiff = Math.abs(
-          new Date(closest.schedule_date).getTime() - new Date(friday).getTime()
-        );
-        return currentDiff < closestDiff ? schedule : closest;
-      }).schedule_date;
+      if (fridaySchedule) {
+        console.log(`Employee ${employeeId} is scheduled for Friday`);
+        return friday;
+      }
+
+      // If not scheduled Friday, find closest workday
+      const workdays = schedules.map((s) => s.schedule_date);
+      console.log(`Workdays for employee ${employeeId}:`, workdays);
+
+      // Sort workdays by proximity to Friday
+      const fridayDate = new Date(friday);
+      const sortedWorkdays = [...workdays].sort((a, b) => {
+        const aDate = new Date(a);
+        const bDate = new Date(b);
+
+        // Prioritize days before Friday
+        const aBeforeFriday = aDate < fridayDate;
+        const bBeforeFriday = bDate < fridayDate;
+
+        if (aBeforeFriday && !bBeforeFriday) return -1;
+        if (!aBeforeFriday && bBeforeFriday) return 1;
+        // If both are on same side of Friday, closest wins
+        const aDiff = Math.abs(aDate.getTime() - fridayDate.getTime());
+        const bDiff = Math.abs(bDate.getTime() - fridayDate.getTime());
+        return aDiff - bDiff;
+      });
+      const closestDay = sortedWorkdays[0];
+      console.log(
+        `Closest workday for employee ${employeeId} is ${closestDay}`
+      );
+      return closestDay;
     };
 
-    // Function to find next eligible employee
-    const findNextEligibleEmployee = async () => {
-      console.log("Starting findNextEligibleEmployee");
+    // Get all eligible employees
+    const { data: allEligibleEmployees, error: eligibleError } = await supabase
+      .from("employees")
+      .select("employee_id, name, department, status")
+      .in("department", ["Sales", "Range"])
+      .eq("status", "active")
+      .order("employee_id", { ascending: true });
 
-      // Get all eligible employees with more details for debugging
-      const { data: allEmployees, error: employeesError } = await supabase
+    if (eligibleError) {
+      console.error("Error fetching eligible employees:", eligibleError);
+      throw eligibleError;
+    }
+
+    // Log all eligible employees for debugging
+    console.log(
+      "All eligible employees:",
+      allEligibleEmployees.map(
+        (e) => `${e.name || "Unknown"} (${e.employee_id})`
+      )
+    );
+
+    // Get the last assigned employee
+    const { data: lastAssignment, error: lastAssignmentError } = await supabase
+      .from("break_room_duty")
+      .select("employee_id")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (lastAssignmentError) {
+      console.error("Error fetching last assignment:", lastAssignmentError);
+      throw lastAssignmentError;
+    }
+
+    const lastAssignedId =
+      lastAssignment && lastAssignment.length > 0
+        ? lastAssignment[0].employee_id
+        : null;
+
+    console.log("Last assigned employee ID:", lastAssignedId);
+
+    const findNextEligibleEmployee = async () => {
+      console.log("=== BREAK ROOM DUTY EMPLOYEE SELECTION ===");
+
+      // Step 1: Get ALL eligible employees with complete details
+      const { data: employees, error } = await supabase
         .from("employees")
         .select("employee_id, name, department, status")
         .in("department", ["Sales", "Range"])
         .eq("status", "active")
-        .order("employee_id", { ascending: true });
+        .order("employee_id");
 
-      if (employeesError) {
-        console.error("Error fetching eligible employees:", employeesError);
-        throw employeesError;
+      if (error || !employees || employees.length === 0) {
+        console.error("Error fetching eligible employees:", error);
+        return null;
       }
 
-      console.log("All eligible employees:", allEmployees);
+      // Step 2: Log all employees' IDs for debugging
+      console.log("All eligible employees (ID order):");
+      employees.forEach((emp) => {
+        console.log(`${emp.name || "Unknown"} (ID: ${emp.employee_id})`);
+      });
 
-      // Get all assignments for the current year
-      const currentYear = new Date().getFullYear();
-      const { data: yearAssignments, error: yearError } = await supabase
-        .from("break_room_duty")
-        .select("employee_id, duty_date")
-        .eq("year", currentYear)
-        .order("created_at", { ascending: true });
+      // Step 3: Get the last assigned employee ID
+      const { data: lastAssignment, error: lastAssignmentError } =
+        await supabase
+          .from("break_room_duty")
+          .select("employee_id")
+          .order("created_at", { ascending: false })
+          .limit(1);
 
-      if (yearError) {
-        console.error("Error fetching year assignments:", yearError);
-        throw yearError;
-      }
+      const lastAssignedId =
+        lastAssignment && lastAssignment.length > 0
+          ? lastAssignment[0].employee_id
+          : null;
 
-      console.log("Year assignments:", yearAssignments);
+      console.log(`Last assigned employee ID: ${lastAssignedId || "None"}`);
 
-      // Create a set of employees who have been assigned this year
-      const assignedThisYear = new Set(
-        yearAssignments?.map((a) => a.employee_id) || []
-      );
-      console.log(
-        "Employees assigned this year:",
-        Array.from(assignedThisYear)
-      );
+      // Step 4: Create a rotation array in explicit ID order
+      let rotationOrder = [];
 
-      // Get the last assigned employee to prevent back-to-back assignments
-      const lastAssigned = yearAssignments?.length
-        ? yearAssignments[yearAssignments.length - 1].employee_id
-        : null;
-      console.log("Last assigned employee:", lastAssigned);
-
-      // Function to check if an employee is scheduled during the week
-      const isScheduledThisWeek = async (employeeId: number) => {
-        const closestDate = await findClosestScheduledDay(employeeId);
-        return closestDate !== null;
-      };
-
-      // First priority: Find unassigned employees
-      for (const employee of allEmployees) {
-        // Skip if this employee has already been assigned this year
-        if (assignedThisYear.has(employee.employee_id)) {
-          console.log(
-            `Skipping ${employee.name} (ID: ${employee.employee_id}) - already assigned this year`
-          );
-          continue;
-        }
-
-        console.log(
-          `Checking unassigned employee ${employee.name} (ID: ${employee.employee_id})`
+      if (!lastAssignedId) {
+        // If no last assignment, start from the beginning
+        rotationOrder = [...employees];
+        console.log("No previous assignment, starting from first employee");
+      } else {
+        // Find the index of the last assigned employee
+        const lastIndex = employees.findIndex(
+          (emp) => emp.employee_id == lastAssignedId
         );
-        if (await isScheduledThisWeek(employee.employee_id)) {
+        console.log(`Last assigned employee found at index ${lastIndex}`);
+
+        if (lastIndex === -1) {
+          // Employee not found, start from first employee
+          rotationOrder = [...employees];
           console.log(
-            `Found unassigned eligible employee: ${employee.name} (ID: ${employee.employee_id})`
+            "Last assigned employee not found in list, starting from beginning"
           );
-          const closestDate = await findClosestScheduledDay(
-            employee.employee_id
+        } else {
+          // Create a rotation array starting AFTER the last assigned employee
+          rotationOrder = [
+            ...employees.slice(lastIndex + 1), // Everything after last assigned
+            ...employees.slice(0, lastIndex), // Everything before last assigned
+          ];
+          console.log(
+            `Created rotation starting with employee after index ${lastIndex}`
           );
-          return { employee_id: employee.employee_id, duty_date: closestDate };
         }
       }
 
-      // Second priority: Start a new rotation if all have been assigned
-      if (assignedThisYear.size >= allEmployees.length) {
-        console.log("All employees have been assigned, starting new rotation");
+      // Step 5: Log the rotation order
+      console.log("Employee rotation order:");
+      rotationOrder.forEach((emp, idx) => {
+        console.log(`${idx + 1}. ${emp.name} (ID: ${emp.employee_id})`);
+      });
 
-        // Create an ordered list of employees, excluding the last assigned
-        const eligibleForNextAssignment = allEmployees
-          .filter((emp) => emp.employee_id !== lastAssigned)
-          .sort((a, b) => a.employee_id - b.employee_id);
-
-        // Check each employee in order
-        for (const employee of eligibleForNextAssignment) {
-          console.log(
-            `Checking employee ${employee.name} (ID: ${employee.employee_id}) for new rotation`
-          );
-          if (await isScheduledThisWeek(employee.employee_id)) {
-            console.log(
-              `Selected for new rotation: ${employee.name} (ID: ${employee.employee_id})`
-            );
-            const closestDate = await findClosestScheduledDay(
-              employee.employee_id
-            );
-            return {
-              employee_id: employee.employee_id,
-              duty_date: closestDate,
-            };
-          }
-        }
-
-        // If no one else is available, check remaining employees
+      // Step 6: Check each employee in rotation order
+      for (const employee of rotationOrder) {
         console.log(
-          "No primary candidates found, checking remaining employees"
+          `Checking if employee ${employee.name} (ID: ${employee.employee_id}) is scheduled...`
         );
-        for (const employee of allEmployees) {
-          if (employee.employee_id === lastAssigned) continue; // Never assign same person twice
-          if (await isScheduledThisWeek(employee.employee_id)) {
-            console.log(
-              `Selected alternate employee: ${employee.name} (ID: ${employee.employee_id})`
-            );
-            const closestDate = await findClosestScheduledDay(
-              employee.employee_id
-            );
-            return {
-              employee_id: employee.employee_id,
-              duty_date: closestDate,
-            };
-          }
+
+        const dutyDate = await findClosestScheduledDay(employee.employee_id);
+
+        if (dutyDate) {
+          console.log(
+            `Found scheduled employee: ${employee.name} (ID: ${employee.employee_id}) for ${dutyDate}`
+          );
+          return {
+            employee_id: employee.employee_id,
+            duty_date: dutyDate,
+          };
+        } else {
+          console.log(
+            `Employee ${employee.name} (ID: ${employee.employee_id}) is not scheduled this week, trying next`
+          );
         }
       }
 
-      console.log("No eligible employees found");
+      console.log("No eligible employees are scheduled this week");
+      console.log("=== END EMPLOYEE SELECTION ===");
       return null;
     };
 
@@ -275,20 +294,30 @@ export async function POST(request: Request) {
       const closestDate = await findClosestScheduledDay(employee_id);
 
       if (!closestDate) {
+        console.log(
+          `Specified employee ${employee_id} not scheduled this week, finding alternate`
+        );
+
         const nextEmployee = await findNextEligibleEmployee();
+
         if (!nextEmployee) {
           return NextResponse.json(
-            {
-              error:
-                "No eligible employees found for break room duty this week",
-            },
+            { error: "No eligible employees scheduled for this week" },
             { status: 400 }
           );
         }
+
         assigneeId = nextEmployee.employee_id;
         actualDutyDate = nextEmployee.duty_date;
+
+        console.log(
+          `Selected alternate employee ${assigneeId} for duty on ${actualDutyDate}`
+        );
       } else {
         actualDutyDate = closestDate;
+        console.log(
+          `Original employee ${employee_id} scheduled for ${actualDutyDate}`
+        );
       }
     }
 
@@ -306,6 +335,10 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
+
+    console.log(
+      `Successfully created break room duty: Employee ${assigneeId} on ${actualDutyDate}`
+    );
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Break room duty error:", error);
@@ -314,7 +347,7 @@ export async function POST(request: Request) {
 }
 
 // Helper function to get all dates in the week
-function getWeekDates(fridayDate: string): string[] {
+function getWeekDates(fridayDate: string) {
   const friday = new Date(fridayDate);
   const monday = new Date(friday);
   monday.setDate(friday.getDate() - 4);

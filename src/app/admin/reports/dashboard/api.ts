@@ -264,11 +264,11 @@ export async function fetchLatestSalesData(
   endDate: Date
 ): Promise<SalesData> {
   const { data, error } = await supabase
-    .from("sales_records")
+    .from("detailed_sales_data")
     .select("*")
-    .gte("Date", startDate.toISOString())
-    .lte("Date", endDate.toISOString())
-    .order("Date", { ascending: false });
+    .gte("SoldDate", startDate.toISOString())
+    .lte("SoldDate", endDate.toISOString())
+    .order("SoldDate", { ascending: false });
 
   if (error) {
     console.error("Error fetching sales data:", error);

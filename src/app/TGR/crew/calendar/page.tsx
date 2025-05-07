@@ -312,6 +312,7 @@ const fetchCalendarDataWithHolidays = async (currentDate: Date) => {
   }
 };
 
+// Modify your calendar.js getBreakRoomDutyEmployee function
 const getBreakRoomDutyEmployee = async (
   employees: EmployeeCalendar[],
   currentWeekStart: Date
@@ -339,39 +340,18 @@ const getBreakRoomDutyEmployee = async (
         : null;
     }
 
-    // Filter and sort sales employees
-    const salesEmployees = employees
-      .filter((emp) => emp.department === "Sales")
-      .sort((a, b) => a.rank - b.rank);
-
+    // If no existing duty, get any available employee
+    const salesEmployees = employees.filter(
+      (emp) => emp.department === "Sales"
+    );
     if (salesEmployees.length === 0) return null;
 
-    // Get last assignment from previous year if needed
-    const lastAssignmentResponse = await fetch(
-      `/api/break_room_duty?getLastAssignment=true&includeYear=2025`
-    );
-
-    if (!lastAssignmentResponse.ok) {
-      throw new Error("Failed to fetch last assignment");
-    }
-
-    const lastAssignment = await lastAssignmentResponse.json();
-
-    // Calculate next employee index
-    let nextEmployeeIndex = 0;
-    if (lastAssignment && lastAssignment.length > 0) {
-      const lastIndex = salesEmployees.findIndex(
-        (emp) => emp.employee_id === lastAssignment[0].employee_id
-      );
-      nextEmployeeIndex = (lastIndex + 1) % salesEmployees.length;
-    }
-
-    const selectedEmployee = salesEmployees[nextEmployeeIndex];
+    // Let the API handle the employee selection
     const dayIndex = DAYS_OF_WEEK.indexOf("Friday");
     const checkDate = addDays(currentWeekStart, dayIndex);
     const formattedDate = format(checkDate, "yyyy-MM-dd");
 
-    // Create new duty assignment for 2025
+    // Pass any valid employee ID - the API will handle finding the next in rotation
     const response = await fetch("/api/break_room_duty", {
       method: "POST",
       headers: {
@@ -379,25 +359,25 @@ const getBreakRoomDutyEmployee = async (
       },
       body: JSON.stringify({
         week_start: formattedWeekStart,
-        employee_id: selectedEmployee.employee_id,
+        employee_id: salesEmployees[0].employee_id, // Just pass first employee
         duty_date: formattedDate,
-        checkSchedule: true,
-        year: 2025, // Add year parameter
+        checkSchedule: true, // API will use this to find the correct next employee
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      if (error.error === "Employee not scheduled for duty date") {
-        console.error(
-          "No scheduled work day found for the selected employee on Friday this week"
-        );
-        return null;
-      }
-      throw new Error("Failed to create break room duty");
+      throw new Error(error.error || "Failed to create break room duty");
     }
 
-    return { employee: selectedEmployee, dutyDate: checkDate };
+    const newDuty = await response.json();
+    const assignedEmployee = employees.find(
+      (emp) => emp.employee_id === newDuty.employee_id
+    );
+
+    return assignedEmployee
+      ? { employee: assignedEmployee, dutyDate: parseISO(newDuty.duty_date) }
+      : null;
   } catch (error) {
     console.error("Error in getBreakRoomDutyEmployee:", error);
     return null;
