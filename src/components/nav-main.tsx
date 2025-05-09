@@ -78,6 +78,12 @@ const navigationSections: { [key: string]: NavigationSection } = {
         description: "Sometimes We All Need A Lil' Help",
         allowedRoles: ["super admin", "ceo", "dev", "admin", "user", "auditor"],
       },
+      {
+        title: "Delayed Tracker",
+        url: "/admin/delayed-tracker",
+        description: "Delayed Tracker",
+        allowedRoles: ["super admin", "ceo", "dev", "admin", "auditor"],
+      },
     ],
   },
   staffManagement: {
