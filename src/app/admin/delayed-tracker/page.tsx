@@ -256,10 +256,10 @@ export default function DrosStatusPage() {
 
   return (
     <div
-      className={`ml-4 mt-4 relative max-w-7xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-5rem)] overflow-hidden flex-1 transition-all duration-300`}
+      className={`ml-4 mt-4 relative max-w-[calc(100vw-20rem)] md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-10rem)] overflow-hidden flex-1 transition-all duration-300`}
     >
       <Card
-        className={`relative max-w-7xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-5rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+        className={`relative max-w-[calc(100vw-20rem)] md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-10rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <CardHeader>
           <CardTitle>DROS Status Tracking</CardTitle>
@@ -584,7 +584,7 @@ export default function DrosStatusPage() {
       </Card>
 
       <Card
-        className={`mt-4 relative max-w-7xl md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-5rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
+        className={`mt-4 relative max-w-[calc(100vw-20rem)] md:w-[calc(100vw-10rem)] lg:w-[calc(100vw-10rem)] h-full overflow-hidden flex-1 transition-all duration-300`}
       >
         <CardHeader>
           <CardTitle>DROS Status Entries</CardTitle>
