@@ -674,7 +674,7 @@ export default function GunsmithingMaintenance() {
                       </CardTitle>
                     </CardHeader> */}
                     <CardContent className="p-0">
-                      <div className="flex items-center justify-between p-4">
+                      <div className="flex items-center justify-between">
                         {["admin", "super admin", "dev"].includes(
                           userRole || ""
                         ) && (
@@ -713,7 +713,7 @@ export default function GunsmithingMaintenance() {
                           )
                         )}
                       </div>
-                      <div className="container justify-start p-4 mt-4">
+                      <div className="container justify-start mt-4">
                         <Button
                           variant="ringHover"
                           onClick={handleSubmit}

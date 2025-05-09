@@ -143,6 +143,15 @@ export default function DrosStatusPage() {
   // Create new DROS status entry
   const createMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // Extract first name from metadata
+      const fullName = user?.user_metadata?.name || "";
+      const firstName = fullName.split(" ")[0];
+      const createdBy = firstName || user?.email || "Unknown";
+
       const { error } = await supabase.from("dros_status").insert([
         {
           dros_number: formData.drosNumber,
@@ -157,7 +166,7 @@ export default function DrosStatusPage() {
           status: formData.status,
           was_called: formData.wasCalled,
           call_outcome: formData.callOutcome || null,
-          created_by: currentUser,
+          created_by: createdBy,
         },
       ]);
 
@@ -185,7 +194,11 @@ export default function DrosStatusPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const updatedBy = user?.email || "Unknown";
+
+      // Extract first name from metadata
+      const fullName = user?.user_metadata?.name || "";
+      const firstName = fullName.split(" ")[0];
+      const updatedBy = firstName || user?.email || "Unknown";
 
       const { error } = await supabase
         .from("dros_status")

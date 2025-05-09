@@ -39,6 +39,7 @@ import {
   MagnifyingGlassIcon,
   PersonIcon,
   TableIcon,
+  TrashIcon,
 } from "@radix-ui/react-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -107,6 +108,25 @@ import DashboardWeeklyKPI from "./dashboard-weekly-kpi";
 import PatchNotesPage from "@/app/patch-notes/page";
 import { PatchNotesSection } from "@/app/patch-notes/patch-notes-section";
 import { useSidebar } from "@/components/ui/sidebar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Certificate {
   id: number;
@@ -474,6 +494,26 @@ function AdminDashboardContent() {
   const { data: suggestions } = useQuery({
     queryKey: ["suggestions"],
     queryFn: fetchSuggestions,
+  });
+
+  // Add delete suggestion mutation
+  const deleteSuggestionMutation = useMutation({
+    mutationFn: async (suggestionId: number) => {
+      const { error } = await supabase
+        .from("employee_suggestions")
+        .delete()
+        .eq("id", suggestionId);
+
+      if (error) throw error;
+      return suggestionId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggestions"] });
+      toast.success("Suggestion deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete suggestion: ${error.message}`);
+    },
   });
 
   const { data: certificates } = useQuery({
@@ -2037,6 +2077,21 @@ function AdminDashboardContent() {
     enabled: !!dateRange?.from && !!dateRange?.to,
   });
 
+  // Add this near your other queries
+  const { data: suggestionToDelete } = useQuery({
+    queryKey: ["suggestionToDelete"],
+    queryFn: () => null as Suggestion | null,
+    staleTime: Infinity,
+  });
+
+  // Add this near your other mutations
+  const suggestionToDeleteMutation = useMutation({
+    mutationFn: (suggestion: Suggestion | null) => Promise.resolve(suggestion),
+    onSuccess: (suggestion) => {
+      queryClient.setQueryData(["suggestionToDelete"], suggestion);
+    },
+  });
+
   return (
     <RoleBasedWrapper allowedRoles={["admin", "ceo", "super admin", "dev"]}>
       <div
@@ -2053,13 +2108,7 @@ function AdminDashboardContent() {
             <TabsList className="border-b border-gray-200 dark:border-gray-700">
               <TabsTrigger value="reporting">Dashboard</TabsTrigger>
               <TabsTrigger value="sales">Daily Sales Review</TabsTrigger>
-
-              <>
-                <TabsTrigger value="sales-glance">
-                  Sales At A Glance
-                </TabsTrigger>
-              </>
-
+              <TabsTrigger value="sales-glance">Sales At A Glance</TabsTrigger>
               <TabsTrigger value="sales-employee">
                 Sales By Employee
               </TabsTrigger>
@@ -2094,7 +2143,7 @@ function AdminDashboardContent() {
                     <ScrollArea
                       className={classNames(
                         styles.noScroll,
-                        "h-[calc(100vh-10rem)] w-full overflow-hidden relative"
+                        "h-[calc(100vh-25rem)] w-full overflow-hidden relative"
                       )}
                     >
                       <div className="h-full w-full overflow-hidden">
@@ -2108,7 +2157,7 @@ function AdminDashboardContent() {
                 {/*All Report cards*/}
                 <div className="w-full col-span-1 md:col-span-2">
                   <h3 className="font-bold p-1 underline">Reports Overview</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-1 mt-2">
                     <ReportCard
                       title="Gunsmithing Weekly Maintenance"
                       date={gunsmiths?.last_maintenance_date || null}
@@ -2169,143 +2218,240 @@ function AdminDashboardContent() {
                         expiration: cert.expiration || new Date(),
                       }))}
                     />
+                  </div>
+                </div>
+                {/* End Of Reports Column */}
 
-                    {/* <h3 className="font-bold p-2">Suggestions Section</h3> */}
-                    <Card className="flex flex-col col-span-full h-full">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <BellIcon className="h-6 w-6" />
-                          Employee Suggestions
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {suggestions && suggestions.length === 0 ? (
-                          <p>No suggestions submitted yet.</p>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Submitted By</TableHead>
-                                  <TableHead>Suggestion</TableHead>
-                                  <TableHead>Date</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Action</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {suggestions &&
-                                  suggestions.map((suggestion) => (
-                                    <TableRow key={suggestion.id}>
-                                      <TableCell>
-                                        {suggestion.created_by}
-                                      </TableCell>
-                                      <TableCell>
-                                        {suggestion.suggestion}
-                                      </TableCell>
-                                      <TableCell>
-                                        {new Date(
-                                          suggestion.created_at || ""
-                                        ).toLocaleDateString()}
-                                      </TableCell>
-                                      <TableCell>
-                                        {suggestion.is_read ? (
-                                          <Badge
+                {/* )} */}
+              </div>
+              <div className="w-full col-span-1 md:col-span-2">
+                {/* Test Suggestions Section */}
+                <Card className="flex flex-col col-span-full h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BellIcon className="h-6 w-6" />
+                      Employee Suggestions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {suggestions && suggestions.length === 0 ? (
+                      <p>No suggestions submitted yet.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Submitted By</TableHead>
+                              <TableHead>Suggestion</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {suggestions &&
+                              suggestions.map((suggestion) => (
+                                <TableRow key={suggestion.id}>
+                                  <TableCell>{suggestion.created_by}</TableCell>
+                                  <TableCell>{suggestion.suggestion}</TableCell>
+                                  <TableCell>
+                                    {new Date(
+                                      suggestion.created_at || ""
+                                    ).toLocaleDateString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    {suggestion.is_read ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-green-100 text-green-800"
+                                      >
+                                        Replied
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-yellow-100 text-yellow-800"
+                                      >
+                                        Pending
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex space-x-2">
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
                                             variant="outline"
-                                            className="bg-green-100 text-green-800"
+                                            disabled={
+                                              suggestion.is_read ?? false
+                                            }
                                           >
-                                            Replied
-                                          </Badge>
-                                        ) : (
-                                          <Badge
-                                            variant="outline"
-                                            className="bg-yellow-100 text-yellow-800"
-                                          >
-                                            Pending
-                                          </Badge>
-                                        )}
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex space-x-2">
-                                          <Popover>
-                                            <PopoverTrigger asChild>
+                                            {suggestion.is_read
+                                              ? "Replied"
+                                              : "Reply"}
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                          <SuggestionReplyForm
+                                            suggestion={suggestion}
+                                            onSubmit={(replyText) =>
+                                              Promise.resolve(
+                                                handleReply({
+                                                  suggestion,
+                                                  replyText,
+                                                })
+                                              )
+                                            }
+                                            onClose={() => {
+                                              const closeEvent = new Event(
+                                                "click"
+                                              );
+                                              document.dispatchEvent(
+                                                closeEvent
+                                              );
+                                            }}
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                      {suggestion.is_read && (
+                                        <Dialog>
+                                          <DialogTrigger asChild>
+                                            <Button variant="outline">
+                                              View
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="sm:max-w-[425px]">
+                                            <DialogHeader>
+                                              <DialogTitle>
+                                                Suggestion Reply
+                                              </DialogTitle>
+                                            </DialogHeader>
+                                            <div className="grid gap-4 py-4">
+                                              <div className="space-y-2">
+                                                <h4 className="font-medium">
+                                                  Original Suggestion
+                                                </h4>
+                                                <p className="text-sm border p-2 rounded bg-muted/50">
+                                                  {suggestion.suggestion}
+                                                </p>
+                                              </div>
+                                              <div className="space-y-2">
+                                                <h4 className="font-medium">
+                                                  Current Reply
+                                                </h4>
+                                                <Textarea
+                                                  value={
+                                                    // Initialize with current reply text
+                                                    (queryClient.getQueryData([
+                                                      "replyText",
+                                                      suggestion.id,
+                                                    ]) as string) ||
+                                                    suggestion.reply ||
+                                                    ""
+                                                  }
+                                                  onChange={(e) => {
+                                                    // Update reply text in the query cache
+                                                    queryClient.setQueryData(
+                                                      [
+                                                        "replyText",
+                                                        suggestion.id,
+                                                      ],
+                                                      e.target.value
+                                                    );
+                                                  }}
+                                                  placeholder="Edit your reply here..."
+                                                  className="min-h-[100px]"
+                                                />
+                                              </div>
+                                              <div className="text-xs text-gray-500">
+                                                <p>
+                                                  Originally replied by:{" "}
+                                                  {suggestion.replied_by}
+                                                </p>
+                                                <p>
+                                                  Replied at:{" "}
+                                                  {new Date(
+                                                    suggestion.replied_at || ""
+                                                  ).toLocaleString()}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            <DialogFooter>
                                               <Button
-                                                variant="outline"
-                                                disabled={
-                                                  suggestion.is_read ?? false
-                                                }
-                                              >
-                                                {suggestion.is_read
-                                                  ? "Replied"
-                                                  : "Reply"}
-                                              </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-80">
-                                              <SuggestionReplyForm
-                                                suggestion={suggestion}
-                                                onSubmit={(replyText) =>
-                                                  Promise.resolve(
+                                                onClick={() => {
+                                                  const replyText =
+                                                    queryClient.getQueryData([
+                                                      "replyText",
+                                                      suggestion.id,
+                                                    ]) as string;
+                                                  if (
+                                                    replyText &&
+                                                    replyText !==
+                                                      suggestion.reply
+                                                  ) {
                                                     handleReply({
                                                       suggestion,
                                                       replyText,
-                                                    })
-                                                  )
-                                                }
-                                                onClose={() => {
-                                                  const closeEvent = new Event(
-                                                    "click"
-                                                  );
-                                                  document.dispatchEvent(
-                                                    closeEvent
-                                                  );
+                                                    }).then(() => {
+                                                      toast.success(
+                                                        "Reply updated and email notification sent"
+                                                      );
+                                                    });
+                                                  }
                                                 }}
-                                              />
-                                            </PopoverContent>
-                                          </Popover>
-                                          {suggestion.is_read && (
-                                            <Popover>
-                                              <PopoverTrigger asChild>
-                                                <Button variant="outline">
-                                                  View
-                                                </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-80">
-                                                <div className="space-y-2">
-                                                  <h4 className="font-medium">
-                                                    Reply Sent
-                                                  </h4>
-                                                  <p className="text-sm">
-                                                    {suggestion.reply}
-                                                  </p>
-                                                  <p className="text-xs text-gray-500">
-                                                    Replied by:{" "}
-                                                    {suggestion.replied_by}
-                                                  </p>
-                                                  <p className="text-xs text-gray-500">
-                                                    Replied at:{" "}
-                                                    {new Date(
-                                                      suggestion.replied_at ||
-                                                        ""
-                                                    ).toLocaleString()}
-                                                  </p>
-                                                </div>
-                                              </PopoverContent>
-                                            </Popover>
-                                          )}
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-                {/* </div> */}
-                {/* )} */}
+                                              >
+                                                Update Reply
+                                              </Button>
+                                            </DialogFooter>
+                                          </DialogContent>
+                                        </Dialog>
+                                      )}
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="destructive"
+                                            size="sm"
+                                          >
+                                            <TrashIcon className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                              Delete Suggestion
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to delete
+                                              this suggestion? This action
+                                              cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                              Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => {
+                                                deleteSuggestionMutation.mutate(
+                                                  suggestion.id
+                                                );
+                                              }}
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
