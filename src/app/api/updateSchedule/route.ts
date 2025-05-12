@@ -2,7 +2,7 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
-import { parseISO } from "date-fns";
+import { parseISO, format } from "date-fns";
 
 const TIME_ZONE = "America/Los_Angeles";
 
@@ -33,16 +33,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate day_of_week in Pacific timezone
-    const pacificDate = toZonedTime(parseISO(date), TIME_ZONE);
-    const dayOfWeek = formatInTimeZone(pacificDate, TIME_ZONE, "EEEE");
+    // Ensure the date is treated as Pacific time from the start
+    const pacificDate = toZonedTime(parseISO(`${date}T00:00:00`), TIME_ZONE);
+    const dayOfWeek = format(pacificDate, "EEEE");
+    const formattedDate = format(pacificDate, "yyyy-MM-dd");
 
     const { error } = await supabase
       .from("schedules")
       .update({
         start_time: startTime,
         end_time: endTime,
-        schedule_date: date,
+        schedule_date: formattedDate,
         name: employee.name,
         day_of_week: dayOfWeek,
       })
@@ -53,7 +54,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      debug: {
+        originalDate: date,
+        pacificDate: pacificDate.toISOString(),
+        formattedDate,
+        dayOfWeek,
+        timezone: TIME_ZONE,
+      },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Internal Server Error" },
