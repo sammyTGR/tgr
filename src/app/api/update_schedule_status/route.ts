@@ -1,7 +1,7 @@
 // src/app/api/update_schedule_status/route.ts
 import { NextResponse } from "next/server";
 import { parseISO, format } from "date-fns";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { formatInTimeZone } from "date-fns-tz";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -12,19 +12,25 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    // Parse the date and convert to Pacific timezone
-    const parsedDate = parseISO(schedule_date);
-    const pacificDate = toZonedTime(parsedDate, TIME_ZONE);
+    console.log("Received date:", schedule_date);
 
-    // Format the date for database storage
-    const formattedDate = formatInTimeZone(
-      pacificDate,
+    // Use the date as received, without timezone conversion
+    const formattedDate = schedule_date;
+
+    // For day of week, use formatInTimeZone to get correct day name
+    const dayOfWeek = formatInTimeZone(
+      parseISO(schedule_date),
       TIME_ZONE,
-      "yyyy-MM-dd"
+      "EEEE"
     );
 
-    // Get the day of week in Pacific timezone
-    const dayOfWeek = formatInTimeZone(pacificDate, TIME_ZONE, "EEEE");
+    console.log("Date conversion:", {
+      receivedDate: schedule_date,
+      formattedForDB: formattedDate,
+      dayOfWeek,
+      timezone: TIME_ZONE,
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
 
     // Update schedule
     const { data: existingSchedule, error: fetchError } = await supabase
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
       // Update existing schedule
       const { error: updateError } = await supabase
         .from("schedules")
-        .update({ status, day_of_week: dayOfWeek })
+        .update({ status })
         .eq("employee_id", employee_id)
         .eq("schedule_date", formattedDate);
 
