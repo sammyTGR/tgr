@@ -1,7 +1,7 @@
 // src/app/api/update_schedule_status/route.ts
 import { NextResponse } from "next/server";
-import { parseISO, format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+import { parseISO, format, addDays } from "date-fns";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -12,25 +12,21 @@ export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
-    console.log("Received date:", schedule_date);
+    // Parse the date and ensure it's treated as UTC
+    const parsedDate = parseISO(schedule_date + "T00:00:00Z");
 
-    // Use the date as received, without timezone conversion
-    const formattedDate = schedule_date;
+    // Convert to Pacific timezone and add a day to compensate for UTC offset
+    const pacificDate = addDays(toZonedTime(parsedDate, TIME_ZONE), 1);
 
-    // For day of week, use formatInTimeZone to get correct day name
-    const dayOfWeek = formatInTimeZone(
-      parseISO(schedule_date),
+    // Format the date for database storage
+    const formattedDate = formatInTimeZone(
+      pacificDate,
       TIME_ZONE,
-      "EEEE"
+      "yyyy-MM-dd"
     );
 
-    console.log("Date conversion:", {
-      receivedDate: schedule_date,
-      formattedForDB: formattedDate,
-      dayOfWeek,
-      timezone: TIME_ZONE,
-      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
+    // Get the day of week in Pacific timezone
+    const dayOfWeek = formatInTimeZone(pacificDate, TIME_ZONE, "EEEE");
 
     // Update schedule
     const { data: existingSchedule, error: fetchError } = await supabase
@@ -58,7 +54,7 @@ export async function POST(request: Request) {
       // Update existing schedule
       const { error: updateError } = await supabase
         .from("schedules")
-        .update({ status })
+        .update({ status, day_of_week: dayOfWeek })
         .eq("employee_id", employee_id)
         .eq("schedule_date", formattedDate);
 
@@ -69,9 +65,12 @@ export async function POST(request: Request) {
       success: true,
       debug: {
         receivedDate: schedule_date,
+        parsedDate: parsedDate.toISOString(),
+        pacificDate: pacificDate.toISOString(),
         storedDate: formattedDate,
         dayOfWeek,
         timezone: TIME_ZONE,
+        serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
     });
   } catch (error: any) {
