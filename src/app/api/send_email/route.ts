@@ -17,6 +17,8 @@ import AdminSuggestionNotification from "../../../../emails/AdminSuggestionNotif
 import GunsmithNewRequest from "../../../../emails/GunsmithNewRequest";
 import LateStart from "../../../../emails/LateStart";
 import NoCallNoShow from "../../../../emails/NoCallNoShow";
+import ShiftAdded from "../../../../emails/ShiftAdded";
+import ShiftUpdated from "../../../../emails/ShiftUpdated";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -177,6 +179,24 @@ export async function POST(request: Request) {
         emailTemplate = NoCallNoShow({
           name: templateData.name,
           date: templateData.date,
+        });
+        fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "ShiftAdded":
+        emailTemplate = ShiftAdded({
+          name: templateData.name,
+          date: templateData.date,
+          startTime: templateData.startTime,
+          endTime: templateData.endTime,
+        });
+        fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
+        break;
+      case "ShiftUpdated":
+        emailTemplate = ShiftUpdated({
+          name: templateData.name,
+          date: templateData.date,
+          startTime: templateData.startTime,
+          endTime: templateData.endTime,
         });
         fromEmail = `TGR <scheduling@${process.env.RESEND_DOMAIN}>`;
         break;

@@ -883,11 +883,46 @@ const ManageSchedules = () => {
         throw new Error(error.error || "Failed to add schedule");
       }
 
-      return response.json();
+      const data = await response.json();
+
+      // Send email notification
+      try {
+        const employee = employees.find(
+          (emp: Employee) => emp.name === employeeName
+        );
+        if (employee?.contact_info?.email) {
+          const formattedDate = format(parseISO(date), "EEEE, MMMM d, yyyy");
+          const emailResponse = await fetch("/api/send_email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: employee.contact_info.email,
+              subject: "New Schedule Added",
+              templateName: "CustomStatus",
+              templateData: {
+                name: employeeName,
+                date: formattedDate,
+                status: `New Shift Added: ${startTime} - ${endTime}`,
+              },
+            }),
+          });
+
+          if (!emailResponse.ok) {
+            console.error("Failed to send email notification");
+          }
+        }
+      } catch (emailError) {
+        console.error("Error sending email notification:", emailError);
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actualSchedules"] });
       queryClient.setQueryData(["popoverState"], false); // Close popover
+      toast.success("Schedule added successfully");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -924,7 +959,41 @@ const ManageSchedules = () => {
         throw new Error(error.error || "Failed to update schedule");
       }
 
-      return response.json();
+      const data = await response.json();
+
+      // Send email notification
+      try {
+        const employee = employees.find(
+          (emp: Employee) => emp.employee_id === employeeId
+        );
+        if (employee?.contact_info?.email) {
+          const formattedDate = format(parseISO(date), "EEEE, MMMM d, yyyy");
+          const emailResponse = await fetch("/api/send_email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: employee.contact_info.email,
+              subject: "Schedule Update Notification",
+              templateName: "CustomStatus",
+              templateData: {
+                name: employee.name,
+                date: formattedDate,
+                status: `Schedule Updated: ${startTime} - ${endTime}`,
+              },
+            }),
+          });
+
+          if (!emailResponse.ok) {
+            console.error("Failed to send email notification");
+          }
+        }
+      } catch (emailError) {
+        console.error("Error sending email notification:", emailError);
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["referenceSchedules"] });
