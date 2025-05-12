@@ -1,8 +1,6 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
-import { parseISO, format } from "date-fns";
 
 const TIME_ZONE = "America/Los_Angeles";
 
@@ -33,17 +31,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ensure the date is treated as Pacific time from the start
-    const pacificDate = toZonedTime(parseISO(`${date}T00:00:00`), TIME_ZONE);
-    const dayOfWeek = format(pacificDate, "EEEE");
-    const formattedDate = format(pacificDate, "yyyy-MM-dd");
+    const daysOfWeek = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const dayOfWeek = daysOfWeek[new Date(date + "T00:00:00").getDay()];
+
+    const formattedStartTime =
+      startTime.length === 5 ? `${startTime}:00` : startTime;
+    const formattedEndTime = endTime.length === 5 ? `${endTime}:00` : endTime;
 
     const { error } = await supabase
       .from("schedules")
       .update({
-        start_time: startTime,
-        end_time: endTime,
-        schedule_date: formattedDate,
+        start_time: formattedStartTime,
+        end_time: formattedEndTime,
+        schedule_date: date,
         name: employee.name,
         day_of_week: dayOfWeek,
       })
@@ -58,8 +66,6 @@ export async function POST(request: Request) {
       success: true,
       debug: {
         originalDate: date,
-        pacificDate: pacificDate.toISOString(),
-        formattedDate,
         dayOfWeek,
         timezone: TIME_ZONE,
       },
