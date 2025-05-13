@@ -92,6 +92,7 @@ const callOutcomeOptions = [
   "Spoke With Customer & Explained Delay",
   "Couldn't Leave VM",
   "Line Disconnected",
+  "Updated About Status Change To Undetermined",
 ];
 
 export default function DrosStatusPage() {
