@@ -23,7 +23,7 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
     data: { role, user } = { role: null, user: null },
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<{ role: string | null; user: User | null }>({
     queryKey: ["role"],
     queryFn: async () => {
       try {
@@ -61,20 +61,23 @@ export function RoleProvider({ children, initialSession }: RoleProviderProps) {
         throw error;
       }
     },
-    enabled: !!initialSession,
+    enabled: true, // Always enable the query
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  const contextValue: RoleContextType = {
+    role,
+    user,
+    loading: isLoading,
+    error: error as Error | null,
+  };
+
   return (
-    <RoleContext.Provider
-      value={{ role, user, loading: isLoading, error: error as Error | null }}
-    >
-      {children}
-    </RoleContext.Provider>
+    <RoleContext.Provider value={contextValue}>{children}</RoleContext.Provider>
   );
 }
 
-export function useRole() {
+export function useRole(): RoleContextType {
   const context = useContext(RoleContext);
   if (context === undefined) {
     throw new Error("useRole must be used within a RoleProvider");
