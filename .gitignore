@@ -41,3 +41,8 @@ next-env.d.ts
 
 .env.local
 .env.production
+
+pnpm-lock.yaml
+pnpm*
+
+*.yaml
