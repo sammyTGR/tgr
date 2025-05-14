@@ -143,6 +143,9 @@ importers:
       '@supabase/auth-helpers-nextjs':
         specifier: ^0.10.0
         version: 0.10.0(@supabase/supabase-js@2.49.4)
+      '@supabase/postgrest-js':
+        specifier: ^1.19.4
+        version: 1.19.4
       '@supabase/ssr':
         specifier: ^0.3.0
         version: 0.3.0(@supabase/supabase-js@2.49.4)

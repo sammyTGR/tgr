@@ -3,7 +3,6 @@
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended",
     "plugin:react-hooks/recommended",
-    "plugin:@next/next/recommended",
     "plugin:prettier/recommended"
   ],
   "parser": "@typescript-eslint/parser",
