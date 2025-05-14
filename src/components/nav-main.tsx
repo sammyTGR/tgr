@@ -18,6 +18,8 @@ import {
   Newspaper,
 } from "lucide-react";
 
+import { CodeIcon } from "@radix-ui/react-icons";
+
 import {
   Collapsible,
   CollapsibleContent,
@@ -50,7 +52,7 @@ type Role =
 
 interface NavigationSection {
   title: string;
-  icon: LucideIcon;
+  icon: LucideIcon | typeof CodeIcon;
   url: string;
   items: {
     title: string;
@@ -236,6 +238,25 @@ const navigationSections: { [key: string]: NavigationSection } = {
       },
     ],
   },
+  development: {
+    title: "Development",
+    icon: CodeIcon,
+    url: "#",
+    items: [
+      {
+        title: "AIM",
+        url: "/aim",
+        description: "AIM Development",
+        allowedRoles: ["dev"],
+      },
+      {
+        title: "Fastbound",
+        url: "/api/fastBoundApi",
+        description: "Fastbound Development",
+        allowedRoles: ["dev"],
+      },
+    ],
+  },
   management: {
     title: "Management",
     icon: Users,
@@ -343,15 +364,30 @@ export function NavMain() {
 
   const userRole = userData?.role as Role;
 
+  // Add debug logs
+  // console.log("Current User Role:", userRole);
+  // console.log("Navigation Sections:", Object.keys(navigationSections));
+
   // Function to check if a navigation item should be visible
   const isItemVisible = (allowedRoles: Role[]) => {
     if (!userRole) return false;
-    return allowedRoles.includes(userRole);
+    const isVisible = allowedRoles.includes(userRole);
+    // console.log("Checking item visibility:", {
+    //   allowedRoles,
+    //   userRole,
+    //   isVisible,
+    // });
+    return isVisible;
   };
 
   // Function to filter navigation items based on role
   const getVisibleItems = (items: NavigationSection["items"]) => {
-    return items.filter((item) => isItemVisible(item.allowedRoles));
+    const visible = items.filter((item) => isItemVisible(item.allowedRoles));
+    // console.log("Filtered items:", {
+    //   total: items.length,
+    //   visible: visible.length,
+    // });
+    return visible;
   };
 
   if (!currentUser || !userRole) return null;
@@ -361,6 +397,13 @@ export function NavMain() {
       <SidebarGroupLabel>Navigation</SidebarGroupLabel>
       <SidebarMenu>
         {Object.entries(navigationSections).map(([key, section]) => {
+          // Add debug logs for each section
+          // console.log(`Checking section: ${key}`, {
+          //   isDevelopment: key === "development",
+          //   userRole,
+          //   shouldShow: key === "development" ? userRole === "dev" : true,
+          // });
+
           // Skip Staff Management section for non-admin roles
           if (
             key === "management" &&
@@ -374,7 +417,14 @@ export function NavMain() {
             return null;
           }
 
+          // Skip Development section for non-dev roles
+          if (key === "development" && userRole !== "dev") {
+            // console.log("Development section skipped - role check failed");
+            return null;
+          }
+
           const visibleItems = getVisibleItems(section.items);
+          // console.log(`Visible items for ${key}:`, visibleItems.length);
           if (visibleItems.length === 0) return null;
 
           return (

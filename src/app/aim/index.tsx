@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function AimPage() {
-  const [shouldSearch, setShouldSearch] = React.useState(false);
   const [searchParams, setSearchParams] =
     React.useState<SearchInventoryRequest>(
       new SearchInventoryRequest({
@@ -47,8 +47,10 @@ export default function AimPage() {
       })
     );
 
+  const debouncedSearchStr = useDebounce(searchParams.SearchStr, 500);
+
   const searchQuery = useQuery({
-    queryKey: ["inventorySearch", searchParams],
+    queryKey: ["inventorySearch", debouncedSearchStr, searchParams],
     queryFn: async () => {
       const response = await fetch("/api/inventory", {
         method: "POST",
@@ -70,17 +72,10 @@ export default function AimPage() {
 
       return data;
     },
-    enabled: shouldSearch && Boolean(searchParams.SearchStr), // Only run when both conditions are true
+    enabled: Boolean(debouncedSearchStr),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setShouldSearch(true); // Enable the search
-    searchQuery.refetch(); // Manually trigger the search
-  };
-
   const handleSearchChange = (value: string) => {
-    setShouldSearch(false); // Disable search when input changes
     setSearchParams(
       (prev) =>
         new SearchInventoryRequest({
@@ -115,7 +110,7 @@ export default function AimPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="SearchStr">Manufacturer Name Search</Label>
               <Input
@@ -178,28 +173,19 @@ export default function AimPage() {
                 <Label htmlFor="ExactModel">Exact Model Match</Label>
               </div>
             </div>
-
-            <Button
-              type="submit"
-              disabled={searchQuery.isFetching}
-              className="w-full md:w-auto"
-            >
-              {searchQuery.isFetching ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Searching...
-                </>
-              ) : (
-                "Search Inventory"
-              )}
-            </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
       {searchQuery.isError && (
         <div className="text-red-500 mb-4">
           Error: {(searchQuery.error as Error).message}
+        </div>
+      )}
+
+      {searchQuery.isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       )}
 
