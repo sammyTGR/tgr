@@ -3,3 +3,6 @@ onlyBuiltDependencies:
   - esbuild
   - supabase
   - unrs-resolver
+
+packages:
+  - '.'
